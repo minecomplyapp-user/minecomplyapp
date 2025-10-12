@@ -93,16 +93,22 @@ const DashboardScreen = ({ navigation }: any) => {
         { text: "Cancel", style: "cancel" },
         {
           text: "CMR (Compliance Monitoring Report)",
-          onPress: () =>
-            Alert.alert(
-              "Coming Soon",
-              "CMR creation will be implemented next!"
-            ),
+          onPress: () => {
+            try {
+              navigation.push("CMRReport", {
+                submissionId: null,
+                projectId: firstProjectId || null,
+                projectName: firstProjectName || "New Project",
+              });
+            } catch (error) {
+              console.error("Navigation error:", error);
+              Alert.alert("Error", "Could not navigate to CMR screen");
+            }
+          },
         },
         {
           text: "CMVR (Compliance Monitoring Verification Report)",
           onPress: () => {
-            // Navigate to CMVR screen - it's in the same stack
             try {
               navigation.push("CMVRReport", {
                 submissionId: null,
