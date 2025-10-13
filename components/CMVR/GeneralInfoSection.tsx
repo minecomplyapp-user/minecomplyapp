@@ -32,6 +32,8 @@ const GeneralInfoSection: React.FC<GeneralInfoSectionProps> = ({
   const handleCaptureGPS = async () => {
     try {
       setIsCapturingLocation(true);
+      
+      // Request permission
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
@@ -41,21 +43,65 @@ const GeneralInfoSection: React.FC<GeneralInfoSectionProps> = ({
         setIsCapturingLocation(false);
         return;
       }
+      
+      // Get current position
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
+      
       const { latitude, longitude } = location.coords;
-      updateGeneralInfo(
-        "location",
-        `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`
-      );
-      setIsCapturingLocation(false);
-      Alert.alert(
-        "Location Captured",
-        `Latitude: ${latitude.toFixed(6)}\nLongitude: ${longitude.toFixed(6)}`
-      );
+      
+      // Reverse geocode to get address
+      const addresses = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude,
+      });
+      
+      if (addresses && addresses.length > 0) {
+        const address = addresses[0];
+        
+        // Build address string from available components
+        const addressComponents = [];
+        
+        if (address.name) addressComponents.push(address.name);
+        if (address.street) addressComponents.push(address.street);
+        if (address.streetNumber) addressComponents.push(address.streetNumber);
+        if (address.district) addressComponents.push(address.district);
+        if (address.subregion) addressComponents.push(address.subregion);
+        if (address.city) addressComponents.push(address.city);
+        if (address.region) addressComponents.push(address.region);
+        if (address.postalCode) addressComponents.push(address.postalCode);
+        if (address.country) addressComponents.push(address.country);
+        
+        const formattedAddress = addressComponents.join(", ");
+        
+        if (formattedAddress) {
+          updateGeneralInfo("location", formattedAddress);
+          setIsCapturingLocation(false);
+          Alert.alert("Location Captured", formattedAddress);
+        } else {
+          // If no address components found, use coordinates
+          const coordsString = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
+          updateGeneralInfo("location", coordsString);
+          setIsCapturingLocation(false);
+          Alert.alert(
+            "Location Captured",
+            `No address found for this location.\n${coordsString}`
+          );
+        }
+      } else {
+        // Fallback to coordinates if geocoding returns no results
+        const coordsString = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
+        updateGeneralInfo("location", coordsString);
+        setIsCapturingLocation(false);
+        Alert.alert(
+          "Location Captured",
+          `Could not determine address.\n${coordsString}`
+        );
+      }
     } catch (error) {
       setIsCapturingLocation(false);
+      console.error("GPS capture error:", error);
       Alert.alert(
         "Error",
         "Failed to capture GPS location. Please make sure location services are enabled."

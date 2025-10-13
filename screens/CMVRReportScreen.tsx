@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, ScrollView, StyleSheet, TouchableOpacity, Text, Alert } from "react-native";
+import { View, ScrollView, StyleSheet, TouchableOpacity, Text, Alert, TextInput, Modal } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import GeneralInfoSection from "../components/CMVR/GeneralInfoSection";
@@ -15,6 +15,13 @@ type RootStackParamList = {
     submissionId: string;
     projectName: string;
     projectId: string;
+    fileName?: string;
+  };
+  CMVRPage2: {
+    submissionId: string;
+    projectName: string;
+    projectId: string;
+    fileName: string;
   };
 };
 
@@ -26,6 +33,11 @@ const CMVRReportScreen = () => {
   const navigation = useNavigation<CMVRReportScreenNavigationProp>();
   const route = useRoute<CMVRReportScreenRouteProp>();
   const { submissionId, projectName, projectId } = route.params;
+
+  // Filename state - initialize from route params or default
+  const [fileName, setFileName] = useState(route.params.fileName || "File_Name");
+  const [isEditingFileName, setIsEditingFileName] = useState(false);
+  const [tempFileName, setTempFileName] = useState(route.params.fileName || "File_Name");
 
   // General Information State
   const [generalInfo, setGeneralInfo] = useState({
@@ -137,16 +149,51 @@ const CMVRReportScreen = () => {
     Alert.alert("Saved", "Your report has been saved successfully.");
   };
 
+  const handleNextPage = () => {
+    // Navigate to page 2 with the current fileName
+    navigation.navigate('CMVRPage2' as any, {
+      submissionId,
+      projectName,
+      projectId,
+      fileName,
+    });
+  };
+
+  const handleEditFileName = () => {
+    setTempFileName(fileName);
+    setIsEditingFileName(true);
+  };
+
+  const handleSaveFileName = () => {
+    if (tempFileName.trim()) {
+      setFileName(tempFileName.trim());
+      setIsEditingFileName(false);
+    } else {
+      Alert.alert("Error", "File name cannot be empty.");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setTempFileName(fileName);
+    setIsEditingFileName(false);
+  };
+
   React.useLayoutEffect(() => {
     navigation.setOptions({
-      title: "File_Name",
+      headerTitle: () => (
+        <TouchableOpacity onPress={handleEditFileName}>
+          <Text style={{ fontSize: 17, fontWeight: '600', color: '#000' }}>
+            {fileName}
+          </Text>
+        </TouchableOpacity>
+      ),
       headerRight: () => (
         <TouchableOpacity onPress={handleSave} style={{ marginRight: 10 }}>
           <Text style={{ fontSize: 16, color: "#007AFF", fontWeight: "500" }}>Save</Text>
         </TouchableOpacity>
       ),
     });
-  }, [navigation]);
+  }, [navigation, fileName]);
 
   return (
     <View style={styles.container}>
@@ -193,6 +240,41 @@ const CMVRReportScreen = () => {
         />
         <View style={{ height: 30 }} />
       </ScrollView>
+
+      {/* Edit File Name Modal */}
+      <Modal
+        visible={isEditingFileName}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCancelEdit}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit File Name</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={tempFileName}
+              onChangeText={setTempFileName}
+              placeholder="Enter file name"
+              autoFocus
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={handleCancelEdit}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.saveButton]} 
+                onPress={handleSaveFileName}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -204,6 +286,60 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 20,
+    width: "80%",
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  cancelButton: {
+    backgroundColor: "#F0F0F0",
+  },
+  saveButton: {
+    backgroundColor: "#007AFF",
+  },
+  cancelButtonText: {
+    color: "#333",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  saveButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "500",
   },
 });
 
