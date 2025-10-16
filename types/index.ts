@@ -1,5 +1,5 @@
 // User roles in the mining compliance system
-export type UserRole = "proponent" | "mmt" | "regulator";
+export type UserRole = 'MMT Chair' | 'MMT Co-chair' | 'MMT Member' | 'Guest';
 
 // Status of compliance submissions
 export type SubmissionStatus =
@@ -21,14 +21,20 @@ export type EvidenceType =
   | "gps_location"
   | "measurement";
 
-// Base user interface
+// User profile and authentication details
 export interface User {
   id: string;
   email: string;
   role: UserRole;
-  firstName?: string;
-  lastName?: string;
-  organization?: string;
+
+  // ✅ User Profile Information
+  name: string;
+  position: string;
+  mailingAddress?: string;
+  telephoneNumber?: string;
+  faxNumber?: string;
+
+  // ✅ System Metadata
   createdAt: string;
   updatedAt: string;
 }

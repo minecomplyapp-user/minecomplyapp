@@ -11,7 +11,7 @@ import DashboardScreen from "../screens/DashboardScreen";
 import SubmissionsScreen from "../screens/SubmissionsScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import CMVRReportScreen from "../screens/CMVRReportScreen";
-import CMRReportScreen from "../screens/CMRReportScreen";
+import CMVRPage2Screen from '../screens/CMVRPage2Screen';
 
 // Create navigators
 const Tab = createBottomTabNavigator();
@@ -38,10 +38,10 @@ function DashboardStack() {
         }}
       />
       <Stack.Screen
-        name="CMRReport"
-        component={CMRReportScreen}
+        name="CMVRPage2"
+        component={CMVRPage2Screen}
         options={{
-          title: "CMR Report",
+          title: "CMVR Report - Page 2",
           headerStyle: { backgroundColor: "#007AFF" },
           headerTintColor: "white",
           headerTitleStyle: { fontWeight: "bold" },
@@ -134,10 +134,10 @@ function RootNavigator() {
         }}
       />
       <RootStack.Screen
-        name="CMRReport"
-        component={CMRReportScreen}
+        name="CMVRPage2"
+        component={CMVRPage2Screen}
         options={{
-          title: "CMR Report",
+          title: "CMVR Report - Page 2",
           headerStyle: { backgroundColor: "#007AFF" },
           headerTintColor: "white",
           headerTitleStyle: { fontWeight: "bold" },

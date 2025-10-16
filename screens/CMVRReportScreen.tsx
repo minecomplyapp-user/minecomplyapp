@@ -1,176 +1,280 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert, Image } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import ReportInfoSection from "../components/CMVR/ReportInfoSection";
-import ECCConditionsSection from "../components/CMVR/ECCConditionsSection";
-import GeneralRemarksSection from "../components/CMVR/GeneralRemarksSection";
-import RecommendationsSection from "../components/CMVR/RecommendationsSection";
-import SupportingDocumentsSection from "../components/CMVR/SupportingDocumentsSection";
+import { View, ScrollView, StyleSheet, TouchableOpacity, Text, Alert, TextInput, Modal } from "react-native";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import GeneralInfoSection from "../components/CMVR/GeneralInfoSection";
+import ECCSection from "../components/CMVR/ECCSection";
+import ISAGSection from "../components/CMVR/ISAGSection";
+import EPEPSection from "../components/CMVR/EPEPSection";
+import RCFSection from "../components/CMVR/RCFSection";
+import MMTSection from "../components/CMVR/MMTSection";
 
-interface ComplianceCondition {
-  conditionNo: string;
-  requirement: string;
-  status: "compliant" | "non-compliant" | "pending" | "n/a" | "";
-  remarks: string;
-}
+// Define the type for your route parameters
+type RootStackParamList = {
+  CMVRReport: {
+    submissionId: string;
+    projectName: string;
+    projectId: string;
+    fileName?: string;
+  };
+  CMVRPage2: {
+    submissionId: string;
+    projectName: string;
+    projectId: string;
+    fileName: string;
+  };
+};
 
-const CMVRReportScreen = ({ route, navigation }: any) => {
-  const { submissionId, projectName, projectId } = route?.params || {};
-  const [reportInfo, setReportInfo] = useState({
-    projectName: projectName || "",
-    permitHolder: "",
-    reportingPeriod: "",
-    reportDate: "",
-    preparedBy: "",
+// Define the type for the navigation and route
+type CMVRReportScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CMVRReport'>;
+type CMVRReportScreenRouteProp = RouteProp<RootStackParamList, 'CMVRReport'>;
+
+const CMVRReportScreen = () => {
+  const navigation = useNavigation<CMVRReportScreenNavigationProp>();
+  const route = useRoute<CMVRReportScreenRouteProp>();
+  const { submissionId, projectName, projectId } = route.params;
+
+  // Filename state - initialize from route params or default
+  const [fileName, setFileName] = useState(route.params.fileName || "File_Name");
+  const [isEditingFileName, setIsEditingFileName] = useState(false);
+  const [tempFileName, setTempFileName] = useState(route.params.fileName || "File_Name");
+
+  // General Information State
+  const [generalInfo, setGeneralInfo] = useState({
+    companyName: "",
     location: "",
+    quarter: "",
+    year: "",
+    dateOfCompliance: "",
+    monitoringPeriod: "",
+    dateOfSubmission: "",
   });
-  const [conditions, setConditions] = useState<ComplianceCondition[]>([]);
-  const [generalRemarks, setGeneralRemarks] = useState("");
-  const [recommendations, setRecommendations] = useState("");
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 
-  const addCondition = () => {
-    const newCondition: ComplianceCondition = {
-      conditionNo: "",
-      requirement: "",
-      status: "",
-      remarks: "",
-    };
-    setConditions((prev) => [...prev, newCondition]);
+  // ECC State
+  const [eccInfo, setEccInfo] = useState({
+    permitHolder: "",
+    eccNumber: "",
+    dateOfIssuance: "",
+  });
+  const [eccAdditionalForms, setEccAdditionalForms] = useState<Array<{
+    permitHolder: string;
+    eccNumber: string;
+    dateOfIssuance: string;
+  }>>([]);
+
+  // ISAG/MPP State
+  const [isagInfo, setIsagInfo] = useState({
+    permitHolder: "",
+    isagNumber: "",
+    dateOfIssuance: "",
+    currentName: "",
+    nameInECC: "",
+    projectStatus: "",
+    gpsX: "",
+    gpsY: "",
+    proponentName: "",
+    proponentContact: "",
+    proponentAddress: "",
+    proponentPhone: "",
+    proponentEmail: "",
+  });
+  const [isagAdditionalForms, setIsagAdditionalForms] = useState<Array<{
+    permitHolder: string;
+    isagNumber: string;
+    dateOfIssuance: string;
+  }>>([]);
+
+  // EPEP/FMRDP State
+  const [epepInfo, setEpepInfo] = useState({
+    isNA: false,
+    permitHolder: "",
+    epepNumber: "",
+    dateOfApproval: "",
+  });
+  const [epepAdditionalForms, setEpepAdditionalForms] = useState<Array<{
+    permitHolder: string;
+    epepNumber: string;
+    dateOfApproval: string;
+  }>>([]);
+
+  // RCF/MTF/FMRDF State
+  const [rcfInfo, setRcfInfo] = useState({
+    permitHolder: "",
+    savingsAccount: "",
+    amountDeposited: "",
+    dateUpdated: "",
+  });
+  const [rcfAdditionalForms, setRcfAdditionalForms] = useState<Array<{
+    permitHolder: string;
+    savingsAccount: string;
+    amountDeposited: string;
+    dateUpdated: string;
+  }>>([]);
+
+  const [mtfInfo, setMtfInfo] = useState({
+    permitHolder: "",
+    savingsAccount: "",
+    amountDeposited: "",
+    dateUpdated: "",
+  });
+  const [mtfAdditionalForms, setMtfAdditionalForms] = useState<Array<{
+    permitHolder: string;
+    savingsAccount: string;
+    amountDeposited: string;
+    dateUpdated: string;
+  }>>([]);
+
+  const [fmrdfInfo, setFmrdfInfo] = useState({
+    permitHolder: "",
+    savingsAccount: "",
+    amountDeposited: "",
+    dateUpdated: "",
+  });
+  const [fmrdfAdditionalForms, setFmrdfAdditionalForms] = useState<Array<{
+    permitHolder: string;
+    savingsAccount: string;
+    amountDeposited: string;
+    dateUpdated: string;
+  }>>([]);
+
+  // MMT State
+  const [mmtInfo, setMmtInfo] = useState({
+    contactPerson: "",
+    mailingAddress: "",
+    phoneNumber: "",
+    emailAddress: "",
+  });
+
+  const handleSave = () => {
+    Alert.alert("Saved", "Your report has been saved successfully.");
   };
 
-  const deleteCondition = (index: number) => {
-    Alert.alert(
-      "Delete Condition",
-      "Are you sure you want to delete this condition?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            setConditions((prev) => prev.filter((_, i) => i !== index));
-          },
-        },
-      ]
-    );
+  const handleNextPage = () => {
+    // Navigate to page 2 with the current fileName
+    navigation.navigate('CMVRPage2' as any, {
+      submissionId,
+      projectName,
+      projectId,
+      fileName,
+    });
   };
 
-  const updateReportInfo = (field: string, value: string) => {
-    setReportInfo((prev) => ({ ...prev, [field]: value }));
+  const handleEditFileName = () => {
+    setTempFileName(fileName);
+    setIsEditingFileName(true);
   };
 
-  const updateCondition = (
-    index: number,
-    field: keyof ComplianceCondition,
-    value: any
-  ) => {
-    const updated = [...conditions];
-    updated[index] = { ...updated[index], [field]: value };
-    setConditions(updated);
-  };
-
-  const handleSaveDraft = () => {
-    Alert.alert("Draft Saved", "Your CMVR report has been saved as draft.");
-  };
-
-  const handleSubmit = () => {
-    if (
-      !reportInfo.permitHolder ||
-      !reportInfo.reportingPeriod ||
-      !reportInfo.reportDate
-    ) {
-      Alert.alert(
-        "Missing Information",
-        "Please fill in all required report information fields."
-      );
-      return;
-    }
-    const unfilledConditions = conditions.filter(
-      (c) => !c.status || !c.remarks
-    ).length;
-    if (unfilledConditions > 0) {
-      Alert.alert(
-        "Incomplete Report",
-        `You have ${unfilledConditions} condition(s) without status or remarks. Continue anyway?`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Continue",
-            onPress: () => {
-              Alert.alert(
-                "Submit Report",
-                "Are you sure you want to submit this CMVR report?",
-                [
-                  { text: "Cancel", style: "cancel" },
-                  {
-                    text: "Submit",
-                    onPress: () => {
-                      Alert.alert("Success", "CMVR report submitted successfully!");
-                      navigation.goBack();
-                    },
-                  },
-                ]
-              );
-            },
-          },
-        ]
-      );
+  const handleSaveFileName = () => {
+    if (tempFileName.trim()) {
+      setFileName(tempFileName.trim());
+      setIsEditingFileName(false);
     } else {
-      Alert.alert(
-        "Submit Report",
-        "Are you sure you want to submit this CMVR report?",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Submit",
-            onPress: () => {
-              Alert.alert("Success", "CMVR report submitted successfully!");
-              navigation.goBack();
-            },
-          },
-        ]
-      );
+      Alert.alert("Error", "File name cannot be empty.");
     }
   };
+
+  const handleCancelEdit = () => {
+    setTempFileName(fileName);
+    setIsEditingFileName(false);
+  };
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: () => (
+        <TouchableOpacity onPress={handleEditFileName}>
+          <Text style={{ fontSize: 17, fontWeight: '600', color: '#000' }}>
+            {fileName}
+          </Text>
+        </TouchableOpacity>
+      ),
+      headerRight: () => (
+        <TouchableOpacity onPress={handleSave} style={{ marginRight: 10 }}>
+          <Text style={{ fontSize: 16, color: "#007AFF", fontWeight: "500" }}>Save</Text>
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, fileName]);
 
   return (
     <View style={styles.container}>
       <ScrollView style={styles.content}>
-        <ReportInfoSection
-          reportInfo={reportInfo}
-          updateReportInfo={updateReportInfo}
+        <GeneralInfoSection
+          generalInfo={generalInfo}
+          setGeneralInfo={setGeneralInfo}
         />
-        <ECCConditionsSection
-          conditions={conditions}
-          addCondition={addCondition}
-          deleteCondition={deleteCondition}
-          updateCondition={updateCondition}
+        <ECCSection
+          eccInfo={eccInfo}
+          setEccInfo={setEccInfo}
+          eccAdditionalForms={eccAdditionalForms}
+          setEccAdditionalForms={setEccAdditionalForms}
         />
-        <GeneralRemarksSection
-          generalRemarks={generalRemarks}
-          setGeneralRemarks={setGeneralRemarks}
+        <ISAGSection
+          isagInfo={isagInfo}
+          setIsagInfo={setIsagInfo}
+          isagAdditionalForms={isagAdditionalForms}
+          setIsagAdditionalForms={setIsagAdditionalForms}
         />
-        <RecommendationsSection
-          recommendations={recommendations}
-          setRecommendations={setRecommendations}
+        <EPEPSection
+          epepInfo={epepInfo}
+          setEpepInfo={setEpepInfo}
+          epepAdditionalForms={epepAdditionalForms}
+          setEpepAdditionalForms={setEpepAdditionalForms}
         />
-        <SupportingDocumentsSection
-          uploadedImages={uploadedImages}
-          setUploadedImages={setUploadedImages}
+        <RCFSection
+          rcfInfo={rcfInfo}
+          setRcfInfo={setRcfInfo}
+          rcfAdditionalForms={rcfAdditionalForms}
+          setRcfAdditionalForms={setRcfAdditionalForms}
+          mtfInfo={mtfInfo}
+          setMtfInfo={setMtfInfo}
+          mtfAdditionalForms={mtfAdditionalForms}
+          setMtfAdditionalForms={setMtfAdditionalForms}
+          fmrdfInfo={fmrdfInfo}
+          setFmrdfInfo={setFmrdfInfo}
+          fmrdfAdditionalForms={fmrdfAdditionalForms}
+          setFmrdfAdditionalForms={setFmrdfAdditionalForms}
         />
-        <View style={{ height: 100 }} />
+        <MMTSection
+          mmtInfo={mmtInfo}
+          setMmtInfo={setMmtInfo}
+        />
+        <View style={{ height: 30 }} />
       </ScrollView>
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.secondaryButton} onPress={handleSaveDraft}>
-          <Ionicons name="save-outline" size={20} color="#007AFF" />
-          <Text style={styles.secondaryButtonText}>Save Draft</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit}>
-          <Text style={styles.primaryButtonText}>Submit Report</Text>
-          <Ionicons name="checkmark-circle" size={20} color="white" />
-        </TouchableOpacity>
-      </View>
+
+      {/* Edit File Name Modal */}
+      <Modal
+        visible={isEditingFileName}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCancelEdit}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit File Name</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={tempFileName}
+              onChangeText={setTempFileName}
+              placeholder="Enter file name"
+              autoFocus
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]} 
+                onPress={handleCancelEdit}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.saveButton]} 
+                onPress={handleSaveFileName}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -183,44 +287,59 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  footer: {
-    flexDirection: "row",
-    padding: 15,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
     backgroundColor: "white",
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
-    gap: 10,
+    borderRadius: 12,
+    padding: 20,
+    width: "80%",
+    maxWidth: 400,
   },
-  secondaryButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#007AFF",
-    gap: 5,
-  },
-  secondaryButtonText: {
-    color: "#007AFF",
-    fontSize: 16,
+  modalTitle: {
+    fontSize: 18,
     fontWeight: "600",
+    marginBottom: 16,
+    textAlign: "center",
   },
-  primaryButton: {
-    flex: 1,
+  modalInput: {
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  modalButtons: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#007AFF",
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
-    gap: 5,
+    alignItems: "center",
   },
-  primaryButtonText: {
+  cancelButton: {
+    backgroundColor: "#F0F0F0",
+  },
+  saveButton: {
+    backgroundColor: "#007AFF",
+  },
+  cancelButtonText: {
+    color: "#333",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  saveButtonText: {
     color: "white",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "500",
   },
 });
 

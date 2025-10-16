@@ -11,12 +11,15 @@ export default {
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
     newArchEnabled: true,
+
     splash: {
       image: "./assets/splash-icon.png",
       resizeMode: "contain",
       backgroundColor: "#ffffff",
     },
+
     android: {
+      package: "com.anonymous.minecomplyapp",
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
@@ -28,23 +31,47 @@ export default {
         "READ_EXTERNAL_STORAGE",
         "CAMERA",
         "RECORD_AUDIO",
+        "ACCESS_COARSE_LOCATION", 
+        "ACCESS_FINE_LOCATION",  
       ],
     },
+
     ios: {
       supportsTablet: true,
       infoPlist: {
         NSCameraUsageDescription:
-          "This app needs access to camera to upload photos.",
+          "This app needs access to the camera to upload photos.",
         NSMicrophoneUsageDescription:
-          "This app needs access to microphone for video recording.",
+          "This app needs access to the microphone for video recording.",
         NSPhotoLibraryUsageDescription:
-          "This app needs access to photo library to upload images.",
+          "This app needs access to the photo library to upload images.",
+        NSLocationWhenInUseUsageDescription:
+          "This app uses your location to provide location-based services.",
+        NSLocationAlwaysAndWhenInUseUsageDescription:
+          "This app may need your location even when not in use for better service accuracy.", 
       },
     },
+
     web: {
       favicon: "./assets/favicon.png",
     },
-    plugins: ["expo-font"],
+
+    plugins: [
+      "expo-font",
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          image: "./assets/splash.png",
+          resizeMode: "contain",
+          backgroundColor: "#ffffff",
+        },
+      ],
+      "expo-camera",
+      "expo-image-picker",
+      "expo-location",
+    ],
+
     extra: {
       supabaseUrl:
         process.env.EXPO_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL,
