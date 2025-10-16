@@ -55,6 +55,9 @@ export default {
         process.env.EXPO_PUBLIC_API_BASE_URL ??
         process.env.API_BASE_URL ??
         null,
+      USE_RENDER_API: process.env.USE_RENDER_API ?? "false",
+      API_BASE_URL: process.env.API_BASE_URL ?? null,
+      EXPO_PUBLIC_API_BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL ?? null,
     },
   },
 };

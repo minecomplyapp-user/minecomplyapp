@@ -3,19 +3,47 @@ import { supabase } from "./supabase";
 
 const apiBaseUrl = resolveApiBaseUrl();
 
+if (__DEV__) {
+  const extra = Constants?.expoConfig?.extra || {};
+  let useRenderApi: boolean = false;
+  if (typeof extra.USE_RENDER_API === "string") {
+    useRenderApi = extra.USE_RENDER_API.toLowerCase() === "true";
+  } else if (typeof extra.USE_RENDER_API === "boolean") {
+    useRenderApi = extra.USE_RENDER_API;
+  }
+  if (useRenderApi) {
+    console.log("[API] Using RENDER API:", apiBaseUrl);
+  } else {
+    console.log("[API] Using LOCAL API:", apiBaseUrl);
+  }
+}
+
 function resolveApiBaseUrl(): string {
-  const explicit = sanitizeBaseUrl(
-    Constants?.expoConfig?.extra?.apiBaseUrl as string | null | undefined
-  );
-  if (explicit) {
-    return explicit;
+  // Read envs from Constants.expoConfig.extra
+  const extra = Constants?.expoConfig?.extra || {};
+  // USE_RENDER_API can be string or boolean (from .env or app.config.js)
+  let useRenderApi: boolean = false;
+  if (typeof extra.USE_RENDER_API === "string") {
+    useRenderApi = extra.USE_RENDER_API.toLowerCase() === "true";
+  } else if (typeof extra.USE_RENDER_API === "boolean") {
+    useRenderApi = extra.USE_RENDER_API;
   }
 
+  if (useRenderApi) {
+    const renderUrl = sanitizeBaseUrl(
+      extra.apiBaseUrl || extra.EXPO_PUBLIC_API_BASE_URL
+    );
+    if (renderUrl) return renderUrl;
+  } else {
+    const localUrl = sanitizeBaseUrl(extra.API_BASE_URL);
+    if (localUrl) return localUrl;
+  }
+
+  // Fallback to dev host detection
   const derived = deriveDevHostBaseUrl();
   if (derived) {
     return derived;
   }
-
   return "http://localhost:3000";
 }
 
@@ -126,5 +154,20 @@ async function safeJson(res: Response): Promise<any | null> {
     return null;
   }
 }
+
+// Log the JWT access token for debugging
+(async () => {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (token) {
+      console.log("[JWT] Supabase access token:", token);
+    } else {
+      console.log("[JWT] No Supabase access token found (user not logged in)");
+    }
+  } catch (e) {
+    console.log("[JWT] Error fetching Supabase access token:", e);
+  }
+})();
 
 export type {};
