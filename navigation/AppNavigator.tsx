@@ -13,6 +13,8 @@ import CMVRReportScreen from "../screens/CMVRReportScreen";
 import CMVRPage2Screen from "../screens/CMVRPage2Screen";
 import CreateAttendanceScreen from "../screens/CreateAttendanceScreen";
 import AttendanceRecordScreen from "../screens/AttendanceRecordScreen";
+import ReportsScreen from "../screens/ReportsScreen";
+
 
 const RootStack = createStackNavigator();
 
@@ -39,6 +41,7 @@ const AppNavigator = () => {
             <RootStack.Screen name="Dashboard" component={DashboardScreen} />
             <RootStack.Screen name="AttendanceRecords" component={AttendanceRecordScreen} />
             <RootStack.Screen name="CreateAttendance" component={CreateAttendanceScreen} />
+            <RootStack.Screen name="Reports" component={ReportsScreen} />
             <RootStack.Screen name="Submissions" component={SubmissionsScreen} />
             <RootStack.Screen name="Profile" component={ProfileScreen} />
             <RootStack.Screen name="CMVRReport" component={CMVRReportScreen} />
