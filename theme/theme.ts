@@ -1,27 +1,95 @@
-// theme/theme.ts
-
 export const theme = {
-  // ✅ Core color system — elegant green palette
   colors: {
-    primary: '#2F855A',        // Main green — calm and natural
-    primaryLight: '#48BB78',   // Soft, vibrant green
-    primaryDark: '#22543D',    // Deep forest green for contrast
-    background: '#F5F6F4',     // Light neutral background
-    surface: '#FFFFFF',        // Card/section white
-    text: '#1A1A1A',           // Default text color (dark gray)
-    textLight: '#6B7280',      // Muted/subtext color
-    border: '#E5E7EB',         // Soft neutral border
-    error: '#E53E3E',          // Red error tone
-    success: '#38A169',        // Success green
+    // Primary
+    primaryLight: '#2196F3', 
+    primaryDark: '#02217C', 
+    
+    // Secondary
+    secondary: '#00BCD4', 
+    secondaryDark: '#00838F',
+
+    // Neutrals
+    background: '#F5F6F4',
+    surface: '#FFFFFF',
+    border: '#6b7280',
+    title: '#1a1a1a',
+
+    // Text
+    text: '#2C3E50', 
+    textLight: '#6b7280',
+
+    // Status Colors
+    success: '#4CAF50',
+    warning: '#FFC107', 
+    error: '#F44336', 
+
+    // Additional colors
+    iconBackground: '#E3F2FD',
+    divider: '#6b7280',
   },
 
-  // ✅ Gradients — subtle depth and variation in green tones
   gradients: {
-    primary: ['#2F855A', '#48BB78'],   // Deep to light green gradient
-    success: ['#38A169', '#68D391'],   // Success gradient
+    // Gradient from Primary to PrimaryDark
+    buttonPrimary: ['#2196F3', '#0D47A1'],
+    directionStart: { x: 0, y: 0 },
+    directionEnd: { x: 1, y: 0 },
   },
 
-  // ✅ Typography — Lexend Deca family
+  spacing: {
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 24,
+    xl: 32,
+    xxl: 48,
+  },
+
+  radii: {
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 24,
+    full: 999,
+  },
+
+  // --- UPDATED SHADOWS OBJECT ---
+  shadows: {
+
+    light: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.18,
+      shadowRadius: 1.00,
+      elevation: 1, // Android
+    },
+
+    medium: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.23,
+      shadowRadius: 2.62,
+      elevation: 4, // Android
+    },
+
+    strong: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4.65,
+      elevation: 8, // Android
+    },
+
+    buttonPrimary: {
+
+      shadowColor: '#0D47A1', 
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4,
+      shadowRadius: 7.49,
+      elevation: 12,
+    }
+  },
+  // -------------------------
+
   typography: {
     regular: 'LexendDeca_400Regular',
     medium: 'LexendDeca_500Medium',
@@ -34,50 +102,7 @@ export const theme = {
       md: 16,
       lg: 20,
       xl: 24,
-      '2xl': 32,
+      xxl: 32,
     },
   },
-
-  // ✅ Spacing — consistent paddings & margins
-  spacing: {
-    xs: 4,
-    sm: 8,
-    md: 12,
-    lg: 16,
-    xl: 24,
-    '2xl': 32,
-  },
-
-  // ✅ Rounded corners for UI consistency
-  radii: {
-    sm: 6,
-    md: 10,
-    lg: 16,
-    xl: 24,
-  },
-
-  // ✅ Shadows — subtle depth for cards & buttons
-  shadows: {
-    sm: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-      elevation: 2,
-    },
-    md: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.12,
-      shadowRadius: 3,
-      elevation: 3,
-    },
-    lg: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
-      shadowRadius: 6,
-      elevation: 5,
-    },
-  },
-} as const;
+};
