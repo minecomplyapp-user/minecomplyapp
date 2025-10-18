@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<any>;
-  signUp: (email: string, password: string) => Promise<any>;
+  signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<any>;
   signOut: () => Promise<void>;
 }
 
@@ -28,13 +28,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -53,11 +51,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return result;
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, firstName?: string, lastName?: string) => {
+    const fullName = [firstName, lastName].filter(Boolean).join(' ').trim() || undefined;
+    // nag add ko first name and last name sa metadata they have it in their figma eh
+    // supabase impleementation nalang kuwang
     const result = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          first_name: firstName || undefined,
+          last_name: lastName || undefined,
+          full_name: fullName || undefined,
+        },
+      },
     });
+
+    try {
+      const user = (result as any)?.data?.user;
+      if (user && user.id) {
+        await supabase.from('profiles').upsert(
+          {
+            id: user.id,
+            first_name: firstName || null,
+            last_name: lastName || null,
+            full_name: fullName || (user?.email || '').split('@')[0],
+            email: user?.email || email,
+            verified: !!user?.email_confirmed_at,
+          },
+          { onConflict: 'id' }
+        );
+      }
+    } catch (err) {
+      console.error('Failed to create profile row after signup', err);
+    }
+
     return result;
   };
 

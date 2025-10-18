@@ -117,20 +117,11 @@ export default function RoleSelectionScreen({ navigation }: any) {
               key={role.label}
               role={role}
               onPress={() =>
-                navigation.navigate("Dashboard", { role: role.label })
+                // Navigate directly to Dashboard (replace RoleSelection in stack)
+                navigation.replace("Dashboard", { role: role.label })
               }
             />
           ))}
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer} className="items-center mt-10">
-          <Text
-            style={styles.footerText}
-            className="text-gray-400 text-sm text-center"
-          >
-            Need help? Contact support
-          </Text>
         </View>
       </ScrollView>
     </SafeAreaProvider>

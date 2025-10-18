@@ -79,16 +79,6 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.semibold,
     fontSize: normalizeFont(isTablet() ? 18 : 16),
   },
-  footer: {
-    marginTop: verticalScale(isTablet() ? 60 : 40),
-    marginBottom: verticalScale(20),
-  },
-  footerText: {
-    fontFamily: theme.typography.regular,
-    fontSize: normalizeFont(isTablet() ? 15 : 13),
-    color: "#6b7280",
-    textAlign: "center",
-  },
 });
 
 export default styles;

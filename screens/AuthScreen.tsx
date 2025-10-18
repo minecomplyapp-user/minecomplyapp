@@ -19,6 +19,8 @@ export default function AuthScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
 
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
@@ -28,7 +30,7 @@ export default function AuthScreen({ navigation }: any) {
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
-    if (!email || !password) {
+    if (!email || !password || (!isLogin && (!firstName || !lastName))) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -37,7 +39,7 @@ export default function AuthScreen({ navigation }: any) {
     try {
       const result = isLogin
         ? await signIn(email, password)
-        : await signUp(email, password);
+        : await signUp(email, password, firstName, lastName);
 
       if (result.error) {
         Alert.alert('Error', result.error.message);
@@ -59,6 +61,8 @@ export default function AuthScreen({ navigation }: any) {
     setEmail('');
     setPassword('');
     setConfirmPassword('');
+    setFirstName('');
+    setLastName('');
   };
 
 
@@ -90,6 +94,22 @@ export default function AuthScreen({ navigation }: any) {
 
         {/* Form Section */}
         <View style={styles.formContainer}>
+          {!isLogin && (
+            <>
+              <FloatingLabelInput
+                label="First name"
+                value={firstName}
+                onChangeText={setFirstName}
+                editable={!loading}
+              />
+              <FloatingLabelInput
+                label="Last name"
+                value={lastName}
+                onChangeText={setLastName}
+                editable={!loading}
+              />
+            </>
+          )}
           <FloatingLabelInput
             label="Email"
             value={email}

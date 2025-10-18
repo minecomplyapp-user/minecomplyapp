@@ -1,8 +1,6 @@
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createStackNavigator } from "@react-navigation/stack";
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
 
 // Screens
@@ -14,108 +12,9 @@ import ProfileScreen from "../screens/ProfileScreen";
 import CMVRReportScreen from "../screens/CMVRReportScreen";
 import CMVRPage2Screen from "../screens/CMVRPage2Screen";
 
-// Create navigators
-const Tab = createBottomTabNavigator();
-const Stack = createStackNavigator();
-const RootStack = createStackNavigator(); 
+const RootStack = createStackNavigator();
 
-/* -------------------- Dashboard Stack -------------------- */
-function DashboardStack() {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="DashboardMain"
-        component={DashboardScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="CMVRReport"
-        component={CMVRReportScreen}
-        options={{
-          title: "CMVR Report",
-          headerStyle: { backgroundColor: "#007AFF" },
-          headerTintColor: "white",
-          headerTitleStyle: { fontWeight: "bold" },
-        }}
-      />
-      <Stack.Screen
-        name="CMVRPage2"
-        component={CMVRPage2Screen}
-        options={{
-          title: "CMVR Report - Page 2",
-          headerStyle: { backgroundColor: "#007AFF" },
-          headerTintColor: "white",
-          headerTitleStyle: { fontWeight: "bold" },
-        }}
-      />
-    </Stack.Navigator>
-  );
-}
 
-/* -------------------- Submissions Stack -------------------- */
-function SubmissionsStack() {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="SubmissionsMain"
-        component={SubmissionsScreen}
-        options={{ headerShown: false }}
-      />
-    </Stack.Navigator>
-  );
-}
-
-/* -------------------- Bottom Tabs -------------------- */
-function MainTabs() {
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap;
-
-          if (route.name === "DashboardTab") { 
-            iconName = focused ? "home" : "home-outline";
-          } else if (route.name === "Submissions") {
-            iconName = focused ? "document-text" : "document-text-outline";
-          } else if (route.name === "Profile") {
-            iconName = focused ? "person" : "person-outline";
-          } else {
-            iconName = "ellipse";
-          }
-
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: "#007AFF",
-        tabBarInactiveTintColor: "gray",
-        headerStyle: {
-          backgroundColor: "#007AFF",
-        },
-        headerTintColor: "white",
-        headerTitleStyle: {
-          fontWeight: "bold",
-        },
-      })}
-    >
-      <Tab.Screen
-        name="DashboardTab" 
-        component={DashboardStack}
-        options={{ title: "MineComply Dashboard" }}
-      />
-      <Tab.Screen
-        name="Submissions"
-        component={SubmissionsStack}
-        options={{ title: "My Submissions" }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ title: "Profile" }}
-      />
-    </Tab.Navigator>
-  );
-}
-
-/* -------------------- App Navigator -------------------- */
 const AppNavigator = () => {
   const { session, loading } = useAuth();
 
@@ -125,21 +24,21 @@ const AppNavigator = () => {
 
   return (
     <NavigationContainer>
-      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      <RootStack.Navigator screenOptions={{ headerShown: true }}>
         {!session ? (
-          // User is not logged in, show Auth screen
-          <RootStack.Screen name="Auth" component={AuthScreen} />
+          <RootStack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
         ) : (
-          // User is logged in, show the App flow
           <>
             <RootStack.Screen
               name="RoleSelection"
               component={RoleSelectionScreen}
+              options={{ headerShown: false }}
             />
-            <RootStack.Screen
-              name="Dashboard"
-              component={MainTabs}
-            />
+            <RootStack.Screen name="Dashboard" component={DashboardScreen} />
+            <RootStack.Screen name="Submissions" component={SubmissionsScreen} />
+            <RootStack.Screen name="Profile" component={ProfileScreen} />
+            <RootStack.Screen name="CMVRReport" component={CMVRReportScreen} />
+            <RootStack.Screen name="CMVRPage2" component={CMVRPage2Screen} />
           </>
         )}
       </RootStack.Navigator>
