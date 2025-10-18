@@ -7,16 +7,17 @@ import { useAuth } from "../contexts/AuthContext";
 
 // Screens
 import AuthScreen from "../screens/AuthScreen";
+import RoleSelectionScreen from "../screens/RoleSelectionScreen"; 
 import DashboardScreen from "../screens/DashboardScreen";
 import SubmissionsScreen from "../screens/SubmissionsScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import CMVRReportScreen from "../screens/CMVRReportScreen";
-import CMVRPage2Screen from '../screens/CMVRPage2Screen';
+import CMVRPage2Screen from "../screens/CMVRPage2Screen";
 
 // Create navigators
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
-const RootStack = createStackNavigator();
+const RootStack = createStackNavigator(); 
 
 /* -------------------- Dashboard Stack -------------------- */
 function DashboardStack() {
@@ -72,7 +73,7 @@ function MainTabs() {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;
 
-          if (route.name === "Dashboard") {
+          if (route.name === "DashboardTab") { 
             iconName = focused ? "home" : "home-outline";
           } else if (route.name === "Submissions") {
             iconName = focused ? "document-text" : "document-text-outline";
@@ -96,7 +97,7 @@ function MainTabs() {
       })}
     >
       <Tab.Screen
-        name="Dashboard"
+        name="DashboardTab" 
         component={DashboardStack}
         options={{ title: "MineComply Dashboard" }}
       />
@@ -114,54 +115,34 @@ function MainTabs() {
   );
 }
 
-/* -------------------- Root Stack (Global Navigation) -------------------- */
-function RootNavigator() {
-  return (
-    <RootStack.Navigator>
-      <RootStack.Screen
-        name="MainTabs"
-        component={MainTabs}
-        options={{ headerShown: false }}
-      />
-      <RootStack.Screen
-        name="CMVRReport"
-        component={CMVRReportScreen}
-        options={{
-          title: "CMVR Report",
-          headerStyle: { backgroundColor: "#007AFF" },
-          headerTintColor: "white",
-          headerTitleStyle: { fontWeight: "bold" },
-        }}
-      />
-      <RootStack.Screen
-        name="CMVRPage2"
-        component={CMVRPage2Screen}
-        options={{
-          title: "CMVR Report - Page 2",
-          headerStyle: { backgroundColor: "#007AFF" },
-          headerTintColor: "white",
-          headerTitleStyle: { fontWeight: "bold" },
-        }}
-      />
-    </RootStack.Navigator>
-  );
-}
-
 /* -------------------- App Navigator -------------------- */
 const AppNavigator = () => {
   const { session, loading } = useAuth();
 
   if (loading) {
-    return null; // You can add a loading spinner here
-  }
-
-  if (!session) {
-    return <AuthScreen />;
+    return null;
   }
 
   return (
     <NavigationContainer>
-      <RootNavigator />
+      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        {!session ? (
+          // User is not logged in, show Auth screen
+          <RootStack.Screen name="Auth" component={AuthScreen} />
+        ) : (
+          // User is logged in, show the App flow
+          <>
+            <RootStack.Screen
+              name="RoleSelection"
+              component={RoleSelectionScreen}
+            />
+            <RootStack.Screen
+              name="Dashboard"
+              component={MainTabs}
+            />
+          </>
+        )}
+      </RootStack.Navigator>
     </NavigationContainer>
   );
 };
