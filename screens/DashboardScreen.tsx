@@ -77,7 +77,7 @@ export default function DashboardScreen({ navigation }: any) {
               icon={UserCheck}
               title="Record Attendance"
               subtitle="Mark your team’s presence"
-              onPress={() => navigation.navigate("Attendance")}
+              onPress={() => navigation.navigate("AttendanceRecords")}
             />
             <ActionButton
               icon={Plus}

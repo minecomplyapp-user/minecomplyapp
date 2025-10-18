@@ -141,7 +141,6 @@ export default function AuthScreen({ navigation }: any) {
             </TouchableOpacity>
           )}
 
-          {/* Submit Button - Updated */}
           <TouchableOpacity
             activeOpacity={0.9}
             style={[styles.button, loading && { opacity: 0.5 }]}
@@ -149,7 +148,6 @@ export default function AuthScreen({ navigation }: any) {
             disabled={loading} 
           >
             <Text style={styles.buttonText}>
-              {/* Update text based on loading state */}
               {loading ? 'Loading...' : isLogin ? 'Sign In' : 'Create Account'}
             </Text>
           </TouchableOpacity>
@@ -163,8 +161,8 @@ export default function AuthScreen({ navigation }: any) {
             </Text>
           </View>
         </View>
-
-        {/* Bottom Section - Updated */}
+        
+        {/* Bottom Section*/}
         <View style={styles.bottomSection}>
           <TouchableOpacity
             onPress={toggleAuthMode}
