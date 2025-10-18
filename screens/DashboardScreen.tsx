@@ -1,401 +1,267 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
+  ScrollView,
+  Modal, 
+  TouchableWithoutFeedback, 
   StyleSheet,
-  RefreshControl,
-  Alert,
+  Animated,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  FileText,
+  Copy,
+  UserCheck,
+  Plus,
+  Calendar,
+  ChevronRight,
+  ShieldCheck, 
+  ClipboardList, 
+  AlertTriangle,
+  X,
+} from "lucide-react-native";
+import { theme } from "../theme/theme";
+import { styles } from "../styles/dashboardScreen";
 import { useAuth } from "../contexts/AuthContext";
-import { DashboardStats } from "../types";
-import { getMe, listProjectSubmissions } from "../lib/compliance";
 
-const DashboardScreen = ({ navigation }: any) => {
+// SAMPLE RANI HA PWEDE NI TANG2ON
+const sampleReports = [
+  { id: 1, title: "Environmental Compliance Report", date: "Oct 10, 2025" },
+  { id: 2, title: "Mine Site Safety Inspection", date: "Oct 8, 2025" },
+  { id: 3, title: "Quarterly Water Quality Assessment", date: "Oct 1, 2025" },
+];
+
+
+export default function DashboardScreen({ navigation }: any) {
   const { user } = useAuth();
-  const [refreshing, setRefreshing] = useState(false);
-  const [stats, setStats] = useState<DashboardStats>({
-    totalSubmissions: 0,
-    pendingSubmissions: 0,
-    approvedSubmissions: 0,
-    rejectedSubmissions: 0,
-    overdueSubmissions: 0,
-  });
-  const [recentSubmissions, setRecentSubmissions] = useState<
-    Array<{ id: string; title: string; status: string; createdAt: string }>
-  >([]);
-  const [firstProjectId, setFirstProjectId] = useState<string | null>(null);
-  const [firstProjectName, setFirstProjectName] = useState<string | null>(null);
+  const [reports] = useState<any[]>(sampleReports);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const hasReports = reports.length > 0;
 
-  const onRefresh = React.useCallback(() => {
-    setRefreshing(true);
-    void hydrate().finally(() => setRefreshing(false));
-  }, []);
-
-  useEffect(() => {
-    void hydrate();
-  }, []);
-
-  async function hydrate() {
-    try {
-      const me = await getMe();
-      // Compute top-level stats by aggregating first project's submissions if available
-      const firstProject = me.projects[0];
-      let subs: any[] = [];
-      if (firstProject) {
-        setFirstProjectId(firstProject.id);
-        setFirstProjectName(firstProject.name);
-        const { submissions } = await listProjectSubmissions(firstProject.id);
-        subs = submissions;
-      }
-
-      setRecentSubmissions(
-        subs.slice(0, 5).map((s: any) => ({
-          id: s.id as string,
-          title: (s.title as string) || "Untitled",
-          status: String(s.status).toLowerCase(),
-          createdAt: String(s.createdAt),
-        }))
-      );
-
-      const totals = subs.reduce(
-        (acc, s: any) => {
-          acc.total += 1;
-          const status = String(s.status).toLowerCase();
-          if (status === "approved") acc.approved += 1;
-          else if (status === "rejected" || status === "requires_changes")
-            acc.rejected += 1;
-          else acc.pending += 1;
-          return acc;
-        },
-        { total: 0, approved: 0, rejected: 0, pending: 0 }
-      );
-
-      setStats({
-        totalSubmissions: totals.total,
-        pendingSubmissions: totals.pending,
-        approvedSubmissions: totals.approved,
-        rejectedSubmissions: totals.rejected,
-        overdueSubmissions: 0,
-      });
-    } catch (err: any) {
-      Alert.alert("Failed to load dashboard", err?.message || String(err));
-    }
-  }
-
-  const handleNewSubmission = () => {
-    Alert.alert(
-      "New Submission",
-      "What type of report would you like to create?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "CMR (Compliance Monitoring Report)",
-          onPress: () => {
-            try {
-              navigation.push("CMRReport", {
-                submissionId: null,
-                projectId: firstProjectId || null,
-                projectName: firstProjectName || "New Project",
-              });
-            } catch (error) {
-              console.error("Navigation error:", error);
-              Alert.alert("Error", "Could not navigate to CMR screen");
-            }
-          },
-        },
-        {
-          text: "CMVR (Compliance Monitoring Verification Report)",
-          onPress: () => {
-            try {
-              navigation.push("CMVRReport", {
-                submissionId: null,
-                projectId: firstProjectId || null,
-                projectName: firstProjectName || "New Project",
-              });
-            } catch (error) {
-              console.error("Navigation error:", error);
-              Alert.alert("Error", "Could not navigate to CMVR screen");
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const StatCard = ({
-    title,
-    value,
-    color,
-    icon,
-  }: {
-    title: string;
-    value: number;
-    color: string;
-    icon: keyof typeof Ionicons.glyphMap;
-  }) => (
-    <View style={[styles.statCard, { borderLeftColor: color }]}>
-      <View style={styles.statContent}>
-        <View>
-          <Text style={styles.statValue}>{value}</Text>
-          <Text style={styles.statTitle}>{title}</Text>
-        </View>
-        <Ionicons name={icon} size={24} color={color} />
-      </View>
-    </View>
-  );
+  const userName =
+    (user as any)?.user_metadata?.full_name ||
+    (user as any)?.user_metadata?.name ||
+    (user as any)?.email?.split("@")[0] ||
+    "User";
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      {/* Welcome Section */}
-      <View style={styles.welcomeSection}>
-        <Text style={styles.welcomeText}>Welcome back!</Text>
-        <Text style={styles.userEmail}>{user?.email}</Text>
-        <Text style={styles.roleText}>Role: Proponent</Text>
-      </View>
-
-      {/* Quick Actions */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleNewSubmission}
-        >
-          <Ionicons name="add-circle" size={24} color="white" />
-          <Text style={styles.actionButtonText}>New Submission</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Statistics */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Compliance Overview</Text>
-        <View style={styles.statsContainer}>
-          <StatCard
-            title="Total Submissions"
-            value={stats.totalSubmissions}
-            color="#007AFF"
-            icon="document-text"
-          />
-          <StatCard
-            title="Pending Review"
-            value={stats.pendingSubmissions}
-            color="#FF9500"
-            icon="time"
-          />
-          <StatCard
-            title="Approved"
-            value={stats.approvedSubmissions}
-            color="#34C759"
-            icon="checkmark-circle"
-          />
-          <StatCard
-            title="Requires Action"
-            value={stats.rejectedSubmissions}
-            color="#FF3B30"
-            icon="alert-circle"
-          />
-        </View>
-      </View>
-
-      {/* Recent Activity */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recent Activity</Text>
-        {recentSubmissions.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="document-outline" size={48} color="#ccc" />
-            <Text style={styles.emptyStateText}>No submissions yet</Text>
-            <Text style={styles.emptyStateSubtext}>
-              Create your first compliance report to get started
-            </Text>
-          </View>
-        ) : (
-          <View style={{ gap: 8 }}>
-            {recentSubmissions.map((s) => (
-              <View key={s.id} style={styles.recentItem}>
-                <View>
-                  <Text style={styles.recentTitle}>{s.title}</Text>
-                  <Text style={styles.recentDate}>
-                    {new Date(s.createdAt).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </Text>
-                </View>
-                <View style={styles.recentStatus}>
-                  <Text style={styles.recentStatusText}>{s.status}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
-
-      {/* Compliance Status */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Compliance Status</Text>
-        <View style={styles.complianceStatus}>
-          <View
-            style={[styles.statusIndicator, { backgroundColor: "#34C759" }]}
-          />
+  
+    <SafeAreaView style={styles.safeContainer}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* HEADER */}
+        <View style={styles.header}>
           <View>
-            <Text style={styles.statusText}>System Status: Active</Text>
-            <Text style={styles.statusSubtext}>All systems operational</Text>
+            <Text style={styles.subGreeting}>Welcome back,</Text>
+            <Text style={styles.greeting}>{userName}</Text>
+          </View>
+          <TouchableOpacity style={styles.avatar} onPress={() => navigation.navigate('Profile')}>
+            <Text style={styles.avatarText}>
+              {userName
+          .split(" ")
+            .map((n: string) => n[0])
+                .join("")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* QUICK ACTIONS */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.actionsContainer}>
+            <ActionButton
+              icon={UserCheck}
+              title="Record Attendance"
+              subtitle="Mark your team’s presence"
+              onPress={() => navigation.navigate("AttendanceRecords")}
+            />
+            <ActionButton
+              icon={Plus}
+              title="Create Report"
+              subtitle="Start a new compliance report"
+              onPress={() => setIsModalVisible(true)} 
+            />
+            <ActionButton
+              icon={Copy}
+              title="Duplicate Report"
+              subtitle="Use a previous template"
+              onPress={() => console.log("Duplicate Report")}
+            />
           </View>
         </View>
-      </View>
-    </ScrollView>
+
+        {/* RECENT REPORTS */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>My Recent Reports</Text>
+            {hasReports && (
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Reports")}
+                style={styles.viewAllButton}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Text style={styles.viewAllText}>View All</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={styles.summaryContainer}>
+            {hasReports ? (
+              <View style={styles.reportsContainer}>
+                {reports.slice(0, 3).map((report, index) => (
+                  <React.Fragment key={report.id}>
+                    <ReportCard report={report} />
+                    {index < reports.slice(0, 3).length - 1 && (
+                      <View style={styles.divider} />
+                    )}
+                  </React.Fragment>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyState}>
+                <FileText
+                  color={theme.colors.textLight}
+                  size={48}
+                  strokeWidth={1.5}
+                />
+                <Text style={styles.emptyStateTitle}>No reports yet</Text>
+                <Text style={styles.emptyStateText}>
+                  Create your first compliance report to get started
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Modal Component */}
+      <CreateReportModal
+        visible={isModalVisible}
+        onClose={() => setIsModalVisible(false)}
+        navigation={navigation}
+      />
+    </SafeAreaView>
   );
-};
+}
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  welcomeSection: {
-    backgroundColor: "#007AFF",
-    padding: 20,
-    paddingTop: 10,
-  },
-  welcomeText: {
-    color: "white",
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 5,
-  },
-  userEmail: {
-    color: "rgba(255, 255, 255, 0.9)",
-    fontSize: 16,
-    marginBottom: 5,
-  },
-  roleText: {
-    color: "rgba(255, 255, 255, 0.8)",
-    fontSize: 14,
-  },
-  section: {
-    backgroundColor: "white",
-    marginTop: 10,
-    padding: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 15,
-    color: "#333",
-  },
-  actionButton: {
-    backgroundColor: "#007AFF",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 15,
-    borderRadius: 8,
-    gap: 10,
-  },
-  actionButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  statsContainer: {
-    gap: 10,
-  },
-  statCard: {
-    backgroundColor: "white",
-    borderRadius: 8,
-    padding: 15,
-    borderLeftWidth: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  statContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  statTitle: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 2,
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 40,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: "#666",
-    marginTop: 10,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: "#999",
-    textAlign: "center",
-    marginTop: 5,
-  },
-  complianceStatus: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 15,
-  },
-  statusIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  statusText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
-  },
-  statusSubtext: {
-    fontSize: 14,
-    color: "#666",
-  },
-  recentItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#eee",
-  },
-  recentTitle: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
-  },
-  recentDate: {
-    fontSize: 12,
-    color: "#999",
-    marginTop: 2,
-  },
-  recentStatus: {
-    backgroundColor: "#f0f0f0",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  recentStatusText: {
-    fontSize: 12,
-    color: "#555",
-    textTransform: "capitalize",
-  },
-});
+function CreateReportModal({ visible, onClose, navigation }: any) {
+  const [scaleAnim] = useState(new Animated.Value(0.95));
 
-export default DashboardScreen;
+  React.useEffect(() => {
+    if (visible) {
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 6,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible]);
+
+  return (
+    <Modal
+      transparent={true}
+      animationType="fade"
+      visible={visible}
+      onRequestClose={onClose}
+    >
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.modalBackdrop}>
+          <TouchableWithoutFeedback onPress={() => {}}>
+            <Animated.View style={[styles.modalContent, { transform: [{ scale: scaleAnim }] }]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Create New Report</Text>
+                <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
+                  <X size={24} color={theme.colors.textLight} />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.modalOptionsContainer}>
+                <ModalButton
+                  icon={ShieldCheck}
+                  title="ECC Monitoring"
+                  onPress={() => {
+                    console.log("ECC Monitoring");
+                    onClose();
+                  }}
+                />
+                <ModalButton
+                  icon={ClipboardList}
+                  title="CMVR"
+                  onPress={() => {
+                    try {
+                      onClose();
+                      setTimeout(() => {
+                        navigation.navigate('CMVRReport', {
+                          submissionId: null,
+                          projectId: null,
+                          projectName: 'New Project',
+                        });
+                      }, 120);
+                    } catch (err) {
+                      console.error('Error navigating to CMVRReport from modal', err);
+                      onClose();
+                    }
+                  }}
+                />
+                <ModalButton
+                  icon={AlertTriangle}
+                  title="EPEP / AEPEP"
+                  onPress={() => {
+                    console.log("EPEP / AEPEP");
+                    onClose();
+                  }}
+                />
+              </View>
+
+            </Animated.View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
+}
+
+function ModalButton({ icon: Icon, title, onPress }: any) {
+  return (
+    <TouchableOpacity style={styles.modalButton} onPress={onPress}>
+      <View style={styles.modalButtonIcon}>
+        <Icon color={theme.colors.primaryDark} size={22} />
+      </View>
+      <Text style={styles.modalButtonText}>{title}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function ActionButton({ icon: Icon, title, subtitle, onPress }: any) {
+  return (
+    <TouchableOpacity style={styles.actionCard} onPress={onPress} activeOpacity={0.9}>
+      <View style={styles.actionIconCircle}>
+        <Icon color={theme.colors.primaryDark} size={20} />
+      </View>
+      <View style={styles.actionTextContainer}>
+        <Text style={styles.actionTitle}>{title}</Text>
+        <Text style={styles.actionSubtitle}>{subtitle}</Text>
+      </View>
+      <ChevronRight color={theme.colors.textLight} size={18} />
+    </TouchableOpacity>
+  );
+}
+
+function ReportCard({ report }: any) {
+  return (
+    <TouchableOpacity style={styles.reportCard} activeOpacity={0.8}>
+      <View style={styles.reportContent}>
+        <Text style={styles.reportTitle} numberOfLines={1}>{report.title}</Text>
+        <View style={styles.reportMeta}>
+          <Calendar color={theme.colors.textLight} size={12} />
+          <Text style={styles.reportMetaText}>{report.date}</Text>
+        </View>
+      </View>
+      <ChevronRight color={theme.colors.textLight} size={18} />
+    </TouchableOpacity>
+  );
+}

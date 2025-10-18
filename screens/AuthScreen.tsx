@@ -1,168 +1,183 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
-  SafeAreaView,
+  ScrollView,
   KeyboardAvoidingView,
   Platform,
-} from "react-native";
-import { useAuth } from "../contexts/AuthContext";
+  Image,
+  Alert,
+} from 'react-native';
+import { styles } from '../styles/authScreen';
+import { FloatingLabelInput } from '../components/auth/FloatingLabelInput';
+import { scale } from '../utils/responsive';
+import { useAuth } from '../contexts/AuthContext';
 
-const AuthScreen: React.FC = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
+export default function AuthScreen({ navigation }: any) {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+
   const [loading, setLoading] = useState(false);
-
   const { signIn, signUp } = useAuth();
 
   const handleAuth = async () => {
-    if (!email || !password) {
-      Alert.alert("Error", "Please fill in both email and password");
+    if (!isLogin && password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+    if (!email || !password || (!isLogin && (!firstName || !lastName))) {
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     setLoading(true);
     try {
-      const result = isSignUp
-        ? await signUp(email, password)
-        : await signIn(email, password);
+      const result = isLogin
+        ? await signIn(email, password)
+        : await signUp(email, password, firstName, lastName);
 
       if (result.error) {
-        Alert.alert("Error", result.error.message);
-      } else if (isSignUp && !result.data.user?.email_confirmed_at) {
+        Alert.alert('Error', result.error.message);
+      } else if (!isLogin && !result.data.user?.email_confirmed_at) {
         Alert.alert(
-          "Success",
-          "Please check your email to confirm your account"
+          'Success',
+          'Please check your email to confirm your account'
         );
       }
     } catch (error: any) {
-      Alert.alert("Error", error.message);
+      Alert.alert('Error', error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.keyboardView}
-      >
-        <View style={styles.formContainer}>
-          <Text style={styles.title}>MineComply</Text>
-          <Text style={styles.subtitle}>
-            {isSignUp ? "Create an account" : "Sign in to your account"}
-          </Text>
+  const toggleAuthMode = () => {
+    setIsLogin(!isLogin);
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    setFirstName('');
+    setLastName('');
+  };
 
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Header Section */}
+        <View style={styles.header}>
+          <Image
+            source={require('../assets/images/mc-logo.png')}
+            style={styles.logo}
+          />
+          <Text style={styles.title}>
+            {isLogin ? 'Welcome Back' : 'Get Started'}
+          </Text>
+          <Text style={styles.subtitle}>
+            {isLogin
+              ? 'Sign in to continue your journey'
+              : 'Create your account to begin'}
+          </Text>
+        </View>
+
+        {/* Form Section */}
+        <View style={styles.formContainer}>
+          {!isLogin && (
+            <>
+              <FloatingLabelInput
+                label="First name"
+                value={firstName}
+                onChangeText={setFirstName}
+                editable={!loading}
+              />
+              <FloatingLabelInput
+                label="Last name"
+                value={lastName}
+                onChangeText={setLastName}
+                editable={!loading}
+              />
+            </>
+          )}
+          <FloatingLabelInput
+            label="Email"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
-            autoCorrect={false}
+            editable={!loading} 
           />
-
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
+          <FloatingLabelInput
+            label="Password"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            autoCapitalize="none"
+            editable={!loading} 
           />
+          {!isLogin && (
+            <FloatingLabelInput
+              label="Confirm Password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              editable={!loading}
+            />
+          )}
+
+          {isLogin && (
+            <TouchableOpacity style={styles.forgotPassword}>
+              <Text style={styles.linkText}>Forgot Password?</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleAuth}
-            disabled={loading}
+            activeOpacity={0.9}
+            style={[styles.button, loading && { opacity: 0.5 }]}
+            onPress={handleAuth} 
+            disabled={loading} 
           >
             <Text style={styles.buttonText}>
-              {loading ? "Loading..." : isSignUp ? "Sign Up" : "Sign In"}
+              {loading ? 'Loading...' : isLogin ? 'Sign In' : 'Create Account'}
             </Text>
           </TouchableOpacity>
 
+          {/* Terms of Service / Privacy Policy */}
+          <View style={styles.agreementContainer}>
+            <Text style={styles.agreementText}>
+              By continuing, you agree to our{' '}
+              <Text style={styles.linkText}>Terms of Service</Text> and{' '}
+              <Text style={styles.linkText}>Privacy Policy</Text>.
+            </Text>
+          </View>
+        </View>
+        
+        {/* Bottom Section*/}
+        <View style={styles.bottomSection}>
           <TouchableOpacity
+            onPress={toggleAuthMode}
             style={styles.switchButton}
-            onPress={() => setIsSignUp(!isSignUp)}
+            disabled={loading}
           >
-            <Text style={styles.switchButtonText}>
-              {isSignUp
-                ? "Already have an account? Sign In"
-                : "Don't have an account? Sign Up"}
+            <Text style={styles.switchText}>
+              {isLogin ? "Don't have an account? " : 'Already have an account? '}
+              <Text style={styles.switchTextBold}>
+                {isLogin ? 'Sign Up' : 'Sign In'}
+              </Text>
             </Text>
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  formContainer: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 10,
-    color: "#333",
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 40,
-    color: "#666",
-  },
-  input: {
-    backgroundColor: "white",
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    fontSize: 16,
-  },
-  button: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 15,
-    borderRadius: 8,
-    marginBottom: 15,
-  },
-  buttonDisabled: {
-    backgroundColor: "#ccc",
-  },
-  buttonText: {
-    color: "white",
-    textAlign: "center",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  switchButton: {
-    paddingVertical: 10,
-  },
-  switchButtonText: {
-    color: "#007AFF",
-    textAlign: "center",
-    fontSize: 14,
-  },
-});
-
-export default AuthScreen;
+}
