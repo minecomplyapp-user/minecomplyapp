@@ -83,7 +83,6 @@ const MMTSection: React.FC<MMTSectionProps> = ({ mmtInfo, setMmtInfo }) => {
 const styles = StyleSheet.create({
   sectionCard: {
     backgroundColor: "white",
-    marginTop: 10,
     padding: 16,
   },
   sectionHeaderWithLink: {
@@ -91,10 +90,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 16,
-    backgroundColor: "#E8E3FF",
+    backgroundColor: "#D8D8FF",
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#000",
   },
   sectionTitle: {
     fontSize: 16,

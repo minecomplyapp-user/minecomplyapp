@@ -95,7 +95,7 @@ const DashboardScreen = ({ navigation }: any) => {
           text: "CMR (Compliance Monitoring Report)",
           onPress: () => {
             try {
-              navigation.push("CMRReport", {
+              navigation.push("CMVRReport", {
                 submissionId: null,
                 projectId: firstProjectId || null,
                 projectName: firstProjectName || "New Project",

@@ -2,7 +2,6 @@ import React from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// Define types for your props and state
 type FundInfo = {
   permitHolder: string;
   savingsAccount: string;
@@ -47,15 +46,15 @@ const RCFSection: React.FC<RCFSectionProps> = ({
   setFmrdfAdditionalForms,
 }) => {
   const updateRCFInfo = (field: keyof FundInfo, value: string) => {
-    setRcfInfo((prev: FundInfo) => ({ ...prev, [field]: value }));
+    setRcfInfo((prev) => ({ ...prev, [field]: value }));
   };
 
   const updateMTFInfo = (field: keyof FundInfo, value: string) => {
-    setMtfInfo((prev: FundInfo) => ({ ...prev, [field]: value }));
+    setMtfInfo((prev) => ({ ...prev, [field]: value }));
   };
 
   const updateFMRDFInfo = (field: keyof FundInfo, value: string) => {
-    setFmrdfInfo((prev: FundInfo) => ({ ...prev, [field]: value }));
+    setFmrdfInfo((prev) => ({ ...prev, [field]: value }));
   };
 
   const addRCFForm = () => {
@@ -110,26 +109,28 @@ const RCFSection: React.FC<RCFSectionProps> = ({
   };
 
   const removeRcfAdditionalForm = (index: number) => {
-    setRcfAdditionalForms(rcfAdditionalForms.filter((_: FundAdditionalForm, i: number) => i !== index));
+    setRcfAdditionalForms(rcfAdditionalForms.filter((_, i) => i !== index));
   };
 
   const removeMtfAdditionalForm = (index: number) => {
-    setMtfAdditionalForms(mtfAdditionalForms.filter((_: FundAdditionalForm, i: number) => i !== index));
+    setMtfAdditionalForms(mtfAdditionalForms.filter((_, i) => i !== index));
   };
 
   const removeFmrdfAdditionalForm = (index: number) => {
-    setFmrdfAdditionalForms(fmrdfAdditionalForms.filter((_: FundAdditionalForm, i: number) => i !== index));
+    setFmrdfAdditionalForms(fmrdfAdditionalForms.filter((_, i) => i !== index));
   };
 
   return (
     <View style={styles.sectionCard}>
-      <View style={styles.sectionHeaderColored}>
-        <Text style={styles.sectionTitleColored}>RCF/ MTF and FMRDF Status</Text>
+      {/* Section Header */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>RCF/ MTF and FMRDF Status</Text>
       </View>
+
       {/* Rehabilitation Cash Funds */}
       <View style={styles.subsectionHeader}>
         <TouchableOpacity style={styles.checkbox}>
-          <View style={styles.checkboxChecked} />
+          <View style={styles.checkboxInner} />
         </TouchableOpacity>
         <Text style={styles.subsectionTitle}>Rehabilitation Cash Funds</Text>
       </View>
@@ -148,7 +149,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
         </View>
       </View>
       <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>Savings Account Number:</Text>
+        <Text style={styles.label}>Savings Account Number:</Text>
         <TextInput
           style={styles.input}
           value={rcfInfo.savingsAccount}
@@ -157,7 +158,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
         />
       </View>
       <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>Amount Deposited (Php):</Text>
+        <Text style={styles.label}>Amount Deposited (Php):</Text>
         <TextInput
           style={styles.input}
           value={rcfInfo.amountDeposited}
@@ -167,7 +168,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
         />
       </View>
       <View style={styles.fieldRow}>
-        <Text style={styles.label}>Date of updated:</Text>
+        <Text style={styles.label}>Date of Updated:</Text>
         <TextInput
           style={styles.input}
           value={rcfInfo.dateUpdated}
@@ -186,7 +187,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
               <Ionicons name="trash-outline" size={20} color="#FF3B30" />
             </TouchableOpacity>
           </View>
-
           <View style={styles.fieldRow}>
             <Text style={styles.label}>Name of Permit Holder:</Text>
             <View style={styles.inputWithButton}>
@@ -202,7 +202,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             </View>
           </View>
           <View style={styles.fieldRow}>
-            <Text style={styles.labelLong}>Savings Account Number:</Text>
+            <Text style={styles.label}>Savings Account Number:</Text>
             <TextInput
               style={styles.input}
               value={form.savingsAccount}
@@ -211,7 +211,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             />
           </View>
           <View style={styles.fieldRow}>
-            <Text style={styles.labelLong}>Amount Deposited (Php):</Text>
+            <Text style={styles.label}>Amount Deposited (Php):</Text>
             <TextInput
               style={styles.input}
               value={form.amountDeposited}
@@ -221,7 +221,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             />
           </View>
           <View style={styles.fieldRow}>
-            <Text style={styles.label}>Date of updated:</Text>
+            <Text style={styles.label}>Date of Updated:</Text>
             <TextInput
               style={styles.input}
               value={form.dateUpdated}
@@ -231,10 +231,11 @@ const RCFSection: React.FC<RCFSectionProps> = ({
           </View>
         </View>
       ))}
+
       {/* Monitoring Trust Fund */}
       <View style={styles.subsectionHeader}>
         <TouchableOpacity style={styles.checkbox}>
-          <View style={styles.checkboxChecked} />
+          <View style={styles.checkboxInner} />
         </TouchableOpacity>
         <Text style={styles.subsectionTitle}>Monitoring Trust Fund</Text>
       </View>
@@ -253,7 +254,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
         </View>
       </View>
       <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>Savings Account Number:</Text>
+        <Text style={styles.label}>Savings Account Number:</Text>
         <TextInput
           style={styles.input}
           value={mtfInfo.savingsAccount}
@@ -262,7 +263,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
         />
       </View>
       <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>Amount Deposited (Php):</Text>
+        <Text style={styles.label}>Amount Deposited (Php):</Text>
         <TextInput
           style={styles.input}
           value={mtfInfo.amountDeposited}
@@ -272,7 +273,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
         />
       </View>
       <View style={styles.fieldRow}>
-        <Text style={styles.label}>Date of updated:</Text>
+        <Text style={styles.label}>Date of Updated:</Text>
         <TextInput
           style={styles.input}
           value={mtfInfo.dateUpdated}
@@ -291,7 +292,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
               <Ionicons name="trash-outline" size={20} color="#FF3B30" />
             </TouchableOpacity>
           </View>
-
           <View style={styles.fieldRow}>
             <Text style={styles.label}>Name of Permit Holder:</Text>
             <View style={styles.inputWithButton}>
@@ -307,7 +307,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             </View>
           </View>
           <View style={styles.fieldRow}>
-            <Text style={styles.labelLong}>Savings Account Number:</Text>
+            <Text style={styles.label}>Savings Account Number:</Text>
             <TextInput
               style={styles.input}
               value={form.savingsAccount}
@@ -316,7 +316,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             />
           </View>
           <View style={styles.fieldRow}>
-            <Text style={styles.labelLong}>Amount Deposited (Php):</Text>
+            <Text style={styles.label}>Amount Deposited (Php):</Text>
             <TextInput
               style={styles.input}
               value={form.amountDeposited}
@@ -326,7 +326,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             />
           </View>
           <View style={styles.fieldRow}>
-            <Text style={styles.label}>Date of updated:</Text>
+            <Text style={styles.label}>Date of Updated:</Text>
             <TextInput
               style={styles.input}
               value={form.dateUpdated}
@@ -336,10 +336,11 @@ const RCFSection: React.FC<RCFSectionProps> = ({
           </View>
         </View>
       ))}
+
       {/* Final Mine Rehabilitation and Decommissioning Fund */}
       <View style={styles.subsectionHeader}>
         <TouchableOpacity style={styles.checkbox}>
-          <View style={styles.checkboxChecked} />
+          <View style={styles.checkboxInner} />
         </TouchableOpacity>
         <Text style={styles.subsectionTitle}>Final Mine Rehabilitation and Decommissioning Fund</Text>
       </View>
@@ -358,7 +359,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
         </View>
       </View>
       <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>Savings Account Number:</Text>
+        <Text style={styles.label}>Savings Account Number:</Text>
         <TextInput
           style={styles.input}
           value={fmrdfInfo.savingsAccount}
@@ -367,7 +368,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
         />
       </View>
       <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>Amount Deposited (Php):</Text>
+        <Text style={styles.label}>Amount Deposited (Php):</Text>
         <TextInput
           style={styles.input}
           value={fmrdfInfo.amountDeposited}
@@ -377,7 +378,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
         />
       </View>
       <View style={styles.fieldRow}>
-        <Text style={styles.label}>Date of updated:</Text>
+        <Text style={styles.label}>Date of Updated:</Text>
         <TextInput
           style={styles.input}
           value={fmrdfInfo.dateUpdated}
@@ -396,7 +397,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
               <Ionicons name="trash-outline" size={20} color="#FF3B30" />
             </TouchableOpacity>
           </View>
-
           <View style={styles.fieldRow}>
             <Text style={styles.label}>Name of Permit Holder:</Text>
             <View style={styles.inputWithButton}>
@@ -412,7 +412,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             </View>
           </View>
           <View style={styles.fieldRow}>
-            <Text style={styles.labelLong}>Savings Account Number:</Text>
+            <Text style={styles.label}>Savings Account Number:</Text>
             <TextInput
               style={styles.input}
               value={form.savingsAccount}
@@ -421,7 +421,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             />
           </View>
           <View style={styles.fieldRow}>
-            <Text style={styles.labelLong}>Amount Deposited (Php):</Text>
+            <Text style={styles.label}>Amount Deposited (Php):</Text>
             <TextInput
               style={styles.input}
               value={form.amountDeposited}
@@ -431,7 +431,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             />
           </View>
           <View style={styles.fieldRow}>
-            <Text style={styles.label}>Date of updated:</Text>
+            <Text style={styles.label}>Date of Updated:</Text>
             <TextInput
               style={styles.input}
               value={form.dateUpdated}
@@ -448,17 +448,18 @@ const RCFSection: React.FC<RCFSectionProps> = ({
 const styles = StyleSheet.create({
   sectionCard: {
     backgroundColor: "white",
-    marginTop: 10,
     padding: 16,
   },
-  sectionHeaderColored: {
-    backgroundColor: "#E8E3FF",
+  sectionHeader: {
+    backgroundColor: "#D8D8FF",
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 20,
     marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: "#000",
   },
-  sectionTitleColored: {
+  sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
     color: "#000",
@@ -466,14 +467,8 @@ const styles = StyleSheet.create({
   subsectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 16,
-    marginBottom: 12,
     gap: 8,
-  },
-  subsectionTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
+    marginBottom: 12,
   },
   checkbox: {
     width: 18,
@@ -485,23 +480,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "white",
   },
-  checkboxChecked: {
+  checkboxInner: {
     width: 12,
     height: 12,
     backgroundColor: "#007AFF",
     borderRadius: 2,
+  },
+  subsectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
   },
   fieldRow: {
     marginBottom: 12,
   },
   label: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 6,
-  },
-  labelLong: {
-    fontSize: 13,
     fontWeight: "600",
     color: "#333",
     marginBottom: 6,
@@ -515,6 +509,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     color: "#333",
+    flex: 1,
   },
   inputWithButton: {
     flexDirection: "row",

@@ -2,7 +2,6 @@ import React from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// Define types for your props and state
 type ISAGInfo = {
   permitHolder: string;
   isagNumber: string;
@@ -38,12 +37,10 @@ const ISAGSection: React.FC<ISAGSectionProps> = ({
   isagAdditionalForms,
   setIsagAdditionalForms,
 }) => {
-  // Update ISAG info with proper typing
   const updateISAGInfo = (field: keyof ISAGInfo, value: string) => {
     setIsagInfo((prev: ISAGInfo) => ({ ...prev, [field]: value }));
   };
 
-  // Add a new ISAG form
   const addISAGForm = () => {
     setIsagAdditionalForms([
       ...isagAdditionalForms,
@@ -51,7 +48,6 @@ const ISAGSection: React.FC<ISAGSectionProps> = ({
     ]);
   };
 
-  // Update an additional ISAG form
   const updateIsagAdditionalForm = (
     index: number,
     field: keyof ISAGAdditionalForm,
@@ -62,7 +58,6 @@ const ISAGSection: React.FC<ISAGSectionProps> = ({
     setIsagAdditionalForms(updatedForms);
   };
 
-  // Remove an additional ISAG form
   const removeIsagAdditionalForm = (index: number) => {
     setIsagAdditionalForms(
       isagAdditionalForms.filter((_: ISAGAdditionalForm, i: number) => i !== index)
@@ -70,24 +65,31 @@ const ISAGSection: React.FC<ISAGSectionProps> = ({
   };
 
   return (
-    <View style={styles.sectionCard}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>ISAG/MPP</Text>
+    <View style={styles.container}>
+      {/* Section Label with Checkbox */}
+      <View style={styles.sectionLabelRow}>
+        <View style={styles.checkbox} />
+        <Text style={styles.sectionLabel}>ISAG/MPP</Text>
       </View>
+
+      {/* Name of Permit Holder */}
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Name of Permit Holder:</Text>
         <View style={styles.inputWithButton}>
           <TextInput
-            style={[styles.input, styles.flexInput]}
+            style={styles.input}
             value={isagInfo.permitHolder}
             onChangeText={(text) => updateISAGInfo("permitHolder", text)}
             placeholder="Type here..."
+            placeholderTextColor="#999"
           />
           <TouchableOpacity style={styles.submitButton}>
             <Text style={styles.submitButtonText}>Submit</Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* ISAG Permit Number */}
       <View style={styles.fieldRow}>
         <Text style={styles.label}>ISAG Permit Number:</Text>
         <TextInput
@@ -95,8 +97,11 @@ const ISAGSection: React.FC<ISAGSectionProps> = ({
           value={isagInfo.isagNumber}
           onChangeText={(text) => updateISAGInfo("isagNumber", text)}
           placeholder="Type here..."
+          placeholderTextColor="#999"
         />
       </View>
+
+      {/* Date of Issuance */}
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Date of Issuance:</Text>
         <TextInput
@@ -104,11 +109,16 @@ const ISAGSection: React.FC<ISAGSectionProps> = ({
           value={isagInfo.dateOfIssuance}
           onChangeText={(text) => updateISAGInfo("dateOfIssuance", text)}
           placeholder="Month/Date/Year"
+          placeholderTextColor="#999"
         />
       </View>
+
+      {/* Add More Button */}
       <TouchableOpacity style={styles.addMoreButton} onPress={addISAGForm}>
         <Text style={styles.addMoreText}>+ Add more names</Text>
       </TouchableOpacity>
+
+      {/* Additional Forms */}
       {isagAdditionalForms.map((form: ISAGAdditionalForm, index: number) => (
         <View key={index} style={styles.additionalFormContainer}>
           <View style={styles.additionalFormHeader}>
@@ -117,22 +127,25 @@ const ISAGSection: React.FC<ISAGSectionProps> = ({
               <Ionicons name="trash-outline" size={20} color="#FF3B30" />
             </TouchableOpacity>
           </View>
+
           <View style={styles.fieldRow}>
             <Text style={styles.label}>Name of Permit Holder:</Text>
             <View style={styles.inputWithButton}>
               <TextInput
-                style={[styles.input, styles.flexInput]}
+                style={styles.input}
                 value={form.permitHolder}
                 onChangeText={(text) =>
                   updateIsagAdditionalForm(index, "permitHolder", text)
                 }
                 placeholder="Type here..."
+                placeholderTextColor="#999"
               />
               <TouchableOpacity style={styles.submitButton}>
                 <Text style={styles.submitButtonText}>Submit</Text>
               </TouchableOpacity>
             </View>
           </View>
+
           <View style={styles.fieldRow}>
             <Text style={styles.label}>ISAG Permit Number:</Text>
             <TextInput
@@ -142,8 +155,10 @@ const ISAGSection: React.FC<ISAGSectionProps> = ({
                 updateIsagAdditionalForm(index, "isagNumber", text)
               }
               placeholder="Type here..."
+              placeholderTextColor="#999"
             />
           </View>
+
           <View style={styles.fieldRow}>
             <Text style={styles.label}>Date of Issuance:</Text>
             <TextInput
@@ -153,10 +168,13 @@ const ISAGSection: React.FC<ISAGSectionProps> = ({
                 updateIsagAdditionalForm(index, "dateOfIssuance", text)
               }
               placeholder="Month/Date/Year"
+              placeholderTextColor="#999"
             />
           </View>
         </View>
       ))}
+
+      {/* Project Current Name */}
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Project Current Name:</Text>
         <TextInput
@@ -164,17 +182,23 @@ const ISAGSection: React.FC<ISAGSectionProps> = ({
           value={isagInfo.currentName}
           onChangeText={(text) => updateISAGInfo("currentName", text)}
           placeholder="Type here..."
+          placeholderTextColor="#999"
         />
       </View>
+
+      {/* Project Name in the ECC */}
       <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>Project Name in the ECC: (if N/A)</Text>
+        <Text style={styles.label}>Project  Name in the ECC:{'\n'}N/A</Text>
         <TextInput
           style={styles.input}
           value={isagInfo.nameInECC}
           onChangeText={(text) => updateISAGInfo("nameInECC", text)}
           placeholder="Type here..."
+          placeholderTextColor="#999"
         />
       </View>
+
+      {/* Project Status */}
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Project Status:</Text>
         <TextInput
@@ -182,34 +206,38 @@ const ISAGSection: React.FC<ISAGSectionProps> = ({
           value={isagInfo.projectStatus}
           onChangeText={(text) => updateISAGInfo("projectStatus", text)}
           placeholder="Type here..."
+          placeholderTextColor="#999"
         />
       </View>
+
+      {/* Project Geographical Coordinates */}
       <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>Project Geographical Coordinates:</Text>
-      </View>
-      <View style={styles.coordinatesRow}>
-        <View style={styles.coordinateField}>
-          <Text style={styles.coordinateLabel}>x</Text>
-          <TextInput
-            style={styles.input}
-            value={isagInfo.gpsX}
-            onChangeText={(text) => updateISAGInfo("gpsX", text)}
-            placeholder="Type here..."
-          />
+        <Text style={styles.label}>Project Geographical Coordinates:</Text>
+        <View style={styles.coordinatesContainer}>
+          <View style={styles.coordinateField}>
+            <Text style={styles.coordinateLabel}>x</Text>
+            <TextInput
+              style={styles.coordinateInput}
+              value={isagInfo.gpsX}
+              onChangeText={(text) => updateISAGInfo("gpsX", text)}
+              placeholder="Type here..."
+              placeholderTextColor="#999"
+            />
+          </View>
+          <View style={styles.coordinateField}>
+            <Text style={styles.coordinateLabel}>y</Text>
+            <TextInput
+              style={styles.coordinateInput}
+              value={isagInfo.gpsY}
+              onChangeText={(text) => updateISAGInfo("gpsY", text)}
+              placeholder="Type here..."
+              placeholderTextColor="#999"
+            />
+          </View>
         </View>
-        <View style={styles.coordinateField}>
-          <Text style={styles.coordinateLabel}>y</Text>
-          <TextInput
-            style={styles.input}
-            value={isagInfo.gpsY}
-            onChangeText={(text) => updateISAGInfo("gpsY", text)}
-            placeholder="Type here..."
-          />
-        </View>
       </View>
-      <View style={styles.naCheckbox}>
-        <Text style={styles.naLabel}>N/A</Text>
-      </View>
+
+      {/* Proponent Name */}
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Proponent Name:</Text>
         <TextInput
@@ -217,42 +245,55 @@ const ISAGSection: React.FC<ISAGSectionProps> = ({
           value={isagInfo.proponentName}
           onChangeText={(text) => updateISAGInfo("proponentName", text)}
           placeholder="Type here..."
+          placeholderTextColor="#999"
         />
       </View>
+
+      {/* Proponent Contact Person & Position */}
       <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>Proponent Contact Person & Position:</Text>
+        <Text style={styles.label}>Proponent Contact Person & Position:</Text>
         <TextInput
           style={styles.input}
           value={isagInfo.proponentContact}
           onChangeText={(text) => updateISAGInfo("proponentContact", text)}
           placeholder="Type here..."
+          placeholderTextColor="#999"
         />
       </View>
+
+      {/* Proponent Mailing Address */}
       <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>Proponent Mailing Address:</Text>
+        <Text style={styles.label}>Proponent Mailing Address:</Text>
         <TextInput
           style={styles.input}
           value={isagInfo.proponentAddress}
           onChangeText={(text) => updateISAGInfo("proponentAddress", text)}
           placeholder="Type here..."
+          placeholderTextColor="#999"
         />
       </View>
+
+      {/* Proponent Telephone No./ Fax No. */}
       <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>Proponent Telephone No./ Fax No.:</Text>
+        <Text style={styles.label}>Proponent Telephone No./ Fax No.:</Text>
         <TextInput
           style={styles.input}
           value={isagInfo.proponentPhone}
           onChangeText={(text) => updateISAGInfo("proponentPhone", text)}
           placeholder="09xx-xxx-xxxx"
+          placeholderTextColor="#999"
         />
       </View>
+
+      {/* Proponent Email Address */}
       <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>Proponent Email Address:</Text>
+        <Text style={styles.label}>Proponent Email Address:</Text>
         <TextInput
           style={styles.input}
           value={isagInfo.proponentEmail}
           onChangeText={(text) => updateISAGInfo("proponentEmail", text)}
           placeholder="email@domain.com"
+          placeholderTextColor="#999"
           keyboardType="email-address"
         />
       </View>
@@ -261,104 +302,107 @@ const ISAGSection: React.FC<ISAGSectionProps> = ({
 };
 
 const styles = StyleSheet.create({
-  sectionCard: {
+  container: {
     backgroundColor: "white",
-    marginTop: 10,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
-  sectionHeader: {
-    backgroundColor: "#E8E3FF",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    marginBottom: 16,
+  sectionLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    gap: 8,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderWidth: 1.5,
+    borderColor: "#D0D0D0",
+    borderRadius: 3,
+    backgroundColor: "white",
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: "400",
     color: "#000",
   },
   fieldRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: 12,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 6,
-  },
-  labelLong: {
     fontSize: 13,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 6,
+    fontWeight: "400",
+    color: "#000",
+    width: 140,
+    paddingTop: 10,
   },
   input: {
-    backgroundColor: "#F9F9F9",
+    flex: 1,
+    backgroundColor: "#F5F5F5",
     borderWidth: 1,
     borderColor: "#E0E0E0",
-    borderRadius: 8,
+    borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: "#333",
+    color: "#000",
   },
   inputWithButton: {
+    flex: 1,
     flexDirection: "row",
     gap: 8,
-    alignItems: "center",
-  },
-  flexInput: {
-    flex: 1,
   },
   submitButton: {
-    backgroundColor: "#7C6FDB",
+    backgroundColor: "#8B7FE8",
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 6,
+    justifyContent: "center",
   },
   submitButtonText: {
     color: "white",
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "500",
   },
   addMoreButton: {
     backgroundColor: "#E8E8E8",
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    alignSelf: "flex-start",
-    marginTop: 4,
-    marginBottom: 16,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    alignSelf: "center",
+    marginVertical: 8,
   },
   addMoreText: {
     fontSize: 13,
     color: "#666",
+    fontWeight: "400",
   },
-  coordinatesRow: {
+  coordinatesContainer: {
+    flex: 1,
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 8,
+    gap: 8,
   },
   coordinateField: {
     flex: 1,
   },
   coordinateLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
+    fontSize: 13,
+    fontWeight: "400",
+    color: "#000",
     marginBottom: 6,
   },
-  naCheckbox: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 8,
-    marginBottom: 16,
-    gap: 8,
-  },
-  naLabel: {
+  coordinateInput: {
+    backgroundColor: "#F5F5F5",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     fontSize: 14,
-    color: "#666",
+    color: "#000",
   },
   additionalFormContainer: {
     backgroundColor: "#FFF9E6",
