@@ -14,10 +14,9 @@ import CMVRPage2Screen from "../screens/CMVRPage2Screen";
 import CreateAttendanceScreen from "../screens/CreateAttendanceScreen";
 import AttendanceRecordScreen from "../screens/AttendanceRecordScreen";
 import ReportsScreen from "../screens/ReportsScreen";
-
+import ComplianceMonitoringScreen from "../screens/ComplianceMonitoringScreen";
 
 const RootStack = createStackNavigator();
-
 
 const AppNavigator = () => {
   const { session, loading } = useAuth();
@@ -38,7 +37,11 @@ const AppNavigator = () => {
               component={RoleSelectionScreen}
               options={{ headerShown: false }}
             />
-            <RootStack.Screen name="Dashboard" component={DashboardScreen} />
+            <RootStack.Screen 
+              name="Dashboard" 
+              component={DashboardScreen}
+              options={{ headerShown: false }}
+            />
             <RootStack.Screen name="AttendanceRecords" component={AttendanceRecordScreen} />
             <RootStack.Screen name="CreateAttendance" component={CreateAttendanceScreen} />
             <RootStack.Screen name="Reports" component={ReportsScreen} />
@@ -46,6 +49,11 @@ const AppNavigator = () => {
             <RootStack.Screen name="Profile" component={ProfileScreen} />
             <RootStack.Screen name="CMVRReport" component={CMVRReportScreen} />
             <RootStack.Screen name="CMVRPage2" component={CMVRPage2Screen} />
+            <RootStack.Screen 
+              name="ComplianceMonitoring" 
+              component={ComplianceMonitoringScreen}
+              options={{ headerShown: false }}
+            />
           </>
         )}
       </RootStack.Navigator>

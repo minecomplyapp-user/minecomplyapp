@@ -17,6 +17,12 @@ type RootStackParamList = {
     projectId?: string;
     fileName?: string;
   };
+  ComplianceMonitoring: {
+    submissionId?: string;
+    projectName?: string;
+    projectId?: string;
+    fileName?: string;
+  };
 };
 
 type CMVRPage2ScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CMVRPage2'>;
@@ -79,6 +85,20 @@ const CMVRPage2Screen = () => {
     Alert.alert("Saved", "Your report has been saved successfully.");
   };
 
+const handleSaveAndNext = () => {
+  // Save the current page data
+  console.log('Saving CMVRPage2 data...');
+
+  // Navigate to ComplianceMonitoring screen with the correct types
+  navigation.navigate('ComplianceMonitoring', {
+    submissionId,
+    projectId,
+    projectName,
+    fileName,
+  });
+};
+
+
   const handleEditFileName = () => {
     setTempFileName(fileName);
     setIsEditingFileName(true);
@@ -100,15 +120,15 @@ const CMVRPage2Screen = () => {
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
+      headerShown: true,
       headerStyle: {
         backgroundColor: 'white',
         elevation: 0,
         shadowOpacity: 0,
         borderBottomWidth: 0,
-        height: 50,
       },
       headerTintColor: 'black',
-      headerTitleAlign: 'center',
+      headerTitleAlign: 'left',
       headerTitleStyle: {
         fontWeight: '600',
       },
@@ -516,7 +536,7 @@ const CMVRPage2Screen = () => {
               <Text style={styles.checkboxLabel}>None</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.saveNextButton}>
+          <TouchableOpacity style={styles.saveNextButton} onPress={handleSaveAndNext}>
             <Text style={styles.saveNextButtonText}>Save & Next</Text>
           </TouchableOpacity>
         </View>
@@ -568,7 +588,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     padding: 20,
   },
-sectionHeader: {
+  sectionHeader: {
     backgroundColor: "#D8D8FF",
     paddingVertical: 8,
     paddingHorizontal: 16,
