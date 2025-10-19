@@ -2,7 +2,6 @@ import React from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// Define types for your props and state
 type EPEPInfo = {
   isNA: boolean;
   permitHolder: string;
@@ -30,7 +29,7 @@ const EPEPSection: React.FC<EPEPSectionProps> = ({
   setEpepAdditionalForms,
 }) => {
   const updateEPEPInfo = (field: keyof EPEPInfo, value: string | boolean) => {
-    setEpepInfo((prev: EPEPInfo) => ({ ...prev, [field]: value }));
+    setEpepInfo((prev) => ({ ...prev, [field]: value }));
   };
 
   const addEPEPForm = () => {
@@ -45,24 +44,25 @@ const EPEPSection: React.FC<EPEPSectionProps> = ({
     field: keyof EPEPAdditionalForm,
     value: string
   ) => {
-    const updated = [...epepAdditionalForms];
-    updated[index] = { ...updated[index], [field]: value };
-    setEpepAdditionalForms(updated);
+    const updatedForms = [...epepAdditionalForms];
+    updatedForms[index] = { ...updatedForms[index], [field]: value };
+    setEpepAdditionalForms(updatedForms);
   };
 
   const removeEpepAdditionalForm = (index: number) => {
     setEpepAdditionalForms(
-      epepAdditionalForms.filter((_: EPEPAdditionalForm, i: number) => i !== index)
+      epepAdditionalForms.filter((_, i) => i !== index)
     );
   };
 
   return (
-    <View style={styles.sectionCard}>
-      <View style={styles.sectionHeaderWithBadge}>
-        <View style={styles.badgeContainer}>
-          <Text style={styles.badgeText}>EPEP/ FMRDP Status</Text>
+    <View style={styles.container}>
+      {/* Section Header with N/A Checkbox */}
+      <View style={styles.sectionHeaderRow}>
+        <View style={styles.sectionLabelContainer}>
+          <Text style={styles.sectionLabel}>EPEP/ FMRDP Status</Text>
         </View>
-        <View style={styles.naCheckboxInline}>
+        <View style={styles.naCheckboxContainer}>
           <TouchableOpacity
             style={styles.checkbox}
             onPress={() => updateEPEPInfo("isNA", !epepInfo.isNA)}
@@ -72,14 +72,17 @@ const EPEPSection: React.FC<EPEPSectionProps> = ({
           <Text style={styles.naLabel}>N/A</Text>
         </View>
       </View>
+
+      {/* Name of Permit Holder */}
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Name of Permit Holder:</Text>
         <View style={styles.inputWithButton}>
           <TextInput
-            style={[styles.input, styles.flexInput]}
+            style={[styles.input, epepInfo.isNA && styles.disabledInput]}
             value={epepInfo.permitHolder}
             onChangeText={(text) => updateEPEPInfo("permitHolder", text)}
             placeholder="Type here..."
+            placeholderTextColor="#999"
             editable={!epepInfo.isNA}
           />
           <TouchableOpacity
@@ -90,26 +93,34 @@ const EPEPSection: React.FC<EPEPSectionProps> = ({
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* EPEP Number */}
       <View style={styles.fieldRow}>
         <Text style={styles.label}>EPEP Number:</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, epepInfo.isNA && styles.disabledInput]}
           value={epepInfo.epepNumber}
           onChangeText={(text) => updateEPEPInfo("epepNumber", text)}
           placeholder="Type here..."
+          placeholderTextColor="#999"
           editable={!epepInfo.isNA}
         />
       </View>
+
+      {/* Date of Approval */}
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Date of Approval:</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, epepInfo.isNA && styles.disabledInput]}
           value={epepInfo.dateOfApproval}
           onChangeText={(text) => updateEPEPInfo("dateOfApproval", text)}
           placeholder="Type here..."
+          placeholderTextColor="#999"
           editable={!epepInfo.isNA}
         />
       </View>
+
+      {/* Add More Button */}
       <TouchableOpacity
         style={[styles.addMoreButton, epepInfo.isNA && styles.disabledButton]}
         onPress={addEPEPForm}
@@ -117,7 +128,9 @@ const EPEPSection: React.FC<EPEPSectionProps> = ({
       >
         <Text style={styles.addMoreText}>+ Add more names</Text>
       </TouchableOpacity>
-      {epepAdditionalForms.map((form: EPEPAdditionalForm, index: number) => (
+
+      {/* Additional Forms */}
+      {epepAdditionalForms.map((form, index) => (
         <View key={index} style={styles.additionalFormContainer}>
           <View style={styles.additionalFormHeader}>
             <Text style={styles.additionalFormTitle}>EPEP/FMRDP #{index + 2}</Text>
@@ -129,12 +142,13 @@ const EPEPSection: React.FC<EPEPSectionProps> = ({
             <Text style={styles.label}>Name of Permit Holder:</Text>
             <View style={styles.inputWithButton}>
               <TextInput
-                style={[styles.input, styles.flexInput]}
+                style={styles.input}
                 value={form.permitHolder}
                 onChangeText={(text) =>
                   updateEpepAdditionalForm(index, "permitHolder", text)
                 }
                 placeholder="Type here..."
+                placeholderTextColor="#999"
               />
               <TouchableOpacity style={styles.submitButton}>
                 <Text style={styles.submitButtonText}>Submit</Text>
@@ -150,6 +164,7 @@ const EPEPSection: React.FC<EPEPSectionProps> = ({
                 updateEpepAdditionalForm(index, "epepNumber", text)
               }
               placeholder="Type here..."
+              placeholderTextColor="#999"
             />
           </View>
           <View style={styles.fieldRow}>
@@ -161,6 +176,7 @@ const EPEPSection: React.FC<EPEPSectionProps> = ({
                 updateEpepAdditionalForm(index, "dateOfApproval", text)
               }
               placeholder="Type here..."
+              placeholderTextColor="#999"
             />
           </View>
         </View>
@@ -170,27 +186,54 @@ const EPEPSection: React.FC<EPEPSectionProps> = ({
 };
 
 const styles = StyleSheet.create({
-  sectionCard: {
+  container: {
     backgroundColor: "white",
-    marginTop: 10,
     padding: 16,
   },
-  sectionHeaderWithBadge: {
+  sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
   },
-  badgeContainer: {
-    backgroundColor: "#E8E3FF",
+  sectionLabelContainer: {
+    backgroundColor: "#D8D8FF",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#000",
   },
-  badgeText: {
-    fontSize: 16,
+  sectionLabel: {
+    fontSize: 14,
     fontWeight: "600",
     color: "#000",
+  },
+  naCheckboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 3,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "white",
+  },
+  checkboxChecked: {
+    width: 12,
+    height: 12,
+    backgroundColor: "#007AFF",
+    borderRadius: 2,
+  },
+  naLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
   },
   fieldRow: {
     marginBottom: 12,
@@ -202,6 +245,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   input: {
+    flex: 1,
     backgroundColor: "#F9F9F9",
     borderWidth: 1,
     borderColor: "#E0E0E0",
@@ -211,13 +255,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#333",
   },
+  disabledInput: {
+    opacity: 0.5,
+  },
   inputWithButton: {
     flexDirection: "row",
     gap: 8,
     alignItems: "center",
-  },
-  flexInput: {
-    flex: 1,
   },
   submitButton: {
     backgroundColor: "#7C6FDB",
@@ -245,31 +289,6 @@ const styles = StyleSheet.create({
   addMoreText: {
     fontSize: 13,
     color: "#666",
-  },
-  naCheckboxInline: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  naLabel: {
-    fontSize: 14,
-    color: "#666",
-  },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 3,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "white",
-  },
-  checkboxChecked: {
-    width: 12,
-    height: 12,
-    backgroundColor: "#007AFF",
-    borderRadius: 2,
   },
   additionalFormContainer: {
     backgroundColor: "#FFF9E6",

@@ -2,8 +2,8 @@ import React from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// Define types for your props and state
 type ECCInfo = {
+  isNA: boolean;
   permitHolder: string;
   eccNumber: string;
   dateOfIssuance: string;
@@ -28,7 +28,7 @@ const ECCSection: React.FC<ECCSectionProps> = ({
   eccAdditionalForms,
   setEccAdditionalForms,
 }) => {
-  const updateECCInfo = (field: keyof ECCInfo, value: string) => {
+  const updateECCInfo = (field: keyof ECCInfo, value: string | boolean) => {
     setEccInfo((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -56,45 +56,77 @@ const ECCSection: React.FC<ECCSectionProps> = ({
   };
 
   return (
-    <View style={styles.sectionCard}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>ECC</Text>
+    <View style={styles.container}>
+      {/* Section Header with Checkbox */}
+      <View style={styles.sectionHeaderRow}>
+        <View style={styles.checkboxContainer}>
+          <TouchableOpacity
+            style={styles.checkbox}
+            onPress={() => updateECCInfo("isNA", !eccInfo.isNA)}
+          >
+            {eccInfo.isNA && <View style={styles.checkboxChecked} />}
+          </TouchableOpacity>
+          <Text style={styles.sectionLabel}>ECC</Text>
+        </View>
       </View>
+
+      {/* Name of Permit Holder */}
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Name of Permit Holder:</Text>
         <View style={styles.inputWithButton}>
           <TextInput
-            style={[styles.input, styles.flexInput]}
+            style={[styles.input, eccInfo.isNA && styles.disabledInput]}
             value={eccInfo.permitHolder}
             onChangeText={(text) => updateECCInfo("permitHolder", text)}
             placeholder="Type here..."
+            placeholderTextColor="#999"
+            editable={!eccInfo.isNA}
           />
-          <TouchableOpacity style={styles.submitButton}>
+          <TouchableOpacity
+            style={[styles.submitButton, eccInfo.isNA && styles.disabledButton]}
+            disabled={eccInfo.isNA}
+          >
             <Text style={styles.submitButtonText}>Submit</Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* ECC Number */}
       <View style={styles.fieldRow}>
         <Text style={styles.label}>ECC Number:</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, eccInfo.isNA && styles.disabledInput]}
           value={eccInfo.eccNumber}
           onChangeText={(text) => updateECCInfo("eccNumber", text)}
           placeholder="Type here..."
+          placeholderTextColor="#999"
+          editable={!eccInfo.isNA}
         />
       </View>
+
+      {/* Date of Issuance */}
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Date of Issuance:</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, eccInfo.isNA && styles.disabledInput]}
           value={eccInfo.dateOfIssuance}
           onChangeText={(text) => updateECCInfo("dateOfIssuance", text)}
           placeholder="Month/Date/Year"
+          placeholderTextColor="#999"
+          editable={!eccInfo.isNA}
         />
       </View>
-      <TouchableOpacity style={styles.addMoreButton} onPress={addECCForm}>
+
+      {/* Add More Button */}
+      <TouchableOpacity
+        style={[styles.addMoreButton, eccInfo.isNA && styles.disabledButton]}
+        onPress={addECCForm}
+        disabled={eccInfo.isNA}
+      >
         <Text style={styles.addMoreText}>+ Add more names</Text>
       </TouchableOpacity>
+
+      {/* Additional Forms */}
       {eccAdditionalForms.map((form: ECCAdditionalForm, index: number) => (
         <View key={index} style={styles.additionalFormContainer}>
           <View style={styles.additionalFormHeader}>
@@ -107,12 +139,13 @@ const ECCSection: React.FC<ECCSectionProps> = ({
             <Text style={styles.label}>Name of Permit Holder:</Text>
             <View style={styles.inputWithButton}>
               <TextInput
-                style={[styles.input, styles.flexInput]}
+                style={styles.input}
                 value={form.permitHolder}
                 onChangeText={(text) =>
                   updateEccAdditionalForm(index, "permitHolder", text)
                 }
                 placeholder="Type here..."
+                placeholderTextColor="#999"
               />
               <TouchableOpacity style={styles.submitButton}>
                 <Text style={styles.submitButtonText}>Submit</Text>
@@ -128,6 +161,7 @@ const ECCSection: React.FC<ECCSectionProps> = ({
                 updateEccAdditionalForm(index, "eccNumber", text)
               }
               placeholder="Type here..."
+              placeholderTextColor="#999"
             />
           </View>
           <View style={styles.fieldRow}>
@@ -139,6 +173,7 @@ const ECCSection: React.FC<ECCSectionProps> = ({
                 updateEccAdditionalForm(index, "dateOfIssuance", text)
               }
               placeholder="Month/Date/Year"
+              placeholderTextColor="#999"
             />
           </View>
         </View>
@@ -148,19 +183,37 @@ const ECCSection: React.FC<ECCSectionProps> = ({
 };
 
 const styles = StyleSheet.create({
-  sectionCard: {
+container: {
     backgroundColor: "white",
-    marginTop: 10,
     padding: 16,
   },
-  sectionHeader: {
-    backgroundColor: "#E8E3FF",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 16,
   },
-  sectionTitle: {
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1.5,
+    borderColor: "#D0D0D0",
+    borderRadius: 4,
+    backgroundColor: "white",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkboxChecked: {
+    width: 12,
+    height: 12,
+    backgroundColor: "#7C6FDB",
+    borderRadius: 2,
+  },
+  sectionLabel: {
     fontSize: 16,
     fontWeight: "600",
     color: "#000",
@@ -170,44 +223,48 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "500",
     color: "#333",
     marginBottom: 6,
   },
   input: {
+    flex: 1,
     backgroundColor: "#F9F9F9",
     borderWidth: 1,
     borderColor: "#E0E0E0",
-    borderRadius: 8,
+    borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
     color: "#333",
   },
+  disabledInput: {
+    opacity: 0.5,
+  },
   inputWithButton: {
     flexDirection: "row",
     gap: 8,
-    alignItems: "center",
-  },
-  flexInput: {
-    flex: 1,
   },
   submitButton: {
     backgroundColor: "#7C6FDB",
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 6,
+    justifyContent: "center",
   },
   submitButtonText: {
     color: "white",
     fontSize: 14,
     fontWeight: "600",
   },
+  disabledButton: {
+    opacity: 0.5,
+  },
   addMoreButton: {
     backgroundColor: "#E8E8E8",
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    borderRadius: 20,
     alignSelf: "flex-start",
     marginTop: 4,
     marginBottom: 16,

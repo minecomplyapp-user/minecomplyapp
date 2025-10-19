@@ -9,7 +9,6 @@ import EPEPSection from "../components/CMVR/EPEPSection";
 import RCFSection from "../components/CMVR/RCFSection";
 import MMTSection from "../components/CMVR/MMTSection";
 
-// Define the type for your route parameters
 type RootStackParamList = {
   CMVRReport: {
     submissionId: string;
@@ -25,7 +24,6 @@ type RootStackParamList = {
   };
 };
 
-// Define the type for the navigation and route
 type CMVRReportScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CMVRReport'>;
 type CMVRReportScreenRouteProp = RouteProp<RootStackParamList, 'CMVRReport'>;
 
@@ -34,7 +32,7 @@ const CMVRReportScreen = () => {
   const route = useRoute<CMVRReportScreenRouteProp>();
   const { submissionId, projectName, projectId } = route.params;
 
-  // Filename state - initialize from route params or default
+  // File Name State
   const [fileName, setFileName] = useState(route.params.fileName || "File_Name");
   const [isEditingFileName, setIsEditingFileName] = useState(false);
   const [tempFileName, setTempFileName] = useState(route.params.fileName || "File_Name");
@@ -52,10 +50,12 @@ const CMVRReportScreen = () => {
 
   // ECC State
   const [eccInfo, setEccInfo] = useState({
+    isNA: false,
     permitHolder: "",
     eccNumber: "",
     dateOfIssuance: "",
   });
+
   const [eccAdditionalForms, setEccAdditionalForms] = useState<Array<{
     permitHolder: string;
     eccNumber: string;
@@ -78,6 +78,7 @@ const CMVRReportScreen = () => {
     proponentPhone: "",
     proponentEmail: "",
   });
+
   const [isagAdditionalForms, setIsagAdditionalForms] = useState<Array<{
     permitHolder: string;
     isagNumber: string;
@@ -91,6 +92,7 @@ const CMVRReportScreen = () => {
     epepNumber: "",
     dateOfApproval: "",
   });
+
   const [epepAdditionalForms, setEpepAdditionalForms] = useState<Array<{
     permitHolder: string;
     epepNumber: string;
@@ -104,6 +106,7 @@ const CMVRReportScreen = () => {
     amountDeposited: "",
     dateUpdated: "",
   });
+
   const [rcfAdditionalForms, setRcfAdditionalForms] = useState<Array<{
     permitHolder: string;
     savingsAccount: string;
@@ -117,6 +120,7 @@ const CMVRReportScreen = () => {
     amountDeposited: "",
     dateUpdated: "",
   });
+
   const [mtfAdditionalForms, setMtfAdditionalForms] = useState<Array<{
     permitHolder: string;
     savingsAccount: string;
@@ -130,6 +134,7 @@ const CMVRReportScreen = () => {
     amountDeposited: "",
     dateUpdated: "",
   });
+
   const [fmrdfAdditionalForms, setFmrdfAdditionalForms] = useState<Array<{
     permitHolder: string;
     savingsAccount: string;
@@ -150,8 +155,7 @@ const CMVRReportScreen = () => {
   };
 
   const handleNextPage = () => {
-    // Navigate to page 2 with the current fileName
-    navigation.navigate('CMVRPage2' as any, {
+    navigation.navigate('CMVRPage2', {
       submissionId,
       projectName,
       projectId,
@@ -180,16 +184,28 @@ const CMVRReportScreen = () => {
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
+      headerStyle: {
+        backgroundColor: 'white',
+        elevation: 0,
+        shadowOpacity: 0,
+        borderBottomWidth: 0,
+        height: 50,
+      },
+      headerTintColor: 'black',
+      headerTitleAlign: 'center',
+      headerTitleStyle: {
+        fontWeight: '600',
+      },
       headerTitle: () => (
         <TouchableOpacity onPress={handleEditFileName}>
-          <Text style={{ fontSize: 17, fontWeight: '600', color: '#000' }}>
+          <Text style={styles.headerTitleText}>
             {fileName}
           </Text>
         </TouchableOpacity>
       ),
       headerRight: () => (
-        <TouchableOpacity onPress={handleSave} style={{ marginRight: 10 }}>
-          <Text style={{ fontSize: 16, color: "#007AFF", fontWeight: "500" }}>Save</Text>
+        <TouchableOpacity onPress={handleSave} style={styles.headerSaveButton}>
+          <Text style={styles.headerSaveButtonText}>Save</Text>
         </TouchableOpacity>
       ),
     });
@@ -197,7 +213,7 @@ const CMVRReportScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.content}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <GeneralInfoSection
           generalInfo={generalInfo}
           setGeneralInfo={setGeneralInfo}
@@ -241,7 +257,6 @@ const CMVRReportScreen = () => {
         <View style={{ height: 30 }} />
       </ScrollView>
 
-      {/* Edit File Name Modal */}
       <Modal
         visible={isEditingFileName}
         transparent={true}
@@ -259,17 +274,17 @@ const CMVRReportScreen = () => {
               autoFocus
             />
             <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]} 
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
                 onPress={handleCancelEdit}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.modalCancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.saveButton]} 
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalSaveButton]}
                 onPress={handleSaveFileName}
               >
-                <Text style={styles.saveButtonText}>Save</Text>
+                <Text style={styles.modalSaveButtonText}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -282,10 +297,23 @@ const CMVRReportScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "white",
   },
-  content: {
-    flex: 1,
+  scrollContent: {
+    paddingTop: 0,
+  },
+  headerTitleText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#000',
+  },
+  headerSaveButton: {
+    marginRight: 10,
+  },
+  headerSaveButtonText: {
+    fontSize: 16,
+    color: "#000",
+    fontWeight: "500",
   },
   modalOverlay: {
     flex: 1,
@@ -325,18 +353,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
   },
-  cancelButton: {
+  modalCancelButton: {
     backgroundColor: "#F0F0F0",
   },
-  saveButton: {
+  modalSaveButton: {
     backgroundColor: "#007AFF",
   },
-  cancelButtonText: {
+  modalCancelButtonText: {
     color: "#333",
     fontSize: 16,
     fontWeight: "500",
   },
-  saveButtonText: {
+  modalSaveButtonText: {
     color: "white",
     fontSize: 16,
     fontWeight: "500",

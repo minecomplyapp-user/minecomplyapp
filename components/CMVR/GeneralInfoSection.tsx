@@ -3,7 +3,6 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "reac
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 
-// Define types for your props and state
 type GeneralInfo = {
   companyName: string;
   location: string;
@@ -26,14 +25,13 @@ const GeneralInfoSection: React.FC<GeneralInfoSectionProps> = ({
   const [isCapturingLocation, setIsCapturingLocation] = React.useState(false);
 
   const updateGeneralInfo = (field: keyof GeneralInfo, value: string) => {
-    setGeneralInfo((prev: GeneralInfo) => ({ ...prev, [field]: value }));
+    setGeneralInfo((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleCaptureGPS = async () => {
     try {
       setIsCapturingLocation(true);
-      
-      // Request permission
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
@@ -43,26 +41,23 @@ const GeneralInfoSection: React.FC<GeneralInfoSectionProps> = ({
         setIsCapturingLocation(false);
         return;
       }
-      
-      // Get current position
+
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
-      
+
       const { latitude, longitude } = location.coords;
-      
-      // Reverse geocode to get address
+
       const addresses = await Location.reverseGeocodeAsync({
         latitude,
         longitude,
       });
-      
+
       if (addresses && addresses.length > 0) {
         const address = addresses[0];
-        
-        // Build address string from available components
+
         const addressComponents = [];
-        
+
         if (address.name) addressComponents.push(address.name);
         if (address.street) addressComponents.push(address.street);
         if (address.streetNumber) addressComponents.push(address.streetNumber);
@@ -72,15 +67,14 @@ const GeneralInfoSection: React.FC<GeneralInfoSectionProps> = ({
         if (address.region) addressComponents.push(address.region);
         if (address.postalCode) addressComponents.push(address.postalCode);
         if (address.country) addressComponents.push(address.country);
-        
+
         const formattedAddress = addressComponents.join(", ");
-        
+
         if (formattedAddress) {
           updateGeneralInfo("location", formattedAddress);
           setIsCapturingLocation(false);
           Alert.alert("Location Captured", formattedAddress);
         } else {
-          // If no address components found, use coordinates
           const coordsString = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
           updateGeneralInfo("location", coordsString);
           setIsCapturingLocation(false);
@@ -90,7 +84,6 @@ const GeneralInfoSection: React.FC<GeneralInfoSectionProps> = ({
           );
         }
       } else {
-        // Fallback to coordinates if geocoding returns no results
         const coordsString = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
         updateGeneralInfo("location", coordsString);
         setIsCapturingLocation(false);
@@ -206,15 +199,17 @@ const GeneralInfoSection: React.FC<GeneralInfoSectionProps> = ({
 const styles = StyleSheet.create({
   sectionCard: {
     backgroundColor: "white",
-    marginTop: 10,
+    marginTop: 0,
     padding: 16,
   },
   sectionHeader: {
-    backgroundColor: "#E8E3FF",
+    backgroundColor: "#D8D8FF",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
     marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: "#000",
   },
   sectionTitle: {
     fontSize: 16,
