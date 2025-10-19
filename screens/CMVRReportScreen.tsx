@@ -184,17 +184,18 @@ const CMVRReportScreen = () => {
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
+      headerShown: true,
       headerStyle: {
         backgroundColor: 'white',
         elevation: 0,
         shadowOpacity: 0,
         borderBottomWidth: 0,
-        height: 50,
       },
       headerTintColor: 'black',
-      headerTitleAlign: 'center',
+      headerTitleAlign: 'left',
       headerTitleStyle: {
         fontWeight: '600',
+        fontSize: 17,
       },
       headerTitle: () => (
         <TouchableOpacity onPress={handleEditFileName}>
@@ -371,4 +372,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CMVRReportScreen;
+export default CMVRReportScreen;  

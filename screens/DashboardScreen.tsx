@@ -76,7 +76,7 @@ export default function DashboardScreen({ navigation }: any) {
             <ActionButton
               icon={UserCheck}
               title="Record Attendance"
-              subtitle="Mark your team’s presence"
+              subtitle="Mark your team's presence"
               onPress={() => navigation.navigate("AttendanceRecords")}
             />
             <ActionButton
@@ -184,8 +184,10 @@ function CreateReportModal({ visible, onClose, navigation }: any) {
                   icon={ShieldCheck}
                   title="ECC Monitoring"
                   onPress={() => {
-                    console.log("ECC Monitoring");
                     onClose();
+                    setTimeout(() => {
+                      navigation.navigate('ComplianceMonitoring');
+                    }, 120);
                   }}
                 />
                 <ModalButton
