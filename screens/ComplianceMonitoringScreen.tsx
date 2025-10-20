@@ -1,25 +1,16 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Upload } from 'lucide-react-native';
-
-interface FormField {
-  label: string;
-  specification: string;
-  remarks: string;
-  withinSpecs: boolean | null;
-  subFields?: { label: string; specification: string }[];
-}
+import * as ImagePicker from 'expo-image-picker';
+import { CMSHeader } from '../components/CMS/CMSHeader';
+import { CMSTitlePill } from '../components/CMS/CMSTitlePill';
+import { CMSSectionHeader } from '../components/CMS/CMSSectionHeader';
+import { CMSFormField } from '../components/CMS/CMSFormField';
+import { CMSOtherComponents } from '../components/CMS/CMSOtherComponents';
+import { FormData, OtherComponent } from '../components/CMS/types';
 
 export default function ComplianceMonitoringScreen({ navigation, route }: any) {
-  const [formData, setFormData] = useState<{ [key: string]: FormField }>({
+  const [formData, setFormData] = useState<FormData>({
     projectLocation: {
       label: 'Project Location',
       specification: '',
@@ -109,9 +100,39 @@ export default function ComplianceMonitoringScreen({ navigation, route }: any) {
     },
   });
 
-  const [otherComponents, setOtherComponents] = useState<
-    Array<{ specification: string; remarks: string; withinSpecs: boolean | null }>
-  >([]);
+  const [otherComponents, setOtherComponents] = useState<OtherComponent[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<{ [key: string]: string }>({});
+
+  const pickImage = async (fieldKey: string) => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Sorry, we need camera roll permissions to upload images.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setUploadedImages((prev) => ({
+        ...prev,
+        [fieldKey]: result.assets[0].uri,
+      }));
+    }
+  };
+
+  const removeImage = (fieldKey: string) => {
+    setUploadedImages((prev) => {
+      const updated = { ...prev };
+      delete updated[fieldKey];
+      return updated;
+    });
+  };
 
   const updateField = (
     key: string,
@@ -146,176 +167,76 @@ export default function ComplianceMonitoringScreen({ navigation, route }: any) {
     ]);
   };
 
+  const updateOtherComponent = (
+    index: number,
+    field: 'specification' | 'remarks',
+    value: string
+  ) => {
+    const updated = [...otherComponents];
+    updated[index][field] = value;
+    setOtherComponents(updated);
+  };
+
+  const handleSave = () => {
+    Alert.alert('Saved', 'Your report has been saved successfully.');
+  };
+
   const handleSaveAndNext = () => {
     console.log('Form data:', formData);
     console.log('Other components:', otherComponents);
-    // Add your save logic here
+    console.log('Uploaded images:', uploadedImages);
+    // Add your navigation logic here
   };
-
-  const renderFormField = (
-    key: string,
-    field: FormField,
-    showUploadImage = false
-  ) => (
-    <View key={key} style={styles.formField}>
-      <View style={styles.labelPill}>
-        <Text style={styles.labelText}>{field.label}</Text>
-      </View>
-      {field.subFields ? (
-        field.subFields.map((subField, index) => (
-          <View key={index} style={styles.subFieldContainer}>
-            <View style={styles.subFieldHeader}>
-              <View style={styles.bullet} />
-              <Text style={styles.subFieldLabel}>{subField.label}</Text>
-            </View>
-            <TextInput
-              style={styles.input}
-              placeholder="Specification Type here..."
-              placeholderTextColor="#999"
-              value={subField.specification}
-              onChangeText={(text) => updateSubField(key, index, text)}
-            />
-          </View>
-        ))
-      ) : (
-        <TextInput
-          style={styles.input}
-          placeholder="Specification Type here..."
-          placeholderTextColor="#999"
-          value={field.specification}
-          onChangeText={(text) => updateField(key, 'specification', text)}
-        />
-      )}
-      <View style={styles.remarksHeader}>
-        <Text style={styles.remarksLabel}>
-          Remarks- Description of Actual Implementation
-        </Text>
-        {showUploadImage && (
-          <TouchableOpacity style={styles.uploadButton}>
-            <Upload size={16} color="#666" />
-            <Text style={styles.uploadText}>Upload Image</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-      <TextInput
-        style={[styles.input, styles.textArea]}
-        placeholder="Type here..."
-        placeholderTextColor="#999"
-        value={field.remarks}
-        onChangeText={(text) => updateField(key, 'remarks', text)}
-        multiline
-        numberOfLines={3}
-      />
-      <View style={styles.radioGroup}>
-        <Text style={styles.radioLabel}>Within specs?</Text>
-        <TouchableOpacity
-          style={styles.radioOption}
-          onPress={() => updateField(key, 'withinSpecs', true)}
-        >
-          <View style={styles.radioOuter}>
-            {field.withinSpecs === true && <View style={styles.radioInner} />}
-          </View>
-          <Text style={styles.radioText}>Yes</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.radioOption}
-          onPress={() => updateField(key, 'withinSpecs', false)}
-        >
-          <View style={styles.radioOuter}>
-            {field.withinSpecs === false && <View style={styles.radioInner} />}
-          </View>
-          <Text style={styles.radioText}>No</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <ChevronLeft size={24} color="#000" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>File_Name</Text>
-        <TouchableOpacity>
-          <Text style={styles.saveButton}>Save</Text>
-        </TouchableOpacity>
-      </View>
+      <CMSHeader
+        fileName="File_Name"
+        onBack={() => navigation.goBack()}
+        onSave={handleSave}
+      />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.titlePill}>
-          <Text style={styles.titleText}>
-            COMPLIANCE MONITORING REPORT AND DISCUSSIONS
-          </Text>
-        </View>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            <Text style={styles.sectionNumber}>1. </Text>
-            Compliance to Project Location and Coverage Limits (As specified in
-            ECC and/ or EPEP)
-          </Text>
-        </View>
+        <CMSTitlePill title="COMPLIANCE MONITORING REPORT AND DISCUSSIONS" />
+        
+        <CMSSectionHeader
+          sectionNumber="1."
+          title="Compliance to Project Location and Coverage Limits (As specified in ECC and/ or EPEP)"
+        />
+        
         <View style={styles.parametersHeader}>
           <Text style={styles.parametersText}>PARAMETERS:</Text>
         </View>
-        {Object.entries(formData).map(([key, field]) =>
-          renderFormField(key, field, key === 'projectLocation')
-        )}
-        <View style={styles.formField}>
-          <View style={styles.labelPill}>
-            <Text style={styles.labelText}>Other Components:</Text>
-          </View>
-          {otherComponents.map((component, index) => (
-            <View key={index} style={styles.otherComponentItem}>
-              <View style={styles.subFieldHeader}>
-                <View style={styles.bullet} />
-                <TextInput
-                  style={[styles.input, styles.flexInput]}
-                  placeholder="Specification Type here..."
-                  placeholderTextColor="#999"
-                  value={component.specification}
-                  onChangeText={(text) => {
-                    const updated = [...otherComponents];
-                    updated[index].specification = text;
-                    setOtherComponents(updated);
-                  }}
-                />
-              </View>
-              <Text style={styles.remarksLabel}>
-                Remarks- Description of Actual Implementation
-              </Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Type here..."
-                placeholderTextColor="#999"
-                value={component.remarks}
-                onChangeText={(text) => {
-                  const updated = [...otherComponents];
-                  updated[index].remarks = text;
-                  setOtherComponents(updated);
-                }}
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-          ))}
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={addOtherComponent}
-          >
-            <Text style={styles.addButtonText}>+ Add More Components</Text>
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity
-          style={styles.saveNextButton}
-          onPress={handleSaveAndNext}
-        >
+
+        {Object.entries(formData).map(([key, field]) => (
+          <CMSFormField
+            key={key}
+            label={field.label}
+            specification={field.specification}
+            remarks={field.remarks}
+            withinSpecs={field.withinSpecs}
+            subFields={field.subFields}
+            showUploadImage={key === 'projectLocation'}
+            uploadedImage={uploadedImages[key]}
+            onSpecificationChange={(text) => updateField(key, 'specification', text)}
+            onRemarksChange={(text) => updateField(key, 'remarks', text)}
+            onWithinSpecsChange={(value) => updateField(key, 'withinSpecs', value)}
+            onSubFieldChange={(index, value) => updateSubField(key, index, value)}
+            onUploadImage={() => pickImage(key)}
+            onRemoveImage={() => removeImage(key)}
+          />
+        ))}
+
+        <CMSOtherComponents
+          components={otherComponents}
+          onComponentChange={updateOtherComponent}
+          onAddComponent={addOtherComponent}
+        />
+
+        <TouchableOpacity style={styles.saveNextButton} onPress={handleSaveAndNext}>
           <Text style={styles.saveNextText}>Save & Next</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -328,208 +249,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-  },
-  saveButton: {
-    fontSize: 16,
-    color: '#000',
-  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     padding: 16,
   },
-  titlePill: {
-    backgroundColor: '#c7d2fe',
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  titleText: {
-    color: '#312e81',
-    fontWeight: '600',
-    textAlign: 'center',
-    fontSize: 13,
-  },
-  sectionHeader: {
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    color: '#000',
-  },
-  sectionNumber: {
-    color: '#dc2626',
-    fontWeight: '600',
-  },
   parametersHeader: {
-    marginBottom: 12,
+    marginBottom: 8,
+    marginTop: 4,
   },
   parametersText: {
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  formField: {
-    backgroundColor: '#fce7f3',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  labelPill: {
-    backgroundColor: '#c7d2fe',
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    alignSelf: 'flex-start',
-    marginBottom: 12,
-  },
-  labelText: {
-    color: '#312e81',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    marginBottom: 12,
-  },
-  textArea: {
-    minHeight: 70,
-    textAlignVertical: 'top',
-  },
-  subFieldContainer: {
-    marginBottom: 8,
-  },
-  subFieldHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  bullet: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#d1d5db',
-    marginRight: 8,
-  },
-  subFieldLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-  },
-  remarksHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  remarksLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    flex: 1,
-  },
-  uploadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  uploadText: {
-    marginLeft: 4,
-    fontSize: 13,
-    color: '#374151',
-  },
-  radioGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  radioLabel: {
-    fontSize: 14,
-    color: '#374151',
-    marginRight: 16,
-  },
-  radioOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#9ca3af',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 6,
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#4b5563',
-  },
-  radioText: {
-    fontSize: 14,
-    color: '#374151',
-  },
-  otherComponentItem: {
-    marginBottom: 12,
-  },
-  flexInput: {
-    flex: 1,
-    marginBottom: 4,
-  },
-  addButton: {
-    backgroundColor: '#e5e7eb',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    alignSelf: 'flex-end',
-    marginTop: 4,
-  },
-  addButtonText: {
-    fontSize: 13,
-    color: '#374151',
+    fontWeight: '700',
+    fontSize: 11,
   },
   saveNextButton: {
     backgroundColor: '#818cf8',
-    borderRadius: 25,
-    paddingVertical: 14,
+    borderRadius: 20,
+    paddingVertical: 12,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 16,
     marginBottom: 24,
   },
   saveNextText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
 });
