@@ -31,13 +31,10 @@ const CMVRReportScreen = () => {
   const navigation = useNavigation<CMVRReportScreenNavigationProp>();
   const route = useRoute<CMVRReportScreenRouteProp>();
   const { submissionId, projectName, projectId } = route.params;
-
-  // File Name State
   const [fileName, setFileName] = useState(route.params.fileName || "File_Name");
   const [isEditingFileName, setIsEditingFileName] = useState(false);
   const [tempFileName, setTempFileName] = useState(route.params.fileName || "File_Name");
 
-  // General Information State
   const [generalInfo, setGeneralInfo] = useState({
     companyName: "",
     location: "",
@@ -48,7 +45,6 @@ const CMVRReportScreen = () => {
     dateOfSubmission: "",
   });
 
-  // ECC State
   const [eccInfo, setEccInfo] = useState({
     isNA: false,
     permitHolder: "",
@@ -62,7 +58,6 @@ const CMVRReportScreen = () => {
     dateOfIssuance: string;
   }>>([]);
 
-  // ISAG/MPP State
   const [isagInfo, setIsagInfo] = useState({
     permitHolder: "",
     isagNumber: "",
@@ -85,7 +80,6 @@ const CMVRReportScreen = () => {
     dateOfIssuance: string;
   }>>([]);
 
-  // EPEP/FMRDP State
   const [epepInfo, setEpepInfo] = useState({
     isNA: false,
     permitHolder: "",
@@ -99,7 +93,6 @@ const CMVRReportScreen = () => {
     dateOfApproval: string;
   }>>([]);
 
-  // RCF/MTF/FMRDF State
   const [rcfInfo, setRcfInfo] = useState({
     permitHolder: "",
     savingsAccount: "",
@@ -142,7 +135,6 @@ const CMVRReportScreen = () => {
     dateUpdated: string;
   }>>([]);
 
-  // MMT State
   const [mmtInfo, setMmtInfo] = useState({
     contactPerson: "",
     mailingAddress: "",
@@ -192,16 +184,14 @@ const CMVRReportScreen = () => {
         borderBottomWidth: 0,
       },
       headerTintColor: 'black',
-      headerTitleAlign: 'left',
+      headerTitleAlign: 'center',
       headerTitleStyle: {
         fontWeight: '600',
         fontSize: 17,
       },
       headerTitle: () => (
         <TouchableOpacity onPress={handleEditFileName}>
-          <Text style={styles.headerTitleText}>
-            {fileName}
-          </Text>
+          <Text style={styles.headerTitleText}>{fileName}</Text>
         </TouchableOpacity>
       ),
       headerRight: () => (
@@ -257,7 +247,6 @@ const CMVRReportScreen = () => {
         />
         <View style={{ height: 30 }} />
       </ScrollView>
-
       <Modal
         visible={isEditingFileName}
         transparent={true}
@@ -307,6 +296,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: '#000',
+    textAlign: 'center',
   },
   headerSaveButton: {
     marginRight: 10,
@@ -372,4 +362,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CMVRReportScreen;  
+export default CMVRReportScreen;
