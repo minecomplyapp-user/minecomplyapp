@@ -2,13 +2,10 @@ import React, { useState } from "react";
 import { View, ScrollView, StyleSheet, TouchableOpacity, Text, Alert } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { Ionicons } from "@expo/vector-icons";
-import {ExecutiveSummarySection} from "../components/CMVRPage2/ExecutiveSummarySection";
-import {FileNameModal} from "../components/CMVRPage2/FileNameModal";
-import {ProcessDocumentationSection} from "../components/CMVRPage2/ProcessDocumentationSection";
-
-
-
+import { CMSHeader } from '../components/CMSHeader';
+import { ExecutiveSummarySection } from "../components/CMVRPage2/ExecutiveSummarySection";
+import { FileNameModal } from "../components/CMVRPage2/FileNameModal";
+import { ProcessDocumentationSection } from "../components/CMVRPage2/ProcessDocumentationSection";
 
 type RootStackParamList = {
   CMVRReport: {
@@ -170,39 +167,20 @@ const CMVRPage2Screen = () => {
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
-      headerShown: true,
-      headerStyle: {
-        backgroundColor: "white",
-        elevation: 0,
-        shadowOpacity: 0,
-        borderBottomWidth: 0,
-      },
-      headerTintColor: "black",
-      headerTitleAlign: "center",
-      headerTitleStyle: {
-        fontWeight: "600",
-        fontSize: 17,
-      },
-      headerTitle: () => (
-        <TouchableOpacity onPress={handleEditFileName}>
-          <Text style={styles.headerTitleText}>{fileName}</Text>
-        </TouchableOpacity>
-      ),
-      headerLeft: () => (
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginLeft: 10 }}>
-          <Ionicons name="chevron-back" size={24} color="#000" />
-        </TouchableOpacity>
-      ),
-      headerRight: () => (
-        <TouchableOpacity onPress={handleSave} style={styles.headerSaveButton}>
-          <Text style={styles.headerSaveButtonText}>Save</Text>
-        </TouchableOpacity>
-      ),
+      headerShown: false,
     });
-  }, [navigation, fileName]);
+  }, [navigation]);
 
   return (
     <View style={styles.container}>
+      <View style={styles.headerContainer}>
+        <CMSHeader
+          fileName={fileName}
+          onBack={() => navigation.goBack()}
+          onSave={handleSave}
+          onEditFileName={handleEditFileName}
+        />
+      </View>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <ExecutiveSummarySection
           executiveSummary={executiveSummary}
@@ -244,22 +222,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "white",
   },
+  headerContainer: {
+    zIndex: 1000,
+    elevation: 3,
+  },
   content: {
     flex: 1,
-  },
-  headerTitleText: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: "#000",
-    textAlign: "center",
-  },
-  headerSaveButton: {
-    marginRight: 10,
-  },
-  headerSaveButtonText: {
-    fontSize: 16,
-    color: "#000",
-    fontWeight: "500",
   },
   saveNextButton: {
     backgroundColor: "#8B7FDB",

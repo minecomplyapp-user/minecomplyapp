@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, ScrollView, StyleSheet, TouchableOpacity, Text, Alert, TextInput, Modal } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
+import { CMSHeader } from '../components/CMSHeader';
 import GeneralInfoSection from "../components/CMVR/GeneralInfoSection";
 import ECCSection from "../components/CMVR/ECCSection";
 import ISAGSection from "../components/CMVR/ISAGSection";
@@ -146,15 +147,6 @@ const CMVRReportScreen = () => {
     Alert.alert("Saved", "Your report has been saved successfully.");
   };
 
-  const handleNextPage = () => {
-    navigation.navigate('CMVRPage2', {
-      submissionId,
-      projectName,
-      projectId,
-      fileName,
-    });
-  };
-
   const handleEditFileName = () => {
     setTempFileName(fileName);
     setIsEditingFileName(true);
@@ -176,34 +168,20 @@ const CMVRReportScreen = () => {
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
-      headerShown: true,
-      headerStyle: {
-        backgroundColor: 'white',
-        elevation: 0,
-        shadowOpacity: 0,
-        borderBottomWidth: 0,
-      },
-      headerTintColor: 'black',
-      headerTitleAlign: 'center',
-      headerTitleStyle: {
-        fontWeight: '600',
-        fontSize: 17,
-      },
-      headerTitle: () => (
-        <TouchableOpacity onPress={handleEditFileName}>
-          <Text style={styles.headerTitleText}>{fileName}</Text>
-        </TouchableOpacity>
-      ),
-      headerRight: () => (
-        <TouchableOpacity onPress={handleSave} style={styles.headerSaveButton}>
-          <Text style={styles.headerSaveButtonText}>Save</Text>
-        </TouchableOpacity>
-      ),
+      headerShown: false,
     });
-  }, [navigation, fileName]);
+  }, [navigation]);
 
   return (
     <View style={styles.container}>
+      <View style={styles.headerContainer}>
+        <CMSHeader
+          fileName={fileName}
+          onBack={() => navigation.goBack()}
+          onSave={handleSave}
+          onEditFileName={handleEditFileName}
+        />
+      </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <GeneralInfoSection
           generalInfo={generalInfo}
@@ -289,22 +267,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "white",
   },
+  headerContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+    backgroundColor: "white",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
   scrollContent: {
     paddingTop: 0,
-  },
-  headerTitleText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#000',
-    textAlign: 'center',
-  },
-  headerSaveButton: {
-    marginRight: 10,
-  },
-  headerSaveButtonText: {
-    fontSize: 16,
-    color: "#000",
-    fontWeight: "500",
   },
   modalOverlay: {
     flex: 1,
