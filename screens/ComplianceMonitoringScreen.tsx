@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { CMSHeader } from '../components/CMS/CMSHeader';
-import { CMSTitlePill } from '../components/CMS/CMSTitlePill';
+import { CMSHeader } from '../components/CMSHeader';
 import { CMSSectionHeader } from '../components/CMS/CMSSectionHeader';
 import { CMSFormField } from '../components/CMS/CMSFormField';
 import { CMSOtherComponents } from '../components/CMS/CMSOtherComponents';
@@ -105,19 +112,16 @@ export default function ComplianceMonitoringScreen({ navigation, route }: any) {
 
   const pickImage = async (fieldKey: string) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
     if (status !== 'granted') {
       Alert.alert('Permission needed', 'Sorry, we need camera roll permissions to upload images.');
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
     });
-
     if (!result.canceled && result.assets[0]) {
       setUploadedImages((prev) => ({
         ...prev,
@@ -177,6 +181,18 @@ export default function ComplianceMonitoringScreen({ navigation, route }: any) {
     setOtherComponents(updated);
   };
 
+  const handleWithinSpecsChange = (index: number, value: boolean) => {
+    setOtherComponents((prev) => {
+      const updated = [...prev];
+      updated[index].withinSpecs = value;
+      return updated;
+    });
+  };
+
+  const handleDeleteComponent = (index: number) => {
+    setOtherComponents((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSave = () => {
     Alert.alert('Saved', 'Your report has been saved successfully.');
   };
@@ -186,27 +202,45 @@ export default function ComplianceMonitoringScreen({ navigation, route }: any) {
     console.log('Other components:', otherComponents);
     console.log('Uploaded images:', uploadedImages);
     // Add your navigation logic here
+    navigation.navigate('EIACompliance');
+
   };
 
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: false,
+    });
+  }, [navigation]);
+
   return (
-    <SafeAreaView style={styles.container}>
-      <CMSHeader
-        fileName="File_Name"
-        onBack={() => navigation.goBack()}
-        onSave={handleSave}
-      />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <View style={styles.headerContainer}>
+        <CMSHeader
+          fileName="File_Name"
+          onBack={() => navigation.goBack()}
+          onSave={handleSave}
+        />
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        <CMSTitlePill title="COMPLIANCE MONITORING REPORT AND DISCUSSIONS" />
-        
+        {/* --- Updated Title Pill --- */}
+        <View style={styles.titleContainer}>
+          <Text style={styles.titleText}>COMPLIANCE MONITORING REPORT AND DISCUSSIONS</Text>
+        </View>
+
         <CMSSectionHeader
           sectionNumber="1."
           title="Compliance to Project Location and Coverage Limits (As specified in ECC and/ or EPEP)"
         />
-        
+
         <View style={styles.parametersHeader}>
           <Text style={styles.parametersText}>PARAMETERS:</Text>
         </View>
@@ -233,14 +267,18 @@ export default function ComplianceMonitoringScreen({ navigation, route }: any) {
         <CMSOtherComponents
           components={otherComponents}
           onComponentChange={updateOtherComponent}
+          onWithinSpecsChange={handleWithinSpecsChange}
           onAddComponent={addOtherComponent}
+          onDeleteComponent={handleDeleteComponent}
         />
 
-        <TouchableOpacity style={styles.saveNextButton} onPress={handleSaveAndNext}>
-          <Text style={styles.saveNextText}>Save & Next</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.saveNextButton} onPress={handleSaveAndNext}>
+            <Text style={styles.saveNextText}>Save & Next</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
-    </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -249,11 +287,32 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  headerContainer: {
+    zIndex: 1000,
+    elevation: 3,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     padding: 16,
+  },
+  /* --- Title Pill Styles --- */
+  titleContainer: {
+    backgroundColor: '#D8D8FF',
+    borderColor: '#000',
+    borderWidth: 1,
+    borderRadius: 30,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  titleText: {
+    fontWeight: '700',
+    fontSize: 11,
+    color: '#000',
   },
   parametersHeader: {
     marginBottom: 8,
@@ -263,13 +322,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 11,
   },
+  buttonContainer: {
+    marginBottom: 32,
+  },
   saveNextButton: {
-    backgroundColor: '#818cf8',
-    borderRadius: 20,
+    backgroundColor: '#7C6FDB',
     paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
     marginTop: 16,
-    marginBottom: 24,
   },
   saveNextText: {
     color: '#fff',

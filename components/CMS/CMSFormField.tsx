@@ -46,7 +46,7 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
             <Text style={styles.labelText}>{label}</Text>
           </View>
           <Text style={styles.remarksLabel}>
-            Remarks- Description of{'\n'}Actual Implementation
+            Remarks- Description of{'\\n'}Actual Implementation
           </Text>
         </View>
         <View style={styles.middleSection}>
@@ -71,7 +71,7 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
           ) : (
             <TextInput
               style={styles.input}
-              placeholder="Specification Type here..."
+              placeholder="Specification"
               placeholderTextColor="#999"
               value={specification}
               onChangeText={onSpecificationChange}
@@ -88,8 +88,8 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
           />
         </View>
         <View style={styles.rightSection}>
-          <View style={styles.radioGroup}>
-            <Text style={styles.radioLabel}>Within specs?</Text>
+          <Text style={styles.radioLabel}>Within specs?</Text>
+          <View style={styles.radioRow}>
             <TouchableOpacity
               style={styles.radioOption}
               onPress={() => onWithinSpecsChange(true)}
@@ -139,7 +139,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5E7E7',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    marginBottom: 1,
+    marginBottom: 8, // Increased gap between sections
+    borderWidth: 1,
+    borderColor: '#E5C7C7',
+    borderRadius: 0, // Removed border radius for square corners
   },
   fieldRow: {
     flexDirection: 'row',
@@ -178,6 +181,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#d1d5db',
+    borderRadius: 0,
     paddingHorizontal: 8,
     paddingVertical: 6,
     fontSize: 11,
@@ -207,19 +211,21 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#374151',
   },
-  radioGroup: {
-    alignItems: 'flex-end',
-  },
   radioLabel: {
     fontSize: 11,
     color: '#000',
     marginBottom: 8,
     fontWeight: '500',
   },
+  radioRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
   radioOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    gap: 4,
   },
   radioOuter: {
     width: 16,
@@ -229,7 +235,6 @@ const styles = StyleSheet.create({
     borderColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 6,
   },
   radioInner: {
     width: 8,
@@ -250,6 +255,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     marginTop: 8,
     backgroundColor: '#fff',
+    borderRadius: 0,
   },
   uploadText: {
     marginLeft: 4,
