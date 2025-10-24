@@ -2,7 +2,7 @@ import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { useAuth } from "../contexts/AuthContext";
-import { FileNameProvider } from "../contexts/FileNameContext"; // ✅ import here
+import { FileNameProvider } from "../contexts/FileNameContext";
 
 // Screens
 import AuthScreen from "../screens/AuthScreen";
@@ -17,6 +17,8 @@ import AttendanceRecordScreen from "../screens/AttendanceRecordScreen";
 import ReportsScreen from "../screens/ReportsScreen";
 import ComplianceMonitoringScreen from "../screens/ComplianceMonitoringScreen";
 import EIAComplianceScreen from "../screens/EIAComplianceScreen";
+import EnvironmentalComplianceScreen from "../screens/EnvironmentalComplianceScreen";
+import WaterQualityScreen from "../screens/WaterQualityScreen";
 
 const RootStack = createStackNavigator();
 
@@ -26,7 +28,6 @@ const AppNavigator = () => {
   if (loading) return null;
 
   return (
-    // ✅ Wrap everything with FileNameProvider
     <FileNameProvider>
       <NavigationContainer>
         <RootStack.Navigator screenOptions={{ headerShown: true }}>
@@ -63,6 +64,16 @@ const AppNavigator = () => {
               <RootStack.Screen
                 name="EIACompliance"
                 component={EIAComplianceScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen
+                name="EnvironmentalCompliance"
+                component={EnvironmentalComplianceScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen
+                name="WaterQuality"
+                component={WaterQualityScreen}
                 options={{ headerShown: false }}
               />
             </>

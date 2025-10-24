@@ -88,8 +88,7 @@ const EIAComplianceScreen: React.FC<EIAComplianceScreenProps> = ({ navigation, r
       portOperation,
       overallCompliance,
     });
-    // Navigate to next screen when ready
-    // navigation.navigate('NextScreen');
+    navigation.navigate('EnvironmentalCompliance');
   };
 
   const addMeasure = (section: 'quarry' | 'plant' | 'port') => {
