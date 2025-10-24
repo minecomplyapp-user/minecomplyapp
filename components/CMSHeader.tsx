@@ -10,20 +10,28 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFileName } from '../contexts/FileNameContext'; // ✅ global context hook
+import { useFileName } from '../contexts/FileNameContext';
 
 interface CMSHeaderProps {
   onBack?: () => void;
+  onSave?: () => void;
+  fileName?: string;
 }
 
-export const CMSHeader: React.FC<CMSHeaderProps> = ({ onBack }) => {
-  const { fileName, setFileName } = useFileName(); // ✅ shared state
+export const CMSHeader: React.FC<CMSHeaderProps> = ({ onBack, onSave, fileName: fileNameProp }) => {
+  const { fileName: contextFileName, setFileName } = useFileName();
   const [modalVisible, setModalVisible] = useState(false);
-  const [editableFileName, setEditableFileName] = useState(fileName);
+  
+  // Use prop if provided, otherwise use context
+  const displayFileName = fileNameProp || contextFileName;
+  const [editableFileName, setEditableFileName] = useState(displayFileName);
 
   const handleSave = () => {
-    setFileName(editableFileName); // ✅ updates globally
+    setFileName(editableFileName);
     setModalVisible(false);
+    if (onSave) {
+      onSave();
+    }
   };
 
   return (
@@ -36,7 +44,7 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({ onBack }) => {
 
         {/* File Name */}
         <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.titleContainer}>
-          <Text style={styles.headerTitleText}>{fileName}</Text>
+          <Text style={styles.headerTitleText}>{displayFileName}</Text>
         </TouchableOpacity>
 
         {/* Save Button */}
@@ -164,4 +172,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-});
+}); 
