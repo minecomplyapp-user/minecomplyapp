@@ -19,6 +19,7 @@ import ComplianceMonitoringScreen from "../screens/ComplianceMonitoringScreen";
 import EIAComplianceScreen from "../screens/EIAComplianceScreen";
 import EnvironmentalComplianceScreen from "../screens/EnvironmentalComplianceScreen";
 import WaterQualityScreen from "../screens/WaterQualityScreen";
+import NoiseQualityScreen from "../screens/NoiseQualityScreen";
 
 const RootStack = createStackNavigator();
 
@@ -74,6 +75,11 @@ const AppNavigator = () => {
               <RootStack.Screen
                 name="WaterQuality"
                 component={WaterQualityScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen
+                name="NoiseQuality"
+                component={NoiseQualityScreen}
                 options={{ headerShown: false }}
               />
             </>

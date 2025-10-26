@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 
@@ -22,10 +22,18 @@ const GeneralInfoSection: React.FC<GeneralInfoSectionProps> = ({
   generalInfo,
   setGeneralInfo,
 }) => {
-  const [isCapturingLocation, setIsCapturingLocation] = React.useState(false);
+  const [isCapturingLocation, setIsCapturingLocation] = useState(false);
+  const [showQuarterPicker, setShowQuarterPicker] = useState(false);
+
+  const quarters = ["1st Quarter", "2nd Quarter", "3rd Quarter", "4th Quarter"];
 
   const updateGeneralInfo = (field: keyof GeneralInfo, value: string) => {
     setGeneralInfo((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleQuarterSelect = (quarter: string) => {
+    updateGeneralInfo("quarter", quarter);
+    setShowQuarterPicker(false);
   };
 
   const handleCaptureGPS = async () => {
@@ -148,12 +156,15 @@ const GeneralInfoSection: React.FC<GeneralInfoSectionProps> = ({
       <View style={styles.rowContainer}>
         <View style={styles.halfField}>
           <Text style={styles.label}>Quarter:</Text>
-          <TextInput
-            style={styles.input}
-            value={generalInfo.quarter}
-            onChangeText={(text) => updateGeneralInfo("quarter", text)}
-            placeholder="Drop down (1st, 2nd, 3rd, 4th)"
-          />
+          <TouchableOpacity
+            style={styles.dropdownButton}
+            onPress={() => setShowQuarterPicker(true)}
+          >
+            <Text style={[styles.dropdownText, !generalInfo.quarter && styles.placeholderText]}>
+              {generalInfo.quarter || "Select Quarter"}
+            </Text>
+            <Ionicons name="chevron-down" size={20} color="#666" />
+          </TouchableOpacity>
         </View>
         <View style={styles.halfField}>
           <Text style={styles.label}>Year:</Text>
@@ -162,6 +173,7 @@ const GeneralInfoSection: React.FC<GeneralInfoSectionProps> = ({
             value={generalInfo.year}
             onChangeText={(text) => updateGeneralInfo("year", text)}
             placeholder="Type here..."
+            keyboardType="numeric"
           />
         </View>
       </View>
@@ -192,6 +204,51 @@ const GeneralInfoSection: React.FC<GeneralInfoSectionProps> = ({
           placeholder="Month/Date/Year"
         />
       </View>
+
+      {/* Quarter Picker Modal */}
+      <Modal
+        transparent
+        animationType="fade"
+        visible={showQuarterPicker}
+        onRequestClose={() => setShowQuarterPicker(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowQuarterPicker(false)}
+        >
+          <View style={styles.pickerContainer}>
+            <View style={styles.pickerHeader}>
+              <Text style={styles.pickerTitle}>Select Quarter</Text>
+              <TouchableOpacity onPress={() => setShowQuarterPicker(false)}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            {quarters.map((quarter, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.pickerOption,
+                  generalInfo.quarter === quarter && styles.pickerOptionSelected,
+                ]}
+                onPress={() => handleQuarterSelect(quarter)}
+              >
+                <Text
+                  style={[
+                    styles.pickerOptionText,
+                    generalInfo.quarter === quarter && styles.pickerOptionTextSelected,
+                  ]}
+                >
+                  {quarter}
+                </Text>
+                {generalInfo.quarter === quarter && (
+                  <Ionicons name="checkmark" size={20} color="#007AFF" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -274,6 +331,69 @@ const styles = StyleSheet.create({
   },
   halfField: {
     flex: 1,
+  },
+  dropdownButton: {
+    backgroundColor: "#F9F9F9",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  dropdownText: {
+    fontSize: 14,
+    color: "#333",
+  },
+  placeholderText: {
+    color: "#999",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  pickerContainer: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    width: "80%",
+    maxWidth: 400,
+    overflow: "hidden",
+  },
+  pickerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  pickerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+  },
+  pickerOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  pickerOptionSelected: {
+    backgroundColor: "#F0F5FF",
+  },
+  pickerOptionText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  pickerOptionTextSelected: {
+    color: "#007AFF",
+    fontWeight: "600",
   },
 });
 

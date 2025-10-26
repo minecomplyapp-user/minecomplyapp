@@ -1,8 +1,15 @@
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 type FundInfo = {
+  isNA: boolean; // Added this
   permitHolder: string;
   savingsAccount: string;
   amountDeposited: string;
@@ -20,15 +27,21 @@ type RCFSectionProps = {
   rcfInfo: FundInfo;
   setRcfInfo: React.Dispatch<React.SetStateAction<FundInfo>>;
   rcfAdditionalForms: FundAdditionalForm[];
-  setRcfAdditionalForms: React.Dispatch<React.SetStateAction<FundAdditionalForm[]>>;
+  setRcfAdditionalForms: React.Dispatch<
+    React.SetStateAction<FundAdditionalForm[]>
+  >;
   mtfInfo: FundInfo;
   setMtfInfo: React.Dispatch<React.SetStateAction<FundInfo>>;
   mtfAdditionalForms: FundAdditionalForm[];
-  setMtfAdditionalForms: React.Dispatch<React.SetStateAction<FundAdditionalForm[]>>;
+  setMtfAdditionalForms: React.Dispatch<
+    React.SetStateAction<FundAdditionalForm[]>
+  >;
   fmrdfInfo: FundInfo;
   setFmrdfInfo: React.Dispatch<React.SetStateAction<FundInfo>>;
   fmrdfAdditionalForms: FundAdditionalForm[];
-  setFmrdfAdditionalForms: React.Dispatch<React.SetStateAction<FundAdditionalForm[]>>;
+  setFmrdfAdditionalForms: React.Dispatch<
+    React.SetStateAction<FundAdditionalForm[]>
+  >;
 };
 
 const RCFSection: React.FC<RCFSectionProps> = ({
@@ -45,36 +58,51 @@ const RCFSection: React.FC<RCFSectionProps> = ({
   fmrdfAdditionalForms,
   setFmrdfAdditionalForms,
 }) => {
-  const updateRCFInfo = (field: keyof FundInfo, value: string) => {
+  const updateRCFInfo = (field: keyof FundInfo, value: string | boolean) => {
     setRcfInfo((prev) => ({ ...prev, [field]: value }));
   };
 
-  const updateMTFInfo = (field: keyof FundInfo, value: string) => {
+  const updateMTFInfo = (field: keyof FundInfo, value: string | boolean) => {
     setMtfInfo((prev) => ({ ...prev, [field]: value }));
   };
 
-  const updateFMRDFInfo = (field: keyof FundInfo, value: string) => {
+  const updateFMRDFInfo = (field: keyof FundInfo, value: string | boolean) => {
     setFmrdfInfo((prev) => ({ ...prev, [field]: value }));
   };
 
   const addRCFForm = () => {
     setRcfAdditionalForms([
       ...rcfAdditionalForms,
-      { permitHolder: "", savingsAccount: "", amountDeposited: "", dateUpdated: "" },
+      {
+        permitHolder: "",
+        savingsAccount: "",
+        amountDeposited: "",
+        dateUpdated: "",
+      },
     ]);
   };
 
   const addMTFForm = () => {
     setMtfAdditionalForms([
       ...mtfAdditionalForms,
-      { permitHolder: "", savingsAccount: "", amountDeposited: "", dateUpdated: "" },
+      {
+        permitHolder: "",
+        savingsAccount: "",
+        amountDeposited: "",
+        dateUpdated: "",
+      },
     ]);
   };
 
   const addFMRDFForm = () => {
     setFmrdfAdditionalForms([
       ...fmrdfAdditionalForms,
-      { permitHolder: "", savingsAccount: "", amountDeposited: "", dateUpdated: "" },
+      {
+        permitHolder: "",
+        savingsAccount: "",
+        amountDeposited: "",
+        dateUpdated: "",
+      },
     ]);
   };
 
@@ -129,8 +157,11 @@ const RCFSection: React.FC<RCFSectionProps> = ({
 
       {/* Rehabilitation Cash Funds */}
       <View style={styles.subsectionHeader}>
-        <TouchableOpacity style={styles.checkbox}>
-          <View style={styles.checkboxInner} />
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => updateRCFInfo("isNA", !rcfInfo.isNA)}
+        >
+          {rcfInfo.isNA && <View style={styles.checkboxInner} />}
         </TouchableOpacity>
         <Text style={styles.subsectionTitle}>Rehabilitation Cash Funds</Text>
       </View>
@@ -138,12 +169,20 @@ const RCFSection: React.FC<RCFSectionProps> = ({
         <Text style={styles.label}>Name of Permit Holder:</Text>
         <View style={styles.inputWithButton}>
           <TextInput
-            style={[styles.input, styles.flexInput]}
+            style={[
+              styles.input,
+              styles.flexInput,
+              rcfInfo.isNA && styles.disabledInput,
+            ]}
             value={rcfInfo.permitHolder}
             onChangeText={(text) => updateRCFInfo("permitHolder", text)}
             placeholder="Type here..."
+            editable={!rcfInfo.isNA}
           />
-          <TouchableOpacity style={styles.submitButton}>
+          <TouchableOpacity
+            style={[styles.submitButton, rcfInfo.isNA && styles.disabledButton]}
+            disabled={rcfInfo.isNA}
+          >
             <Text style={styles.submitButtonText}>Submit</Text>
           </TouchableOpacity>
         </View>
@@ -151,32 +190,39 @@ const RCFSection: React.FC<RCFSectionProps> = ({
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Savings Account Number:</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, rcfInfo.isNA && styles.disabledInput]}
           value={rcfInfo.savingsAccount}
           onChangeText={(text) => updateRCFInfo("savingsAccount", text)}
           placeholder="Type here..."
+          editable={!rcfInfo.isNA}
         />
       </View>
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Amount Deposited (Php):</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, rcfInfo.isNA && styles.disabledInput]}
           value={rcfInfo.amountDeposited}
           onChangeText={(text) => updateRCFInfo("amountDeposited", text)}
           placeholder="Type here..."
           keyboardType="numeric"
+          editable={!rcfInfo.isNA}
         />
       </View>
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Date of Updated:</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, rcfInfo.isNA && styles.disabledInput]}
           value={rcfInfo.dateUpdated}
           onChangeText={(text) => updateRCFInfo("dateUpdated", text)}
           placeholder="Month/Date/Year"
+          editable={!rcfInfo.isNA}
         />
       </View>
-      <TouchableOpacity style={styles.addMoreButton} onPress={addRCFForm}>
+      <TouchableOpacity
+        style={[styles.addMoreButton, rcfInfo.isNA && styles.disabledButton]}
+        onPress={addRCFForm}
+        disabled={rcfInfo.isNA}
+      >
         <Text style={styles.addMoreText}>+ Add more names</Text>
       </TouchableOpacity>
       {rcfAdditionalForms.map((form: FundAdditionalForm, index: number) => (
@@ -191,12 +237,25 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             <Text style={styles.label}>Name of Permit Holder:</Text>
             <View style={styles.inputWithButton}>
               <TextInput
-                style={[styles.input, styles.flexInput]}
+                style={[
+                  styles.input,
+                  styles.flexInput,
+                  rcfInfo.isNA && styles.disabledInput,
+                ]}
                 value={form.permitHolder}
-                onChangeText={(text) => updateRcfAdditionalForm(index, "permitHolder", text)}
+                onChangeText={(text) =>
+                  updateRcfAdditionalForm(index, "permitHolder", text)
+                }
                 placeholder="Type here..."
+                editable={!rcfInfo.isNA}
               />
-              <TouchableOpacity style={styles.submitButton}>
+              <TouchableOpacity
+                style={[
+                  styles.submitButton,
+                  rcfInfo.isNA && styles.disabledButton,
+                ]}
+                disabled={rcfInfo.isNA}
+              >
                 <Text style={styles.submitButtonText}>Submit</Text>
               </TouchableOpacity>
             </View>
@@ -204,29 +263,38 @@ const RCFSection: React.FC<RCFSectionProps> = ({
           <View style={styles.fieldRow}>
             <Text style={styles.label}>Savings Account Number:</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, rcfInfo.isNA && styles.disabledInput]}
               value={form.savingsAccount}
-              onChangeText={(text) => updateRcfAdditionalForm(index, "savingsAccount", text)}
+              onChangeText={(text) =>
+                updateRcfAdditionalForm(index, "savingsAccount", text)
+              }
               placeholder="Type here..."
+              editable={!rcfInfo.isNA}
             />
           </View>
           <View style={styles.fieldRow}>
             <Text style={styles.label}>Amount Deposited (Php):</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, rcfInfo.isNA && styles.disabledInput]}
               value={form.amountDeposited}
-              onChangeText={(text) => updateRcfAdditionalForm(index, "amountDeposited", text)}
+              onChangeText={(text) =>
+                updateRcfAdditionalForm(index, "amountDeposited", text)
+              }
               placeholder="Type here..."
               keyboardType="numeric"
+              editable={!rcfInfo.isNA}
             />
           </View>
           <View style={styles.fieldRow}>
             <Text style={styles.label}>Date of Updated:</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, rcfInfo.isNA && styles.disabledInput]}
               value={form.dateUpdated}
-              onChangeText={(text) => updateRcfAdditionalForm(index, "dateUpdated", text)}
+              onChangeText={(text) =>
+                updateRcfAdditionalForm(index, "dateUpdated", text)
+              }
               placeholder="Month/Date/Year"
+              editable={!rcfInfo.isNA}
             />
           </View>
         </View>
@@ -234,8 +302,11 @@ const RCFSection: React.FC<RCFSectionProps> = ({
 
       {/* Monitoring Trust Fund */}
       <View style={styles.subsectionHeader}>
-        <TouchableOpacity style={styles.checkbox}>
-          <View style={styles.checkboxInner} />
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => updateMTFInfo("isNA", !mtfInfo.isNA)}
+        >
+          {mtfInfo.isNA && <View style={styles.checkboxInner} />}
         </TouchableOpacity>
         <Text style={styles.subsectionTitle}>Monitoring Trust Fund</Text>
       </View>
@@ -243,12 +314,20 @@ const RCFSection: React.FC<RCFSectionProps> = ({
         <Text style={styles.label}>Name of Permit Holder:</Text>
         <View style={styles.inputWithButton}>
           <TextInput
-            style={[styles.input, styles.flexInput]}
+            style={[
+              styles.input,
+              styles.flexInput,
+              mtfInfo.isNA && styles.disabledInput,
+            ]}
             value={mtfInfo.permitHolder}
             onChangeText={(text) => updateMTFInfo("permitHolder", text)}
             placeholder="Type here..."
+            editable={!mtfInfo.isNA}
           />
-          <TouchableOpacity style={styles.submitButton}>
+          <TouchableOpacity
+            style={[styles.submitButton, mtfInfo.isNA && styles.disabledButton]}
+            disabled={mtfInfo.isNA}
+          >
             <Text style={styles.submitButtonText}>Submit</Text>
           </TouchableOpacity>
         </View>
@@ -256,32 +335,39 @@ const RCFSection: React.FC<RCFSectionProps> = ({
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Savings Account Number:</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, mtfInfo.isNA && styles.disabledInput]}
           value={mtfInfo.savingsAccount}
           onChangeText={(text) => updateMTFInfo("savingsAccount", text)}
           placeholder="Type here..."
+          editable={!mtfInfo.isNA}
         />
       </View>
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Amount Deposited (Php):</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, mtfInfo.isNA && styles.disabledInput]}
           value={mtfInfo.amountDeposited}
           onChangeText={(text) => updateMTFInfo("amountDeposited", text)}
           placeholder="Type here..."
           keyboardType="numeric"
+          editable={!mtfInfo.isNA}
         />
       </View>
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Date of Updated:</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, mtfInfo.isNA && styles.disabledInput]}
           value={mtfInfo.dateUpdated}
           onChangeText={(text) => updateMTFInfo("dateUpdated", text)}
           placeholder="Month/Date/Year"
+          editable={!mtfInfo.isNA}
         />
       </View>
-      <TouchableOpacity style={styles.addMoreButton} onPress={addMTFForm}>
+      <TouchableOpacity
+        style={[styles.addMoreButton, mtfInfo.isNA && styles.disabledButton]}
+        onPress={addMTFForm}
+        disabled={mtfInfo.isNA}
+      >
         <Text style={styles.addMoreText}>+ Add more names</Text>
       </TouchableOpacity>
       {mtfAdditionalForms.map((form: FundAdditionalForm, index: number) => (
@@ -296,12 +382,25 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             <Text style={styles.label}>Name of Permit Holder:</Text>
             <View style={styles.inputWithButton}>
               <TextInput
-                style={[styles.input, styles.flexInput]}
+                style={[
+                  styles.input,
+                  styles.flexInput,
+                  mtfInfo.isNA && styles.disabledInput,
+                ]}
                 value={form.permitHolder}
-                onChangeText={(text) => updateMtfAdditionalForm(index, "permitHolder", text)}
+                onChangeText={(text) =>
+                  updateMtfAdditionalForm(index, "permitHolder", text)
+                }
                 placeholder="Type here..."
+                editable={!mtfInfo.isNA}
               />
-              <TouchableOpacity style={styles.submitButton}>
+              <TouchableOpacity
+                style={[
+                  styles.submitButton,
+                  mtfInfo.isNA && styles.disabledButton,
+                ]}
+                disabled={mtfInfo.isNA}
+              >
                 <Text style={styles.submitButtonText}>Submit</Text>
               </TouchableOpacity>
             </View>
@@ -309,29 +408,38 @@ const RCFSection: React.FC<RCFSectionProps> = ({
           <View style={styles.fieldRow}>
             <Text style={styles.label}>Savings Account Number:</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, mtfInfo.isNA && styles.disabledInput]}
               value={form.savingsAccount}
-              onChangeText={(text) => updateMtfAdditionalForm(index, "savingsAccount", text)}
+              onChangeText={(text) =>
+                updateMtfAdditionalForm(index, "savingsAccount", text)
+              }
               placeholder="Type here..."
+              editable={!mtfInfo.isNA}
             />
           </View>
           <View style={styles.fieldRow}>
             <Text style={styles.label}>Amount Deposited (Php):</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, mtfInfo.isNA && styles.disabledInput]}
               value={form.amountDeposited}
-              onChangeText={(text) => updateMtfAdditionalForm(index, "amountDeposited", text)}
+              onChangeText={(text) =>
+                updateMtfAdditionalForm(index, "amountDeposited", text)
+              }
               placeholder="Type here..."
               keyboardType="numeric"
+              editable={!mtfInfo.isNA}
             />
           </View>
           <View style={styles.fieldRow}>
             <Text style={styles.label}>Date of Updated:</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, mtfInfo.isNA && styles.disabledInput]}
               value={form.dateUpdated}
-              onChangeText={(text) => updateMtfAdditionalForm(index, "dateUpdated", text)}
+              onChangeText={(text) =>
+                updateMtfAdditionalForm(index, "dateUpdated", text)
+              }
               placeholder="Month/Date/Year"
+              editable={!mtfInfo.isNA}
             />
           </View>
         </View>
@@ -339,21 +447,37 @@ const RCFSection: React.FC<RCFSectionProps> = ({
 
       {/* Final Mine Rehabilitation and Decommissioning Fund */}
       <View style={styles.subsectionHeader}>
-        <TouchableOpacity style={styles.checkbox}>
-          <View style={styles.checkboxInner} />
+        <TouchableOpacity
+          style={styles.checkbox}
+          onPress={() => updateFMRDFInfo("isNA", !fmrdfInfo.isNA)}
+        >
+          {fmrdfInfo.isNA && <View style={styles.checkboxInner} />}
         </TouchableOpacity>
-        <Text style={styles.subsectionTitle}>Final Mine Rehabilitation and Decommissioning Fund</Text>
+        <Text style={styles.subsectionTitle}>
+          Final Mine Rehabilitation and Decommissioning Fund
+        </Text>
       </View>
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Name of Permit Holder:</Text>
         <View style={styles.inputWithButton}>
           <TextInput
-            style={[styles.input, styles.flexInput]}
+            style={[
+              styles.input,
+              styles.flexInput,
+              fmrdfInfo.isNA && styles.disabledInput,
+            ]}
             value={fmrdfInfo.permitHolder}
             onChangeText={(text) => updateFMRDFInfo("permitHolder", text)}
             placeholder="Type here..."
+            editable={!fmrdfInfo.isNA}
           />
-          <TouchableOpacity style={styles.submitButton}>
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              fmrdfInfo.isNA && styles.disabledButton,
+            ]}
+            disabled={fmrdfInfo.isNA}
+          >
             <Text style={styles.submitButtonText}>Submit</Text>
           </TouchableOpacity>
         </View>
@@ -361,32 +485,39 @@ const RCFSection: React.FC<RCFSectionProps> = ({
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Savings Account Number:</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, fmrdfInfo.isNA && styles.disabledInput]}
           value={fmrdfInfo.savingsAccount}
           onChangeText={(text) => updateFMRDFInfo("savingsAccount", text)}
           placeholder="Type here..."
+          editable={!fmrdfInfo.isNA}
         />
       </View>
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Amount Deposited (Php):</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, fmrdfInfo.isNA && styles.disabledInput]}
           value={fmrdfInfo.amountDeposited}
           onChangeText={(text) => updateFMRDFInfo("amountDeposited", text)}
           placeholder="Type here..."
           keyboardType="numeric"
+          editable={!fmrdfInfo.isNA}
         />
       </View>
       <View style={styles.fieldRow}>
         <Text style={styles.label}>Date of Updated:</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, fmrdfInfo.isNA && styles.disabledInput]}
           value={fmrdfInfo.dateUpdated}
           onChangeText={(text) => updateFMRDFInfo("dateUpdated", text)}
           placeholder="Month/Date/Year"
+          editable={!fmrdfInfo.isNA}
         />
       </View>
-      <TouchableOpacity style={styles.addMoreButton} onPress={addFMRDFForm}>
+      <TouchableOpacity
+        style={[styles.addMoreButton, fmrdfInfo.isNA && styles.disabledButton]}
+        onPress={addFMRDFForm}
+        disabled={fmrdfInfo.isNA}
+      >
         <Text style={styles.addMoreText}>+ Add more names</Text>
       </TouchableOpacity>
       {fmrdfAdditionalForms.map((form: FundAdditionalForm, index: number) => (
@@ -401,12 +532,25 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             <Text style={styles.label}>Name of Permit Holder:</Text>
             <View style={styles.inputWithButton}>
               <TextInput
-                style={[styles.input, styles.flexInput]}
+                style={[
+                  styles.input,
+                  styles.flexInput,
+                  fmrdfInfo.isNA && styles.disabledInput,
+                ]}
                 value={form.permitHolder}
-                onChangeText={(text) => updateFmrdfAdditionalForm(index, "permitHolder", text)}
+                onChangeText={(text) =>
+                  updateFmrdfAdditionalForm(index, "permitHolder", text)
+                }
                 placeholder="Type here..."
+                editable={!fmrdfInfo.isNA}
               />
-              <TouchableOpacity style={styles.submitButton}>
+              <TouchableOpacity
+                style={[
+                  styles.submitButton,
+                  fmrdfInfo.isNA && styles.disabledButton,
+                ]}
+                disabled={fmrdfInfo.isNA}
+              >
                 <Text style={styles.submitButtonText}>Submit</Text>
               </TouchableOpacity>
             </View>
@@ -414,29 +558,38 @@ const RCFSection: React.FC<RCFSectionProps> = ({
           <View style={styles.fieldRow}>
             <Text style={styles.label}>Savings Account Number:</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, fmrdfInfo.isNA && styles.disabledInput]}
               value={form.savingsAccount}
-              onChangeText={(text) => updateFmrdfAdditionalForm(index, "savingsAccount", text)}
+              onChangeText={(text) =>
+                updateFmrdfAdditionalForm(index, "savingsAccount", text)
+              }
               placeholder="Type here..."
+              editable={!fmrdfInfo.isNA}
             />
           </View>
           <View style={styles.fieldRow}>
             <Text style={styles.label}>Amount Deposited (Php):</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, fmrdfInfo.isNA && styles.disabledInput]}
               value={form.amountDeposited}
-              onChangeText={(text) => updateFmrdfAdditionalForm(index, "amountDeposited", text)}
+              onChangeText={(text) =>
+                updateFmrdfAdditionalForm(index, "amountDeposited", text)
+              }
               placeholder="Type here..."
               keyboardType="numeric"
+              editable={!fmrdfInfo.isNA}
             />
           </View>
           <View style={styles.fieldRow}>
             <Text style={styles.label}>Date of Updated:</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, fmrdfInfo.isNA && styles.disabledInput]}
               value={form.dateUpdated}
-              onChangeText={(text) => updateFmrdfAdditionalForm(index, "dateUpdated", text)}
+              onChangeText={(text) =>
+                updateFmrdfAdditionalForm(index, "dateUpdated", text)
+              }
               placeholder="Month/Date/Year"
+              editable={!fmrdfInfo.isNA}
             />
           </View>
         </View>
@@ -511,6 +664,9 @@ const styles = StyleSheet.create({
     color: "#333",
     flex: 1,
   },
+  disabledInput: { // Added
+    opacity: 0.5,
+  },
   inputWithButton: {
     flexDirection: "row",
     gap: 8,
@@ -524,6 +680,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
+  },
+  disabledButton: { // Added
+    opacity: 0.5,
   },
   submitButtonText: {
     color: "white",

@@ -16,8 +16,8 @@ import { ParameterForm } from '../components/EnvironmentalCompliance/ParameterFo
 import { SectionHeader } from '../components/EnvironmentalCompliance/SectionHeader';
 import { FormInputField } from '../components/EnvironmentalCompliance/FormInputField';
 
-
 type ParameterData = {
+  id: string;
   parameter: string;
   currentSMR: string;
   previousSMR: string;
@@ -28,6 +28,13 @@ type ParameterData = {
   action: string;
   limitPM25: string;
   remarks: string;
+};
+
+type LocationState = {
+  quarry: boolean;
+  plant: boolean;
+  port: boolean;
+  quarryPlant: boolean;
 };
 
 type ComplianceData = {
@@ -55,6 +62,15 @@ type ComplianceData = {
 
 export default function EnvironmentalComplianceScreen({ navigation, route }: any) {
   const [isEccChecked, setIsEccChecked] = useState(false);
+  const [selectedLocations, setSelectedLocations] = useState<LocationState>({
+    quarry: false,
+    plant: false,
+    port: false,
+    quarryPlant: false,
+  });
+  const [naChecked, setNaChecked] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+
   const [data, setData] = useState<ComplianceData>({
     eccConditions: '',
     quarry: '',
@@ -77,10 +93,6 @@ export default function EnvironmentalComplianceScreen({ navigation, route }: any
     explanation: '',
     overallCompliance: '',
   });
-
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-  const [naChecked, setNaChecked] = useState(false);
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
 
   const updateField = (field: keyof ComplianceData, value: string) => {
     setData((prev) => ({ ...prev, [field]: value }));
@@ -124,43 +136,63 @@ export default function EnvironmentalComplianceScreen({ navigation, route }: any
   };
 
   const addParameter = () => {
+    const newId = Date.now().toString();
+    const newParameter: ParameterData = {
+      id: newId,
+      parameter: '',
+      currentSMR: '',
+      previousSMR: '',
+      currentMMT: '',
+      previousMMT: '',
+      thirdPartyTesting: '',
+      eqplRedFlag: '',
+      action: '',
+      limitPM25: '',
+      remarks: '',
+    };
     setData((prev) => ({
       ...prev,
-      parameters: [
-        ...prev.parameters,
-        {
-          parameter: '',
-          currentSMR: '',
-          previousSMR: '',
-          currentMMT: '',
-          previousMMT: '',
-          thirdPartyTesting: '',
-          eqplRedFlag: '',
-          action: '',
-          limitPM25: '',
-          remarks: '',
-        },
-      ],
+      parameters: [...prev.parameters, newParameter],
     }));
   };
 
   const updateParameterField = (
-    index: number,
-    field: keyof ParameterData,
+    id: string,
+    field: keyof Omit<ParameterData, 'id'>,
     value: string
   ) => {
-    setData((prev) => {
-      const newParams = prev.parameters.map((p, i) =>
-        i === index ? { ...p, [field]: value } : p
-      );
-      return { ...prev, parameters: newParams };
-    });
-  };
-
-  const removeParameter = (index: number) => {
     setData((prev) => ({
       ...prev,
-      parameters: prev.parameters.filter((_, i) => i !== index),
+      parameters: prev.parameters.map((param) =>
+        param.id === id ? { ...param, [field]: value } : param
+      ),
+    }));
+  };
+
+  const removeParameter = (id: string) => {
+    Alert.alert(
+      'Remove Parameter',
+      'Are you sure you want to remove this parameter?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            setData((prev) => ({
+              ...prev,
+              parameters: prev.parameters.filter((param) => param.id !== id),
+            }));
+          },
+        },
+      ]
+    );
+  };
+
+  const handleLocationToggle = (location: keyof LocationState) => {
+    setSelectedLocations((prev) => ({
+      ...prev,
+      [location]: !prev[location],
     }));
   };
 
@@ -173,11 +205,8 @@ export default function EnvironmentalComplianceScreen({ navigation, route }: any
     navigation.navigate('WaterQuality');
   };
 
-  const toggleLocation = (location: string) => {
-    setSelectedLocation(selectedLocation === location ? null : location);
-  };
-
   const mainParameterData: ParameterData = {
+    id: 'main',
     parameter: data.parameter,
     currentSMR: data.currentSMR,
     previousSMR: data.previousSMR,
@@ -190,66 +219,58 @@ export default function EnvironmentalComplianceScreen({ navigation, route }: any
     remarks: data.remarks,
   };
 
-  const updateMainParameter = (field: keyof ParameterData, value: string) => {
+  const updateMainParameter = (field: keyof Omit<ParameterData, 'id'>, value: string) => {
     updateField(field, value);
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <CMSHeader onBack={handleBack} />
-
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* B.2 Section */}
         <SectionHeader
           number="B.2."
           title="Compliance to Environmental Compliance Certificate Conditions"
         />
-
         {/* Upload ECC Conditions Checkbox */}
         <CheckboxField
           checked={isEccChecked}
           onPress={handleEccCheckbox}
           label="Use ECC Conditions from CMVR"
         />
-
         {/* B.3 Section */}
         <SectionHeader number="B.3." title="Air Quality Impact Assessment" />
-
         {/* Location Checkboxes Section */}
         <View style={styles.formSection}>
           <LocationCheckboxRow
             label="Quarry"
             value={data.quarry}
             onChangeText={(text) => updateField('quarry', text)}
-            isSelected={selectedLocation === 'quarry'}
-            onCheckboxPress={() => toggleLocation('quarry')}
+            isSelected={selectedLocations.quarry}
+            onCheckboxPress={() => handleLocationToggle('quarry')}
           />
-
           <LocationCheckboxRow
             label="Plant"
             value={data.plant}
             onChangeText={(text) => updateField('plant', text)}
-            isSelected={selectedLocation === 'plant'}
-            onCheckboxPress={() => toggleLocation('plant')}
+            isSelected={selectedLocations.plant}
+            onCheckboxPress={() => handleLocationToggle('plant')}
           />
-
           <LocationCheckboxRow
             label="Port"
             value={data.port}
             onChangeText={(text) => updateField('port', text)}
-            isSelected={selectedLocation === 'port'}
-            onCheckboxPress={() => toggleLocation('port')}
+            isSelected={selectedLocations.port}
+            onCheckboxPress={() => handleLocationToggle('port')}
           />
-
           <LocationCheckboxRow
             label={`Quarry/Plant\n(For Mobile Crusher)`}
             value={data.quarryPlant}
             onChangeText={(text) => updateField('quarryPlant', text)}
-            isSelected={selectedLocation === 'quarryPlant'}
-            onCheckboxPress={() => toggleLocation('quarryPlant')}
+            isSelected={selectedLocations.quarryPlant}
+            onCheckboxPress={() => handleLocationToggle('quarryPlant')}
           />
         </View>
-
         {/* Main Parameter Form */}
         <View style={styles.formSection}>
           <ParameterForm
@@ -266,26 +287,22 @@ export default function EnvironmentalComplianceScreen({ navigation, route }: any
             onWeatherWindChange={(text) => updateField('weatherWind', text)}
             onExplanationChange={(text) => updateField('explanation', text)}
           />
-
           {/* Additional Parameters */}
-          {data.parameters.map((param, idx) => (
-            <View key={`param-${idx}`} style={styles.additionalParameterContainer}>
+          {data.parameters.map((param) => (
+            <View key={param.id} style={styles.additionalParameterContainer}>
               <ParameterForm
                 data={param}
-                onUpdate={(field, value) => updateParameterField(idx, field, value)}
+                onUpdate={(field, value) => updateParameterField(param.id, field, value)}
                 showDelete={true}
-                onDelete={() => removeParameter(idx)}
-                index={idx}
+                onDelete={() => removeParameter(param.id)}
               />
             </View>
           ))}
-
           {/* Add New Parameter Button */}
           <TouchableOpacity style={styles.addButton} onPress={addParameter}>
             <Text style={styles.addButtonText}>+ Add New Parameter</Text>
           </TouchableOpacity>
         </View>
-
         {/* Overall Compliance */}
         <View style={styles.overallSection}>
           <Text style={styles.overallLabel}>Overall Compliance Assessment:</Text>
@@ -295,7 +312,6 @@ export default function EnvironmentalComplianceScreen({ navigation, route }: any
             onChangeText={(text) => updateField('overallCompliance', text)}
           />
         </View>
-
         {/* Save & Next Button */}
         <TouchableOpacity style={styles.saveNextButton} onPress={handleSaveNext}>
           <Text style={styles.saveNextText}>Save & Next</Text>
@@ -357,11 +373,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   saveNextButton: {
-    backgroundColor: '#9B8FDB',
-    paddingVertical: 14,
-    borderRadius: 24,
+    backgroundColor: '#7C6FDB',
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 32,
+    marginTop: 16,
   },
   saveNextText: {
     fontSize: 15,

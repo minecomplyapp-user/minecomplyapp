@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -8,6 +8,7 @@ import {
   Platform,
   StatusBar,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFileName } from '../contexts/FileNameContext';
@@ -19,20 +20,69 @@ interface CMSHeaderProps {
 }
 
 export const CMSHeader: React.FC<CMSHeaderProps> = ({ onBack, onSave, fileName: fileNameProp }) => {
-  const { fileName: contextFileName, setFileName } = useFileName();
+  const { fileName: contextFileName, setFileName, isLoaded } = useFileName();
   const [modalVisible, setModalVisible] = useState(false);
-  
+  const [isSaving, setIsSaving] = useState(false);
+ 
   // Use prop if provided, otherwise use context
   const displayFileName = fileNameProp || contextFileName;
   const [editableFileName, setEditableFileName] = useState(displayFileName);
 
-  const handleSave = () => {
-    setFileName(editableFileName);
-    setModalVisible(false);
+  // Log the current display file name for debugging
+  useEffect(() => {
+    console.log('CMSHeader displayFileName:', displayFileName);
+  }, [displayFileName]);
+
+  // Sync editableFileName when displayFileName changes
+  useEffect(() => {
+    console.log('Updating editableFileName to:', displayFileName);
+    setEditableFileName(displayFileName);
+  }, [displayFileName]);
+
+  const handleModalSave = async () => {
+    console.log('Modal Save clicked, saving:', editableFileName);
+    setIsSaving(true);
+    
+    try {
+      await setFileName(editableFileName);
+      console.log('File name saved successfully');
+      setModalVisible(false);
+    } catch (error) {
+      console.error('Error saving file name:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleHeaderSave = () => {
+    console.log('Header Save clicked');
     if (onSave) {
       onSave();
     }
   };
+
+  const handleCancel = () => {
+    console.log('Modal cancelled, resetting to:', displayFileName);
+    setEditableFileName(displayFileName);
+    setModalVisible(false);
+  };
+
+  const handleOpenModal = () => {
+    console.log('Opening modal with fileName:', displayFileName);
+    setEditableFileName(displayFileName);
+    setModalVisible(true);
+  };
+
+  // Show loading indicator while loading from storage
+  if (!isLoaded) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <ActivityIndicator size="small" color="#000" />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -43,18 +93,23 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({ onBack, onSave, fileName: 
         </TouchableOpacity>
 
         {/* File Name */}
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.titleContainer}>
+        <TouchableOpacity onPress={handleOpenModal} style={styles.titleContainer}>
           <Text style={styles.headerTitleText}>{displayFileName}</Text>
         </TouchableOpacity>
 
         {/* Save Button */}
-        <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
+        <TouchableOpacity onPress={handleHeaderSave} style={styles.saveButton}>
           <Text style={styles.saveButtonText}>Save</Text>
         </TouchableOpacity>
       </View>
 
       {/* Modal for Editing */}
-      <Modal transparent animationType="fade" visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+      <Modal 
+        transparent 
+        animationType="fade" 
+        visible={modalVisible} 
+        onRequestClose={handleCancel}
+      >
         <View style={styles.modalBackground}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Edit File Name</Text>
@@ -64,19 +119,26 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({ onBack, onSave, fileName: 
               style={styles.modalInput}
               placeholder="Enter new file name"
               autoFocus
+              editable={!isSaving}
             />
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setModalVisible(false)}
+                onPress={handleCancel}
+                disabled={isSaving}
               >
                 <Text style={styles.modalButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.saveModalButton]}
-                onPress={handleSave}
+                onPress={handleModalSave}
+                disabled={isSaving}
               >
-                <Text style={[styles.modalButtonText, { color: 'white' }]}>Save</Text>
+                {isSaving ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={[styles.modalButtonText, { color: 'white' }]}>Save</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -137,6 +199,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   modalTitle: {
     fontSize: 18,
@@ -161,6 +227,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     marginLeft: 8,
+    minWidth: 70,
+    alignItems: 'center',
   },
   cancelButton: {
     backgroundColor: '#e5e5e5',
@@ -172,4 +240,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-}); 
+});
