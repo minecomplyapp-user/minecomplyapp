@@ -243,12 +243,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
   },
-  saveNextButton: {
-    backgroundColor: '#818cf8',
-    marginBottom: 32,
+saveNextButton: {
+    backgroundColor: '#7C6FDB',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
+    marginTop: 16,
   },
   saveNextButtonText: {
     fontSize: 15,
