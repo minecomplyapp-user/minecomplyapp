@@ -15,6 +15,7 @@ import {
 } from "lucide-react-native";
 import { theme } from "../theme/theme";
 import { reportScreenStyles as styles } from "../styles/reportsScreen";
+import { CustomHeader } from "../components/CustomHeader";
 
 // SAMPLE RANI HA PWEDE NI TANG2ON
 const sampleReports = [
@@ -45,6 +46,7 @@ export default function ReportsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <CustomHeader showSave={false} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>All Reports</Text>

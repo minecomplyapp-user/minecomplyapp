@@ -6,20 +6,21 @@ import { FileNameProvider } from "../contexts/FileNameContext";
 
 // Screens
 import AuthScreen from "../screens/AuthScreen";
-import RoleSelectionScreen from "../screens/RoleSelectionScreen"; 
-import DashboardScreen from "../screens/DashboardScreen";
+import RoleSelectionScreen from "../screens/role-selection/RoleSelectionScreen"; 
+import DashboardScreen from "../screens/dashboard/DashboardScreen";
 import SubmissionsScreen from "../screens/SubmissionsScreen";
-import ProfileScreen from "../screens/ProfileScreen";
+import ProfileScreen from "../screens/profile/ProfileScreen";
 import CMVRReportScreen from "../screens/CMVRReportScreen";
 import CMVRPage2Screen from "../screens/CMVRPage2Screen";
-import CreateAttendanceScreen from "../screens/CreateAttendanceScreen";
-import AttendanceRecordScreen from "../screens/AttendanceRecordScreen";
-import ReportsScreen from "../screens/ReportsScreen";
+import CreateAttendanceScreen from "../screens/attendance/CreateAttendanceScreen";
+import AttendanceRecordScreen from "../screens/attendance/AttendanceRecordScreen";
+import ReportsScreen from "../screens/reports/ReportsScreen";
 import ComplianceMonitoringScreen from "../screens/ComplianceMonitoringScreen";
 import EIAComplianceScreen from "../screens/EIAComplianceScreen";
 import EnvironmentalComplianceScreen from "../screens/EnvironmentalComplianceScreen";
 import WaterQualityScreen from "../screens/WaterQualityScreen";
 import NoiseQualityScreen from "../screens/NoiseQualityScreen";
+import ECCMonitoringScreen from "../screens/ecc/ECCMonitoringScreen"
 
 const RootStack = createStackNavigator();
 
@@ -31,7 +32,7 @@ const AppNavigator = () => {
   return (
     <FileNameProvider>
       <NavigationContainer>
-        <RootStack.Navigator screenOptions={{ headerShown: true }}>
+        <RootStack.Navigator screenOptions={{ headerShown: false }}>
           {!session ? (
             <RootStack.Screen
               name="Auth"
@@ -57,16 +58,12 @@ const AppNavigator = () => {
               <RootStack.Screen name="Profile" component={ProfileScreen} />
               <RootStack.Screen name="CMVRReport" component={CMVRReportScreen} />
               <RootStack.Screen name="CMVRPage2" component={CMVRPage2Screen} />
-              <RootStack.Screen
-                name="ComplianceMonitoring"
-                component={ComplianceMonitoringScreen}
-                options={{ headerShown: false }}
-              />
-              <RootStack.Screen
+              <RootStack.Screen name="ECCMonitoring" component={ECCMonitoringScreen} />
+              {/* <RootStack.Screen
                 name="EIACompliance"
                 component={EIAComplianceScreen}
                 options={{ headerShown: false }}
-              />
+              /> */}
               <RootStack.Screen
                 name="EnvironmentalCompliance"
                 component={EnvironmentalComplianceScreen}

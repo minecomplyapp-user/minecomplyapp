@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { styles } from '../styles/authScreen';
 import { FloatingLabelInput } from '../components/auth/FloatingLabelInput';
-import { scale } from '../utils/responsive';
+// import { scale } from '../utils/responsive';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function AuthScreen({ navigation }: any) {

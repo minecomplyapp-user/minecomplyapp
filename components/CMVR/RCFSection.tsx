@@ -9,7 +9,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 type FundInfo = {
-  isNA: boolean; // Added this
+  isNA?: boolean; // optional: when omitted, treated as false
   permitHolder: string;
   savingsAccount: string;
   amountDeposited: string;

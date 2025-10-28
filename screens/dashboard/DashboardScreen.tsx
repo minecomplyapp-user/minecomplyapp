@@ -186,7 +186,7 @@ function CreateReportModal({ visible, onClose, navigation }: any) {
                   onPress={() => {
                     onClose();
                     setTimeout(() => {
-                      navigation.navigate('ComplianceMonitoring');
+                      navigation.navigate('ECCMonitoring');
                     }, 120);
                   }}
                 />

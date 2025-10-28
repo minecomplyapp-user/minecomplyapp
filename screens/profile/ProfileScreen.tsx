@@ -22,6 +22,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { theme } from "../theme/theme";
 import styles from "../styles/profileScreen";
+import { CustomHeader } from "../components/CustomHeader";
 
 
 const emptyProfile = {
@@ -110,6 +111,7 @@ const ProfileScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
+      <CustomHeader showSave={false} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
         {/* Profile Header - REBUILT */}
