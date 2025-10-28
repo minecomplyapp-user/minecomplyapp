@@ -12,13 +12,18 @@ export const OverallComplianceSection: React.FC<OverallComplianceSectionProps> =
 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Overall Compliance Assessment:</Text>
+      <View style={styles.headerSection}>
+        <View style={styles.iconCircle}>
+          <Text style={styles.iconText}>✓</Text>
+        </View>
+        <Text style={styles.label}>Overall Compliance Assessment</Text>
+      </View>
       <TextInput
         style={styles.input}
         value={value}
         onChangeText={onChangeText}
         placeholder="TYPE HERE..."
-        placeholderTextColor="#B0B0B0"
+        placeholderTextColor="#94A3B8"
       />
     </View>
   );
@@ -26,30 +31,52 @@ export const OverallComplianceSection: React.FC<OverallComplianceSectionProps> =
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#ba3f48',
+    backgroundColor: '#1E40AF',
     marginBottom: 16,
-    borderRadius: 24,
+    borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#1E40AF',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: 6,
     elevation: 5,
+  },
+  headerSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 10,
+  },
+  iconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#93C5FD',
+  },
+  iconText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2563EB',
   },
   label: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#000',
-    marginBottom: 10,
+    color: '#FFFFFF',
+    flex: 1,
   },
   input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#CDEFF7',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#BFDBFE',
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 13,
     fontWeight: '500',
     borderRadius: 8,
+    color: '#1E293B',
   },
 });

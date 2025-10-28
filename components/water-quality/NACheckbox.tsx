@@ -1,6 +1,6 @@
-// components/common/NACheckbox.tsx
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 type NACheckboxProps = {
   checked: boolean;
@@ -10,8 +10,11 @@ type NACheckboxProps = {
 export const NACheckbox: React.FC<NACheckboxProps> = ({ checked, onPress }) => {
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.checkbox} onPress={onPress}>
-        {checked && <View style={styles.checkboxFill} />}
+      <TouchableOpacity 
+        style={[styles.checkbox, checked && styles.checkboxChecked]} 
+        onPress={onPress}
+      >
+        {checked && <Ionicons name="checkmark" size={14} color="#2563EB" />}
       </TouchableOpacity>
       <Text style={styles.label}>N/A</Text>
     </View>
@@ -24,23 +27,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkbox: {
-    width: 16,
-    height: 16,
+    width: 20,
+    height: 20,
     borderWidth: 2,
-    borderColor: '#000',
-    backgroundColor: '#fff',
+    borderColor: '#2563EB',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 6,
+    borderRadius: 4,
   },
-  checkboxFill: {
-    width: 8,
-    height: 8,
-    backgroundColor: '#000',
+  checkboxChecked: {
+    backgroundColor: '#EFF6FF',
   },
   label: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#000',
+    color: '#1E293B',
   },
 });

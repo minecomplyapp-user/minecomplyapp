@@ -46,7 +46,7 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
             <Text style={styles.labelText}>{label}</Text>
           </View>
           <Text style={styles.remarksLabel}>
-            Remarks- Description of{'\\n'}Actual Implementation
+            Remarks - Description of{'\n'}Actual Implementation
           </Text>
         </View>
         <View style={styles.middleSection}>
@@ -61,7 +61,7 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
                   <TextInput
                     style={styles.input}
                     placeholder="Specification Type here..."
-                    placeholderTextColor="#999"
+                    placeholderTextColor="#94A3B8"
                     value={subField.specification}
                     onChangeText={(text) => onSubFieldChange?.(index, text)}
                   />
@@ -72,7 +72,7 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
             <TextInput
               style={styles.input}
               placeholder="Specification"
-              placeholderTextColor="#999"
+              placeholderTextColor="#94A3B8"
               value={specification}
               onChangeText={onSpecificationChange}
             />
@@ -80,7 +80,7 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="Type here..."
-            placeholderTextColor="#999"
+            placeholderTextColor="#94A3B8"
             value={remarks}
             onChangeText={onRemarksChange}
             multiline
@@ -112,7 +112,7 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
           {showUploadImage && (
             <>
               <TouchableOpacity style={styles.uploadButton} onPress={onUploadImage}>
-                <Upload size={14} color="#000" />
+                <Upload size={14} color="#2563EB" />
                 <Text style={styles.uploadText}>Upload Image</Text>
               </TouchableOpacity>
               {uploadedImage && (
@@ -136,13 +136,18 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
 
 const styles = StyleSheet.create({
   formField: {
-    backgroundColor: '#F5E7E7',
-    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    marginBottom: 8, // Increased gap between sections
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#E5C7C7',
-    borderRadius: 0, // Removed border radius for square corners
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    shadowColor: '#1E40AF',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   fieldRow: {
     flexDirection: 'row',
@@ -159,14 +164,16 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   labelPill: {
-    backgroundColor: '#a5b4fc',
+    backgroundColor: '#DBEAFE',
     borderRadius: 16,
-    paddingVertical: 5,
+    paddingVertical: 6,
     paddingHorizontal: 12,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#93C5FD',
   },
   labelText: {
-    color: '#1e1b4b',
+    color: '#1E40AF',
     fontWeight: '700',
     fontSize: 11,
     textAlign: 'center',
@@ -174,21 +181,22 @@ const styles = StyleSheet.create({
   remarksLabel: {
     fontSize: 9,
     fontWeight: '600',
-    color: '#000',
+    color: '#475569',
     lineHeight: 12,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 0,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    borderColor: '#CBD5E1',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     fontSize: 11,
     marginBottom: 6,
+    color: '#1E293B',
   },
   textArea: {
-    minHeight: 45,
+    minHeight: 50,
     textAlignVertical: 'top',
   },
   subFieldRow: {
@@ -203,23 +211,23 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#9ca3af',
+    backgroundColor: '#2563EB',
     marginRight: 6,
   },
   subFieldLabelText: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#374151',
+    color: '#475569',
   },
   radioLabel: {
     fontSize: 11,
-    color: '#000',
+    color: '#1E293B',
     marginBottom: 8,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   radioRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
     alignItems: 'center',
   },
   radioOption: {
@@ -228,40 +236,41 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   radioOuter: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     borderWidth: 2,
-    borderColor: '#000',
+    borderColor: '#2563EB',
     alignItems: 'center',
     justifyContent: 'center',
   },
   radioInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#000',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#2563EB',
   },
   radioText: {
     fontSize: 11,
-    color: '#000',
+    color: '#1E293B',
+    fontWeight: '500',
   },
   uploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#000',
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    marginTop: 8,
-    backgroundColor: '#fff',
-    borderRadius: 0,
+    borderColor: '#2563EB',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginTop: 10,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 6,
   },
   uploadText: {
     marginLeft: 4,
     fontSize: 10,
-    color: '#000',
-    fontWeight: '500',
+    color: '#2563EB',
+    fontWeight: '600',
   },
   imagePreviewContainer: {
     marginTop: 8,
@@ -272,19 +281,24 @@ const styles = StyleSheet.create({
   imagePreview: {
     width: '100%',
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: '#CBD5E1',
   },
   removeImageButton: {
     position: 'absolute',
     top: -6,
     right: -6,
-    backgroundColor: '#ef4444',
-    borderRadius: 10,
-    width: 20,
-    height: 20,
+    backgroundColor: '#DC2626',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
   },
 });

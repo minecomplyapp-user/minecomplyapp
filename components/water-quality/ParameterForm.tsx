@@ -1,4 +1,3 @@
-// components/water-quality/ParameterForm.tsx
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +21,6 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
   onUpdate,
   onDelete,
 }) => {
-  // Wrapper to handle ResultMonitoring's string-based field types
   const handleTSSChange = (field: string, value: string) => {
     onUpdate(field as keyof Omit<Parameter, 'id'>, value);
   };
@@ -31,7 +29,7 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
     <View style={!isMain && styles.additionalContainer}>
       {!isMain && onDelete && (
         <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
-          <Ionicons name="trash-outline" size={14} color="#B00020" />
+          <Ionicons name="trash-outline" size={16} color="#DC2626" />
         </TouchableOpacity>
       )}
 
@@ -46,7 +44,7 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
         value={parameter.parameter}
         onChangeText={(text) => onUpdate('parameter', text)}
         placeholder="Type here..."
-        placeholderTextColor="#B0B0B0"
+        placeholderTextColor="#94A3B8"
       />
 
       <ResultMonitoring
@@ -81,37 +79,43 @@ const styles = StyleSheet.create({
   additionalContainer: {
     marginTop: 24,
     paddingTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: '#CDEFF7',
+    borderTopWidth: 2,
+    borderTopColor: '#BFDBFE',
     position: 'relative',
   },
   deleteButton: {
     position: 'absolute',
     top: 16,
     right: 0,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 6,
-    borderWidth: 1,
-    borderColor: '#D0D0D0',
+    backgroundColor: '#FEE2E2',
+    borderRadius: 20,
+    padding: 8,
+    borderWidth: 2,
+    borderColor: '#DC2626',
     zIndex: 10,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
   parameterHeader: {
     marginBottom: 8,
   },
   parameterLabel: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
+    fontWeight: '700',
+    color: '#1E40AF',
   },
   parameterInput: {
-    backgroundColor: '#fff',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#CDEFF7',
+    borderColor: '#CBD5E1',
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 13,
     marginBottom: 16,
     borderRadius: 6,
+    color: '#1E293B',
   },
 });

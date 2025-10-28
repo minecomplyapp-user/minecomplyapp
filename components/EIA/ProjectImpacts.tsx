@@ -48,16 +48,25 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 13,
     fontWeight: '700',
-    marginBottom: 8,
+    color: '#1E40AF',
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   container: {
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#000',
-    borderRadius: 0,
-    paddingVertical: 12,
+    borderColor: '#BFDBFE',
+    borderRadius: 8,
+    paddingVertical: 14,
     paddingHorizontal: 16,
     marginBottom: 16,
-    gap: 8,
+    gap: 12,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   row: {
     flexDirection: 'row',
@@ -66,7 +75,8 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '400',
+    fontWeight: '500',
+    color: '#1E293B',
   },
   radioWrapper: {
     flexDirection: 'row',
@@ -75,5 +85,7 @@ const styles = StyleSheet.create({
   },
   radioLabel: {
     fontSize: 13,
+    color: '#475569',
+    fontWeight: '500',
   },
 });

@@ -10,11 +10,13 @@ type SectionHeaderProps = {
 export const SectionHeader: React.FC<SectionHeaderProps> = ({
   number,
   title,
-  backgroundColor = '#FFB3BA',
+  backgroundColor = '#EFF6FF',
 }) => {
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <Text style={styles.number}>{number}</Text>
+      <View style={styles.numberBadge}>
+        <Text style={styles.number}>{number}</Text>
+      </View>
       <Text style={styles.title}>{title}</Text>
     </View>
   );
@@ -22,25 +24,39 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 0,
-    marginTop: 0,
-    marginBottom: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    marginTop: 4,
+    marginBottom: 16,
     flexDirection: 'row',
-    gap: 6,
+    alignItems: 'center',
+    gap: 12,
     borderWidth: 1,
-    borderColor: '#000',
+    borderColor: '#BFDBFE',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  numberBadge: {
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    minWidth: 40,
+    alignItems: 'center',
   },
   number: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#000',
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   title: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000',
+    color: '#1E40AF',
     flex: 1,
   },
 });

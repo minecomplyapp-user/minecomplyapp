@@ -25,7 +25,7 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
         ]}
         onPress={onPress}
       >
-        {checked && <Ionicons name="checkmark" size={size * 0.7} color="#000" />}
+        {checked && <Ionicons name="checkmark" size={size * 0.7} color="#2563EB" />}
       </TouchableOpacity>
       <Text style={styles.label}>{label}</Text>
     </View>
@@ -36,23 +36,25 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+    paddingVertical: 8,
   },
   checkbox: {
-    borderWidth: 1.5,
-    borderColor: '#666',
-    borderRadius: 2,
+    borderWidth: 2,
+    borderColor: '#2563EB',
+    borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    marginRight: 8,
+    backgroundColor: '#FFFFFF',
+    marginRight: 12,
   },
   checkboxChecked: {
-    backgroundColor: '#E8E8E8',
-    borderColor: '#000',
+    backgroundColor: '#EFF6FF',
+    borderColor: '#2563EB',
   },
   label: {
     fontSize: 14,
-    color: '#666',
+    color: '#1E293B',
+    fontWeight: '500',
   },
 });

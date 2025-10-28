@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { X } from 'lucide-react-native';
+import { X, Plus } from 'lucide-react-native';
 
 interface OtherComponent {
   specification: string;
@@ -33,21 +33,21 @@ export const CMSOtherComponents: React.FC<CMSOtherComponentsProps> = ({
                 <Text style={styles.labelText}>Other Component {index + 1}</Text>
               </View>
               <Text style={styles.remarksLabel}>
-                Remarks- Description of{'\n'}Actual Implementation
+                Remarks - Description of{'\n'}Actual Implementation
               </Text>
             </View>
             <View style={styles.middleSection}>
               <TextInput
                 style={styles.input}
                 placeholder="Specification"
-                placeholderTextColor="#999"
+                placeholderTextColor="#94A3B8"
                 value={component.specification}
                 onChangeText={(text) => onComponentChange(index, 'specification', text)}
               />
               <TextInput
                 style={[styles.input, styles.textArea]}
                 placeholder="Type here..."
-                placeholderTextColor="#999"
+                placeholderTextColor="#94A3B8"
                 value={component.remarks}
                 onChangeText={(text) => onComponentChange(index, 'remarks', text)}
                 multiline
@@ -88,7 +88,8 @@ export const CMSOtherComponents: React.FC<CMSOtherComponentsProps> = ({
         </View>
       ))}
       <TouchableOpacity style={styles.addButton} onPress={onAddComponent}>
-        <Text style={styles.addButtonText}>+ Add More Components</Text>
+        <Plus size={16} color="#2563EB" />
+        <Text style={styles.addButtonText}>Add More Components</Text>
       </TouchableOpacity>
     </>
   );
@@ -96,10 +97,18 @@ export const CMSOtherComponents: React.FC<CMSOtherComponentsProps> = ({
 
 const styles = StyleSheet.create({
   formField: {
-    backgroundColor: '#F5E7E7',
-    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    marginBottom: 1,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    shadowColor: '#1E40AF',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   fieldRow: {
     flexDirection: 'row',
@@ -116,14 +125,16 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   labelPill: {
-    backgroundColor: '#a5b4fc',
+    backgroundColor: '#DBEAFE',
     borderRadius: 16,
-    paddingVertical: 5,
+    paddingVertical: 6,
     paddingHorizontal: 12,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#93C5FD',
   },
   labelText: {
-    color: '#1e1b4b',
+    color: '#1E40AF',
     fontWeight: '700',
     fontSize: 11,
     textAlign: 'center',
@@ -131,32 +142,33 @@ const styles = StyleSheet.create({
   remarksLabel: {
     fontSize: 9,
     fontWeight: '600',
-    color: '#000',
+    color: '#475569',
     lineHeight: 12,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 0,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    borderColor: '#CBD5E1',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     fontSize: 11,
     marginBottom: 6,
+    color: '#1E293B',
   },
   textArea: {
-    minHeight: 45,
+    minHeight: 50,
     textAlignVertical: 'top',
   },
   radioLabel: {
     fontSize: 11,
-    color: '#000',
+    color: '#1E293B',
     marginBottom: 8,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   radioRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
     alignItems: 'center',
   },
   radioOption: {
@@ -165,53 +177,64 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   radioOuter: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     borderWidth: 2,
-    borderColor: '#000',
+    borderColor: '#2563EB',
     alignItems: 'center',
     justifyContent: 'center',
   },
   radioInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#000',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#2563EB',
   },
   radioText: {
     fontSize: 11,
-    color: '#000',
+    color: '#1E293B',
+    fontWeight: '500',
   },
   deleteButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ef4444',
+    backgroundColor: '#DC2626',
     borderWidth: 1,
-    borderColor: '#dc2626',
-    paddingHorizontal: 6,
-    paddingVertical: 4,
+    borderColor: '#B91C1C',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     marginTop: 12,
-    borderRadius: 0,
+    borderRadius: 6,
     gap: 4,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
   },
   deleteButtonText: {
     fontSize: 10,
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   addButton: {
-    backgroundColor: '#e5e7eb',
-    paddingVertical: 10,
+    backgroundColor: '#EFF6FF',
+    paddingVertical: 12,
     paddingHorizontal: 16,
     alignItems: 'center',
+    justifyContent: 'center',
     marginVertical: 8,
-    borderRadius: 0,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    flexDirection: 'row',
+    gap: 6,
   },
   addButtonText: {
-    fontSize: 12,
-    color: '#374151',
-    fontWeight: '600',
+    fontSize: 13,
+    color: '#2563EB',
+    fontWeight: '700',
   },
 });

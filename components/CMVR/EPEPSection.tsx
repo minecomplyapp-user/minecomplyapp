@@ -50,137 +50,150 @@ const EPEPSection: React.FC<EPEPSectionProps> = ({
   };
 
   const removeEpepAdditionalForm = (index: number) => {
-    setEpepAdditionalForms(
-      epepAdditionalForms.filter((_, i) => i !== index)
-    );
+    setEpepAdditionalForms(epepAdditionalForms.filter((_, i) => i !== index));
   };
 
   return (
     <View style={styles.container}>
-      {/* Section Header with N/A Checkbox */}
-      <View style={styles.sectionHeaderRow}>
-        <View style={styles.sectionLabelContainer}>
-          <Text style={styles.sectionLabel}>EPEP/ FMRDP Status</Text>
+      <View style={styles.headerSection}>
+        <View style={styles.iconContainer}>
+          <Ionicons name="leaf" size={24} color="#1E40AF" />
         </View>
-        <View style={styles.naCheckboxContainer}>
-          <TouchableOpacity
-            style={styles.checkbox}
-            onPress={() => updateEPEPInfo("isNA", !epepInfo.isNA)}
-          >
-            {epepInfo.isNA && <View style={styles.checkboxChecked} />}
-          </TouchableOpacity>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.sectionTitle}>EPEP / FMRDP</Text>
+          <Text style={styles.sectionSubtitle}>Environmental Protection Plan</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.naButton}
+          onPress={() => updateEPEPInfo("isNA", !epepInfo.isNA)}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.checkbox, epepInfo.isNA && styles.checkboxChecked]}>
+            {epepInfo.isNA && <Ionicons name="checkmark" size={16} color="white" />}
+          </View>
           <Text style={styles.naLabel}>N/A</Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
-      {/* Name of Permit Holder */}
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Name of Permit Holder:</Text>
-        <View style={styles.inputWithButton}>
-          <TextInput
-            style={[styles.input, epepInfo.isNA && styles.disabledInput]}
-            value={epepInfo.permitHolder}
-            onChangeText={(text) => updateEPEPInfo("permitHolder", text)}
-            placeholder="Type here..."
-            placeholderTextColor="#999"
-            editable={!epepInfo.isNA}
-          />
-          <TouchableOpacity
-            style={[styles.submitButton, epepInfo.isNA && styles.disabledButton]}
-            disabled={epepInfo.isNA}
-          >
-            <Text style={styles.submitButtonText}>Submit</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* EPEP Number */}
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>EPEP Number:</Text>
-        <TextInput
-          style={[styles.input, epepInfo.isNA && styles.disabledInput]}
-          value={epepInfo.epepNumber}
-          onChangeText={(text) => updateEPEPInfo("epepNumber", text)}
-          placeholder="Type here..."
-          placeholderTextColor="#999"
-          editable={!epepInfo.isNA}
-        />
-      </View>
-
-      {/* Date of Approval */}
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Date of Approval:</Text>
-        <TextInput
-          style={[styles.input, epepInfo.isNA && styles.disabledInput]}
-          value={epepInfo.dateOfApproval}
-          onChangeText={(text) => updateEPEPInfo("dateOfApproval", text)}
-          placeholder="Type here..."
-          placeholderTextColor="#999"
-          editable={!epepInfo.isNA}
-        />
-      </View>
-
-      {/* Add More Button */}
-      <TouchableOpacity
-        style={[styles.addMoreButton, epepInfo.isNA && styles.disabledButton]}
-        onPress={addEPEPForm}
-        disabled={epepInfo.isNA}
-      >
-        <Text style={styles.addMoreText}>+ Add more names</Text>
-      </TouchableOpacity>
-
-      {/* Additional Forms */}
-      {epepAdditionalForms.map((form, index) => (
-        <View key={index} style={styles.additionalFormContainer}>
-          <View style={styles.additionalFormHeader}>
-            <Text style={styles.additionalFormTitle}>EPEP/FMRDP #{index + 2}</Text>
-            <TouchableOpacity onPress={() => removeEpepAdditionalForm(index)}>
-              <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+      <View style={[styles.formContent, epepInfo.isNA && styles.disabledContent]}>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Name of Permit Holder</Text>
+          <View style={styles.inputWithButton}>
+            <TextInput
+              style={[styles.input, styles.flexInput]}
+              value={epepInfo.permitHolder}
+              onChangeText={(text) => updateEPEPInfo("permitHolder", text)}
+              placeholder="Enter permit holder name"
+              placeholderTextColor="#94A3B8"
+              editable={!epepInfo.isNA}
+            />
+            <TouchableOpacity
+              style={[styles.submitButton, epepInfo.isNA && styles.disabledButton]}
+              disabled={epepInfo.isNA}
+            >
+              <Ionicons name="checkmark-circle" size={18} color="white" />
             </TouchableOpacity>
           </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.label}>Name of Permit Holder:</Text>
-            <View style={styles.inputWithButton}>
-              <TextInput
-                style={styles.input}
-                value={form.permitHolder}
-                onChangeText={(text) =>
-                  updateEpepAdditionalForm(index, "permitHolder", text)
-                }
-                placeholder="Type here..."
-                placeholderTextColor="#999"
-              />
-              <TouchableOpacity style={styles.submitButton}>
-                <Text style={styles.submitButtonText}>Submit</Text>
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>EPEP Number</Text>
+          <TextInput
+            style={styles.input}
+            value={epepInfo.epepNumber}
+            onChangeText={(text) => updateEPEPInfo("epepNumber", text)}
+            placeholder="Enter EPEP number"
+            placeholderTextColor="#94A3B8"
+            editable={!epepInfo.isNA}
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Date of Approval</Text>
+          <TextInput
+            style={styles.input}
+            value={epepInfo.dateOfApproval}
+            onChangeText={(text) => updateEPEPInfo("dateOfApproval", text)}
+            placeholder="MM/DD/YYYY"
+            placeholderTextColor="#94A3B8"
+            editable={!epepInfo.isNA}
+          />
+        </View>
+
+        <TouchableOpacity
+          style={[styles.addButton, epepInfo.isNA && styles.disabledButton]}
+          onPress={addEPEPForm}
+          disabled={epepInfo.isNA}
+        >
+          <Ionicons name="add-circle" size={20} color={epepInfo.isNA ? "#94A3B8" : "#1E40AF"} />
+          <Text style={[styles.addButtonText, epepInfo.isNA && styles.disabledText]}>
+            Add More Permit Holders
+          </Text>
+        </TouchableOpacity>
+
+        {epepAdditionalForms.map((form, index) => (
+          <View key={index} style={styles.additionalForm}>
+            <View style={styles.additionalFormHeader}>
+              <View style={styles.badgeContainer}>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>#{index + 2}</Text>
+                </View>
+                <Text style={styles.additionalFormTitle}>EPEP/FMRDP Permit</Text>
+              </View>
+              <TouchableOpacity 
+                onPress={() => removeEpepAdditionalForm(index)}
+                style={styles.deleteButton}
+              >
+                <Ionicons name="trash" size={20} color="#DC2626" />
               </TouchableOpacity>
             </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Name of Permit Holder</Text>
+              <View style={styles.inputWithButton}>
+                <TextInput
+                  style={[styles.input, styles.flexInput]}
+                  value={form.permitHolder}
+                  onChangeText={(text) =>
+                    updateEpepAdditionalForm(index, "permitHolder", text)
+                  }
+                  placeholder="Enter permit holder name"
+                  placeholderTextColor="#94A3B8"
+                />
+                <TouchableOpacity style={styles.submitButton}>
+                  <Ionicons name="checkmark-circle" size={18} color="white" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>EPEP Number</Text>
+              <TextInput
+                style={styles.input}
+                value={form.epepNumber}
+                onChangeText={(text) =>
+                  updateEpepAdditionalForm(index, "epepNumber", text)
+                }
+                placeholder="Enter EPEP number"
+                placeholderTextColor="#94A3B8"
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Date of Approval</Text>
+              <TextInput
+                style={styles.input}
+                value={form.dateOfApproval}
+                onChangeText={(text) =>
+                  updateEpepAdditionalForm(index, "dateOfApproval", text)
+                }
+                placeholder="MM/DD/YYYY"
+                placeholderTextColor="#94A3B8"
+              />
+            </View>
           </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.label}>EPEP Number:</Text>
-            <TextInput
-              style={styles.input}
-              value={form.epepNumber}
-              onChangeText={(text) =>
-                updateEpepAdditionalForm(index, "epepNumber", text)
-              }
-              placeholder="Type here..."
-              placeholderTextColor="#999"
-            />
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.label}>Date of Approval:</Text>
-            <TextInput
-              style={styles.input}
-              value={form.dateOfApproval}
-              onChangeText={(text) =>
-                updateEpepAdditionalForm(index, "dateOfApproval", text)
-              }
-              placeholder="Type here..."
-              placeholderTextColor="#999"
-            />
-          </View>
-        </View>
-      ))}
+        ))}
+      </View>
     </View>
   );
 };
@@ -188,126 +201,201 @@ const EPEPSection: React.FC<EPEPSectionProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "white",
-    padding: 16,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
   },
-  sectionHeaderRow: {
+  headerSection: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    padding: 20,
+    backgroundColor: "#EFF6FF",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: "#BFDBFE",
   },
-  sectionLabelContainer: {
-    backgroundColor: "#D8D8FF",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: "#000",
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "white",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  sectionLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#000",
+  headerTextContainer: {
+    marginLeft: 16,
+    flex: 1,
   },
-  naCheckboxContainer: {
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1E40AF",
+    letterSpacing: -0.3,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: "#64748B",
+    marginTop: 2,
+    fontWeight: "500",
+  },
+  naButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    backgroundColor: "white",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
   },
   checkbox: {
-    width: 18,
-    height: 18,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 3,
+    width: 22,
+    height: 22,
+    borderWidth: 2,
+    borderColor: "#CBD5E1",
+    borderRadius: 6,
+    backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "white",
   },
   checkboxChecked: {
-    width: 12,
-    height: 12,
-    backgroundColor: "#007AFF",
-    borderRadius: 2,
+    backgroundColor: "#1E40AF",
+    borderColor: "#1E40AF",
   },
   naLabel: {
     fontSize: 14,
-    fontWeight: "500",
-    color: "#333",
+    fontWeight: "600",
+    color: "#64748B",
   },
-  fieldRow: {
-    marginBottom: 12,
+  formContent: {
+    padding: 20,
+  },
+  disabledContent: {
+    opacity: 0.5,
+  },
+  fieldGroup: {
+    marginBottom: 20,
   },
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#333",
-    marginBottom: 6,
+    color: "#1E293B",
+    marginBottom: 8,
   },
   input: {
-    flex: 1,
-    backgroundColor: "#F9F9F9",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: "#333",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: "#0F172A",
   },
-  disabledInput: {
-    opacity: 0.5,
+  flexInput: {
+    flex: 1,
   },
   inputWithButton: {
     flexDirection: "row",
-    gap: 8,
+    gap: 10,
     alignItems: "center",
   },
   submitButton: {
-    backgroundColor: "#7C6FDB",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  submitButtonText: {
-    color: "white",
-    fontSize: 14,
-    fontWeight: "600",
+    backgroundColor: "#1E40AF",
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   disabledButton: {
     opacity: 0.5,
+    shadowOpacity: 0,
+    elevation: 0,
   },
-  addMoreButton: {
-    backgroundColor: "#E8E8E8",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    alignSelf: "flex-start",
+  addButton: {
+    backgroundColor: "#EFF6FF",
+    borderWidth: 2,
+    borderColor: "#BFDBFE",
+    borderStyle: "dashed",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
     marginTop: 4,
-    marginBottom: 16,
   },
-  addMoreText: {
-    fontSize: 13,
-    color: "#666",
+  addButtonText: {
+    fontSize: 14,
+    color: "#1E40AF",
+    fontWeight: "600",
   },
-  additionalFormContainer: {
-    backgroundColor: "#FFF9E6",
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: "#FFD700",
+  disabledText: {
+    color: "#94A3B8",
+  },
+  additionalForm: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
   },
   additionalFormHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1.5,
+    borderBottomColor: "#E2E8F0",
+  },
+  badgeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  badge: {
+    backgroundColor: "#1E40AF",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "white",
   },
   additionalFormTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1E40AF",
+  },
+  deleteButton: {
+    padding: 6,
   },
 });
 
