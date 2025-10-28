@@ -22,9 +22,9 @@ import {
   AlertTriangle,
   X,
 } from "lucide-react-native";
-import { theme } from "../theme/theme";
-import { styles } from "../styles/dashboardScreen";
-import { useAuth } from "../contexts/AuthContext";
+import { theme } from "../../theme/theme";
+import { styles } from "../../styles/dashboardScreen";
+import { useAuth } from "../../contexts/AuthContext";
 
 // SAMPLE RANI HA PWEDE NI TANG2ON
 const sampleReports = [

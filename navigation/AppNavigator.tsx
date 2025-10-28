@@ -5,7 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { FileNameProvider } from "../contexts/FileNameContext";
 
 // Screens
-import AuthScreen from "../screens/AuthScreen";
+import AuthScreen from "../screens/auth/AuthScreen";
 import RoleSelectionScreen from "../screens/role-selection/RoleSelectionScreen"; 
 import DashboardScreen from "../screens/dashboard/DashboardScreen";
 import SubmissionsScreen from "../screens/SubmissionsScreen";

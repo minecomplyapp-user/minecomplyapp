@@ -13,9 +13,9 @@ import {
   Download,
   Trash2,
 } from "lucide-react-native";
-import { theme } from "../theme/theme";
-import { reportScreenStyles as styles } from "../styles/reportsScreen";
-import { CustomHeader } from "../components/CustomHeader";
+import { theme } from "../../theme/theme";
+import { reportScreenStyles as styles } from "../../styles/reportsScreen";
+import { CustomHeader } from "../../components/CustomHeader";
 
 // SAMPLE RANI HA PWEDE NI TANG2ON
 const sampleReports = [
