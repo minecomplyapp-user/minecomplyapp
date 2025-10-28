@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Users, UserCog, User, UserPlus } from "lucide-react-native";
 import { theme } from "../../theme/theme";
-import styles from "../../styles/roleSelectionScreen";
+import styles from "./styles/roleSelectionScreen";
 import { responsiveIconSize } from "../../utils/responsive";
 
 const roles = [

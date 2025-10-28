@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
-import { theme } from '../theme/theme';
-import { scale, verticalScale, moderateScale, normalizeFont, isTablet } from '../utils/responsive';
+import { theme } from '../../../theme/theme';
+import { scale, verticalScale, moderateScale, normalizeFont, isTablet } from '../../../utils/responsive';
 
 export const styles = StyleSheet.create({
 	container: {

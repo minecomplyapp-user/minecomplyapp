@@ -5,7 +5,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { DEFAULT_CONDITIONS, COMPLIANCE_CONDITIONS } from '../../utils/eccDefaultConditions';
-import { styles } from '../../styles/eccMonitoringScreen';
+import { styles } from './styles/eccMonitoringScreen';
 import { CustomHeader } from '../../components/CustomHeader';
 import { Condition, PermitHolder, ECCFormData, ShowDatePickerState, EditingCondition } from '../../types/eccTypes';
 

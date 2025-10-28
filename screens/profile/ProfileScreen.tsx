@@ -21,7 +21,7 @@ import {
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { theme } from "../../theme/theme";
-import styles from "../../styles/profileScreen";
+import styles from "./styles/profileScreen";
 import { CustomHeader } from "../../components/CustomHeader";
 
 

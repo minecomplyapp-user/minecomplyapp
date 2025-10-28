@@ -1,12 +1,12 @@
 import { StyleSheet } from "react-native";
-import { theme } from "../theme/theme";
+import { theme } from "../../../theme/theme";
 import {
   scale,
   verticalScale,
   moderateScale,
   normalizeFont,
   isTablet,
-} from "../utils/responsive";
+} from "../../../utils/responsive";
 
 const styles = StyleSheet.create({
   safeArea: {

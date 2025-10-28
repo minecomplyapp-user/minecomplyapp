@@ -12,7 +12,7 @@ import {
 import SignatureScreen from "react-native-signature-canvas";
 import { Feather } from "@expo/vector-icons";
 import { theme } from "../../theme/theme";
-import { createAttendanceStyles as styles } from "../../styles/createAttendanceScreen";
+import { createAttendanceStyles as styles } from "./styles/createAttendanceScreen";
 import { CustomHeader } from "../../components/CustomHeader";
 
 // RadioButton component (gi tapol ko ug separate gamay rakayo sila bitaw)
