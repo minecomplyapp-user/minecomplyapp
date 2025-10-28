@@ -15,15 +15,20 @@ export const OverallCompliance: React.FC<OverallComplianceProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Overall Compliance Assessment:</Text>
+      <View style={styles.headerSection}>
+        <View style={styles.iconCircle}>
+          <Text style={styles.iconText}>✓</Text>
+        </View>
+        <Text style={styles.label}>Overall Compliance Assessment</Text>
+      </View>
       <TextInput
         style={[
           styles.input,
-          { height: Math.max(40, inputHeight) },
+          { height: Math.max(50, inputHeight) },
           isFocused && styles.inputFocused,
         ]}
         placeholder="Enter compliance assessment..."
-        placeholderTextColor="#999"
+        placeholderTextColor="#94A3B8"
         value={value}
         onChangeText={onChangeText}
         multiline
@@ -41,34 +46,61 @@ export const OverallCompliance: React.FC<OverallComplianceProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#ba3f48', 
+    backgroundColor: '#1E40AF',
     marginTop: 8,
     marginBottom: 16,
-    borderRadius: 24,
+    borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#1E40AF',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowRadius: 6,
     elevation: 5,
+  },
+  headerSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 10,
+  },
+  iconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#93C5FD',
+  },
+  iconText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2563EB',
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    flex: 1,
   },
   input: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 13,
-    minHeight: 40,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    minHeight: 50,
+    borderWidth: 2,
+    borderColor: '#BFDBFE',
+    color: '#1E293B',
   },
   inputFocused: {
-    borderColor: '#9e1a1a',
+    borderColor: '#60A5FA',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
 });

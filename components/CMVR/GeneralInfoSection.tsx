@@ -1,398 +1,229 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal } from "react-native";
+import React from "react";
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as Location from "expo-location";
 
-type GeneralInfo = {
+interface GeneralInfoProps {
   companyName: string;
+  projectName: string;
   location: string;
-  quarter: string;
-  year: string;
-  dateOfCompliance: string;
-  monitoringPeriod: string;
-  dateOfSubmission: string;
-};
+  region: string;
+  province: string;
+  municipality: string;
+  onChange: (field: string, value: string) => void;
+}
 
-type GeneralInfoSectionProps = {
-  generalInfo: GeneralInfo;
-  setGeneralInfo: React.Dispatch<React.SetStateAction<GeneralInfo>>;
-};
-
-const GeneralInfoSection: React.FC<GeneralInfoSectionProps> = ({
-  generalInfo,
-  setGeneralInfo,
+export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
+  companyName,
+  projectName,
+  location,
+  region,
+  province,
+  municipality,
+  onChange,
 }) => {
-  const [isCapturingLocation, setIsCapturingLocation] = useState(false);
-  const [showQuarterPicker, setShowQuarterPicker] = useState(false);
-
-  const quarters = ["1st Quarter", "2nd Quarter", "3rd Quarter", "4th Quarter"];
-
-  const updateGeneralInfo = (field: keyof GeneralInfo, value: string) => {
-    setGeneralInfo((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleQuarterSelect = (quarter: string) => {
-    updateGeneralInfo("quarter", quarter);
-    setShowQuarterPicker(false);
-  };
-
-  const handleCaptureGPS = async () => {
-    try {
-      setIsCapturingLocation(true);
-
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Denied",
-          "Please enable location services to capture GPS coordinates."
-        );
-        setIsCapturingLocation(false);
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-
-      const { latitude, longitude } = location.coords;
-
-      const addresses = await Location.reverseGeocodeAsync({
-        latitude,
-        longitude,
-      });
-
-      if (addresses && addresses.length > 0) {
-        const address = addresses[0];
-
-        const addressComponents = [];
-
-        if (address.name) addressComponents.push(address.name);
-        if (address.street) addressComponents.push(address.street);
-        if (address.streetNumber) addressComponents.push(address.streetNumber);
-        if (address.district) addressComponents.push(address.district);
-        if (address.subregion) addressComponents.push(address.subregion);
-        if (address.city) addressComponents.push(address.city);
-        if (address.region) addressComponents.push(address.region);
-        if (address.postalCode) addressComponents.push(address.postalCode);
-        if (address.country) addressComponents.push(address.country);
-
-        const formattedAddress = addressComponents.join(", ");
-
-        if (formattedAddress) {
-          updateGeneralInfo("location", formattedAddress);
-          setIsCapturingLocation(false);
-          Alert.alert("Location Captured", formattedAddress);
-        } else {
-          const coordsString = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
-          updateGeneralInfo("location", coordsString);
-          setIsCapturingLocation(false);
-          Alert.alert(
-            "Location Captured",
-            `No address found for this location.\n${coordsString}`
-          );
-        }
-      } else {
-        const coordsString = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
-        updateGeneralInfo("location", coordsString);
-        setIsCapturingLocation(false);
-        Alert.alert(
-          "Location Captured",
-          `Could not determine address.\n${coordsString}`
-        );
-      }
-    } catch (error) {
-      setIsCapturingLocation(false);
-      console.error("GPS capture error:", error);
-      Alert.alert(
-        "Error",
-        "Failed to capture GPS location. Please make sure location services are enabled."
-      );
-    }
-  };
-
   return (
-    <View style={styles.sectionCard}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>General Information</Text>
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Company Name:</Text>
-        <TextInput
-          style={styles.input}
-          value={generalInfo.companyName}
-          onChangeText={(text) => updateGeneralInfo("companyName", text)}
-          placeholder="Type here..."
-        />
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Location:</Text>
-        <View style={styles.locationContainer}>
-          <TextInput
-            style={[styles.input, styles.locationInput]}
-            value={generalInfo.location}
-            onChangeText={(text) => updateGeneralInfo("location", text)}
-            placeholder="Type here..."
-            editable={!isCapturingLocation}
-          />
-          <TouchableOpacity
-            style={[
-              styles.gpsButton,
-              isCapturingLocation && styles.gpsButtonDisabled,
-            ]}
-            onPress={handleCaptureGPS}
-            disabled={isCapturingLocation}
-          >
-            {isCapturingLocation ? (
-              <Text style={styles.gpsButtonText}>Capturing...</Text>
-            ) : (
-              <>
-                <Ionicons name="location" size={16} color="#007AFF" />
-                <Text style={styles.gpsButtonText}>Capture GPS Location</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-      <View style={styles.rowContainer}>
-        <View style={styles.halfField}>
-          <Text style={styles.label}>Quarter:</Text>
-          <TouchableOpacity
-            style={styles.dropdownButton}
-            onPress={() => setShowQuarterPicker(true)}
-          >
-            <Text style={[styles.dropdownText, !generalInfo.quarter && styles.placeholderText]}>
-              {generalInfo.quarter || "Select Quarter"}
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.headerSection}>
+        <View style={styles.headerLeft}>
+          <View style={styles.iconContainer}>
+            <Ionicons name="information-circle" size={24} color="#2563EB" />
+          </View>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.sectionTitle}>General Information</Text>
+            <Text style={styles.sectionSubtitle}>
+              Project and company details
             </Text>
-            <Ionicons name="chevron-down" size={20} color="#666" />
-          </TouchableOpacity>
+          </View>
         </View>
-        <View style={styles.halfField}>
-          <Text style={styles.label}>Year:</Text>
+      </View>
+
+      {/* Content */}
+      <View style={styles.sectionContent}>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Company Name</Text>
           <TextInput
             style={styles.input}
-            value={generalInfo.year}
-            onChangeText={(text) => updateGeneralInfo("year", text)}
-            placeholder="Type here..."
-            keyboardType="numeric"
+            value={companyName}
+            onChangeText={(text) => onChange("companyName", text)}
+            placeholder="Enter company name"
+            placeholderTextColor="#94A3B8"
           />
         </View>
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>Date of Compliance Monitoring and Validation:</Text>
-        <TextInput
-          style={styles.input}
-          value={generalInfo.dateOfCompliance}
-          onChangeText={(text) => updateGeneralInfo("dateOfCompliance", text)}
-          placeholder="Month/Date/Year"
-        />
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>Monitoring Period Covered:</Text>
-        <TextInput
-          style={styles.input}
-          value={generalInfo.monitoringPeriod}
-          onChangeText={(text) => updateGeneralInfo("monitoringPeriod", text)}
-          placeholder="Type here..."
-        />
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>Date of CMB Submission:</Text>
-        <TextInput
-          style={styles.input}
-          value={generalInfo.dateOfSubmission}
-          onChangeText={(text) => updateGeneralInfo("dateOfSubmission", text)}
-          placeholder="Month/Date/Year"
-        />
-      </View>
 
-      {/* Quarter Picker Modal */}
-      <Modal
-        transparent
-        animationType="fade"
-        visible={showQuarterPicker}
-        onRequestClose={() => setShowQuarterPicker(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowQuarterPicker(false)}
-        >
-          <View style={styles.pickerContainer}>
-            <View style={styles.pickerHeader}>
-              <Text style={styles.pickerTitle}>Select Quarter</Text>
-              <TouchableOpacity onPress={() => setShowQuarterPicker(false)}>
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-            {quarters.map((quarter, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.pickerOption,
-                  generalInfo.quarter === quarter && styles.pickerOptionSelected,
-                ]}
-                onPress={() => handleQuarterSelect(quarter)}
-              >
-                <Text
-                  style={[
-                    styles.pickerOptionText,
-                    generalInfo.quarter === quarter && styles.pickerOptionTextSelected,
-                  ]}
-                >
-                  {quarter}
-                </Text>
-                {generalInfo.quarter === quarter && (
-                  <Ionicons name="checkmark" size={20} color="#007AFF" />
-                )}
-              </TouchableOpacity>
-            ))}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Project Name</Text>
+          <TextInput
+            style={styles.input}
+            value={projectName}
+            onChangeText={(text) => onChange("projectName", text)}
+            placeholder="Enter project name"
+            placeholderTextColor="#94A3B8"
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Project Location</Text>
+          <TextInput
+            style={styles.input}
+            value={location}
+            onChangeText={(text) => onChange("location", text)}
+            placeholder="Enter full address or coordinates"
+            placeholderTextColor="#94A3B8"
+          />
+        </View>
+
+        <View style={styles.multiFieldContainer}>
+          <View style={styles.multiField}>
+            <Text style={styles.label}>Region</Text>
+            <TextInput
+              style={styles.input}
+              value={region}
+              onChangeText={(text) => onChange("region", text)}
+              placeholder="Region"
+              placeholderTextColor="#94A3B8"
+            />
           </View>
+
+          <View style={styles.multiField}>
+            <Text style={styles.label}>Province</Text>
+            <TextInput
+              style={styles.input}
+              value={province}
+              onChangeText={(text) => onChange("province", text)}
+              placeholder="Province"
+              placeholderTextColor="#94A3B8"
+            />
+          </View>
+
+          <View style={styles.multiField}>
+            <Text style={styles.label}>Municipality / City</Text>
+            <TextInput
+              style={styles.input}
+              value={municipality}
+              onChangeText={(text) => onChange("municipality", text)}
+              placeholder="Municipality"
+              placeholderTextColor="#94A3B8"
+            />
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.saveButton}>
+          <Ionicons name="save" size={18} color="white" />
+          <Text style={styles.saveButtonText}>Save General Info</Text>
         </TouchableOpacity>
-      </Modal>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  sectionCard: {
+  container: {
     backgroundColor: "white",
-    marginTop: 0,
-    padding: 16,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    shadowColor: "#2563EB",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#DBEAFE",
   },
-  sectionHeader: {
-    backgroundColor: "#D8D8FF",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    marginBottom: 16,
-    borderWidth: 1.5,
-    borderColor: "#000",
+  headerSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 20,
+    backgroundColor: "#EFF6FF",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: "#BFDBFE",
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "white",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#2563EB",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  headerTextContainer: {
+    marginLeft: 16,
+    flex: 1,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#000",
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1E3A8A",
+    letterSpacing: -0.3,
   },
-  fieldRow: {
-    marginBottom: 12,
+  sectionSubtitle: {
+    fontSize: 13,
+    color: "#64748B",
+    marginTop: 2,
+    fontWeight: "500",
+  },
+  sectionContent: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+  },
+  fieldGroup: {
+    marginBottom: 18,
   },
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#333",
-    marginBottom: 6,
-  },
-  labelLong: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 6,
+    color: "#1E293B",
+    marginBottom: 8,
   },
   input: {
-    backgroundColor: "#F9F9F9",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: "#333",
-  },
-  locationContainer: {
-    gap: 8,
-  },
-  locationInput: {
-    marginBottom: 0,
-  },
-  gpsButton: {
-    backgroundColor: "white",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-  gpsButtonDisabled: {
-    opacity: 0.6,
-  },
-  gpsButtonText: {
-    fontSize: 13,
-    color: "#007AFF",
-    textDecorationLine: "underline",
-  },
-  rowContainer: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 12,
-  },
-  halfField: {
-    flex: 1,
-  },
-  dropdownButton: {
-    backgroundColor: "#F9F9F9",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  dropdownText: {
-    fontSize: 14,
-    color: "#333",
-  },
-  placeholderText: {
-    color: "#999",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  pickerContainer: {
-    backgroundColor: "white",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
     borderRadius: 12,
-    width: "80%",
-    maxWidth: 400,
-    overflow: "hidden",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: "#0F172A",
   },
-  pickerHeader: {
+  multiFieldContainer: {
+    flexDirection: "column",
+    gap: 16,
+    marginBottom: 20,
+  },
+  multiField: {
+    flex: 1,
+  },
+  saveButton: {
+    backgroundColor: "#2563EB",
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    shadowColor: "#2563EB",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  pickerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-  },
-  pickerOption: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
-  },
-  pickerOptionSelected: {
-    backgroundColor: "#F0F5FF",
-  },
-  pickerOptionText: {
-    fontSize: 16,
-    color: "#333",
-  },
-  pickerOptionTextSelected: {
-    color: "#007AFF",
+  saveButtonText: {
+    color: "white",
+    fontSize: 15,
     fontWeight: "600",
   },
 });

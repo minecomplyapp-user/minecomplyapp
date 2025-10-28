@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import { View, ScrollView, StyleSheet, TouchableOpacity, Text, Alert } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { CMSHeader } from '../components/CMSHeader';
-import { ExecutiveSummarySection } from "../components/CMVRPage2/ExecutiveSummarySection";
-import { FileNameModal } from "../components/CMVRPage2/FileNameModal";
-import { ProcessDocumentationSection } from "../components/CMVRPage2/ProcessDocumentationSection";
+import { Ionicons } from "@expo/vector-icons";
+import { CMSHeader } from '../../components/CMSHeader';
+import { ExecutiveSummarySection } from "../../components/CMVRPage2/ExecutiveSummarySection";
+import { ProcessDocumentationSection } from "../../components/CMVRPage2/ProcessDocumentationSection";
 
 type RootStackParamList = {
   CMVRReport: {
@@ -35,9 +35,9 @@ const CMVRPage2Screen = () => {
   const navigation = useNavigation<CMVRPage2ScreenNavigationProp>();
   const route = useRoute<CMVRPage2ScreenRouteProp>();
   const { submissionId = "", projectName = "", projectId = "", fileName: routeFileName = "File_Name" } = route.params || {};
+  
   const [fileName, setFileName] = useState(routeFileName);
-  const [isEditingFileName, setIsEditingFileName] = useState(false);
-  const [tempFileName, setTempFileName] = useState(routeFileName);
+  
   const [executiveSummary, setExecutiveSummary] = useState({
     epepCompliance: {
       safety: false,
@@ -86,25 +86,6 @@ const CMVRPage2Screen = () => {
       projectName,
       fileName,
     });
-  };
-
-  const handleEditFileName = () => {
-    setTempFileName(fileName);
-    setIsEditingFileName(true);
-  };
-
-  const handleSaveFileName = () => {
-    if (tempFileName.trim()) {
-      setFileName(tempFileName.trim());
-      setIsEditingFileName(false);
-    } else {
-      Alert.alert("Error", "File name cannot be empty.");
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setTempFileName(fileName);
-    setIsEditingFileName(false);
   };
 
   const updateExecutiveSummary = (field: string, value: any) => {
@@ -165,6 +146,18 @@ const CMVRPage2Screen = () => {
     setOcularMmtAdditional(updated);
   };
 
+  const removeEccMmtAdditional = (index: number) => {
+    setEccMmtAdditional(eccMmtAdditional.filter((_, i) => i !== index));
+  };
+
+  const removeEpepMmtAdditional = (index: number) => {
+    setEpepMmtAdditional(epepMmtAdditional.filter((_, i) => i !== index));
+  };
+
+  const removeOcularMmtAdditional = (index: number) => {
+    setOcularMmtAdditional(ocularMmtAdditional.filter((_, i) => i !== index));
+  };
+
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: false,
@@ -178,7 +171,6 @@ const CMVRPage2Screen = () => {
           fileName={fileName}
           onBack={() => navigation.goBack()}
           onSave={handleSave}
-          onEditFileName={handleEditFileName}
         />
       </View>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -200,19 +192,15 @@ const CMVRPage2Screen = () => {
           updateEccMmtAdditional={updateEccMmtAdditional}
           updateEpepMmtAdditional={updateEpepMmtAdditional}
           updateOcularMmtAdditional={updateOcularMmtAdditional}
+          removeEccMmtAdditional={removeEccMmtAdditional}
+          removeEpepMmtAdditional={removeEpepMmtAdditional}
+          removeOcularMmtAdditional={removeOcularMmtAdditional}
         />
         <TouchableOpacity style={styles.saveNextButton} onPress={handleSaveAndNext}>
           <Text style={styles.saveNextButtonText}>Save & Next</Text>
+          <Ionicons name="arrow-forward" size={18} color="white" />
         </TouchableOpacity>
-        <View style={{ height: 30 }} />
       </ScrollView>
-      <FileNameModal
-        isEditingFileName={isEditingFileName}
-        tempFileName={tempFileName}
-        setTempFileName={setTempFileName}
-        handleCancelEdit={handleCancelEdit}
-        handleSaveFileName={handleSaveFileName}
-      />
     </View>
   );
 };
@@ -220,7 +208,7 @@ const CMVRPage2Screen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "#F9FAFB",
   },
   headerContainer: {
     zIndex: 1000,
@@ -230,17 +218,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   saveNextButton: {
-    backgroundColor: "#8B7FDB",
-    paddingVertical: 12,
-    borderRadius: 8,
+     backgroundColor: "#1E40AF",
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: 16,
-    marginHorizontal: 20,
+    marginHorizontal: 16, // Use horizontal margin to constrain width
+    marginTop: 24,       // Add margin top
+    marginBottom: 16,      // Add margin bottom
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   saveNextButtonText: {
     color: "white",
-    fontSize: 15,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
   },
 });
 

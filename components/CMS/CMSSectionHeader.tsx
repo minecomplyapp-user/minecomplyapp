@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from "@expo/vector-icons";
 
 interface CMSSectionHeaderProps {
   title: string;
@@ -11,28 +12,64 @@ export const CMSSectionHeader: React.FC<CMSSectionHeaderProps> = ({
   sectionNumber,
 }) => {
   return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>
-        {sectionNumber && <Text style={styles.sectionNumber}>{sectionNumber} </Text>}
-        {title}
-      </Text>
+    <View style={styles.container}>
+      <View style={styles.iconContainer}>
+        <View style={styles.iconCircle}>
+          <Ionicons name="document-text-outline" size={20} color="#2563EB" />
+        </View>
+      </View>
+      <View style={styles.textContainer}>
+        <Text style={styles.title}>
+          {sectionNumber && <Text style={styles.sectionNumber}>{sectionNumber} </Text>}
+          {title}
+        </Text>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  sectionHeader: {
-    backgroundColor: '#fecaca',
-    padding: 8,
-    marginBottom: 8,
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    marginBottom: 16,
+    marginTop: 4,
   },
-  sectionTitle: {
-    fontSize: 11,
-    color: '#000',
-    fontWeight: '400',
+  iconContainer: {
+    marginRight: 12,
+  },
+  iconCircle: {
+    backgroundColor: '#FFFFFF',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#93C5FD',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  textContainer: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E3A8A',
+    lineHeight: 19,
   },
   sectionNumber: {
-    color: '#000',
-    fontWeight: '700',
+    fontWeight: '800',
+    color: '#2563EB',
   },
 });

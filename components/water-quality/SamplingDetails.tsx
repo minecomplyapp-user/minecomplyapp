@@ -1,4 +1,3 @@
-// components/water-quality/SamplingDetails.tsx
 import React from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { NACheckbox } from '../water-quality/NACheckbox';
@@ -30,7 +29,7 @@ export const SamplingDetails: React.FC<SamplingDetailsProps> = ({
         value={remarks}
         onChangeText={(text) => onInputChange('remarks', text)}
         placeholder="Type here..."
-        placeholderTextColor="#B0B0B0"
+        placeholderTextColor="#94A3B8"
         multiline
         numberOfLines={3}
       />
@@ -41,7 +40,7 @@ export const SamplingDetails: React.FC<SamplingDetailsProps> = ({
         value={dateTime}
         onChangeText={(text) => onInputChange('dateTime', text)}
         placeholder="Type here..."
-        placeholderTextColor="#B0B0B0"
+        placeholderTextColor="#94A3B8"
       />
 
       <Text style={styles.fieldLabel}>Weather and Wind Direction:</Text>
@@ -50,7 +49,7 @@ export const SamplingDetails: React.FC<SamplingDetailsProps> = ({
         value={weatherWind}
         onChangeText={(text) => onInputChange('weatherWind', text)}
         placeholder="Type here..."
-        placeholderTextColor="#B0B0B0"
+        placeholderTextColor="#94A3B8"
       />
 
       <View style={styles.explanationHeader}>
@@ -67,7 +66,7 @@ export const SamplingDetails: React.FC<SamplingDetailsProps> = ({
         value={explanation}
         onChangeText={(text) => onInputChange('explanation', text)}
         placeholder="Type here..."
-        placeholderTextColor="#B0B0B0"
+        placeholderTextColor="#94A3B8"
         multiline
         numberOfLines={3}
         textAlignVertical="top"
@@ -79,16 +78,16 @@ export const SamplingDetails: React.FC<SamplingDetailsProps> = ({
 
 const styles = StyleSheet.create({
   sectionLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#000',
+    color: '#1E293B',
     marginBottom: 8,
     marginTop: 8,
   },
   textInput: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#CDEFF7',
+    borderColor: '#CBD5E1',
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 13,
@@ -96,23 +95,25 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     marginBottom: 16,
     borderRadius: 6,
+    color: '#1E293B',
   },
   fieldLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#000',
+    color: '#475569',
     marginBottom: 8,
     marginTop: 4,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#CDEFF7',
+    borderColor: '#CBD5E1',
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 13,
     marginBottom: 16,
     borderRadius: 6,
+    color: '#1E293B',
   },
   explanationHeader: {
     flexDirection: 'row',
@@ -121,6 +122,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   disabledInput: {
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#F1F5F9',
+    color: '#94A3B8',
   },
 });

@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 interface ExecutiveSummaryProps {
   executiveSummary: {
@@ -37,276 +38,422 @@ export const ExecutiveSummarySection: React.FC<ExecutiveSummaryProps> = ({
   toggleComplaintsManagement,
 }) => {
   return (
-    <View style={styles.sectionCard}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>EXECUTIVE SUMMARY OF COMPLIANCE</Text>
-      </View>
-      <Text style={styles.noteText}>Any unticked boxes will automatically be counted as 'No.'</Text>
-
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Compliance with EPEP Commitments:</Text>
-        <View style={styles.checkboxGroup}>
-          <TouchableOpacity style={styles.checkboxRow} onPress={() => toggleEpepCompliance("safety")}>
-            <View style={styles.checkbox}>
-              {executiveSummary.epepCompliance.safety && <View style={styles.checkboxChecked} />}
-            </View>
-            <Text style={styles.checkboxLabel}>Safety</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.checkboxRow} onPress={() => toggleEpepCompliance("social")}>
-            <View style={styles.checkbox}>
-              {executiveSummary.epepCompliance.social && <View style={styles.checkboxChecked} />}
-            </View>
-            <Text style={styles.checkboxLabel}>Social</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.checkboxRow} onPress={() => toggleEpepCompliance("rehabilitation")}>
-            <View style={styles.checkbox}>
-              {executiveSummary.epepCompliance.rehabilitation && <View style={styles.checkboxChecked} />}
-            </View>
-            <Text style={styles.checkboxLabel}>Rehabilitation</Text>
-          </TouchableOpacity>
+    <View style={styles.container}>
+      <View style={styles.headerSection}>
+        <View style={styles.iconContainer}>
+          <Ionicons name="document-text" size={24} color="#1E40AF" />
+        </View>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.sectionTitle}>Executive Summary</Text>
+          <Text style={styles.sectionSubtitle}>Summary of Compliance Status</Text>
         </View>
       </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Remarks:</Text>
-        <TextInput
-          style={styles.input}
-          value={executiveSummary.epepRemarks}
-          onChangeText={(text) => updateExecutiveSummary("epepRemarks", text)}
-          placeholder="Type here..."
-          placeholderTextColor="#999"
-        />
-      </View>
 
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Compliance with SDMP Commitments:</Text>
-        <View style={styles.checkboxGroup}>
-          <TouchableOpacity style={styles.checkboxRow} onPress={() => updateExecutiveSummary("sdmpCompliance", "complied")}>
-            <View style={styles.checkbox}>
-              {executiveSummary.sdmpCompliance === "complied" && <View style={styles.checkboxChecked} />}
-            </View>
-            <Text style={styles.checkboxLabel}>Complied</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.checkboxRow} onPress={() => updateExecutiveSummary("sdmpCompliance", "not-complied")}>
-            <View style={styles.checkbox}>
-              {executiveSummary.sdmpCompliance === "not-complied" && <View style={styles.checkboxChecked} />}
-            </View>
-            <Text style={styles.checkboxLabel}>Not Complied</Text>
-          </TouchableOpacity>
+      <View style={styles.sectionContent}>
+        <View style={styles.infoBox}>
+          <Ionicons name="information-circle" size={20} color="#3B82F6" />
+          <Text style={styles.infoText}>Unticked checkboxes are considered 'No' or 'Not Complied'.</Text>
         </View>
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Remarks:</Text>
-        <TextInput
-          style={styles.input}
-          value={executiveSummary.sdmpRemarks}
-          onChangeText={(text) => updateExecutiveSummary("sdmpRemarks", text)}
-          placeholder="Type here..."
-          placeholderTextColor="#999"
-        />
-      </View>
 
-      <View style={styles.fieldRow}>
-        <View style={styles.labelWithCheckbox}>
-          <Text style={styles.label}>Complaints Management:</Text>
-          <View style={styles.naCheckboxContainer}>
-            <TouchableOpacity style={styles.checkboxRow} onPress={() => toggleComplaintsManagement("naForAll")}>
-              <View style={styles.checkbox}>
-                {executiveSummary.complaintsManagement.naForAll && <View style={styles.checkboxChecked} />}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Compliance with EPEP Commitments</Text>
+          <View style={styles.checkboxGroup}>
+            <TouchableOpacity style={styles.checkboxRow} onPress={() => toggleEpepCompliance("safety")}>
+              <View style={[styles.checkbox, executiveSummary.epepCompliance.safety && styles.checkboxChecked]}>
+                {executiveSummary.epepCompliance.safety && <Ionicons name="checkmark" size={16} color="white" />}
               </View>
-              <Text style={styles.checkboxLabel}>N/A for all</Text>
+              <Text style={styles.checkboxLabel}>Safety</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.checkboxRow} onPress={() => toggleEpepCompliance("social")}>
+              <View style={[styles.checkbox, executiveSummary.epepCompliance.social && styles.checkboxChecked]}>
+                {executiveSummary.epepCompliance.social && <Ionicons name="checkmark" size={16} color="white" />}
+              </View>
+              <Text style={styles.checkboxLabel}>Social</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.checkboxRow} onPress={() => toggleEpepCompliance("rehabilitation")}>
+              <View style={[styles.checkbox, executiveSummary.epepCompliance.rehabilitation && styles.checkboxChecked]}>
+                {executiveSummary.epepCompliance.rehabilitation && <Ionicons name="checkmark" size={16} color="white" />}
+              </View>
+              <Text style={styles.checkboxLabel}>Rehabilitation</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </View>
-      <View style={styles.checkboxGroup}>
-        <TouchableOpacity style={styles.checkboxRow} onPress={() => toggleComplaintsManagement("complaintReceiving")}>
-          <View style={styles.checkbox}>
-            {executiveSummary.complaintsManagement.complaintReceiving && <View style={styles.checkboxChecked} />}
-          </View>
-          <Text style={styles.checkboxLabel}>Complaint receiving set-up</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.checkboxRow} onPress={() => toggleComplaintsManagement("caseInvestigation")}>
-          <View style={styles.checkbox}>
-            {executiveSummary.complaintsManagement.caseInvestigation && <View style={styles.checkboxChecked} />}
-          </View>
-          <Text style={styles.checkboxLabel}>Case investigation</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.checkboxRow} onPress={() => toggleComplaintsManagement("implementationControl")}>
-          <View style={styles.checkbox}>
-            {executiveSummary.complaintsManagement.implementationControl && <View style={styles.checkboxChecked} />}
-          </View>
-          <Text style={styles.checkboxLabel}>Implementation of control</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.checkboxRow} onPress={() => toggleComplaintsManagement("communicationComplainant")}>
-          <View style={styles.checkbox}>
-            {executiveSummary.complaintsManagement.communicationComplainant && <View style={styles.checkboxChecked} />}
-          </View>
-          <Text style={styles.checkboxLabel}>Communication with the complainant/ public</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.checkboxRow} onPress={() => toggleComplaintsManagement("complaintDocumentation")}>
-          <View style={styles.checkbox}>
-            {executiveSummary.complaintsManagement.complaintDocumentation && <View style={styles.checkboxChecked} />}
-          </View>
-          <Text style={styles.checkboxLabel}>Complaint documentation</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Remarks:</Text>
-        <TextInput
-          style={styles.input}
-          value={executiveSummary.complaintsRemarks}
-          onChangeText={(text) => updateExecutiveSummary("complaintsRemarks", text)}
-          placeholder="Type here..."
-          placeholderTextColor="#999"
-        />
-      </View>
 
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Accountability:</Text>
-        <Text style={styles.sublabel}>
-          Qualified personnel are charged with the routine monitoring of the project activities in terms of education, training, knowledge and experience of the environmental team
-        </Text>
-        <View style={styles.checkboxGroup}>
-          <TouchableOpacity style={styles.checkboxRow} onPress={() => updateExecutiveSummary("accountability", "complied")}>
-            <View style={styles.checkbox}>
-              {executiveSummary.accountability === "complied" && <View style={styles.checkboxChecked} />}
-            </View>
-            <Text style={styles.checkboxLabel}>Complied</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.checkboxRow} onPress={() => updateExecutiveSummary("accountability", "not-complied")}>
-            <View style={styles.checkbox}>
-              {executiveSummary.accountability === "not-complied" && <View style={styles.checkboxChecked} />}
-            </View>
-            <Text style={styles.checkboxLabel}>Not Complied</Text>
-          </TouchableOpacity>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.labelSmall}>EPEP REMARKS</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={executiveSummary.epepRemarks}
+            onChangeText={(text) => updateExecutiveSummary("epepRemarks", text)}
+            placeholder="Enter remarks for EPEP compliance..."
+            placeholderTextColor="#94A3B8"
+            multiline
+            numberOfLines={3}
+          />
         </View>
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Remarks:</Text>
-        <TextInput
-          style={styles.input}
-          value={executiveSummary.accountabilityRemarks}
-          onChangeText={(text) => updateExecutiveSummary("accountabilityRemarks", text)}
-          placeholder="Type here..."
-          placeholderTextColor="#999"
-        />
-      </View>
 
-      <View style={styles.fieldRow}>
-        <View style={styles.labelWithCheckbox}>
-          <Text style={styles.label}>Others, please specify:</Text>
-          <View style={styles.naCheckboxContainer}>
-            <TouchableOpacity style={styles.checkboxRow} onPress={() => updateExecutiveSummary("othersNA", !executiveSummary.othersNA)}>
-              <View style={styles.checkbox}>
-                {executiveSummary.othersNA && <View style={styles.checkboxChecked} />}
+        <View style={styles.divider} />
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Compliance with SDMP Commitments</Text>
+          <View style={styles.radioGroup}>
+            <TouchableOpacity style={styles.checkboxRow} onPress={() => updateExecutiveSummary("sdmpCompliance", "complied")}>
+              <View style={[styles.checkbox, executiveSummary.sdmpCompliance === "complied" && styles.checkboxChecked]}>
+                {executiveSummary.sdmpCompliance === "complied" && <Ionicons name="checkmark" size={16} color="white" />}
               </View>
-              <Text style={styles.checkboxLabel}>N/A</Text>
+              <Text style={styles.checkboxLabel}>Complied</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.checkboxRow} onPress={() => updateExecutiveSummary("sdmpCompliance", "not-complied")}>
+              <View style={[styles.checkbox, executiveSummary.sdmpCompliance === "not-complied" && styles.checkboxChecked]}>
+                {executiveSummary.sdmpCompliance === "not-complied" && <Ionicons name="checkmark" size={16} color="white" />}
+              </View>
+              <Text style={styles.checkboxLabel}>Not Complied</Text>
             </TouchableOpacity>
           </View>
         </View>
-        <TextInput
-          style={styles.input}
-          value={executiveSummary.othersSpecify}
-          onChangeText={(text) => updateExecutiveSummary("othersSpecify", text)}
-          placeholder="Type here..."
-          placeholderTextColor="#999"
-        />
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.labelSmall}>SDMP REMARKS</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={executiveSummary.sdmpRemarks}
+            onChangeText={(text) => updateExecutiveSummary("sdmpRemarks", text)}
+            placeholder="Enter remarks for SDMP compliance..."
+            placeholderTextColor="#94A3B8"
+            multiline
+            numberOfLines={3}
+          />
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.fieldGroup}>
+          <View style={styles.labelWithAction}>
+            <Text style={styles.label}>Complaints Management</Text>
+            <TouchableOpacity
+              style={styles.naButton}
+              onPress={() => toggleComplaintsManagement("naForAll")}
+            >
+              <View style={[styles.checkboxSmall, executiveSummary.complaintsManagement.naForAll && styles.checkboxChecked]}>
+                {executiveSummary.complaintsManagement.naForAll && <Ionicons name="checkmark" size={14} color="white" />}
+              </View>
+              <Text style={styles.naButtonText}>N/A for all</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.checkboxGroup}>
+            {[
+              { key: "complaintReceiving", label: "Complaint receiving set-up" },
+              { key: "caseInvestigation", label: "Case investigation" },
+              { key: "implementationControl", label: "Implementation of control" },
+              { key: "communicationComplainant", label: "Communication with complainant/public" },
+              { key: "complaintDocumentation", label: "Complaint documentation" },
+            ].map((item) => (
+              <TouchableOpacity
+                key={item.key}
+                style={[
+                  styles.checkboxRow,
+                  executiveSummary.complaintsManagement.naForAll && styles.disabledCheckboxRow
+                ]}
+                onPress={() => toggleComplaintsManagement(item.key as keyof typeof executiveSummary.complaintsManagement)}
+                disabled={executiveSummary.complaintsManagement.naForAll}
+              >
+                <View style={[
+                  styles.checkbox,
+                  executiveSummary.complaintsManagement[item.key as keyof typeof executiveSummary.complaintsManagement] && !executiveSummary.complaintsManagement.naForAll && styles.checkboxChecked,
+                  executiveSummary.complaintsManagement.naForAll && styles.disabledCheckbox
+                ]}>
+                  {executiveSummary.complaintsManagement[item.key as keyof typeof executiveSummary.complaintsManagement] && !executiveSummary.complaintsManagement.naForAll && (
+                    <Ionicons name="checkmark" size={16} color="white" />
+                  )}
+                </View>
+                <Text style={[styles.checkboxLabel, executiveSummary.complaintsManagement.naForAll && styles.disabledCheckboxLabel]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.labelSmall}>COMPLAINTS REMARKS</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={executiveSummary.complaintsRemarks}
+            onChangeText={(text) => updateExecutiveSummary("complaintsRemarks", text)}
+            placeholder="Enter remarks for complaints management..."
+            placeholderTextColor="#94A3B8"
+            multiline
+            numberOfLines={3}
+          />
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Accountability</Text>
+          <Text style={styles.sublabel}>
+            Qualified personnel are charged with routine monitoring (education, training, knowledge, experience).
+          </Text>
+          <View style={styles.radioGroup}>
+            <TouchableOpacity style={styles.checkboxRow} onPress={() => updateExecutiveSummary("accountability", "complied")}>
+              <View style={[styles.checkbox, executiveSummary.accountability === "complied" && styles.checkboxChecked]}>
+                {executiveSummary.accountability === "complied" && <Ionicons name="checkmark" size={16} color="white" />}
+              </View>
+              <Text style={styles.checkboxLabel}>Complied</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.checkboxRow} onPress={() => updateExecutiveSummary("accountability", "not-complied")}>
+              <View style={[styles.checkbox, executiveSummary.accountability === "not-complied" && styles.checkboxChecked]}>
+                {executiveSummary.accountability === "not-complied" && <Ionicons name="checkmark" size={16} color="white" />}
+              </View>
+              <Text style={styles.checkboxLabel}>Not Complied</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.labelSmall}>ACCOUNTABILITY REMARKS</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={executiveSummary.accountabilityRemarks}
+            onChangeText={(text) => updateExecutiveSummary("accountabilityRemarks", text)}
+            placeholder="Enter remarks for accountability..."
+            placeholderTextColor="#94A3B8"
+            multiline
+            numberOfLines={3}
+          />
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.fieldGroup}>
+          <View style={styles.labelWithAction}>
+            <Text style={styles.label}>Others</Text>
+            <TouchableOpacity
+              style={styles.naButton}
+              onPress={() => updateExecutiveSummary("othersNA", !executiveSummary.othersNA)}
+            >
+              <View style={[styles.checkboxSmall, executiveSummary.othersNA && styles.checkboxChecked]}>
+                {executiveSummary.othersNA && <Ionicons name="checkmark" size={14} color="white" />}
+              </View>
+              <Text style={styles.naButtonText}>N/A</Text>
+            </TouchableOpacity>
+          </View>
+          <TextInput
+            style={[
+              styles.input,
+              styles.textArea,
+              executiveSummary.othersNA && styles.disabledInput
+            ]}
+            value={executiveSummary.othersSpecify}
+            onChangeText={(text) => updateExecutiveSummary("othersSpecify", text)}
+            placeholder="Specify other compliance matters..."
+            placeholderTextColor="#94A3B8"
+            multiline
+            numberOfLines={3}
+            editable={!executiveSummary.othersNA}
+          />
+        </View>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  sectionCard: {
+  container: {
     backgroundColor: "white",
-    marginTop: 10,
-    padding: 20,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
   },
-  sectionHeader: {
-    backgroundColor: "#D8D8FF",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginBottom: 12,
-    borderWidth: 1.5,
-    borderColor: "#000",
-    alignSelf: "center",
+  headerSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 20,
+    backgroundColor: "#EFF6FF",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: "#BFDBFE",
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "white",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  headerTextContainer: {
+    marginLeft: 16,
+    flex: 1,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 20,
     fontWeight: "700",
-    color: "#000",
-    textAlign: "center",
-    letterSpacing: 0.5,
+    color: "#1E40AF",
+    letterSpacing: -0.3,
   },
-  noteText: {
-    fontSize: 11,
-    fontStyle: "italic",
-    color: "#666",
-    marginBottom: 16,
-    textAlign: "center",
+  sectionSubtitle: {
+    fontSize: 13,
+    color: "#64748B",
+    marginTop: 2,
+    fontWeight: "500",
   },
-  fieldRow: {
-    marginBottom: 16,
+  sectionContent: {
+    padding: 20,
+  },
+  infoBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 24,
+    borderWidth: 1.5,
+    borderColor: "#BFDBFE",
+  },
+  infoText: {
+    fontSize: 13,
+    color: "#1E40AF",
+    flex: 1,
+    lineHeight: 18,
+    fontWeight: "500",
+  },
+  fieldGroup: {
+    marginBottom: 20,
   },
   label: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: "600",
-    color: "#000",
-    marginBottom: 8,
+    color: "#1E293B",
+    marginBottom: 12,
   },
-  labelWithCheckbox: {
+  labelSmall: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#64748B",
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  labelWithAction: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 8,
+    alignItems: "center",
+    marginBottom: 12,
   },
-  naCheckboxContainer: {
-    marginLeft: 12,
+  naButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
+  },
+  naButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#64748B",
   },
   sublabel: {
-    fontSize: 11,
-    color: "#666",
-    marginBottom: 8,
-    lineHeight: 16,
+    fontSize: 13,
+    color: "#64748B",
+    lineHeight: 18,
+    marginBottom: 12,
+    fontStyle: "italic",
   },
   input: {
-    backgroundColor: "#F9F9F9",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 13,
-    color: "#333",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: "#0F172A",
+  },
+  disabledInput: {
+    backgroundColor: "#F1F5F9",
+    color: "#94A3B8",
+    borderColor: "#E2E8F0",
+  },
+  textArea: {
+    minHeight: 90,
+    textAlignVertical: "top",
+    paddingTop: 14,
   },
   checkboxGroup: {
-    gap: 10,
-    marginTop: 8,
+    gap: 14,
+  },
+  radioGroup: {
+    flexDirection: "row",
+    gap: 20,
+    alignItems: "center",
   },
   checkboxRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 12,
+  },
+  disabledCheckboxRow: {
+    opacity: 0.5,
   },
   checkbox: {
-    width: 18,
-    height: 18,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 3,
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: "#CBD5E1",
+    borderRadius: 6,
+    backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
+  },
+  checkboxSmall: {
+    width: 20,
+    height: 20,
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
+    borderRadius: 5,
     backgroundColor: "white",
+    justifyContent: "center",
+    alignItems: "center",
   },
   checkboxChecked: {
-    width: 12,
-    height: 12,
-    backgroundColor: "#007AFF",
-    borderRadius: 2,
+    backgroundColor: "#1E40AF",
+    borderColor: "#1E40AF",
+  },
+  disabledCheckbox: {
+    backgroundColor: "#E2E8F0",
+    borderColor: "#CBD5E1",
   },
   checkboxLabel: {
-    fontSize: 13,
-    color: "#333",
+    fontSize: 14,
+    color: "#1E293B",
+    flexShrink: 1,
+  },
+  disabledCheckboxLabel: {
+    color: "#94A3B8",
+  },
+  divider: {
+    height: 1.5,
+    backgroundColor: "#E2E8F0",
+    marginVertical: 24,
   },
 });

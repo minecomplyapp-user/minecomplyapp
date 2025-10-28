@@ -1,9 +1,10 @@
 import React from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from "@expo/vector-icons";
 
-// Define types for your props and state
-type MMTInfo = {
+export type MMTInfo = {
+  isNA: boolean;
   contactPerson: string;
   mailingAddress: string;
   phoneNumber: string;
@@ -16,127 +17,200 @@ type MMTSectionProps = {
 };
 
 const MMTSection: React.FC<MMTSectionProps> = ({ mmtInfo, setMmtInfo }) => {
-  const navigation = useNavigation<any>();  // Add this line
+  const navigation = useNavigation<any>();
   
   const updateMMTInfo = (field: keyof MMTInfo, value: string) => {
-    setMmtInfo((prev: MMTInfo) => ({ ...prev, [field]: value }));
+    setMmtInfo((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
-    <View style={styles.sectionCard}>
-      <View style={styles.sectionHeaderWithLink}>
-        <Text style={styles.sectionTitle}>Multipartite Monitoring Team</Text>
-        <TouchableOpacity>
-          <Text style={styles.autoPopulateLink}>Auto-populate with your saved info</Text>
+    <View style={styles.container}>
+      <View style={styles.headerSection}>
+        <View style={styles.iconContainer}>
+          <Ionicons name="people" size={24} color="#1E40AF" />
+        </View>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.sectionTitle}>Monitoring Team</Text>
+          <Text style={styles.sectionSubtitle}>Multipartite Monitoring Team</Text>
+        </View>
+        <TouchableOpacity style={styles.autoPopulateButton}>
+          <Ionicons name="cloud-download" size={16} color="#1E40AF" />
+          <Text style={styles.autoPopulateText}>Auto</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>MMT Contact Person & Position:</Text>
-        <TextInput
-          style={styles.input}
-          value={mmtInfo.contactPerson}
-          onChangeText={(text) => updateMMTInfo("contactPerson", text)}
-          placeholder="Type here..."
-        />
+
+      <View style={styles.formContent}>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>MMT Contact Person & Position</Text>
+          <TextInput
+            style={styles.input}
+            value={mmtInfo.contactPerson}
+            onChangeText={(text) => updateMMTInfo("contactPerson", text)}
+            placeholder="Enter contact person and position"
+            placeholderTextColor="#94A3B8"
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>MMT Mailing Address</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={mmtInfo.mailingAddress}
+            onChangeText={(text) => updateMMTInfo("mailingAddress", text)}
+            placeholder="Enter mailing address"
+            placeholderTextColor="#94A3B8"
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>MMT Telephone No. / Fax No.</Text>
+          <TextInput
+            style={styles.input}
+            value={mmtInfo.phoneNumber}
+            onChangeText={(text) => updateMMTInfo("phoneNumber", text)}
+            placeholder="09XX-XXX-XXXX"
+            placeholderTextColor="#94A3B8"
+            keyboardType="phone-pad"
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>MMT Email Address</Text>
+          <TextInput
+            style={styles.input}
+            value={mmtInfo.emailAddress}
+            onChangeText={(text) => updateMMTInfo("emailAddress", text)}
+            placeholder="email@domain.com"
+            placeholderTextColor="#94A3B8"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        </View>
+
+
       </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>MMT Mailing Address:</Text>
-        <TextInput
-          style={styles.input}
-          value={mmtInfo.mailingAddress}
-          onChangeText={(text) => updateMMTInfo("mailingAddress", text)}
-          placeholder="Type here..."
-        />
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>MMT Telephone No./ Fax No.:</Text>
-        <TextInput
-          style={styles.input}
-          value={mmtInfo.phoneNumber}
-          onChangeText={(text) => updateMMTInfo("phoneNumber", text)}
-          placeholder="Type here..."
-        />
-      </View>
-      <View style={styles.fieldRow}>
-        <TextInput style={styles.input} placeholder="Type here..." />
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.labelLong}>MMT Email Address:</Text>
-        <TextInput
-          style={styles.input}
-          value={mmtInfo.emailAddress}
-          onChangeText={(text) => updateMMTInfo("emailAddress", text)}
-          placeholder="email@domain.com"
-          keyboardType="email-address"
-        />
-      </View>
-      <TouchableOpacity 
-        style={styles.saveNextButton}
-        onPress={() => navigation.navigate('CMVRPage2')}
-      >
-        <Text style={styles.saveNextButtonText}>Save & Next</Text>
-      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  sectionCard: {
+  container: {
     backgroundColor: "white",
-    padding: 16,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
   },
-  sectionHeaderWithLink: {
+  headerSection: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 16,
-    backgroundColor: "#D8D8FF",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: "#000",
+    alignItems: "center",
+    padding: 20,
+    backgroundColor: "#EFF6FF",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: "#BFDBFE",
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "white",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  headerTextContainer: {
+    marginLeft: 16,
+    flex: 1,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#000",
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1E40AF",
+    letterSpacing: -0.3,
   },
-  autoPopulateLink: {
-    fontSize: 12,
-    color: "#007AFF",
-    textDecorationLine: "underline",
-  },
-  fieldRow: {
-    marginBottom: 12,
-  },
-  labelLong: {
+  sectionSubtitle: {
     fontSize: 13,
+    color: "#64748B",
+    marginTop: 2,
+    fontWeight: "500",
+  },
+  autoPopulateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "white",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: "#BFDBFE",
+  },
+  autoPopulateText: {
+    fontSize: 13,
+    color: "#1E40AF",
     fontWeight: "600",
-    color: "#333",
-    marginBottom: 6,
+  },
+  formContent: {
+    padding: 20,
+  },
+  fieldGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1E293B",
+    marginBottom: 8,
   },
   input: {
-    backgroundColor: "#F9F9F9",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: "#333",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: "#0F172A",
   },
-  saveNextButton: {
-    backgroundColor: "#7C6FDB",
-    paddingVertical: 12,
-    borderRadius: 8,
+  textArea: {
+    minHeight: 90,
+    paddingTop: 14,
+  },
+  saveButton: {
+    backgroundColor: "#1E40AF",
+    paddingVertical: 16,
+    borderRadius: 12,
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 16,
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 8,
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  saveNextButtonText: {
+  saveButtonText: {
     color: "white",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 });
 

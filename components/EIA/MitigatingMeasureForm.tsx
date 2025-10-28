@@ -24,14 +24,16 @@ export const MitigatingMeasureForm: React.FC<MitigatingMeasureFormProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.row}>
-        <Text style={styles.number}>{index + 1}.</Text>
+        <View style={styles.numberBadge}>
+          <Text style={styles.number}>{index + 1}</Text>
+        </View>
         <View style={styles.inputsRow}>
           <View style={styles.inputWrapper}>
             <Text style={styles.label}>Planned</Text>
             <TextInput
               style={styles.input}
               placeholder="Type here..."
-              placeholderTextColor="#999"
+              placeholderTextColor="#94A3B8"
               value={measure.planned}
               onChangeText={(text) => onUpdate('planned', text)}
               multiline
@@ -42,7 +44,7 @@ export const MitigatingMeasureForm: React.FC<MitigatingMeasureFormProps> = ({
             <TextInput
               style={styles.input}
               placeholder="Type here..."
-              placeholderTextColor="#999"
+              placeholderTextColor="#94A3B8"
               value={measure.actualObservation}
               onChangeText={(text) => onUpdate('actualObservation', text)}
               multiline
@@ -72,7 +74,7 @@ export const MitigatingMeasureForm: React.FC<MitigatingMeasureFormProps> = ({
         <TextInput
           style={styles.recommendationsInput}
           placeholder="Type here..."
-          placeholderTextColor="#999"
+          placeholderTextColor="#94A3B8"
           value={measure.recommendations}
           onChangeText={(text) => onUpdate('recommendations', text)}
           multiline
@@ -85,53 +87,76 @@ export const MitigatingMeasureForm: React.FC<MitigatingMeasureFormProps> = ({
 const styles = StyleSheet.create({
   container: {
     marginBottom: 20,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 12,
   },
-  number: {
-    fontSize: 14,
-    fontWeight: '400',
+  numberBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
-    marginTop: 28,
+    marginTop: 24,
+    borderWidth: 1,
+    borderColor: '#93C5FD',
+  },
+  number: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E40AF',
   },
   inputsRow: {
     flex: 1,
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
   },
   inputWrapper: {
     flex: 1,
   },
   label: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     marginBottom: 6,
     textAlign: 'center',
+    color: '#475569',
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 4,
+    borderColor: '#CBD5E1',
+    borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    fontSize: 13,
-    minHeight: 40,
+    fontSize: 12,
+    minHeight: 45,
     textAlignVertical: 'top',
+    color: '#1E293B',
   },
   effectiveRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
-    paddingLeft: 26,
+    paddingLeft: 40,
+    backgroundColor: '#EFF6FF',
+    paddingVertical: 8,
+    paddingRight: 12,
+    borderRadius: 6,
   },
   effectiveLabel: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
     marginRight: 16,
+    color: '#1E293B',
   },
   radioGroup: {
     flexDirection: 'row',
@@ -140,24 +165,26 @@ const styles = StyleSheet.create({
   recommendationsRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingLeft: 26,
+    paddingLeft: 40,
   },
   recommendationsLabel: {
     fontSize: 13,
     fontWeight: '600',
     marginRight: 12,
     minWidth: 120,
+    color: '#1E293B',
   },
   recommendationsInput: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 4,
+    borderColor: '#CBD5E1',
+    borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    fontSize: 13,
-    minHeight: 40,
+    fontSize: 12,
+    minHeight: 45,
     textAlignVertical: 'top',
+    color: '#1E293B',
   },
 });

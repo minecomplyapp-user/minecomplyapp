@@ -9,12 +9,13 @@ import {
   Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { CMSHeader } from '../components/CMSHeader';
-import { CheckboxField } from '../components/EnvironmentalCompliance/CheckboxField';
-import { LocationCheckboxRow } from '../components/EnvironmentalCompliance/LocationCheckboxRow';
-import { ParameterForm } from '../components/EnvironmentalCompliance/ParameterForm';
-import { SectionHeader } from '../components/EnvironmentalCompliance/SectionHeader';
-import { FormInputField } from '../components/EnvironmentalCompliance/FormInputField';
+import { Ionicons } from '@expo/vector-icons';
+import { CMSHeader } from '../../components/CMSHeader';
+import { CheckboxField } from '../../components/EnvironmentalCompliance/CheckboxField';
+import { LocationCheckboxRow } from '../../components/EnvironmentalCompliance/LocationCheckboxRow';
+import { ParameterForm } from '../../components/EnvironmentalCompliance/ParameterForm';
+import { SectionHeader } from '../../components/EnvironmentalCompliance/SectionHeader';
+import { FormInputField } from '../../components/EnvironmentalCompliance/FormInputField';
 
 type ParameterData = {
   id: string;
@@ -232,16 +233,20 @@ export default function EnvironmentalComplianceScreen({ navigation, route }: any
           number="B.2."
           title="Compliance to Environmental Compliance Certificate Conditions"
         />
+        
         {/* Upload ECC Conditions Checkbox */}
         <CheckboxField
           checked={isEccChecked}
           onPress={handleEccCheckbox}
           label="Use ECC Conditions from CMVR"
         />
+        
         {/* B.3 Section */}
         <SectionHeader number="B.3." title="Air Quality Impact Assessment" />
+        
         {/* Location Checkboxes Section */}
         <View style={styles.formSection}>
+          <Text style={styles.sectionTitle}>Location Selection</Text>
           <LocationCheckboxRow
             label="Quarry"
             value={data.quarry}
@@ -271,6 +276,7 @@ export default function EnvironmentalComplianceScreen({ navigation, route }: any
             onCheckboxPress={() => handleLocationToggle('quarryPlant')}
           />
         </View>
+        
         {/* Main Parameter Form */}
         <View style={styles.formSection}>
           <ParameterForm
@@ -287,34 +293,46 @@ export default function EnvironmentalComplianceScreen({ navigation, route }: any
             onWeatherWindChange={(text) => updateField('weatherWind', text)}
             onExplanationChange={(text) => updateField('explanation', text)}
           />
+          
           {/* Additional Parameters */}
-          {data.parameters.map((param) => (
+          {data.parameters.map((param, index) => (
             <View key={param.id} style={styles.additionalParameterContainer}>
               <ParameterForm
                 data={param}
                 onUpdate={(field, value) => updateParameterField(param.id, field, value)}
                 showDelete={true}
                 onDelete={() => removeParameter(param.id)}
+                index={index}
               />
             </View>
           ))}
+          
           {/* Add New Parameter Button */}
           <TouchableOpacity style={styles.addButton} onPress={addParameter}>
-            <Text style={styles.addButtonText}>+ Add New Parameter</Text>
+            <Ionicons name="add-circle-outline" size={20} color="#2563EB" />
+            <Text style={styles.addButtonText}>Add New Parameter</Text>
           </TouchableOpacity>
         </View>
+        
         {/* Overall Compliance */}
         <View style={styles.overallSection}>
-          <Text style={styles.overallLabel}>Overall Compliance Assessment:</Text>
+          <View style={styles.overallHeader}>
+            <View style={styles.overallIconCircle}>
+              <Text style={styles.overallIcon}>✓</Text>
+            </View>
+            <Text style={styles.overallLabel}>Overall Compliance Assessment</Text>
+          </View>
           <FormInputField
             label=""
             value={data.overallCompliance}
             onChangeText={(text) => updateField('overallCompliance', text)}
           />
         </View>
+        
         {/* Save & Next Button */}
         <TouchableOpacity style={styles.saveNextButton} onPress={handleSaveNext}>
           <Text style={styles.saveNextText}>Save & Next</Text>
+          <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -324,64 +342,122 @@ export default function EnvironmentalComplianceScreen({ navigation, route }: any
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F1F5F9',
   },
   scrollView: {
     flex: 1,
     paddingHorizontal: 16,
   },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E40AF',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   formSection: {
-    backgroundColor: '#F5FFEC',
-    padding: 14,
-    borderRadius: 0,
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 10,
     marginBottom: 16,
-    position: 'relative',
     borderWidth: 1,
-    borderColor: 'gray',
+    borderColor: '#E2E8F0',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   additionalParameterContainer: {
     marginTop: 24,
     paddingTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: '#D0D0D0',
+    borderTopWidth: 2,
+    borderTopColor: '#BFDBFE',
   },
   addButton: {
-    backgroundColor: '#E8E4FF',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    backgroundColor: '#EFF6FF',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 20,
     alignItems: 'center',
     alignSelf: 'center',
     marginTop: 16,
+    flexDirection: 'row',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   addButtonText: {
     fontSize: 14,
-    color: '#6B5FDB',
-    fontWeight: '500',
+    color: '#2563EB',
+    fontWeight: '700',
   },
   overallSection: {
-    backgroundColor: '#ba3f48',
+    backgroundColor: '#1E40AF',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     marginTop: 16,
     marginBottom: 20,
+    shadowColor: '#1E40AF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  overallHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 10,
+  },
+  overallIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#93C5FD',
+  },
+  overallIcon: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2563EB',
   },
   overallLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#000',
-    marginBottom: 10,
+    color: '#FFFFFF',
+    flex: 1,
   },
   saveNextButton: {
-    backgroundColor: '#7C6FDB',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 16,
+    backgroundColor:  "#1E40AF",
+    paddingVertical: 16,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 24,
+    marginBottom: 16,
+    marginHorizontal: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+    shadowColor:  "#1E40AF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   saveNextText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
+    color: "white",
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 });

@@ -1,4 +1,3 @@
-// components/water-quality/PortSection.tsx
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -72,10 +71,10 @@ export const PortSection: React.FC<PortSectionProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Port Header with Input */}
+      {/* Port Header */}
       <View style={styles.portHeaderContainer}>
         <View style={styles.portLabelContainer}>
-          <Ionicons name="radio-button-on-outline" size={14} color="#000" style={styles.radioIcon} />
+          <Ionicons name="location" size={16} color="#2563EB" style={styles.icon} />
           <Text style={styles.portLabel}>Port</Text>
         </View>
         <TextInput
@@ -83,13 +82,13 @@ export const PortSection: React.FC<PortSectionProps> = ({
           value={port.portName}
           onChangeText={(text) => onUpdate(port.id, 'portName', text)}
           placeholder="Type here..."
-          placeholderTextColor="#999"
+          placeholderTextColor="#94A3B8"
         />
         <TouchableOpacity
           style={styles.deletePortButton}
           onPress={() => onDelete(port.id)}
         >
-          <Ionicons name="trash-outline" size={16} color="#B00020" />
+          <Ionicons name="trash-outline" size={18} color="#DC2626" />
         </TouchableOpacity>
       </View>
 
@@ -126,7 +125,8 @@ export const PortSection: React.FC<PortSectionProps> = ({
           style={styles.addParameterButton}
           onPress={() => onAddParameter(port.id)}
         >
-          <Text style={styles.addParameterText}>+ Add More Parameter</Text>
+          <Ionicons name="add-circle-outline" size={18} color="#2563EB" />
+          <Text style={styles.addParameterText}>Add More Parameter</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -138,61 +138,77 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   portHeaderContainer: {
-    backgroundColor: '#D4F1F4',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    backgroundColor: '#DBEAFE',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#75E6DA',
-    borderRadius: 6,
-    gap: 8,
+    borderColor: '#93C5FD',
+    borderRadius: 10,
+    gap: 10,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   portLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
-  radioIcon: {
-    marginRight: 4,
+  icon: {
+    marginRight: 2,
   },
   portLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#000',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E40AF',
   },
   portInput: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#B0E0E6',
+    borderColor: '#93C5FD',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     fontSize: 13,
-    color: '#000',
-    borderRadius: 4,
-  },
-  deletePortButton: {
-    padding: 2,
-  },
-  parameterSection: {
-    backgroundColor: '#E6F8FF',
-    padding: 14,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#000',
+    color: '#1E293B',
     borderRadius: 6,
   },
+  deletePortButton: {
+    padding: 4,
+  },
+  parameterSection: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
   addParameterButton: {
-    backgroundColor: '#D1D1D1',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 20,
     alignSelf: 'center',
     marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
   },
   addParameterText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#000',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#2563EB',
   },
 });
