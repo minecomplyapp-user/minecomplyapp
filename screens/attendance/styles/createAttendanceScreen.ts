@@ -14,32 +14,39 @@ export const createAttendanceStyles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   scrollContent: {
-    paddingBottom: verticalScale(theme.spacing.lg),
+    paddingBottom: verticalScale(theme.spacing.xl),
   },
+
+  // HEADER
   header: {
-    paddingHorizontal: scale(theme.spacing.md),
-    paddingTop: verticalScale(theme.spacing.md),
+    paddingHorizontal: scale(theme.spacing.lg),
+    paddingTop: verticalScale(theme.spacing.lg),
     paddingBottom: verticalScale(theme.spacing.md),
   },
   headerTitle: {
     fontFamily: theme.typography.bold,
-    fontSize: normalizeFont(isTablet() ? 24 : theme.typography.sizes.xl),
+    fontSize: normalizeFont(isTablet() ? 28 : theme.typography.sizes.xxl),
     color: theme.colors.primaryDark,
   },
   headerSubtitle: {
     fontFamily: theme.typography.regular,
-    fontSize: normalizeFont(isTablet() ? 14 : theme.typography.sizes.xs),
+    fontSize: normalizeFont(isTablet() ? 16 : theme.typography.sizes.sm),
     color: theme.colors.textLight,
-    marginTop: verticalScale(2),
+    marginTop: verticalScale(4),
   },
+
+  // TOP INPUTS
   topInputsContainer: {
-    paddingHorizontal: scale(theme.spacing.md),
-    gap: verticalScale(theme.spacing.sm),
-    marginBottom: verticalScale(theme.spacing.sm),
-  },
-  section: {
-    paddingHorizontal: scale(theme.spacing.md),
+    paddingHorizontal: scale(theme.spacing.lg),
     gap: verticalScale(theme.spacing.md),
+    marginBottom: verticalScale(theme.spacing.lg),
+  },
+
+  // SECTION
+  section: {
+    paddingHorizontal: scale(theme.spacing.lg),
+    gap: verticalScale(theme.spacing.md),
+    marginBottom: verticalScale(theme.spacing.lg),
   },
   cardHeader: {
     flexDirection: "row",
@@ -49,31 +56,33 @@ export const createAttendanceStyles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: theme.typography.semibold,
-    fontSize: normalizeFont(isTablet() ? 18 : theme.typography.sizes.md),
+    fontSize: normalizeFont(isTablet() ? 20 : theme.typography.sizes.lg),
     color: theme.colors.title,
   },
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: moderateScale(theme.radii.md),
-    padding: scale(theme.spacing.md),
+    padding: scale(theme.spacing.lg),
     ...theme.shadows.light,
   },
+
+  // INPUTS
   inputContainer: {
-    marginBottom: verticalScale(theme.spacing.sm),
+    marginBottom: verticalScale(theme.spacing.md),
   },
   label: {
     fontFamily: theme.typography.semibold,
-    fontSize: normalizeFont(isTablet() ? 13 : theme.typography.sizes.xs),
+    fontSize: normalizeFont(isTablet() ? 15 : theme.typography.sizes.sm),
     color: theme.colors.text,
     marginBottom: verticalScale(theme.spacing.xs),
   },
   input: {
     borderWidth: 1,
-    borderColor: "#EAEAEA",
-    borderRadius: moderateScale(theme.radii.sm),
-    paddingVertical: verticalScale(theme.spacing.sm),
-    paddingHorizontal: scale(theme.spacing.sm),
-    fontSize: normalizeFont(isTablet() ? 14 : theme.typography.sizes.sm),
+    borderColor: "#E0E0E0",
+    borderRadius: moderateScale(theme.radii.md),
+    paddingVertical: verticalScale(theme.spacing.md),
+    paddingHorizontal: scale(theme.spacing.md),
+    fontSize: normalizeFont(isTablet() ? 16 : theme.typography.sizes.md),
     color: theme.colors.text,
     fontFamily: theme.typography.regular,
     backgroundColor: theme.colors.surface,
@@ -89,27 +98,30 @@ export const createAttendanceStyles = StyleSheet.create({
   },
   errorText: {
     fontFamily: theme.typography.regular,
-    fontSize: normalizeFont(isTablet() ? 12 : theme.typography.sizes.xs),
+    fontSize: normalizeFont(isTablet() ? 13 : theme.typography.sizes.xs),
     color: theme.colors.error,
     marginTop: verticalScale(2),
     marginLeft: scale(theme.spacing.xs),
   },
+
+  // RADIO
   radioGroup: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: verticalScale(theme.spacing.xs),
+    justifyContent: "flex-start",
+    gap: scale(theme.spacing.md),
+    marginTop: verticalScale(theme.spacing.sm),
   },
   radioButtonContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
   radioButton: {
-    height: moderateScale(16),
-    width: moderateScale(16),
-    borderRadius: moderateScale(8),
+    height: moderateScale(20),
+    width: moderateScale(20),
+    borderRadius: moderateScale(10),
     borderWidth: 2,
-    borderColor: "#EAEAEA",
+    borderColor: "#E0E0E0",
     alignItems: "center",
     justifyContent: "center",
     marginRight: scale(theme.spacing.xs),
@@ -118,35 +130,38 @@ export const createAttendanceStyles = StyleSheet.create({
     borderColor: theme.colors.primaryDark,
   },
   radioButtonInner: {
-    height: moderateScale(8),
-    width: moderateScale(8),
-    borderRadius: moderateScale(4),
+    height: moderateScale(10),
+    width: moderateScale(10),
+    borderRadius: moderateScale(5),
     backgroundColor: theme.colors.primaryDark,
   },
   radioButtonLabel: {
     fontFamily: theme.typography.medium,
     color: theme.colors.text,
-    fontSize: normalizeFont(isTablet() ? 13 : theme.typography.sizes.xs),
+    fontSize: normalizeFont(isTablet() ? 15 : theme.typography.sizes.sm),
   },
-    radioError: {
+  radioError: {
     borderColor: theme.colors.error,
   },
+
+  // SIGNATURE
   signatureWrapper: {
     position: "relative",
+    marginTop: verticalScale(theme.spacing.md),
   },
-signatureContainer: {
-  borderWidth: 1,
-  borderColor: "#EAEAEA",
-  borderRadius: moderateScale(theme.radii.sm),
-  height: verticalScale(isTablet() ? 240 : 200), 
-  overflow: "hidden",
-  backgroundColor: theme.colors.surface,
-},
+  signatureContainer: {
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: moderateScale(theme.radii.md),
+    height: verticalScale(isTablet() ? 260 : 220),
+    overflow: "hidden",
+    backgroundColor: theme.colors.surface,
+  },
   signatureActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: scale(theme.spacing.md),
-    marginTop: verticalScale(theme.spacing.xs),
+    gap: scale(theme.spacing.lg),
+    marginTop: verticalScale(theme.spacing.sm),
   },
   sigActionButton: {
     flexDirection: "row",
@@ -156,20 +171,22 @@ signatureContainer: {
   sigActionText: {
     fontFamily: theme.typography.medium,
     color: theme.colors.primaryDark,
-    fontSize: normalizeFont(isTablet() ? 13 : theme.typography.sizes.xs),
+    fontSize: normalizeFont(isTablet() ? 15 : theme.typography.sizes.sm),
   },
   removeIconButton: {
-    width: moderateScale(26),
-    height: moderateScale(26),
-    borderRadius: moderateScale(13),
+    width: moderateScale(30),
+    height: moderateScale(30),
+    borderRadius: moderateScale(15),
     backgroundColor: theme.colors.error + "1A",
     alignItems: "center",
     justifyContent: "center",
   },
+
+  // BUTTONS
   bottomButtonsContainer: {
-    paddingHorizontal: scale(theme.spacing.md),
-    marginTop: verticalScale(theme.spacing.md),
-    gap: verticalScale(theme.spacing.sm),
+    paddingHorizontal: scale(theme.spacing.lg),
+    marginTop: verticalScale(theme.spacing.xl),
+    gap: verticalScale(theme.spacing.md),
   },
   actionButtonWrapper: {
     width: "100%",
@@ -178,21 +195,21 @@ signatureContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: scale(6),
-    backgroundColor: theme.colors.primaryLight + "10",
-    borderRadius: moderateScale(theme.radii.sm),
-    paddingVertical: verticalScale(theme.spacing.sm),
+    gap: scale(8),
+    backgroundColor: theme.colors.primaryLight + "15",
+    borderRadius: moderateScale(theme.radii.md),
+    paddingVertical: verticalScale(theme.spacing.md),
   },
   actionButtonText: {
     color: theme.colors.primaryDark,
     fontFamily: theme.typography.semibold,
-    fontSize: normalizeFont(isTablet() ? 16 : theme.typography.sizes.sm),
+    fontSize: normalizeFont(isTablet() ? 18 : theme.typography.sizes.md),
   },
   saveButton: {
     flexDirection: "row",
-    gap: scale(theme.spacing.xs),
+    gap: scale(theme.spacing.sm),
     backgroundColor: theme.colors.primaryDark,
-    borderRadius: moderateScale(theme.radii.sm),
+    borderRadius: moderateScale(theme.radii.md),
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: verticalScale(theme.spacing.md),
@@ -201,6 +218,6 @@ signatureContainer: {
   saveButtonText: {
     color: "#fff",
     fontFamily: theme.typography.bold,
-    fontSize: normalizeFont(isTablet() ? 16 : theme.typography.sizes.sm),
+    fontSize: normalizeFont(isTablet() ? 18 : theme.typography.sizes.md),
   },
 });
