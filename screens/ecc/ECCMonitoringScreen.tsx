@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,21 +6,19 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
-  StyleSheet,
   Platform,
+  Alert,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../theme/theme";
 import { CustomHeader } from "../../components/CustomHeader";
-import {
-  scale,
-  verticalScale,
-  moderateScale,
-  normalizeFont,
-} from "../../utils/responsive";
+import { ECCMonitoringSection } from "../ecc/components/monitoringSection";
+import { styles } from "../ecc/styles/eccStyles"; // reuse styles from both screens
+import { scale, verticalScale, moderateScale } from "../../utils/responsive";
 
 export default function ECCMonitoringScreen({ navigation }: any) {
+  // === General Information ===
   const [date, setDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [status, setStatus] = useState<"Active" | "Inactive" | null>(null);
@@ -31,9 +29,7 @@ export default function ECCMonitoringScreen({ navigation }: any) {
     setDate(currentDate);
   };
 
-  const handleShowDatePicker = () => setShowDatePicker(true);
-  const onDonePress = () => setShowDatePicker(false);
-
+  // === Multipartite Monitoring Team ===
   const teamFields = [
     "Contact Person",
     "Position",
@@ -43,9 +39,56 @@ export default function ECCMonitoringScreen({ navigation }: any) {
     "Email Address",
   ];
 
-  const handleSaveAndContinue = () => {
-    // You can replace this with navigation.navigate("NextPage")
-    navigation.navigate("ECCMonitoringScreen3");
+  // === Permit Holders ===
+  const [permitHolders, setPermitHolders] = useState<any[]>([]);
+  const [showPermitDatePicker, setShowPermitDatePicker] = useState<{
+    id: string | null;
+    show: boolean;
+  }>({ id: null, show: false });
+
+  const addPermitHolder = (type: "ECC" | "ISAG") => {
+    const id = `${type}-${Date.now()}`;
+    const newHolder = {
+      id,
+      type,
+      name: "",
+      permitNumber: "",
+      issuanceDate: null,
+      monitoringState: { edits: {}, customs: [], selections: {} },
+      remarks: [""],
+    };
+    setPermitHolders((p) => [...p, newHolder]);
+  };
+
+  const removePermitHolder = (id: string) => {
+    Alert.alert(
+      "Remove Permit Holder",
+      "Delete this permit holder and its monitoring data?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () =>
+            setPermitHolders((p) => p.filter((ph) => ph.id !== id)),
+        },
+      ]
+    );
+  };
+
+  // === Recommendations ===
+  const [recommendations, setRecommendations] = useState<string[]>([""]);
+
+  const handleAddRecommendation = () => {
+    setRecommendations((prev) => [...prev, ""]);
+  };
+
+  const handleRecommendationChange = (index: number, text: string) => {
+    setRecommendations((prev) => {
+      const updated = [...prev];
+      updated[index] = text;
+      return updated;
+    });
   };
 
   return (
@@ -55,13 +98,15 @@ export default function ECCMonitoringScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Header */}
+        {/* === Header === */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>ECC Monitoring Report</Text>
-          <Text style={styles.headerSubtitle}>Fill out details below</Text>
+          <Text style={styles.headerSubtitle}>
+            Fill out details, add permit holders, and recommendations
+          </Text>
         </View>
 
-        {/* File Information */}
+        {/* === File Information === */}
         <View style={styles.fileInfoSection}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>File Name</Text>
@@ -73,7 +118,7 @@ export default function ECCMonitoringScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* General Information */}
+        {/* === General Information === */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>General Information</Text>
           <View style={styles.card}>
@@ -85,7 +130,6 @@ export default function ECCMonitoringScreen({ navigation }: any) {
                 style={styles.input}
               />
             </View>
-
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Location</Text>
               <TextInput
@@ -94,7 +138,6 @@ export default function ECCMonitoringScreen({ navigation }: any) {
                 style={styles.input}
               />
             </View>
-
             <TouchableOpacity
               style={[styles.gpsButton, styles.inputContainer]}
               onPress={() => alert("Capture GPS Location")}
@@ -106,7 +149,6 @@ export default function ECCMonitoringScreen({ navigation }: any) {
               />
               <Text style={styles.gpsButtonText}>Capture GPS Location</Text>
             </TouchableOpacity>
-
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Status</Text>
               <View style={styles.radioGroup}>
@@ -137,37 +179,34 @@ export default function ECCMonitoringScreen({ navigation }: any) {
               <Text style={styles.label}>Date</Text>
               <TouchableOpacity
                 style={styles.datePickerButton}
-                onPress={handleShowDatePicker}
+                onPress={() => setShowDatePicker(true)}
               >
                 <Ionicons
                   name="calendar-outline"
                   size={moderateScale(20)}
                   color={theme.colors.primaryDark}
                 />
-                <Text style={styles.dateText}>
-                  {date.toLocaleDateString()}
-                </Text>
+                <Text style={styles.dateText}>{date.toLocaleDateString()}</Text>
               </TouchableOpacity>
 
               {showDatePicker && Platform.OS === "ios" && (
                 <View style={styles.datePickerWrapper}>
-                  <View style={styles.datePickerContainer}>
-                    <DateTimePicker
-                      value={date}
-                      mode="date"
-                      display="inline"
-                      onChange={onChangeDate}
-                      style={styles.datePicker}
-                    />
-                  </View>
+                  <DateTimePicker
+                    value={date}
+                    mode="date"
+                    display="inline"
+                    onChange={onChangeDate}
+                    style={styles.datePicker}
+                  />
                   <TouchableOpacity
-                    onPress={onDonePress}
+                    onPress={() => setShowDatePicker(false)}
                     style={styles.datePickerDoneButton}
                   >
                     <Text style={styles.datePickerDoneText}>Done</Text>
                   </TouchableOpacity>
                 </View>
               )}
+
               {showDatePicker && Platform.OS === "android" && (
                 <DateTimePicker
                   value={date}
@@ -180,10 +219,9 @@ export default function ECCMonitoringScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* Multipartite Monitoring Team */}
+        {/* === Multipartite Monitoring Team === */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Multipartite Monitoring Team</Text>
-
           <View style={styles.card}>
             {teamFields.map((label, index) => (
               <View
@@ -199,11 +237,13 @@ export default function ECCMonitoringScreen({ navigation }: any) {
                   placeholderTextColor="#C0C0C0"
                   style={styles.input}
                 />
-
-                {/* 👇 Insert button only after the Email Address field */}
                 {label === "Email Address" && (
                   <TouchableOpacity style={styles.autoPopulateButton}>
-                    <Ionicons name="sync" size={16} color={theme.colors.primaryDark} />
+                    <Ionicons
+                      name="sync"
+                      size={16}
+                      color={theme.colors.primaryDark}
+                    />
                     <Text style={styles.autoPopulateText}>
                       Auto-populate with your saved info
                     </Text>
@@ -214,215 +254,346 @@ export default function ECCMonitoringScreen({ navigation }: any) {
           </View>
         </View>
 
+        {/* === Permit Holders === */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Permit Holders</Text>
+          <View style={styles.permitSection}>
+            <View style={styles.permitButtonRow}>
+              <TouchableOpacity
+                style={styles.permitButton}
+                onPress={() => addPermitHolder("ECC")}
+              >
+                <Ionicons
+                  name="add-circle-outline"
+                  size={moderateScale(18)}
+                  color="#fff"
+                />
+                <Text style={styles.permitButtonText}>
+                  Add ECC Permit Holder
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.permitButton}
+                onPress={() => addPermitHolder("ISAG")}
+              >
+                <Ionicons
+                  name="add-circle-outline"
+                  size={moderateScale(18)}
+                  color="#fff"
+                />
+                <Text style={styles.permitButtonText}>
+                  Add ISAG Permit Holder
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
-        {/* Save & Continue Button */}
+          {permitHolders.map((holder, idx) => {
+            const issuanceDateDisplay = holder.issuanceDate
+              ? new Date(holder.issuanceDate).toLocaleDateString()
+              : null;
+            return (
+              <View key={holder.id} style={styles.card}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: verticalScale(8),
+                  }}
+                >
+                  <Text style={styles.permitTitle}>
+                    {holder.type} Permit #{idx + 1}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => removePermitHolder(holder.id)}
+                  >
+                    <Ionicons
+                      name="trash-outline"
+                      size={moderateScale(18)}
+                      color={theme.colors.error}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Holder Info */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Name</Text>
+                  <TextInput
+                    placeholder="Enter name"
+                    placeholderTextColor="#C0C0C0"
+                    style={styles.input}
+                    value={holder.name}
+                    onChangeText={(t) =>
+                      setPermitHolders((p) =>
+                        p.map((h) =>
+                          h.id === holder.id ? { ...h, name: t } : h
+                        )
+                      )
+                    }
+                  />
+                </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Permit Number</Text>
+                  <TextInput
+                    placeholder="Enter permit number"
+                    placeholderTextColor="#C0C0C0"
+                    style={styles.input}
+                    value={holder.permitNumber}
+                    onChangeText={(t) =>
+                      setPermitHolders((p) =>
+                        p.map((h) =>
+                          h.id === holder.id ? { ...h, permitNumber: t } : h
+                        )
+                      )
+                    }
+                  />
+                </View>
+
+                {/* Permit Issuance Date */}
+                <View style={[styles.inputContainer, { marginBottom: 0 }]}>
+                  <Text style={styles.label}>Date of Issuance</Text>
+                  <TouchableOpacity
+                    style={styles.datePickerButton}
+                    onPress={() =>
+                      setShowPermitDatePicker({ id: holder.id, show: true })
+                    }
+                  >
+                    <Ionicons
+                      name="calendar-outline"
+                      size={moderateScale(20)}
+                      color={theme.colors.primaryDark}
+                    />
+                    <Text style={styles.dateText}>
+                      {issuanceDateDisplay ?? "Select Date of Issuance"}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {showPermitDatePicker.show &&
+                    showPermitDatePicker.id === holder.id &&
+                    Platform.OS === "android" && (
+                      <DateTimePicker
+                        value={
+                          holder.issuanceDate
+                            ? new Date(holder.issuanceDate)
+                            : new Date()
+                        }
+                        mode="date"
+                        display="default"
+                        onChange={(_e, d) => {
+                          setShowPermitDatePicker({ id: null, show: false });
+                          if (d)
+                            setPermitHolders((p) =>
+                              p.map((h) =>
+                                h.id === holder.id
+                                  ? { ...h, issuanceDate: d.toISOString() }
+                                  : h
+                              )
+                            );
+                        }}
+                      />
+                    )}
+                </View>
+
+                {/* Monitoring Section */}
+                <ECCMonitoringSection
+                  initialState={holder.monitoringState}
+                  onChange={(s) =>
+                    setPermitHolders((p) =>
+                      p.map((h) =>
+                        h.id === holder.id ? { ...h, monitoringState: s } : h
+                      )
+                    )
+                  }
+                />
+
+                {/* Remarks */}
+                <View>
+                  <Text style={styles.permitTitle}>Remarks</Text>
+                  {(holder.remarks ?? [""]).map(
+                    (remark: string, rIdx: number) => (
+                      <View
+                        key={rIdx}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "flex-start",
+                          marginBottom: verticalScale(12),
+                        }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={[
+                              styles.label,
+                              {
+                                marginTop: verticalScale(8),
+                                marginBottom: verticalScale(6),
+                              },
+                            ]}
+                          >
+                            Remark {rIdx + 1}
+                          </Text>
+                          <TextInput
+                            placeholder="Enter remark"
+                            placeholderTextColor="#C0C0C0"
+                            style={styles.input}
+                            multiline
+                            value={remark}
+                            onChangeText={(text) => {
+                              setPermitHolders((p) =>
+                                p.map((h) => {
+                                  if (h.id === holder.id) {
+                                    const updatedRemarks: string[] = [
+                                      ...(h.remarks ?? [""]),
+                                    ];
+                                    updatedRemarks[rIdx] = text;
+                                    return { ...h, remarks: updatedRemarks };
+                                  }
+                                  return h;
+                                })
+                              );
+                            }}
+                          />
+                        </View>
+
+                        {rIdx > 0 && (
+                          <TouchableOpacity
+                            onPress={() => {
+                              setPermitHolders((p) =>
+                                p.map((h) => {
+                                  if (h.id === holder.id) {
+                                    const updatedRemarks: string[] = [
+                                      ...(h.remarks ?? []),
+                                    ];
+                                    updatedRemarks.splice(rIdx, 1);
+                                    return { ...h, remarks: updatedRemarks };
+                                  }
+                                  return h;
+                                })
+                              );
+                            }}
+                            style={styles.remarkDeleteButton}
+                          >
+                            <Ionicons
+                              name="trash-outline"
+                              size={moderateScale(20)}
+                              color={theme.colors.error}
+                            />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    )
+                  )}
+
+                  <TouchableOpacity
+                    style={[styles.addBtn, { marginTop: verticalScale(6) }]}
+                    onPress={() => {
+                      setPermitHolders((p) =>
+                        p.map((h) =>
+                          h.id === holder.id
+                            ? { ...h, remarks: [...(h.remarks || [""]), ""] }
+                            : h
+                        )
+                      );
+                    }}
+                  >
+                    <Ionicons
+                      name="add-circle-outline"
+                      size={moderateScale(18)}
+                      color={theme.colors.primaryDark}
+                    />
+                    <Text style={styles.addText}>Add new remark</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* === Recommendations === */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recommendations</Text>
+          <View style={styles.card}>
+            {(recommendations ?? [""]).map((rec: string, rIdx: number) => (
+              <View
+                key={rIdx}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  marginBottom: verticalScale(12),
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[
+                      styles.label,
+                      {
+                        marginTop: verticalScale(8),
+                        marginBottom: verticalScale(6),
+                      },
+                    ]}
+                  >
+                    Recommendation {rIdx + 1}
+                  </Text>
+                  <TextInput
+                    placeholder="Enter recommendation"
+                    placeholderTextColor="#C0C0C0"
+                    style={styles.input}
+                    multiline
+                    value={rec}
+                    onChangeText={(text) =>
+                      handleRecommendationChange(rIdx, text)
+                    }
+                  />
+                </View>
+
+                {rIdx > 0 && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setRecommendations((prev) => {
+                        const updated = [...prev];
+                        updated.splice(rIdx, 1);
+                        return updated;
+                      });
+                    }}
+                    style={styles.remarkDeleteButton} // reuse the same trash style
+                  >
+                    <Ionicons
+                      name="trash-outline"
+                      size={moderateScale(20)}
+                      color={theme.colors.error}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
+
+            <TouchableOpacity
+              style={[styles.addBtn, { marginTop: verticalScale(6) }]}
+              onPress={() => setRecommendations((prev) => [...prev, ""])}
+            >
+              <Ionicons
+                name="add-circle-outline"
+                size={moderateScale(18)}
+                color={theme.colors.primaryDark}
+              />
+              <Text style={styles.addText}>Add new recommendation</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* === Generate ECC Compliance Monitoring Report Button === */}
         <TouchableOpacity
           style={styles.saveButton}
-          onPress={handleSaveAndContinue}
         >
-          <Text style={styles.saveButtonText}>Save & Continue</Text>
+          <Text style={styles.saveButtonText}>Generate ECC Report</Text>
           <Ionicons
             name="arrow-forward"
             size={moderateScale(18)}
             color="#fff"
           />
         </TouchableOpacity>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeContainer: {
-    flex: 1,
-    backgroundColor: theme.colors.background || "#F8F9FA",
-  },
-  scrollContent: {
-    paddingBottom: verticalScale(50),
-  },
-  header: {
-    paddingHorizontal: scale(22),
-    paddingTop: verticalScale(30),
-    paddingBottom: verticalScale(16),
-  },
-  headerTitle: {
-    fontFamily: theme.typography.bold,
-    fontSize: normalizeFont(26),
-    color: theme.colors.primaryDark,
-    marginBottom: verticalScale(4),
-  },
-  headerSubtitle: {
-    fontFamily: theme.typography.regular,
-    fontSize: normalizeFont(15),
-    color: theme.colors.textLight,
-  },
-  fileInfoSection: {
-    paddingHorizontal: scale(22),
-    marginTop: verticalScale(20),
-    marginBottom: verticalScale(10),
-  },
-  section: {
-    paddingHorizontal: scale(22),
-    marginTop: verticalScale(20),
-    marginBottom: verticalScale(10),
-  },
-  sectionTitle: {
-    fontFamily: theme.typography.bold,
-    fontSize: normalizeFont(20),
-    color: theme.colors.title,
-    marginBottom: verticalScale(12),
-  },
-  card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: moderateScale(12),
-    padding: scale(18),
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  inputContainer: {
-    marginBottom: verticalScale(18),
-  },
-  label: {
-    fontFamily: theme.typography.semibold,
-    fontSize: normalizeFont(15),
-    color: theme.colors.text,
-    marginBottom: verticalScale(6),
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: moderateScale(10),
-    paddingVertical: verticalScale(12),
-    paddingHorizontal: scale(14),
-    fontSize: normalizeFont(16),
-    color: theme.colors.text,
-    fontFamily: theme.typography.regular,
-    backgroundColor: "#FFFFFF",
-  },
-  gpsButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: scale(8),
-    backgroundColor: theme.colors.primaryDark,
-    borderRadius: moderateScale(10),
-    paddingVertical: verticalScale(14),
-  },
-  gpsButtonText: {
-    color: "#fff",
-    fontFamily: theme.typography.semibold,
-    fontSize: normalizeFont(15),
-  },
-  radioGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: scale(30),
-    marginTop: verticalScale(6),
-  },
-  radioButtonContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  radioButton: {
-    height: moderateScale(20),
-    width: moderateScale(20),
-    borderRadius: moderateScale(10),
-    borderWidth: 2,
-    borderColor: "#CCC",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: scale(8),
-  },
-  radioButtonSelected: {
-    borderColor: theme.colors.primaryDark,
-  },
-  radioButtonInner: {
-    height: moderateScale(10),
-    width: moderateScale(10),
-    borderRadius: moderateScale(5),
-    backgroundColor: theme.colors.primaryDark,
-  },
-  radioButtonLabel: {
-    fontFamily: theme.typography.medium,
-    color: theme.colors.text,
-    fontSize: normalizeFont(15),
-  },
-  datePickerButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: scale(8),
-    backgroundColor: "#F6F6F6",
-    borderRadius: moderateScale(10),
-    paddingVertical: verticalScale(12),
-    paddingHorizontal: scale(14),
-  },
-  datePickerWrapper: {
-    marginTop: verticalScale(10),
-    alignSelf: "center",
-    width: "95%",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    overflow: "visible",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  datePickerContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    overflow: "visible",
-    zIndex: 999,
-  },
-  datePicker: {
-    width: "100%",
-    backgroundColor: "#fff",
-    transform: [{ scale: 1.02 }],
-  },
-  datePickerDoneButton: {
-    alignItems: "flex-end",
-    paddingTop: verticalScale(6),
-  },
-  datePickerDoneText: {
-    color: theme.colors.primaryDark,
-    fontFamily: theme.typography.semibold,
-    fontSize: normalizeFont(16),
-  },
-    dateText: {
-    color: theme.colors.text,
-    fontFamily: theme.typography.regular,
-    fontSize: normalizeFont(16),
-  },
-autoPopulateButton: {
-  flexDirection: "row",
-  alignItems: "center",
-  alignSelf: "flex-end", // ✅ aligns to the right
-  marginTop: 10,
-},
-autoPopulateText: {
-  color: theme.colors.primaryDark,
-  fontWeight: "500",
-  marginLeft: 6,
-  fontSize: 13,
-},
-  saveButton: {
-    marginHorizontal: scale(22),
-    marginTop: verticalScale(30),
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: scale(8),
-    backgroundColor: theme.colors.primaryDark,
-    borderRadius: moderateScale(12),
-    paddingVertical: verticalScale(14),
-  },
-  saveButtonText: {
-    color: "#fff",
-    fontFamily: theme.typography.semibold,
-    fontSize: normalizeFont(16),
-  },
-});

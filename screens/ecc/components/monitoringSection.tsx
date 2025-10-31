@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../../theme/theme";
-import { styles } from "../../../screens/ecc/styles/eccMonitoringScreen2";
+import { styles } from "../styles/eccMonitoringScreen";
 import { Alert as RNAlert } from "react-native";
 import { ConditionModal } from "./conditionModal";
 import {
@@ -37,7 +37,7 @@ export const ECCMonitoringSection = ({
   initialState: StoredState;
   onChange: (s: StoredState) => void;
 }) => {
-  // same structure & behavior as your original monitoring section but self-contained per permit
+
   const [edits, setEdits] = useState<Record<CondID, Partial<BaseCondition>>>(
     initialState.edits || {}
   );
@@ -50,7 +50,7 @@ export const ECCMonitoringSection = ({
   const [removedDefaults, setRemovedDefaults] = useState<CondID[]>([]);
   const [collapsed, setCollapsed] = useState(false);
 
-  // modal for add/edit condition (local)
+  // modal for add/edit 
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [editing, setEditing] = useState<BaseCondition | null>(null);
@@ -60,7 +60,7 @@ export const ECCMonitoringSection = ({
   }, [edits, customs, selections]);
 
   const currentList = useMemo(() => {
-    // Apply edits over DEFAULTS in order, filter removed, append customs
+    // Apply edits over DEFAULTS 
     const list: BaseCondition[] = DEFAULTS.map((d) => {
       const e = edits[d.id];
       if (!e) return { ...d };
@@ -75,7 +75,7 @@ export const ECCMonitoringSection = ({
     return filtered.concat(customs);
   }, [edits, customs, removedDefaults]);
 
-  // display items (label logic follows original)
+  // display items
   const displayItems = useMemo(() => {
     const items: { cond: BaseCondition; displayLabel: string }[] = [];
     let idx = 1;
@@ -190,7 +190,7 @@ export const ECCMonitoringSection = ({
   };
 
   return (
-    <View style={styles.section}>
+    <View>
       <TouchableOpacity
         style={styles.sectionHeader}
         onPress={() => setCollapsed((p) => !p)}

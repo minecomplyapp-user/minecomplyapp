@@ -25,10 +25,16 @@ import {
   normalizeFont,
 } from "../../utils/responsive";
 import { CustomHeader } from "../../components/CustomHeader";
-import { ChoiceKey, CondID, BaseCondition, StoredState, PermitHolder } from "./types/eccMonitoring";
+import {
+  ChoiceKey,
+  CondID,
+  BaseCondition,
+  StoredState,
+  PermitHolder,
+} from "./types/eccMonitoring";
 import { loadStored, saveStored } from "./utils/storage/eccMonitoringStorage";
 import { ECCMonitoringSection } from "../ecc/components/monitoringSection";
-import { styles } from "../ecc/styles/eccMonitoringScreen2";
+import { styles } from "./styles/eccMonitoringScreen";
 
 export default function ECCMonitoringScreen2() {
   const [permitHolders, setPermitHolders] = useState<PermitHolder[]>([]);
@@ -77,6 +83,20 @@ export default function ECCMonitoringScreen2() {
     );
   };
 
+  const [recommendations, setRecommendations] = useState<string[]>([""]);
+  
+    const handleAddRecommendation = () => {
+      setRecommendations((prev) => [...prev, ""]);
+    };
+  
+    const handleRecommendationChange = (index: number, text: string) => {
+      setRecommendations((prev) => {
+        const updated = [...prev];
+        updated[index] = text;
+        return updated;
+      });
+    };
+
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.container}>
@@ -94,7 +114,7 @@ export default function ECCMonitoringScreen2() {
           </View>
 
           {/* Permit Holder Buttons */}
-          <View style={styles.section}>
+          <View style={styles.permitSection}>
             <View style={styles.permitButtonRow}>
               <TouchableOpacity
                 style={[styles.permitButton]}
@@ -153,7 +173,7 @@ export default function ECCMonitoringScreen2() {
                   </Text>
                   <TouchableOpacity
                     onPress={() => removePermitHolder(holder.id)}
-                    style={styles.iconButton}
+                    style={styles.permitTrashButton}
                   >
                     <Ionicons
                       name="trash-outline"
@@ -287,6 +307,7 @@ export default function ECCMonitoringScreen2() {
                     )}
                 </View>
 
+                {/* Monitoring Section */}
                 <View style={{ marginTop: verticalScale(12) }}>
                   <ECCMonitoringSection
                     initialState={holder.monitoringState}
@@ -299,9 +320,142 @@ export default function ECCMonitoringScreen2() {
                     }
                   />
                 </View>
+
+                {/* Remarks Section */}
+                <View>
+                  <Text style={styles.permitTitle}>Remarks</Text>
+
+                  {(holder.remarks || [""]).map((remark, rIdx) => (
+                    <View
+                      key={rIdx}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "flex-start",
+                        marginBottom: verticalScale(12),
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            styles.label,
+                            {
+                              marginTop: verticalScale(8),
+                              marginBottom: verticalScale(6),
+                            },
+                          ]}
+                        >
+                          Remark {rIdx + 1}
+                        </Text>
+
+                        <TextInput
+                          placeholder="Enter remark"
+                          placeholderTextColor="#C0C0C0"
+                          style={styles.input}
+                          multiline
+                          value={remark}
+                          onChangeText={(text) => {
+                            setPermitHolders((p) =>
+                              p.map((h) => {
+                                if (h.id === holder.id) {
+                                  const updatedRemarks = [
+                                    ...(h.remarks || [""]),
+                                  ];
+                                  updatedRemarks[rIdx] = text;
+                                  return { ...h, remarks: updatedRemarks };
+                                }
+                                return h;
+                              })
+                            );
+                          }}
+                        />
+                      </View>
+
+                      {/* Show delete button only if not the first remark */}
+                      {rIdx > 0 && (
+                        <TouchableOpacity
+                          onPress={() => {
+                            setPermitHolders((p) =>
+                              p.map((h) => {
+                                if (h.id === holder.id) {
+                                  const updatedRemarks = [...(h.remarks || [])];
+                                  updatedRemarks.splice(rIdx, 1);
+                                  return { ...h, remarks: updatedRemarks };
+                                }
+                                return h;
+                              })
+                            );
+                          }}
+                          style={styles.remarkDeleteButton}
+                        >
+                          <Ionicons
+                            name="trash-outline"
+                            size={moderateScale(20)}
+                            color={theme.colors.error}
+                          />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+
+                  {/* Add new remark button */}
+                  <TouchableOpacity
+                    style={[styles.addBtn, { marginTop: verticalScale(6) }]}
+                    onPress={() => {
+                      setPermitHolders((p) =>
+                        p.map((h) =>
+                          h.id === holder.id
+                            ? { ...h, remarks: [...(h.remarks || [""]), ""] }
+                            : h
+                        )
+                      );
+                    }}
+                  >
+                    <Ionicons
+                      name="add-circle-outline"
+                      size={moderateScale(18)}
+                      color={theme.colors.primaryDark}
+                    />
+                    <Text style={styles.addText}>Add new remark</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             );
           })}
+
+                  {/* Recommendations Section */}
+                  <View>
+                    <Text style={styles.sectionTitle}>Recommendations</Text>
+          
+                    <View style={styles.card}>
+                      {recommendations.map((rec, index) => (
+                        <View key={index} style={styles.inputContainer}>
+                          <Text style={styles.label}>Recommendation {index + 1}</Text>
+                          <TextInput
+                            placeholder="Enter recommendation"
+                            placeholderTextColor="#C0C0C0"
+                            style={styles.input}
+                            value={rec}
+                            multiline
+                            onChangeText={(text) =>
+                              handleRecommendationChange(index, text)
+                            }
+                          />
+                        </View>
+                      ))}
+          
+                      <TouchableOpacity
+                        style={styles.addBtn}
+                        onPress={handleAddRecommendation}
+                      >
+                        <Ionicons
+                          name="add-circle-outline"
+                          size={moderateScale(18)}
+                          color={theme.colors.primaryDark}
+                        />
+                        <Text style={styles.addText}>Add new recommendation</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
 
           {/* bottom spacing */}
           <View style={{ height: verticalScale(80) }} />
@@ -310,4 +464,3 @@ export default function ECCMonitoringScreen2() {
     </SafeAreaView>
   );
 }
-

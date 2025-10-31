@@ -23,6 +23,7 @@ export type PermitHolder = {
   permitNumber: string;
   issuanceDate: string | null;
   monitoringState: StoredState;
+  remarks?: string[];
 };
 
 export type ConditionModalProps = {

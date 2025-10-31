@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ConditionModalProps } from "../types/eccMonitoring";
-import { styles } from "../styles/eccMonitoringScreen2";
+import { styles } from "../styles/eccMonitoringScreen";
 
 export const ConditionModal = ({
   visible,
