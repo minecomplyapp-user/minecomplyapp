@@ -91,9 +91,17 @@ export default function ECCMonitoringScreen({ navigation }: any) {
     });
   };
 
+  
+  const [fileName, setFileName] = useState("");
+  
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <CustomHeader showSave />
+      <CustomHeader
+  showSave={true}
+  showFileName={true}
+  fileName={fileName}
+  onChangeFileName={setFileName}
+/>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -107,16 +115,18 @@ export default function ECCMonitoringScreen({ navigation }: any) {
         </View>
 
         {/* === File Information === */}
-        <View style={styles.fileInfoSection}>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>File Name</Text>
-            <TextInput
-              placeholder="Enter file name"
-              placeholderTextColor="#C0C0C0"
-              style={styles.input}
-            />
-          </View>
-        </View>
+<View style={styles.fileInfoSection}>
+  <View style={styles.inputContainer}>
+    <Text style={styles.label}>File Name</Text>
+<TextInput
+  placeholder="Enter file name"
+  value={fileName}           // synced with header
+  onChangeText={setFileName}
+  style={styles.input}
+/>
+  </View>
+</View>
+
 
         {/* === General Information === */}
         <View style={styles.section}>

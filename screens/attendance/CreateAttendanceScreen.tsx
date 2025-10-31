@@ -146,7 +146,12 @@ export default function CreateAttendanceScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <CustomHeader onSave={handleSave} showSave />
+      <CustomHeader
+        showSave={true}
+        showFileName={true}
+        fileName={fileName}
+        onChangeFileName={setFileName}
+      />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
