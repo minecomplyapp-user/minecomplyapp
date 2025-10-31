@@ -11,8 +11,9 @@ import {
 } from "react-native";
 import SignatureScreen from "react-native-signature-canvas";
 import { Feather } from "@expo/vector-icons";
-import { theme } from "../theme/theme";
-import { createAttendanceStyles as styles } from "../styles/createAttendanceScreen";
+import { theme } from "../../theme/theme";
+import { createAttendanceStyles as styles } from "./styles/createAttendanceScreen";
+import { CustomHeader } from "../../components/CustomHeader";
 
 // RadioButton component (gi tapol ko ug separate gamay rakayo sila bitaw)
 const RadioButton = ({ label, value, selectedValue, onSelect, hasError, containerStyle }: any) => {
@@ -145,11 +146,18 @@ export default function CreateAttendanceScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
+      <CustomHeader
+        showSave={true}
+        showFileName={true}
+        fileName={fileName}
+        onChangeFileName={setFileName}
+      />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         scrollEnabled={!isSigning}
       >
+        
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Create Attendance Record</Text>

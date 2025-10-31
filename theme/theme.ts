@@ -26,6 +26,7 @@ export const theme = {
     // Additional colors
     iconBackground: '#E3F2FD',
     divider: '#6b7280',
+    card: '#FFFFFF',
   },
 
   gradients: {
