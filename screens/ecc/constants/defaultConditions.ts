@@ -1,4 +1,7 @@
-export const DEFAULTS = [
+import { BaseCondition } from "../types/eccMonitoring";
+
+
+export const DEFAULTS: BaseCondition[] = [
   {
     id: "1",
     title: "Condition 1: Secure all necessary Permits from concerned agencies",
@@ -97,8 +100,6 @@ export const DEFAULTS = [
     },
     isDefault: true,
   },
-
-  // Condition 7 (parent) with subconditions 7a..7f (each subcondition is also a BaseCondition with parentId "7")
   {
     id: "7",
     title:
@@ -182,7 +183,6 @@ export const DEFAULTS = [
     isDefault: true,
     parentId: "7",
   },
-
   {
     id: "8",
     title:
@@ -268,10 +268,4 @@ export const DEFAULTS = [
     },
     isDefault: true,
   },
-];
-
-export const COMPLIANCE_CONDITIONS = [
-  { id: 1, condition: 'Solid Waste Management', compliant: false },
-  { id: 2, condition: 'Wastewater Disposal', compliant: false },
-  { id: 3, condition: 'Hazardous Waste Handling', compliant: false },
 ];
