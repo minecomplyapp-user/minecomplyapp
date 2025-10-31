@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 interface ProcessDocumentationProps {
   processDoc: {
@@ -22,6 +23,9 @@ interface ProcessDocumentationProps {
   updateEccMmtAdditional: (index: number, value: string) => void;
   updateEpepMmtAdditional: (index: number, value: string) => void;
   updateOcularMmtAdditional: (index: number, value: string) => void;
+  removeEccMmtAdditional: (index: number) => void;
+  removeEpepMmtAdditional: (index: number) => void;
+  removeOcularMmtAdditional: (index: number) => void;
 }
 
 export const ProcessDocumentationSection: React.FC<ProcessDocumentationProps> = ({
@@ -36,294 +40,490 @@ export const ProcessDocumentationSection: React.FC<ProcessDocumentationProps> = 
   updateEccMmtAdditional,
   updateEpepMmtAdditional,
   updateOcularMmtAdditional,
+  removeEccMmtAdditional,
+  removeEpepMmtAdditional,
+  removeOcularMmtAdditional,
 }) => {
   return (
-    <View style={styles.sectionCard}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>PROCESS DOCUMENTATION OF ACTIVITIES UNDERTAKEN</Text>
+    <View style={styles.container}>
+      <View style={styles.headerSection}>
+        <View style={styles.iconContainer}>
+          <Ionicons name="clipboard" size={24} color="#1E40AF" />
+        </View>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.sectionTitle}>Process Documentation</Text>
+          <Text style={styles.sectionSubtitle}>Details of Monitoring Activities</Text>
+        </View>
       </View>
-      <View style={styles.dateRow}>
-        <Text style={styles.label}>Date Conducted:</Text>
-        <View style={styles.dateInputContainer}>
+
+      <View style={styles.sectionContent}>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Date Conducted</Text>
           <TextInput
-            style={styles.dateInput}
+            style={styles.input}
             value={processDoc.dateConducted}
             onChangeText={(text) => updateProcessDoc("dateConducted", text)}
-            placeholder="Month/Date/Year"
-            placeholderTextColor="#999"
+            placeholder="MM/DD/YYYY"
+            placeholderTextColor="#94A3B8"
           />
-          <TouchableOpacity style={styles.sameDateCheckbox} onPress={() => updateProcessDoc("sameDateForAll", !processDoc.sameDateForAll)}>
-            <View style={styles.checkbox}>
-              {processDoc.sameDateForAll && <View style={styles.checkboxChecked} />}
+          <TouchableOpacity
+            style={styles.checkboxRow}
+            onPress={() => updateProcessDoc("sameDateForAll", !processDoc.sameDateForAll)}
+          >
+            <View style={[styles.checkbox, processDoc.sameDateForAll && styles.checkboxChecked]}>
+              {processDoc.sameDateForAll && <Ionicons name="checkmark" size={16} color="white" />}
             </View>
             <Text style={styles.checkboxLabel}>Same date for all activities</Text>
           </TouchableOpacity>
         </View>
-      </View>
 
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Document Review of:</Text>
-      </View>
-      <View style={styles.activitySection}>
-        <View style={styles.activityHeader}>
-          <Text style={styles.activityTitle}>Activity: Compliance with ECC Conditions/ Commitments</Text>
-        </View>
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>MMT Members Involved:</Text>
-        <TextInput
-          style={styles.input}
-          value={processDoc.eccMmtMembers}
-          onChangeText={(text) => updateProcessDoc("eccMmtMembers", text)}
-          placeholder="Type here..."
-          placeholderTextColor="#999"
-        />
-      </View>
-      <TouchableOpacity style={styles.addMoreButton} onPress={addEccMmtMember}>
-        <Text style={styles.addMoreText}>+ Add more names</Text>
-      </TouchableOpacity>
-      {eccMmtAdditional.map((member, index) => (
-        <View key={index} style={styles.additionalInput}>
-          <TextInput
-            style={styles.input}
-            value={member}
-            onChangeText={(text) => updateEccMmtAdditional(index, text)}
-            placeholder="Type here..."
-            placeholderTextColor="#999"
-          />
-        </View>
-      ))}
+        <View style={styles.divider} />
 
-      <View style={styles.activitySection}>
-        <View style={styles.activityHeader}>
-          <Text style={styles.activityTitle}>Activity: Compliance with EPEP/ AEPEP Conditions</Text>
-        </View>
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>MMT Members Involved:</Text>
-        <TextInput
-          style={styles.input}
-          value={processDoc.epepMmtMembers}
-          onChangeText={(text) => updateProcessDoc("epepMmtMembers", text)}
-          placeholder="Type here..."
-          placeholderTextColor="#999"
-        />
-      </View>
-      <TouchableOpacity style={styles.addMoreButton} onPress={addEpepMmtMember}>
-        <Text style={styles.addMoreText}>+ Add more names</Text>
-      </TouchableOpacity>
-      {epepMmtAdditional.map((member, index) => (
-        <View key={index} style={styles.additionalInput}>
-          <TextInput
-            style={styles.input}
-            value={member}
-            onChangeText={(text) => updateEpepMmtAdditional(index, text)}
-            placeholder="Type here..."
-            placeholderTextColor="#999"
-          />
-        </View>
-      ))}
-
-      <View style={styles.activitySection}>
-        <View style={styles.activityHeader}>
-          <Text style={styles.activityTitle}>Activity: Site Ocular Validation</Text>
-        </View>
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>MMT Members Involved:</Text>
-        <TextInput
-          style={styles.input}
-          value={processDoc.ocularMmtMembers}
-          onChangeText={(text) => updateProcessDoc("ocularMmtMembers", text)}
-          placeholder="Type here..."
-          placeholderTextColor="#999"
-        />
-      </View>
-      <TouchableOpacity style={[styles.checkboxRow, { marginBottom: 8 }]} onPress={() => updateProcessDoc("ocularNA", !processDoc.ocularNA)}>
-        <View style={styles.checkbox}>
-          {processDoc.ocularNA && <View style={styles.checkboxChecked} />}
-        </View>
-        <Text style={styles.checkboxLabel}>N/A</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.addMoreButton} onPress={addOcularMmtMember}>
-        <Text style={styles.addMoreText}>+ Add more names</Text>
-      </TouchableOpacity>
-      {ocularMmtAdditional.map((member, index) => (
-        <View key={index} style={styles.additionalInput}>
-          <TextInput
-            style={styles.input}
-            value={member}
-            onChangeText={(text) => updateOcularMmtAdditional(index, text)}
-            placeholder="Type here..."
-            placeholderTextColor="#999"
-          />
-        </View>
-      ))}
-
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Methodology/ Other Remarks:</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          value={processDoc.methodologyRemarks}
-          onChangeText={(text) => updateProcessDoc("methodologyRemarks", text)}
-          placeholder="Type here..."
-          placeholderTextColor="#999"
-          multiline
-          numberOfLines={3}
-        />
-      </View>
-
-      <View style={styles.activitySection}>
-        <View style={styles.activityHeader}>
-          <Text style={styles.activityTitle}>Activity: Site Validation – Confirmatory Sampling (if needed)</Text>
-        </View>
-      </View>
-      <View style={styles.checkboxGroup}>
-        <TouchableOpacity style={styles.checkboxRow} onPress={() => updateProcessDoc("siteValidationApplicable", "applicable")}>
-          <View style={styles.checkbox}>
-            {processDoc.siteValidationApplicable === "applicable" && <View style={styles.checkboxChecked} />}
+        <View style={styles.subsectionHeader}>
+          <View style={styles.subsectionIconContainer}>
+            <Ionicons name="folder-open" size={18} color="#1E40AF" />
           </View>
-          <Text style={styles.checkboxLabel}>Applicable</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.checkboxRow} onPress={() => updateProcessDoc("siteValidationApplicable", "none")}>
-          <View style={styles.checkbox}>
-            {processDoc.siteValidationApplicable === "none" && <View style={styles.checkboxChecked} />}
+          <Text style={styles.subsectionTitle}>Document Review Activities</Text>
+        </View>
+
+        <View style={styles.activityCard}>
+          <View style={styles.activityHeader}>
+            <Ionicons name="document" size={18} color="#1E40AF" />
+            <Text style={styles.activityTitle}>ECC Conditions/Commitments</Text>
           </View>
-          <Text style={styles.checkboxLabel}>None</Text>
-        </TouchableOpacity>
+          <View style={styles.fieldGroup}>
+            <Text style={styles.labelSmall}>MMT MEMBERS INVOLVED</Text>
+            <TextInput
+              style={styles.input}
+              value={processDoc.eccMmtMembers}
+              onChangeText={(text) => updateProcessDoc("eccMmtMembers", text)}
+              placeholder="Enter primary member name"
+              placeholderTextColor="#94A3B8"
+            />
+          </View>
+          {eccMmtAdditional.map((member, index) => (
+            <View key={`ecc-${index}`} style={styles.additionalMemberRow}>
+              <TextInput
+                style={[styles.input, styles.additionalInput]}
+                value={member}
+                onChangeText={(text) => updateEccMmtAdditional(index, text)}
+                placeholder={`Enter member #${index + 2}`}
+                placeholderTextColor="#94A3B8"
+              />
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => removeEccMmtAdditional(index)}
+              >
+                <Ionicons name="trash" size={20} color="#DC2626" />
+              </TouchableOpacity>
+            </View>
+          ))}
+          <TouchableOpacity style={styles.addButton} onPress={addEccMmtMember}>
+            <Ionicons name="add-circle" size={20} color="#1E40AF" />
+            <Text style={styles.addButtonText}>Add more members</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.activityCard}>
+          <View style={styles.activityHeader}>
+            <Ionicons name="leaf" size={18} color="#1E40AF" />
+            <Text style={styles.activityTitle}>EPEP/AEPEP Conditions</Text>
+          </View>
+          <View style={styles.fieldGroup}>
+            <Text style={styles.labelSmall}>MMT MEMBERS INVOLVED</Text>
+            <TextInput
+              style={styles.input}
+              value={processDoc.epepMmtMembers}
+              onChangeText={(text) => updateProcessDoc("epepMmtMembers", text)}
+              placeholder="Enter primary member name"
+              placeholderTextColor="#94A3B8"
+            />
+          </View>
+          {epepMmtAdditional.map((member, index) => (
+            <View key={`epep-${index}`} style={styles.additionalMemberRow}>
+              <TextInput
+                style={[styles.input, styles.additionalInput]}
+                value={member}
+                onChangeText={(text) => updateEpepMmtAdditional(index, text)}
+                placeholder={`Enter member #${index + 2}`}
+                placeholderTextColor="#94A3B8"
+              />
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => removeEpepMmtAdditional(index)}
+              >
+                <Ionicons name="trash" size={20} color="#DC2626" />
+              </TouchableOpacity>
+            </View>
+          ))}
+          <TouchableOpacity style={styles.addButton} onPress={addEpepMmtMember}>
+            <Ionicons name="add-circle" size={20} color="#1E40AF" />
+            <Text style={styles.addButtonText}>Add more members</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.subsectionHeader}>
+          <View style={styles.subsectionIconContainer}>
+            <Ionicons name="eye" size={18} color="#1E40AF" />
+          </View>
+          <Text style={styles.subsectionTitle}>Site Validation Activities</Text>
+        </View>
+
+        <View style={styles.activityCard}>
+          <View style={styles.activityHeader}>
+            <Ionicons name="walk" size={18} color="#1E40AF" />
+            <Text style={styles.activityTitle}>Site Ocular Validation</Text>
+            <TouchableOpacity
+              style={styles.naButton}
+              onPress={() => updateProcessDoc("ocularNA", !processDoc.ocularNA)}
+            >
+              <View style={[styles.checkboxSmall, processDoc.ocularNA && styles.checkboxChecked]}>
+                {processDoc.ocularNA && <Ionicons name="checkmark" size={14} color="white" />}
+              </View>
+              <Text style={styles.naButtonText}>N/A</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[processDoc.ocularNA && styles.disabledContent]}>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.labelSmall}>MMT MEMBERS INVOLVED</Text>
+              <TextInput
+                style={[styles.input, processDoc.ocularNA && styles.disabledInput]}
+                value={processDoc.ocularMmtMembers}
+                onChangeText={(text) => updateProcessDoc("ocularMmtMembers", text)}
+                placeholder="Enter primary member name"
+                placeholderTextColor="#94A3B8"
+                editable={!processDoc.ocularNA}
+              />
+            </View>
+            {ocularMmtAdditional.map((member, index) => (
+              <View key={`ocular-${index}`} style={styles.additionalMemberRow}>
+                <TextInput
+                  style={[styles.input, styles.additionalInput, processDoc.ocularNA && styles.disabledInput]}
+                  value={member}
+                  onChangeText={(text) => updateOcularMmtAdditional(index, text)}
+                  placeholder={`Enter member #${index + 2}`}
+                  placeholderTextColor="#94A3B8"
+                  editable={!processDoc.ocularNA}
+                />
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => removeOcularMmtAdditional(index)}
+                  disabled={processDoc.ocularNA}
+                >
+                  <Ionicons name="trash" size={20} color={processDoc.ocularNA ? "#CBD5E1" : "#DC2626"} />
+                </TouchableOpacity>
+              </View>
+            ))}
+            <TouchableOpacity
+              style={[styles.addButton, processDoc.ocularNA && styles.disabledButton]}
+              onPress={addOcularMmtMember}
+              disabled={processDoc.ocularNA}
+            >
+              <Ionicons name="add-circle" size={20} color={processDoc.ocularNA ? "#94A3B8" : "#1E40AF"} />
+              <Text style={[styles.addButtonText, processDoc.ocularNA && styles.disabledButtonText]}>Add more members</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.activityCard}>
+          <View style={styles.activityHeader}>
+            <Ionicons name="flask" size={18} color="#1E40AF" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.activityTitle}>Confirmatory Sampling</Text>
+              <Text style={styles.activitySubtitle}>(if needed)</Text>
+            </View>
+          </View>
+          <View style={styles.radioGroup}>
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => updateProcessDoc("siteValidationApplicable", "applicable")}
+            >
+              <View style={[styles.checkbox, processDoc.siteValidationApplicable === "applicable" && styles.checkboxChecked]}>
+                {processDoc.siteValidationApplicable === "applicable" && <Ionicons name="checkmark" size={16} color="white" />}
+              </View>
+              <Text style={styles.checkboxLabel}>Applicable</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => updateProcessDoc("siteValidationApplicable", "none")}
+            >
+              <View style={[styles.checkbox, processDoc.siteValidationApplicable === "none" && styles.checkboxChecked]}>
+                {processDoc.siteValidationApplicable === "none" && <Ionicons name="checkmark" size={16} color="white" />}
+              </View>
+              <Text style={styles.checkboxLabel}>None</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Methodology / Other Remarks</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={processDoc.methodologyRemarks}
+            onChangeText={(text) => updateProcessDoc("methodologyRemarks", text)}
+            placeholder="Enter methodology details or any other relevant remarks..."
+            placeholderTextColor="#94A3B8"
+            multiline
+            numberOfLines={4}
+          />
+        </View>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  sectionCard: {
+  container: {
     backgroundColor: "white",
-    marginTop: 10,
-    padding: 20,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
   },
-  sectionHeader: {
-    backgroundColor: "#D8D8FF",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginBottom: 12,
-    borderWidth: 1.5,
-    borderColor: "#000",
-    alignSelf: "center",
+  headerSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 20,
+    backgroundColor: "#EFF6FF",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: "#BFDBFE",
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "white",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  headerTextContainer: {
+    marginLeft: 16,
+    flex: 1,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 20,
     fontWeight: "700",
-    color: "#000",
-    textAlign: "center",
-    letterSpacing: 0.5,
+    color: "#1E40AF",
+    letterSpacing: -0.3,
   },
-  dateRow: {
-    marginBottom: 16,
-  },
-  dateInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  dateInput: {
-    flex: 1,
-    backgroundColor: "#F9F9F9",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+  sectionSubtitle: {
     fontSize: 13,
-    color: "#333",
+    color: "#64748B",
+    marginTop: 2,
+    fontWeight: "500",
   },
-  sameDateCheckbox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+  sectionContent: {
+    padding: 20,
   },
-  fieldRow: {
-    marginBottom: 16,
+  fieldGroup: {
+    marginBottom: 20,
   },
   label: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: "600",
-    color: "#000",
+    color: "#1E293B",
+    marginBottom: 10,
+  },
+  labelSmall: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#64748B",
     marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
   },
   input: {
-    backgroundColor: "#F9F9F9",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 13,
-    color: "#333",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: "#0F172A",
+  },
+  disabledInput: {
+    backgroundColor: "#F1F5F9",
+    color: "#94A3B8",
+    borderColor: "#E2E8F0",
   },
   textArea: {
-    minHeight: 70,
+    minHeight: 100,
     textAlignVertical: "top",
+    paddingTop: 14,
   },
   checkboxGroup: {
-    gap: 10,
-    marginTop: 8,
+    gap: 14,
+  },
+  radioGroup: {
+    flexDirection: "row",
+    gap: 20,
+    alignItems: "center",
+    marginTop: 4,
   },
   checkboxRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 12,
+    marginTop: 10,
   },
   checkbox: {
-    width: 18,
-    height: 18,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 3,
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: "#CBD5E1",
+    borderRadius: 6,
+    backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
+  },
+  checkboxSmall: {
+    width: 20,
+    height: 20,
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
+    borderRadius: 5,
     backgroundColor: "white",
+    justifyContent: "center",
+    alignItems: "center",
   },
   checkboxChecked: {
-    width: 12,
-    height: 12,
-    backgroundColor: "#007AFF",
-    borderRadius: 2,
+    backgroundColor: "#1E40AF",
+    borderColor: "#1E40AF",
   },
   checkboxLabel: {
-    fontSize: 13,
-    color: "#333",
+    fontSize: 14,
+    color: "#1E293B",
+    flexShrink: 1,
   },
-  activitySection: {
+  naButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  naButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  divider: {
+    height: 1.5,
+    backgroundColor: "#E2E8F0",
+    marginVertical: 24,
+  },
+  subsectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     marginBottom: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+  },
+  subsectionIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: "#EFF6FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  subsectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#475569",
+  },
+  activityCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
   },
   activityHeader: {
-    backgroundColor: "#FFD4D4",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1.5,
+    borderBottomColor: "#E2E8F0",
   },
   activityTitle: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#8B0000",
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1E40AF",
+    flexShrink: 1,
   },
-  addMoreButton: {
-    backgroundColor: "#E0E0E0",
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-    alignSelf: "flex-start",
-    marginTop: 4,
-    marginBottom: 8,
-  },
-  addMoreText: {
+  activitySubtitle: {
     fontSize: 12,
-    color: "#666",
+    fontStyle: "italic",
+    color: "#94A3B8",
+    marginTop: 2,
+  },
+  additionalMemberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 12,
   },
   additionalInput: {
-    marginBottom: 8,
+    flex: 1,
+  },
+  deleteButton: {
+    padding: 6,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  addButton: {
+    backgroundColor: "#EFF6FF",
+    borderWidth: 2,
+    borderColor: "#BFDBFE",
+    borderStyle: "dashed",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 8,
+  },
+  addButtonText: {
+    fontSize: 14,
+    color: "#1E40AF",
+    fontWeight: "600",
+  },
+  disabledContent: {
+    opacity: 0.5,
+  },
+  disabledButton: {
+    backgroundColor: "#F8FAFC",
+    borderColor: "#E2E8F0",
+    opacity: 0.7,
+  },
+  disabledButtonText: {
+    color: "#94A3B8",
   },
 });

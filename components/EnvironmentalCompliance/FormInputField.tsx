@@ -21,21 +21,23 @@ export const FormInputField: React.FC<FormInputFieldProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>
-        {label}
-        {subLabel && (
-          <>
-            {'\n'}
-            <Text style={styles.subLabel}>{subLabel}</Text>
-          </>
-        )}
-      </Text>
+      {label && (
+        <Text style={styles.label}>
+          {label}
+          {subLabel && (
+            <>
+              {'\n'}
+              <Text style={styles.subLabel}>{subLabel}</Text>
+            </>
+          )}
+        </Text>
+      )}
       <TextInput
         style={[styles.input, multiline && styles.multilineInput]}
         value={value}
         onChangeText={onChangeText}
         placeholder="Type here..."
-        placeholderTextColor="#B0B0B0"
+        placeholderTextColor="#94A3B8"
         multiline={multiline}
         numberOfLines={numberOfLines}
         textAlignVertical={multiline ? 'top' : 'center'}
@@ -50,24 +52,25 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#000',
+    color: '#1E293B',
     marginBottom: 8,
   },
   subLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '400',
-    color: '#666',
+    color: '#64748B',
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#D0D0D0',
-    borderRadius: 6,
-    paddingHorizontal: 12,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 14,
+    fontSize: 13,
+    color: '#1E293B',
   },
   multilineInput: {
     minHeight: 80,

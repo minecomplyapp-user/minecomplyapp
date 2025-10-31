@@ -2,38 +2,43 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   ScrollView,
+  TouchableOpacity,
   StyleSheet,
+  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { CMSHeader } from '../components/CMSHeader';
-import { ProjectImpacts } from '../components/EIA/ProjectImpacts';
-import { OperationSectionComponent, OperationSection } from '../components/EIA/OperationSection';
-import { MitigatingMeasure } from '../components/EIA/MitigatingMeasureForm';
-import { OverallCompliance } from '../components/EIA/OverallCompliance';
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { Ionicons } from "@expo/vector-icons";
+import { CMSHeader } from '../../components/CMSHeader';
+import { ProjectImpacts } from '../../components/EIA/ProjectImpacts';
+import { OperationSectionComponent, OperationSection } from '../../components/EIA/OperationSection';
+import { MitigatingMeasure } from '../../components/EIA/MitigatingMeasureForm';
+import { OverallCompliance } from '../../components/EIA/OverallCompliance';
+
+type RootStackParamList = {
+  EIACompliance: undefined;
+  EnvironmentalCompliance: undefined;
+};
+
+type EIAComplianceScreenNavigationProp = StackNavigationProp<RootStackParamList, 'EIACompliance'>;
 
 interface EIAComplianceScreenProps {
-  navigation: any;
+  navigation: EIAComplianceScreenNavigationProp;
   route: any;
 }
 
 const EIAComplianceScreen: React.FC<EIAComplianceScreenProps> = ({ navigation, route }) => {
   const [preConstruction, setPreConstruction] = useState<'yes' | 'no' | null>(null);
   const [construction, setConstruction] = useState<'yes' | 'no' | null>(null);
-  
+
   const [quarryOperation, setQuarryOperation] = useState<OperationSection>({
     title: 'Quarry Operation',
     isNA: false,
     measures: [
-      {
-        id: '1',
-        planned: '',
-        actualObservation: '',
-        isEffective: null,
-        recommendations: '',
-      },
+      { id: '1', planned: '', actualObservation: '', isEffective: null, recommendations: '' },
     ],
   });
 
@@ -41,13 +46,7 @@ const EIAComplianceScreen: React.FC<EIAComplianceScreenProps> = ({ navigation, r
     title: 'Plant Operation',
     isNA: false,
     measures: [
-      {
-        id: '1',
-        planned: '',
-        actualObservation: '',
-        isEffective: null,
-        recommendations: '',
-      },
+      { id: '1', planned: '', actualObservation: '', isEffective: null, recommendations: '' },
     ],
   });
 
@@ -55,13 +54,7 @@ const EIAComplianceScreen: React.FC<EIAComplianceScreenProps> = ({ navigation, r
     title: 'Port Operation',
     isNA: false,
     measures: [
-      {
-        id: '1',
-        planned: '',
-        actualObservation: '',
-        isEffective: null,
-        recommendations: '',
-      },
+      { id: '1', planned: '', actualObservation: '', isEffective: null, recommendations: '' },
     ],
   });
 
@@ -75,19 +68,20 @@ const EIAComplianceScreen: React.FC<EIAComplianceScreenProps> = ({ navigation, r
 
   const handleSave = () => {
     console.log('Saving EIA Compliance data...');
-    // Implement save logic
+    const allData = {
+        preConstruction,
+        construction,
+        quarryOperation,
+        plantOperation,
+        portOperation,
+        overallCompliance,
+    };
+    console.log(JSON.stringify(allData, null, 2));
   };
 
   const handleSaveAndNext = () => {
     console.log('Saving and proceeding to next page...');
-    console.log({
-      preConstruction,
-      construction,
-      quarryOperation,
-      plantOperation,
-      portOperation,
-      overallCompliance,
-    });
+    handleSave();
     navigation.navigate('EnvironmentalCompliance');
   };
 
@@ -142,7 +136,7 @@ const EIAComplianceScreen: React.FC<EIAComplianceScreenProps> = ({ navigation, r
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}
     >
       <View style={styles.headerContainer}>
@@ -159,8 +153,9 @@ const EIAComplianceScreen: React.FC<EIAComplianceScreenProps> = ({ navigation, r
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.pageHeader}>
-          <Text style={styles.pageHeaderText}>
+        <View style={styles.titleContainer}>
+          <View style={styles.titleAccent} />
+          <Text style={styles.titleText}>
             2. Compliance to Impact Management Commitments in EIA report & EPEP
           </Text>
         </View>
@@ -172,6 +167,8 @@ const EIAComplianceScreen: React.FC<EIAComplianceScreenProps> = ({ navigation, r
           onConstructionChange={setConstruction}
         />
 
+         <View style={styles.divider} />
+
         <Text style={styles.mainTitle}>
           Implementation of Environmental Impact Control Strategies
         </Text>
@@ -182,6 +179,7 @@ const EIAComplianceScreen: React.FC<EIAComplianceScreenProps> = ({ navigation, r
           onMeasureUpdate={(measureId, field, value) => updateMeasure('quarry', measureId, field, value)}
           onAddMeasure={() => addMeasure('quarry')}
         />
+         <View style={styles.dividerSmall} />
 
         <OperationSectionComponent
           section={plantOperation}
@@ -189,6 +187,7 @@ const EIAComplianceScreen: React.FC<EIAComplianceScreenProps> = ({ navigation, r
           onMeasureUpdate={(measureId, field, value) => updateMeasure('plant', measureId, field, value)}
           onAddMeasure={() => addMeasure('plant')}
         />
+         <View style={styles.dividerSmall} />
 
         <OperationSectionComponent
           section={portOperation}
@@ -197,6 +196,8 @@ const EIAComplianceScreen: React.FC<EIAComplianceScreenProps> = ({ navigation, r
           onAddMeasure={() => addMeasure('port')}
         />
 
+        <View style={styles.divider} />
+
         <OverallCompliance
           value={overallCompliance}
           onChangeText={setOverallCompliance}
@@ -204,7 +205,9 @@ const EIAComplianceScreen: React.FC<EIAComplianceScreenProps> = ({ navigation, r
 
         <TouchableOpacity style={styles.saveNextButton} onPress={handleSaveAndNext}>
           <Text style={styles.saveNextButtonText}>Save & Next</Text>
+           <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
+
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -213,47 +216,101 @@ const EIAComplianceScreen: React.FC<EIAComplianceScreenProps> = ({ navigation, r
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F1F5F9',
   },
   headerContainer: {
-    zIndex: 1000,
-    elevation: 3,
+     paddingHorizontal: 16,
+     paddingTop: Platform.OS === 'ios' ? 12 : 12,
+     paddingBottom: 12,
+     backgroundColor: "white",
+     zIndex: 1,
+     shadowColor: '#1E40AF',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.05,
+     shadowRadius: 3,
+     elevation: 2,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     padding: 16,
+    paddingBottom: 40,
   },
-  pageHeader: {
-    backgroundColor: '#fecaca',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 6,
-    marginBottom: 16,
+  titleContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    shadowColor: '#1E40AF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2563EB',
   },
-  pageHeaderText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#000',
+  titleAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: '#2563EB',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  titleText: {
+    fontWeight: '700',
+    fontSize: 15,
+    color: '#1E40AF',
+    textAlign: 'center',
+    letterSpacing: 0.3,
+    lineHeight: 20,
+  },
+   divider: {
+    height: 1.5,
+    backgroundColor: "#BFDBFE",
+    marginVertical: 24,
+  },
+   dividerSmall: {
+    height: 8,
+    backgroundColor: "transparent",
+    marginVertical: 8,
   },
   mainTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1E40AF',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 18,
+    marginTop: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-saveNextButton: {
-    backgroundColor: '#7C6FDB',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 16,
+  saveNextButton: {
+    backgroundColor: "#1E40AF",
+    paddingVertical: 16,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 24,
+    marginBottom: 16,
+    marginHorizontal: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   saveNextButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
+    color: "white",
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 });
 

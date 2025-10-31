@@ -6,20 +6,23 @@ import { FileNameProvider } from "../contexts/FileNameContext";
 
 // Screens
 import AuthScreen from "../screens/auth/AuthScreen";
-import RoleSelectionScreen from "../screens/role-selection/RoleSelectionScreen"; 
+import RoleSelectionScreen from "../screens/role-selection/RoleSelectionScreen";
 import DashboardScreen from "../screens/dashboard/DashboardScreen";
 import SubmissionsScreen from "../screens/SubmissionsScreen";
 import ProfileScreen from "../screens/profile/ProfileScreen";
-import CMVRReportScreen from "../screens/CMVRReportScreen";
-import CMVRPage2Screen from "../screens/CMVRPage2Screen";
+import CMVRReportScreen from "../screens/CMVRPAGE/CMVRReportScreen";
+import CMVRPage2Screen from "../screens/CMVRPAGE/CMVRPage2Screen";
 import CreateAttendanceScreen from "../screens/attendance/CreateAttendanceScreen";
 import AttendanceRecordScreen from "../screens/attendance/AttendanceRecordScreen";
 import ReportsScreen from "../screens/reports/ReportsScreen";
-import ComplianceMonitoringScreen from "../screens/ComplianceMonitoringScreen";
-import EIAComplianceScreen from "../screens/EIAComplianceScreen";
-import EnvironmentalComplianceScreen from "../screens/EnvironmentalComplianceScreen";
-import WaterQualityScreen from "../screens/WaterQualityScreen";
-import NoiseQualityScreen from "../screens/NoiseQualityScreen";
+import ComplianceMonitoringScreen from "../screens/CMVRPAGE/ComplianceMonitoringScreen";
+import EIAComplianceScreen from "../screens/CMVRPAGE/EIAComplianceScreen";
+import EnvironmentalComplianceScreen from "../screens/CMVRPAGE/EnvironmentalComplianceScreen";
+import WaterQualityScreen from "../screens/CMVRPAGE/WaterQualityScreen";
+import NoiseQualityScreen from "../screens/CMVRPAGE/NoiseQualityScreen";
+import WasteManagementScreen from "../screens/CMVRPAGE/WasteManagementScreen";
+import ChemicalSafetyScreen from "../screens/CMVRPAGE/ChemicalSafetyScreen";
+import RecommendationsScreen from "../screens/CMVRPAGE/RecommendationsScreen";
 import ECCMonitoringScreen from "../screens/ecc/ECCMonitoringScreen"
 import ECCMonitoringScreen2 from "../screens/ecc/conditions";
 
@@ -80,6 +83,22 @@ const AppNavigator = () => {
               <RootStack.Screen
                 name="NoiseQuality"
                 component={NoiseQualityScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen
+                name="WasteManagement"
+                component={WasteManagementScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen
+                name="ChemicalSafety"
+                component={ChemicalSafetyScreen}
+                options={{ headerShown: false }}
+              />
+              {/* ADD THIS */}
+              <RootStack.Screen
+                name="Recommendations"
+                component={RecommendationsScreen}
                 options={{ headerShown: false }}
               />
             </>

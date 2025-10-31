@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Plus } from 'lucide-react-native';
 import { RadioButton } from './RadioButton';
 import { MitigatingMeasureForm, MitigatingMeasure } from './MitigatingMeasureForm';
 
@@ -34,7 +35,7 @@ export const OperationSectionComponent: React.FC<OperationSectionProps> = ({
         </View>
       </View>
 
-      <Text style={styles.subsectionTitle}>Mitigating Measures/ Control Strategies</Text>
+      <Text style={styles.subsectionTitle}>Mitigating Measures / Control Strategies</Text>
 
       {section.measures.map((measure, index) => (
         <MitigatingMeasureForm
@@ -46,7 +47,8 @@ export const OperationSectionComponent: React.FC<OperationSectionProps> = ({
       ))}
 
       <TouchableOpacity style={styles.addButton} onPress={onAddMeasure}>
-        <Text style={styles.addButtonText}>+ Add More</Text>
+        <Plus size={16} color="#2563EB" />
+        <Text style={styles.addButtonText}>Add More</Text>
       </TouchableOpacity>
     </View>
   );
@@ -54,12 +56,17 @@ export const OperationSectionComponent: React.FC<OperationSectionProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F5E7E7',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5C7C7',
-    borderRadius: 0,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
     marginBottom: 16,
     padding: 16,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   header: {
     flexDirection: 'row',
@@ -68,14 +75,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   titleBadge: {
-    backgroundColor: '#D8D8FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#93C5FD',
   },
   titleText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: '#1E40AF',
   },
   naContainer: {
     flexDirection: 'row',
@@ -84,23 +94,33 @@ const styles = StyleSheet.create({
   },
   naText: {
     fontSize: 14,
+    fontWeight: '500',
+    color: '#475569',
   },
   subsectionTitle: {
     fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 12,
+    fontWeight: '700',
+    marginBottom: 14,
+    color: '#1E293B',
     textDecorationLine: 'underline',
+    textDecorationColor: '#BFDBFE',
   },
   addButton: {
     alignSelf: 'center',
-    backgroundColor: '#d1d5db',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 16,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
     marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
   },
   addButtonText: {
-    fontSize: 12,
-    color: '#374151',
+    fontSize: 13,
+    color: '#2563EB',
+    fontWeight: '700',
   },
 });

@@ -1,15 +1,9 @@
 import React from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 type FundInfo = {
-  isNA?: boolean; // optional: when omitted, treated as false
+  isNA: boolean;
   permitHolder: string;
   savingsAccount: string;
   amountDeposited: string;
@@ -27,21 +21,15 @@ type RCFSectionProps = {
   rcfInfo: FundInfo;
   setRcfInfo: React.Dispatch<React.SetStateAction<FundInfo>>;
   rcfAdditionalForms: FundAdditionalForm[];
-  setRcfAdditionalForms: React.Dispatch<
-    React.SetStateAction<FundAdditionalForm[]>
-  >;
+  setRcfAdditionalForms: React.Dispatch<React.SetStateAction<FundAdditionalForm[]>>;
   mtfInfo: FundInfo;
   setMtfInfo: React.Dispatch<React.SetStateAction<FundInfo>>;
   mtfAdditionalForms: FundAdditionalForm[];
-  setMtfAdditionalForms: React.Dispatch<
-    React.SetStateAction<FundAdditionalForm[]>
-  >;
+  setMtfAdditionalForms: React.Dispatch<React.SetStateAction<FundAdditionalForm[]>>;
   fmrdfInfo: FundInfo;
   setFmrdfInfo: React.Dispatch<React.SetStateAction<FundInfo>>;
   fmrdfAdditionalForms: FundAdditionalForm[];
-  setFmrdfAdditionalForms: React.Dispatch<
-    React.SetStateAction<FundAdditionalForm[]>
-  >;
+  setFmrdfAdditionalForms: React.Dispatch<React.SetStateAction<FundAdditionalForm[]>>;
 };
 
 const RCFSection: React.FC<RCFSectionProps> = ({
@@ -71,66 +59,36 @@ const RCFSection: React.FC<RCFSectionProps> = ({
   };
 
   const addRCFForm = () => {
-    setRcfAdditionalForms([
-      ...rcfAdditionalForms,
-      {
-        permitHolder: "",
-        savingsAccount: "",
-        amountDeposited: "",
-        dateUpdated: "",
-      },
-    ]);
+    setRcfAdditionalForms([...rcfAdditionalForms, {
+      permitHolder: "", savingsAccount: "", amountDeposited: "", dateUpdated: "",
+    }]);
   };
 
   const addMTFForm = () => {
-    setMtfAdditionalForms([
-      ...mtfAdditionalForms,
-      {
-        permitHolder: "",
-        savingsAccount: "",
-        amountDeposited: "",
-        dateUpdated: "",
-      },
-    ]);
+    setMtfAdditionalForms([...mtfAdditionalForms, {
+      permitHolder: "", savingsAccount: "", amountDeposited: "", dateUpdated: "",
+    }]);
   };
 
   const addFMRDFForm = () => {
-    setFmrdfAdditionalForms([
-      ...fmrdfAdditionalForms,
-      {
-        permitHolder: "",
-        savingsAccount: "",
-        amountDeposited: "",
-        dateUpdated: "",
-      },
-    ]);
+    setFmrdfAdditionalForms([...fmrdfAdditionalForms, {
+      permitHolder: "", savingsAccount: "", amountDeposited: "", dateUpdated: "",
+    }]);
   };
 
-  const updateRcfAdditionalForm = (
-    index: number,
-    field: keyof FundAdditionalForm,
-    value: string
-  ) => {
+  const updateRcfAdditionalForm = (index: number, field: keyof FundAdditionalForm, value: string) => {
     const updated = [...rcfAdditionalForms];
     updated[index] = { ...updated[index], [field]: value };
     setRcfAdditionalForms(updated);
   };
 
-  const updateMtfAdditionalForm = (
-    index: number,
-    field: keyof FundAdditionalForm,
-    value: string
-  ) => {
+  const updateMtfAdditionalForm = (index: number, field: keyof FundAdditionalForm, value: string) => {
     const updated = [...mtfAdditionalForms];
     updated[index] = { ...updated[index], [field]: value };
     setMtfAdditionalForms(updated);
   };
 
-  const updateFmrdfAdditionalForm = (
-    index: number,
-    field: keyof FundAdditionalForm,
-    value: string
-  ) => {
+  const updateFmrdfAdditionalForm = (index: number, field: keyof FundAdditionalForm, value: string) => {
     const updated = [...fmrdfAdditionalForms];
     updated[index] = { ...updated[index], [field]: value };
     setFmrdfAdditionalForms(updated);
@@ -149,577 +107,753 @@ const RCFSection: React.FC<RCFSectionProps> = ({
   };
 
   return (
-    <View style={styles.sectionCard}>
-      {/* Section Header */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>RCF/ MTF and FMRDF Status</Text>
-      </View>
-
-      {/* Rehabilitation Cash Funds */}
-      <View style={styles.subsectionHeader}>
-        <TouchableOpacity
-          style={styles.checkbox}
-          onPress={() => updateRCFInfo("isNA", !rcfInfo.isNA)}
-        >
-          {rcfInfo.isNA && <View style={styles.checkboxInner} />}
-        </TouchableOpacity>
-        <Text style={styles.subsectionTitle}>Rehabilitation Cash Funds</Text>
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Name of Permit Holder:</Text>
-        <View style={styles.inputWithButton}>
-          <TextInput
-            style={[
-              styles.input,
-              styles.flexInput,
-              rcfInfo.isNA && styles.disabledInput,
-            ]}
-            value={rcfInfo.permitHolder}
-            onChangeText={(text) => updateRCFInfo("permitHolder", text)}
-            placeholder="Type here..."
-            editable={!rcfInfo.isNA}
-          />
-          <TouchableOpacity
-            style={[styles.submitButton, rcfInfo.isNA && styles.disabledButton]}
-            disabled={rcfInfo.isNA}
-          >
-            <Text style={styles.submitButtonText}>Submit</Text>
-          </TouchableOpacity>
+    <View style={styles.container}>
+      <View style={styles.headerSection}>
+        <View style={styles.iconContainer}>
+          <Ionicons name="cash" size={24} color="#1E40AF" />
+        </View>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.sectionTitle}>Fund Status</Text>
+          <Text style={styles.sectionSubtitle}>RCF / MTF / FMRDF</Text>
         </View>
       </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Savings Account Number:</Text>
-        <TextInput
-          style={[styles.input, rcfInfo.isNA && styles.disabledInput]}
-          value={rcfInfo.savingsAccount}
-          onChangeText={(text) => updateRCFInfo("savingsAccount", text)}
-          placeholder="Type here..."
-          editable={!rcfInfo.isNA}
-        />
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Amount Deposited (Php):</Text>
-        <TextInput
-          style={[styles.input, rcfInfo.isNA && styles.disabledInput]}
-          value={rcfInfo.amountDeposited}
-          onChangeText={(text) => updateRCFInfo("amountDeposited", text)}
-          placeholder="Type here..."
-          keyboardType="numeric"
-          editable={!rcfInfo.isNA}
-        />
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Date of Updated:</Text>
-        <TextInput
-          style={[styles.input, rcfInfo.isNA && styles.disabledInput]}
-          value={rcfInfo.dateUpdated}
-          onChangeText={(text) => updateRCFInfo("dateUpdated", text)}
-          placeholder="Month/Date/Year"
-          editable={!rcfInfo.isNA}
-        />
-      </View>
-      <TouchableOpacity
-        style={[styles.addMoreButton, rcfInfo.isNA && styles.disabledButton]}
-        onPress={addRCFForm}
-        disabled={rcfInfo.isNA}
-      >
-        <Text style={styles.addMoreText}>+ Add more names</Text>
-      </TouchableOpacity>
-      {rcfAdditionalForms.map((form: FundAdditionalForm, index: number) => (
-        <View key={index} style={styles.additionalFormContainer}>
-          <View style={styles.additionalFormHeader}>
-            <Text style={styles.additionalFormTitle}>RCF #{index + 2}</Text>
-            <TouchableOpacity onPress={() => removeRcfAdditionalForm(index)}>
-              <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+
+      <View style={styles.formContent}>
+        {/* RCF Section */}
+        <View style={styles.subsectionContainer}>
+          <View style={styles.subsectionHeader}>
+            <View style={styles.subsectionIconContainer}>
+              <Ionicons name="wallet" size={18} color="#1E40AF" />
+            </View>
+            <Text style={styles.subsectionTitle}>Rehabilitation Cash Funds</Text>
+            <TouchableOpacity
+              style={styles.naButton}
+              onPress={() => updateRCFInfo("isNA", !rcfInfo.isNA)}
+            >
+              <View style={[styles.checkbox, rcfInfo.isNA && styles.checkboxChecked]}>
+                {rcfInfo.isNA && <View style={styles.checkboxInner} />}
+              </View>
+              <Text style={styles.naLabel}>N/A</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.label}>Name of Permit Holder:</Text>
-            <View style={styles.inputWithButton}>
+
+          {/* --- FIX 1: Applied disabledContent style when isNA is TRUE --- */}
+          <View style={[styles.fundContent, rcfInfo.isNA && styles.disabledContent]}>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Name of Permit Holder</Text>
+              <View style={styles.inputWithButton}>
+                <TextInput
+                  style={[styles.input, styles.flexInput]}
+                  value={rcfInfo.permitHolder}
+                  onChangeText={(text) => updateRCFInfo("permitHolder", text)}
+                  placeholder="Enter name"
+                  placeholderTextColor="#94A3B8"
+                  /* --- FIX 2: Set editable to !rcfInfo.isNA --- */
+                  editable={!rcfInfo.isNA}
+                />
+                <TouchableOpacity
+                  /* --- FIX 3: Set disabled styles/prop when isNA is TRUE --- */
+                  style={[styles.submitButton, rcfInfo.isNA && styles.disabledButton]}
+                  disabled={rcfInfo.isNA}
+                >
+                  <Ionicons name="checkmark-circle" size={18} color="white" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Savings Account Number</Text>
               <TextInput
-                style={[
-                  styles.input,
-                  styles.flexInput,
-                  rcfInfo.isNA && styles.disabledInput,
-                ]}
-                value={form.permitHolder}
-                onChangeText={(text) =>
-                  updateRcfAdditionalForm(index, "permitHolder", text)
-                }
-                placeholder="Type here..."
+                style={styles.input}
+                value={rcfInfo.savingsAccount}
+                onChangeText={(text) => updateRCFInfo("savingsAccount", text)}
+                placeholder="Enter account number"
+                placeholderTextColor="#94A3B8"
+                /* --- FIX 4: Set editable to !rcfInfo.isNA --- */
                 editable={!rcfInfo.isNA}
               />
-              <TouchableOpacity
-                style={[
-                  styles.submitButton,
-                  rcfInfo.isNA && styles.disabledButton,
-                ]}
-                disabled={rcfInfo.isNA}
-              >
-                <Text style={styles.submitButtonText}>Submit</Text>
-              </TouchableOpacity>
             </View>
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.label}>Savings Account Number:</Text>
-            <TextInput
-              style={[styles.input, rcfInfo.isNA && styles.disabledInput]}
-              value={form.savingsAccount}
-              onChangeText={(text) =>
-                updateRcfAdditionalForm(index, "savingsAccount", text)
-              }
-              placeholder="Type here..."
-              editable={!rcfInfo.isNA}
-            />
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.label}>Amount Deposited (Php):</Text>
-            <TextInput
-              style={[styles.input, rcfInfo.isNA && styles.disabledInput]}
-              value={form.amountDeposited}
-              onChangeText={(text) =>
-                updateRcfAdditionalForm(index, "amountDeposited", text)
-              }
-              placeholder="Type here..."
-              keyboardType="numeric"
-              editable={!rcfInfo.isNA}
-            />
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.label}>Date of Updated:</Text>
-            <TextInput
-              style={[styles.input, rcfInfo.isNA && styles.disabledInput]}
-              value={form.dateUpdated}
-              onChangeText={(text) =>
-                updateRcfAdditionalForm(index, "dateUpdated", text)
-              }
-              placeholder="Month/Date/Year"
-              editable={!rcfInfo.isNA}
-            />
-          </View>
-        </View>
-      ))}
 
-      {/* Monitoring Trust Fund */}
-      <View style={styles.subsectionHeader}>
-        <TouchableOpacity
-          style={styles.checkbox}
-          onPress={() => updateMTFInfo("isNA", !mtfInfo.isNA)}
-        >
-          {mtfInfo.isNA && <View style={styles.checkboxInner} />}
-        </TouchableOpacity>
-        <Text style={styles.subsectionTitle}>Monitoring Trust Fund</Text>
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Name of Permit Holder:</Text>
-        <View style={styles.inputWithButton}>
-          <TextInput
-            style={[
-              styles.input,
-              styles.flexInput,
-              mtfInfo.isNA && styles.disabledInput,
-            ]}
-            value={mtfInfo.permitHolder}
-            onChangeText={(text) => updateMTFInfo("permitHolder", text)}
-            placeholder="Type here..."
-            editable={!mtfInfo.isNA}
-          />
-          <TouchableOpacity
-            style={[styles.submitButton, mtfInfo.isNA && styles.disabledButton]}
-            disabled={mtfInfo.isNA}
-          >
-            <Text style={styles.submitButtonText}>Submit</Text>
-          </TouchableOpacity>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Amount Deposited (₱)</Text>
+              <TextInput
+                style={styles.input}
+                value={rcfInfo.amountDeposited}
+                onChangeText={(text) => updateRCFInfo("amountDeposited", text)}
+                placeholder="0.00"
+                placeholderTextColor="#94A3B8"
+                keyboardType="numeric"
+                /* --- FIX 5: Set editable to !rcfInfo.isNA --- */
+                editable={!rcfInfo.isNA}
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Date Updated</Text>
+              <TextInput
+                style={styles.input}
+                value={rcfInfo.dateUpdated}
+                onChangeText={(text) => updateRCFInfo("dateUpdated", text)}
+                placeholder="MM/DD/YYYY"
+                placeholderTextColor="#94A3B8"
+                /* --- FIX 6: Set editable to !rcfInfo.isNA --- */
+                editable={!rcfInfo.isNA}
+              />
+            </View>
+
+            <TouchableOpacity
+              /* --- FIX 7: All logic inverted to disable when isNA is TRUE --- */
+              style={[styles.addButton, rcfInfo.isNA && styles.disabledButton]}
+              onPress={addRCFForm}
+              disabled={rcfInfo.isNA}
+            >
+              <Ionicons name="add-circle" size={20} color={rcfInfo.isNA ? "#94A3B8" : "#1E40AF"} />
+              <Text style={[styles.addButtonText, rcfInfo.isNA && styles.disabledText]}>
+                Add More Entries
+              </Text>
+            </TouchableOpacity>
+
+            {/* This additional forms block already had the correct logic */}
+            {rcfAdditionalForms.map((form, index) => (
+              <View key={index} style={styles.additionalForm}>
+                <View style={styles.additionalFormHeader}>
+                  <View style={styles.badgeContainer}>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>#{index + 2}</Text>
+                    </View>
+                    <Text style={styles.additionalFormTitle}>RCF Entry</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => removeRcfAdditionalForm(index)}>
+                    <Ionicons name="trash" size={20} color="#DC2626" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Name of Permit Holder</Text>
+                  <View style={styles.inputWithButton}>
+                    <TextInput
+                      style={[styles.input, styles.flexInput]}
+                      value={form.permitHolder}
+                      onChangeText={(text) => updateRcfAdditionalForm(index, "permitHolder", text)}
+                      placeholder="Enter name"
+                      placeholderTextColor="#94A3B8"
+                      editable={!rcfInfo.isNA}
+                    />
+                    <TouchableOpacity
+                      style={[styles.submitButton, rcfInfo.isNA && styles.disabledButton]}
+                      disabled={rcfInfo.isNA}
+                    >
+                      <Ionicons name="checkmark-circle" size={18} color="white" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Savings Account Number</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.savingsAccount}
+                    onChangeText={(text) => updateRcfAdditionalForm(index, "savingsAccount", text)}
+                    placeholder="Enter account number"
+                    placeholderTextColor="#94A3B8"
+                    editable={!rcfInfo.isNA}
+                  />
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Amount Deposited (₱)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.amountDeposited}
+                    onChangeText={(text) => updateRcfAdditionalForm(index, "amountDeposited", text)}
+                    placeholder="0.00"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="numeric"
+                    editable={!rcfInfo.isNA}
+                  />
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Date Updated</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.dateUpdated}
+                    onChangeText={(text) => updateRcfAdditionalForm(index, "dateUpdated", text)}
+                    placeholder="MM/DD/YYYY"
+                    placeholderTextColor="#94A3B8"
+                    editable={!rcfInfo.isNA}
+                  />
+                </View>
+              </View>
+            ))}
+          </View>
         </View>
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Savings Account Number:</Text>
-        <TextInput
-          style={[styles.input, mtfInfo.isNA && styles.disabledInput]}
-          value={mtfInfo.savingsAccount}
-          onChangeText={(text) => updateMTFInfo("savingsAccount", text)}
-          placeholder="Type here..."
-          editable={!mtfInfo.isNA}
-        />
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Amount Deposited (Php):</Text>
-        <TextInput
-          style={[styles.input, mtfInfo.isNA && styles.disabledInput]}
-          value={mtfInfo.amountDeposited}
-          onChangeText={(text) => updateMTFInfo("amountDeposited", text)}
-          placeholder="Type here..."
-          keyboardType="numeric"
-          editable={!mtfInfo.isNA}
-        />
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Date of Updated:</Text>
-        <TextInput
-          style={[styles.input, mtfInfo.isNA && styles.disabledInput]}
-          value={mtfInfo.dateUpdated}
-          onChangeText={(text) => updateMTFInfo("dateUpdated", text)}
-          placeholder="Month/Date/Year"
-          editable={!mtfInfo.isNA}
-        />
-      </View>
-      <TouchableOpacity
-        style={[styles.addMoreButton, mtfInfo.isNA && styles.disabledButton]}
-        onPress={addMTFForm}
-        disabled={mtfInfo.isNA}
-      >
-        <Text style={styles.addMoreText}>+ Add more names</Text>
-      </TouchableOpacity>
-      {mtfAdditionalForms.map((form: FundAdditionalForm, index: number) => (
-        <View key={index} style={styles.additionalFormContainer}>
-          <View style={styles.additionalFormHeader}>
-            <Text style={styles.additionalFormTitle}>MTF #{index + 2}</Text>
-            <TouchableOpacity onPress={() => removeMtfAdditionalForm(index)}>
-              <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+
+        <View style={styles.divider} />
+
+        {/* MTF Section (No changes needed) */}
+        <View style={styles.subsectionContainer}>
+          <View style={styles.subsectionHeader}>
+            <View style={styles.subsectionIconContainer}>
+              <Ionicons name="shield" size={18} color="#1E40AF" />
+            </View>
+            <Text style={styles.subsectionTitle}>Monitoring Trust Fund</Text>
+            <TouchableOpacity
+              style={styles.naButton}
+              onPress={() => updateMTFInfo("isNA", !mtfInfo.isNA)}
+            >
+              <View style={[styles.checkbox, mtfInfo.isNA && styles.checkboxChecked]}>
+                {mtfInfo.isNA && <View style={styles.checkboxInner} />}
+              </View>
+              <Text style={styles.naLabel}>N/A</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.label}>Name of Permit Holder:</Text>
-            <View style={styles.inputWithButton}>
+
+          <View style={[styles.fundContent, mtfInfo.isNA && styles.disabledContent]}>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Name of Permit Holder</Text>
+              <View style={styles.inputWithButton}>
+                <TextInput
+                  style={[styles.input, styles.flexInput]}
+                  value={mtfInfo.permitHolder}
+                  onChangeText={(text) => updateMTFInfo("permitHolder", text)}
+                  placeholder="Enter name"
+                  placeholderTextColor="#94A3B8"
+                  editable={!mtfInfo.isNA}
+                />
+                <TouchableOpacity
+                  style={[styles.submitButton, mtfInfo.isNA && styles.disabledButton]}
+                  disabled={mtfInfo.isNA}
+                >
+                  <Ionicons name="checkmark-circle" size={18} color="white" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Savings Account Number</Text>
               <TextInput
-                style={[
-                  styles.input,
-                  styles.flexInput,
-                  mtfInfo.isNA && styles.disabledInput,
-                ]}
-                value={form.permitHolder}
-                onChangeText={(text) =>
-                  updateMtfAdditionalForm(index, "permitHolder", text)
-                }
-                placeholder="Type here..."
+                style={styles.input}
+                value={mtfInfo.savingsAccount}
+                onChangeText={(text) => updateMTFInfo("savingsAccount", text)}
+                placeholder="Enter account number"
+                placeholderTextColor="#94A3B8"
                 editable={!mtfInfo.isNA}
               />
-              <TouchableOpacity
-                style={[
-                  styles.submitButton,
-                  mtfInfo.isNA && styles.disabledButton,
-                ]}
-                disabled={mtfInfo.isNA}
-              >
-                <Text style={styles.submitButtonText}>Submit</Text>
-              </TouchableOpacity>
             </View>
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.label}>Savings Account Number:</Text>
-            <TextInput
-              style={[styles.input, mtfInfo.isNA && styles.disabledInput]}
-              value={form.savingsAccount}
-              onChangeText={(text) =>
-                updateMtfAdditionalForm(index, "savingsAccount", text)
-              }
-              placeholder="Type here..."
-              editable={!mtfInfo.isNA}
-            />
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.label}>Amount Deposited (Php):</Text>
-            <TextInput
-              style={[styles.input, mtfInfo.isNA && styles.disabledInput]}
-              value={form.amountDeposited}
-              onChangeText={(text) =>
-                updateMtfAdditionalForm(index, "amountDeposited", text)
-              }
-              placeholder="Type here..."
-              keyboardType="numeric"
-              editable={!mtfInfo.isNA}
-            />
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.label}>Date of Updated:</Text>
-            <TextInput
-              style={[styles.input, mtfInfo.isNA && styles.disabledInput]}
-              value={form.dateUpdated}
-              onChangeText={(text) =>
-                updateMtfAdditionalForm(index, "dateUpdated", text)
-              }
-              placeholder="Month/Date/Year"
-              editable={!mtfInfo.isNA}
-            />
-          </View>
-        </View>
-      ))}
 
-      {/* Final Mine Rehabilitation and Decommissioning Fund */}
-      <View style={styles.subsectionHeader}>
-        <TouchableOpacity
-          style={styles.checkbox}
-          onPress={() => updateFMRDFInfo("isNA", !fmrdfInfo.isNA)}
-        >
-          {fmrdfInfo.isNA && <View style={styles.checkboxInner} />}
-        </TouchableOpacity>
-        <Text style={styles.subsectionTitle}>
-          Final Mine Rehabilitation and Decommissioning Fund
-        </Text>
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Name of Permit Holder:</Text>
-        <View style={styles.inputWithButton}>
-          <TextInput
-            style={[
-              styles.input,
-              styles.flexInput,
-              fmrdfInfo.isNA && styles.disabledInput,
-            ]}
-            value={fmrdfInfo.permitHolder}
-            onChangeText={(text) => updateFMRDFInfo("permitHolder", text)}
-            placeholder="Type here..."
-            editable={!fmrdfInfo.isNA}
-          />
-          <TouchableOpacity
-            style={[
-              styles.submitButton,
-              fmrdfInfo.isNA && styles.disabledButton,
-            ]}
-            disabled={fmrdfInfo.isNA}
-          >
-            <Text style={styles.submitButtonText}>Submit</Text>
-          </TouchableOpacity>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Amount Deposited (₱)</Text>
+              <TextInput
+                style={styles.input}
+                value={mtfInfo.amountDeposited}
+                onChangeText={(text) => updateMTFInfo("amountDeposited", text)}
+                placeholder="0.00"
+                placeholderTextColor="#94A3B8"
+                keyboardType="numeric"
+                editable={!mtfInfo.isNA}
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Date Updated</Text>
+              <TextInput
+                style={styles.input}
+                value={mtfInfo.dateUpdated}
+                onChangeText={(text) => updateMTFInfo("dateUpdated", text)}
+                placeholder="MM/DD/YYYY"
+                placeholderTextColor="#94A3B8"
+                editable={!mtfInfo.isNA}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.addButton, mtfInfo.isNA && styles.disabledButton]}
+              onPress={addMTFForm}
+              disabled={mtfInfo.isNA}
+            >
+              <Ionicons name="add-circle" size={20} color={mtfInfo.isNA ? "#94A3B8" : "#1E40AF"} />
+              <Text style={[styles.addButtonText, mtfInfo.isNA && styles.disabledText]}>
+                Add More Entries
+              </Text>
+            </TouchableOpacity>
+
+            {mtfAdditionalForms.map((form, index) => (
+              <View key={index} style={styles.additionalForm}>
+                <View style={styles.additionalFormHeader}>
+                  <View style={styles.badgeContainer}>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>#{index + 2}</Text>
+                    </View>
+                    <Text style={styles.additionalFormTitle}>MTF Entry</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => removeMtfAdditionalForm(index)}>
+                    <Ionicons name="trash" size={20} color="#DC2626" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Name of Permit Holder</Text>
+                  <View style={styles.inputWithButton}>
+                    <TextInput
+                      style={[styles.input, styles.flexInput]}
+                      value={form.permitHolder}
+                      onChangeText={(text) => updateMtfAdditionalForm(index, "permitHolder", text)}
+                      placeholder="Enter name"
+                      placeholderTextColor="#94A3B8"
+                      editable={!mtfInfo.isNA}
+                    />
+                    <TouchableOpacity
+                      style={[styles.submitButton, mtfInfo.isNA && styles.disabledButton]}
+                      disabled={mtfInfo.isNA}
+                    >
+                      <Ionicons name="checkmark-circle" size={18} color="white" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Savings Account Number</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.savingsAccount}
+                    onChangeText={(text) => updateMtfAdditionalForm(index, "savingsAccount", text)}
+                    placeholder="Enter account number"
+                    placeholderTextColor="#94A3B8"
+                    editable={!mtfInfo.isNA}
+                  />
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Amount Deposited (₱)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.amountDeposited}
+                    onChangeText={(text) => updateMtfAdditionalForm(index, "amountDeposited", text)}
+                    placeholder="0.00"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="numeric"
+                    editable={!mtfInfo.isNA}
+                  />
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Date Updated</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.dateUpdated}
+                    onChangeText={(text) => updateMtfAdditionalForm(index, "dateUpdated", text)}
+                    placeholder="MM/DD/YYYY"
+                    placeholderTextColor="#94A3B8"
+                    editable={!mtfInfo.isNA}
+                  />
+                </View>
+              </View>
+            ))}
+          </View>
         </View>
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Savings Account Number:</Text>
-        <TextInput
-          style={[styles.input, fmrdfInfo.isNA && styles.disabledInput]}
-          value={fmrdfInfo.savingsAccount}
-          onChangeText={(text) => updateFMRDFInfo("savingsAccount", text)}
-          placeholder="Type here..."
-          editable={!fmrdfInfo.isNA}
-        />
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Amount Deposited (Php):</Text>
-        <TextInput
-          style={[styles.input, fmrdfInfo.isNA && styles.disabledInput]}
-          value={fmrdfInfo.amountDeposited}
-          onChangeText={(text) => updateFMRDFInfo("amountDeposited", text)}
-          placeholder="Type here..."
-          keyboardType="numeric"
-          editable={!fmrdfInfo.isNA}
-        />
-      </View>
-      <View style={styles.fieldRow}>
-        <Text style={styles.label}>Date of Updated:</Text>
-        <TextInput
-          style={[styles.input, fmrdfInfo.isNA && styles.disabledInput]}
-          value={fmrdfInfo.dateUpdated}
-          onChangeText={(text) => updateFMRDFInfo("dateUpdated", text)}
-          placeholder="Month/Date/Year"
-          editable={!fmrdfInfo.isNA}
-        />
-      </View>
-      <TouchableOpacity
-        style={[styles.addMoreButton, fmrdfInfo.isNA && styles.disabledButton]}
-        onPress={addFMRDFForm}
-        disabled={fmrdfInfo.isNA}
-      >
-        <Text style={styles.addMoreText}>+ Add more names</Text>
-      </TouchableOpacity>
-      {fmrdfAdditionalForms.map((form: FundAdditionalForm, index: number) => (
-        <View key={index} style={styles.additionalFormContainer}>
-          <View style={styles.additionalFormHeader}>
-            <Text style={styles.additionalFormTitle}>FMRDF #{index + 2}</Text>
-            <TouchableOpacity onPress={() => removeFmrdfAdditionalForm(index)}>
-              <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+
+        <View style={styles.divider} />
+
+        {/* FMRDF Section (No changes needed) */}
+        <View style={styles.subsectionContainer}>
+          <View style={styles.subsectionHeader}>
+            <View style={styles.subsectionIconContainer}>
+              <Ionicons name="leaf-outline" size={18} color="#1E40AF" />
+            </View>
+            <Text style={styles.subsectionTitle}>Final Mine Rehabilitation Fund</Text>
+            <TouchableOpacity
+              style={styles.naButton}
+              onPress={() => updateFMRDFInfo("isNA", !fmrdfInfo.isNA)}
+            >
+              <View style={[styles.checkbox, fmrdfInfo.isNA && styles.checkboxChecked]}>
+                {fmrdfInfo.isNA && <View style={styles.checkboxInner} />}
+              </View>
+              <Text style={styles.naLabel}>N/A</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.label}>Name of Permit Holder:</Text>
-            <View style={styles.inputWithButton}>
+
+          <View style={[styles.fundContent, fmrdfInfo.isNA && styles.disabledContent]}>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Name of Permit Holder</Text>
+              <View style={styles.inputWithButton}>
+                <TextInput
+                  style={[styles.input, styles.flexInput]}
+                  value={fmrdfInfo.permitHolder}
+                  onChangeText={(text) => updateFMRDFInfo("permitHolder", text)}
+                  placeholder="Enter name"
+                  placeholderTextColor="#94A3B8"
+                  editable={!fmrdfInfo.isNA}
+                />
+                <TouchableOpacity
+                  style={[styles.submitButton, fmrdfInfo.isNA && styles.disabledButton]}
+                  disabled={fmrdfInfo.isNA}
+                >
+                  <Ionicons name="checkmark-circle" size={18} color="white" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Savings Account Number</Text>
               <TextInput
-                style={[
-                  styles.input,
-                  styles.flexInput,
-                  fmrdfInfo.isNA && styles.disabledInput,
-                ]}
-                value={form.permitHolder}
-                onChangeText={(text) =>
-                  updateFmrdfAdditionalForm(index, "permitHolder", text)
-                }
-                placeholder="Type here..."
+                style={styles.input}
+                value={fmrdfInfo.savingsAccount}
+                onChangeText={(text) => updateFMRDFInfo("savingsAccount", text)}
+                placeholder="Enter account number"
+                placeholderTextColor="#94A3B8"
                 editable={!fmrdfInfo.isNA}
               />
-              <TouchableOpacity
-                style={[
-                  styles.submitButton,
-                  fmrdfInfo.isNA && styles.disabledButton,
-                ]}
-                disabled={fmrdfInfo.isNA}
-              >
-                <Text style={styles.submitButtonText}>Submit</Text>
-              </TouchableOpacity>
             </View>
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.label}>Savings Account Number:</Text>
-            <TextInput
-              style={[styles.input, fmrdfInfo.isNA && styles.disabledInput]}
-              value={form.savingsAccount}
-              onChangeText={(text) =>
-                updateFmrdfAdditionalForm(index, "savingsAccount", text)
-              }
-              placeholder="Type here..."
-              editable={!fmrdfInfo.isNA}
-            />
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.label}>Amount Deposited (Php):</Text>
-            <TextInput
-              style={[styles.input, fmrdfInfo.isNA && styles.disabledInput]}
-              value={form.amountDeposited}
-              onChangeText={(text) =>
-                updateFmrdfAdditionalForm(index, "amountDeposited", text)
-              }
-              placeholder="Type here..."
-              keyboardType="numeric"
-              editable={!fmrdfInfo.isNA}
-            />
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.label}>Date of Updated:</Text>
-            <TextInput
-              style={[styles.input, fmrdfInfo.isNA && styles.disabledInput]}
-              value={form.dateUpdated}
-              onChangeText={(text) =>
-                updateFmrdfAdditionalForm(index, "dateUpdated", text)
-              }
-              placeholder="Month/Date/Year"
-              editable={!fmrdfInfo.isNA}
-            />
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Amount Deposited (₱)</Text>
+              <TextInput
+                style={styles.input}
+                value={fmrdfInfo.amountDeposited}
+                onChangeText={(text) => updateFMRDFInfo("amountDeposited", text)}
+                placeholder="0.00"
+                placeholderTextColor="#94A3B8"
+                keyboardType="numeric"
+                editable={!fmrdfInfo.isNA}
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Date Updated</Text>
+              <TextInput
+                style={styles.input}
+                value={fmrdfInfo.dateUpdated}
+                onChangeText={(text) => updateFMRDFInfo("dateUpdated", text)}
+                placeholder="MM/DD/YYYY"
+                placeholderTextColor="#94A3B8"
+                editable={!fmrdfInfo.isNA}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.addButton, fmrdfInfo.isNA && styles.disabledButton]}
+              onPress={addFMRDFForm}
+              disabled={fmrdfInfo.isNA}
+            >
+              <Ionicons name="add-circle" size={20} color={fmrdfInfo.isNA ? "#94A3B8" : "#1E40AF"} />
+              <Text style={[styles.addButtonText, fmrdfInfo.isNA && styles.disabledText]}>
+                Add More Entries
+              </Text>
+            </TouchableOpacity>
+
+            {fmrdfAdditionalForms.map((form, index) => (
+              <View key={index} style={styles.additionalForm}>
+                <View style={styles.additionalFormHeader}>
+                  <View style={styles.badgeContainer}>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>#{index + 2}</Text>
+                    </View>
+                    <Text style={styles.additionalFormTitle}>FMRDF Entry</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => removeFmrdfAdditionalForm(index)}>
+                    <Ionicons name="trash" size={20} color="#DC2626" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Name of Permit Holder</Text>
+                  <View style={styles.inputWithButton}>
+                    <TextInput
+                      style={[styles.input, styles.flexInput]}
+                      value={form.permitHolder}
+                      onChangeText={(text) => updateFmrdfAdditionalForm(index, "permitHolder", text)}
+                      placeholder="Enter name"
+                      placeholderTextColor="#94A3B8"
+                      editable={!fmrdfInfo.isNA}
+                    />
+                    <TouchableOpacity
+                      style={[styles.submitButton, fmrdfInfo.isNA && styles.disabledButton]}
+                      disabled={fmrdfInfo.isNA}
+                    >
+                      <Ionicons name="checkmark-circle" size={18} color="white" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Savings Account Number</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.savingsAccount}
+                    onChangeText={(text) => updateFmrdfAdditionalForm(index, "savingsAccount", text)}
+                    placeholder="Enter account number"
+                    placeholderTextColor="#94A3B8"
+                    editable={!fmrdfInfo.isNA}
+                  />
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Amount Deposited (₱)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.amountDeposited}
+                    onChangeText={(text) => updateFmrdfAdditionalForm(index, "amountDeposited", text)}
+                    placeholder="0.00"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="numeric"
+                    editable={!fmrdfInfo.isNA}
+                  />
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Date Updated</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.dateUpdated}
+                    onChangeText={(text) => updateFmrdfAdditionalForm(index, "dateUpdated", text)}
+                    placeholder="MM/DD/YYYY"
+                    placeholderTextColor="#94A3B8"
+                    editable={!fmrdfInfo.isNA}
+                  />
+                </View>
+              </View>
+            ))}
           </View>
         </View>
-      ))}
+      </View>
     </View>
   );
 };
 
+// Styles remain unchanged
 const styles = StyleSheet.create({
-  sectionCard: {
+  container: {
     backgroundColor: "white",
-    padding: 16,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
   },
-  sectionHeader: {
-    backgroundColor: "#D8D8FF",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    marginBottom: 16,
-    borderWidth: 1.5,
-    borderColor: "#000",
+  headerSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 20,
+    backgroundColor: "#EFF6FF",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: "#BFDBFE",
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "white",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  headerTextContainer: {
+    marginLeft: 16,
+    flex: 1,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#000",
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1E40AF",
+    letterSpacing: -0.3,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: "#64748B",
+    marginTop: 2,
+    fontWeight: "500",
+  },
+  formContent: {
+    padding: 20,
+  },
+  subsectionContainer: {
+    marginBottom: 8,
   },
   subsectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
+    gap: 10,
+    marginBottom: 16,
+  },
+  subsectionIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: "#EFF6FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  subsectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#475569",
+    flex: 1,
+  },
+  naButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "white",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
   },
   checkbox: {
     width: 18,
     height: 18,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 3,
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
+    borderRadius: 4,
+    backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "white",
+  },
+  checkboxChecked: {
+    backgroundColor: "#1E40AF",
+    borderColor: "#1E40AF",
   },
   checkboxInner: {
-    width: 12,
-    height: 12,
-    backgroundColor: "#007AFF",
+    width: 10,
+    height: 10,
+    backgroundColor: "white",
     borderRadius: 2,
   },
-  subsectionTitle: {
-    fontSize: 14,
+  naLabel: {
+    fontSize: 13,
     fontWeight: "600",
-    color: "#333",
+    color: "#64748B",
   },
-  fieldRow: {
-    marginBottom: 12,
+  fundContent: {
+    paddingLeft: 8,
+  },
+  disabledContent: {
+    opacity: 0.5,
+  },
+  fieldGroup: {
+    marginBottom: 16,
   },
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#333",
-    marginBottom: 6,
+    color: "#1E293B",
+    marginBottom: 8,
   },
   input: {
-    backgroundColor: "#F9F9F9",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: "#333",
-    flex: 1,
-  },
-  disabledInput: { // Added
-    opacity: 0.5,
-  },
-  inputWithButton: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: "#0F172A",
   },
   flexInput: {
     flex: 1,
   },
+  inputWithButton: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
+  },
   submitButton: {
-    backgroundColor: "#7C6FDB",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
+    backgroundColor: "#1E40AF",
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  disabledButton: { // Added
+  disabledButton: {
     opacity: 0.5,
+    shadowOpacity: 0,
+    elevation: 0,
   },
-  submitButtonText: {
-    color: "white",
+  addButton: {
+    backgroundColor: "#EFF6FF",
+    borderWidth: 2,
+    borderColor: "#BFDBFE",
+    borderStyle: "dashed",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 4,
+  },
+  addButtonText: {
     fontSize: 14,
+    color: "#1E40AF",
     fontWeight: "600",
   },
-  addMoreButton: {
-    backgroundColor: "#E8E8E8",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    alignSelf: "flex-start",
-    marginTop: 4,
-    marginBottom: 16,
+  disabledText: {
+    color: "#94A3B8",
   },
-  addMoreText: {
-    fontSize: 13,
-    color: "#666",
-  },
-  additionalFormContainer: {
-    backgroundColor: "#FFF9E6",
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: "#FFD700",
+  additionalForm: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
   },
   additionalFormHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1.5,
+    borderBottomColor: "#E2E8F0",
+  },
+  badgeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  badge: {
+    backgroundColor: "#1E40AF",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "white",
   },
   additionalFormTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1E40AF",
+  },
+  divider: {
+    height: 1.5,
+    backgroundColor: "#E2E8F0",
+    marginVertical: 24,
   },
 });
 
