@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
-import { DEFAULT_CONDITIONS, COMPLIANCE_CONDITIONS } from '../utils/defaultConditions';
+import { DEFAULTS } from '../utils/defaultConditions';
 
 export default function useECCForm() {
   const [formData, setFormData] = useState({
@@ -10,12 +10,12 @@ export default function useECCForm() {
     recommendations: '',
   });
 
-  const [monitoringConditions, setMonitoringConditions] = useState(DEFAULT_CONDITIONS);
-  const [complianceConditions, setComplianceConditions] = useState(COMPLIANCE_CONDITIONS);
+  const [monitoringConditions, setMonitoringConditions] = useState(DEFAULTS);
+
 
   const updateFormData = (key: string, value: any) => {
     if (key === 'monitoringConditions') return setMonitoringConditions(value);
-    if (key === 'complianceConditions') return setComplianceConditions(value);
+
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 
@@ -30,7 +30,6 @@ export default function useECCForm() {
   return {
     formData,
     monitoringConditions,
-    complianceConditions,
     updateFormData,
     saveAsDraft,
     generateReport,

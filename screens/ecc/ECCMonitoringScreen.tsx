@@ -45,7 +45,7 @@ export default function ECCMonitoringScreen({ navigation }: any) {
 
   const handleSaveAndContinue = () => {
     // You can replace this with navigation.navigate("NextPage")
-    alert("Proceeding to next page...");
+    navigation.navigate("ECCMonitoringScreen3");
   };
 
   return (
