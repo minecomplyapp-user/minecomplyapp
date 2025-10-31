@@ -26,6 +26,7 @@ import RecommendationsScreen from "../screens/CMVRPAGE/RecommendationsScreen";
 import ECCMonitoringScreen from "../screens/ecc/ECCMonitoringScreen"
 import ECCMonitoringScreen2 from "../screens/ecc/conditions";
 
+
 const RootStack = createStackNavigator();
 
 const AppNavigator = () => {
@@ -93,6 +94,16 @@ const AppNavigator = () => {
               <RootStack.Screen
                 name="ChemicalSafety"
                 component={ChemicalSafetyScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen
+                name="ComplianceMonitoring"
+                component={ComplianceMonitoringScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen
+                name="EIACompliance"
+                component={EIAComplianceScreen}
                 options={{ headerShown: false }}
               />
               {/* ADD THIS */}
