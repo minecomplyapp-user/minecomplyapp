@@ -292,8 +292,10 @@ export default function ECCMonitoringScreen({ navigation }: any) {
             const issuanceDateDisplay = holder.issuanceDate
               ? new Date(holder.issuanceDate).toLocaleDateString()
               : null;
+
             return (
               <View key={holder.id} style={styles.card}>
+                {/* Header */}
                 <View
                   style={{
                     flexDirection: "row",
@@ -333,6 +335,7 @@ export default function ECCMonitoringScreen({ navigation }: any) {
                     }
                   />
                 </View>
+
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Permit Number</Text>
                   <TextInput
@@ -350,7 +353,7 @@ export default function ECCMonitoringScreen({ navigation }: any) {
                   />
                 </View>
 
-                {/* Permit Issuance Date */}
+                {/* Date of Issuance */}
                 <View style={[styles.inputContainer, { marginBottom: 0 }]}>
                   <Text style={styles.label}>Date of Issuance</Text>
                   <TouchableOpacity
@@ -369,29 +372,40 @@ export default function ECCMonitoringScreen({ navigation }: any) {
                     </Text>
                   </TouchableOpacity>
 
+                  {/* iOS Inline Picker */}
                   {showPermitDatePicker.show &&
                     showPermitDatePicker.id === holder.id &&
-                    Platform.OS === "android" && (
-                      <DateTimePicker
-                        value={
-                          holder.issuanceDate
-                            ? new Date(holder.issuanceDate)
-                            : new Date()
-                        }
-                        mode="date"
-                        display="default"
-                        onChange={(_e, d) => {
-                          setShowPermitDatePicker({ id: null, show: false });
-                          if (d)
-                            setPermitHolders((p) =>
-                              p.map((h) =>
-                                h.id === holder.id
-                                  ? { ...h, issuanceDate: d.toISOString() }
-                                  : h
-                              )
-                            );
-                        }}
-                      />
+                    Platform.OS === "ios" && (
+                      <View style={styles.datePickerWrapper}>
+                        <DateTimePicker
+                          value={
+                            holder.issuanceDate
+                              ? new Date(holder.issuanceDate)
+                              : new Date()
+                          }
+                          mode="date"
+                          display="inline"
+                          onChange={(_e, d) => {
+                            if (d)
+                              setPermitHolders((p) =>
+                                p.map((h) =>
+                                  h.id === holder.id
+                                    ? { ...h, issuanceDate: d.toISOString() }
+                                    : h
+                                )
+                              );
+                          }}
+                          style={styles.datePicker}
+                        />
+                        <TouchableOpacity
+                          onPress={() =>
+                            setShowPermitDatePicker({ id: null, show: false })
+                          }
+                          style={styles.datePickerDoneButton}
+                        >
+                          <Text style={styles.datePickerDoneText}>Done</Text>
+                        </TouchableOpacity>
+                      </View>
                     )}
                 </View>
 
@@ -507,6 +521,36 @@ export default function ECCMonitoringScreen({ navigation }: any) {
               </View>
             );
           })}
+
+          {/* === Android Global Date Picker === */}
+          {showPermitDatePicker.show && Platform.OS === "android" && (
+            <DateTimePicker
+              value={
+                permitHolders.find((h) => h.id === showPermitDatePicker.id)
+                  ?.issuanceDate
+                  ? new Date(
+                      permitHolders.find(
+                        (h) => h.id === showPermitDatePicker.id
+                      )!.issuanceDate
+                    )
+                  : new Date()
+              }
+              mode="date"
+              display="default"
+              onChange={(_e, d) => {
+                setShowPermitDatePicker({ id: null, show: false });
+                if (d) {
+                  setPermitHolders((p) =>
+                    p.map((h) =>
+                      h.id === showPermitDatePicker.id
+                        ? { ...h, issuanceDate: d.toISOString() }
+                        : h
+                    )
+                  );
+                }
+              }}
+            />
+          )}
         </View>
 
         {/* === Recommendations === */}
@@ -582,9 +626,7 @@ export default function ECCMonitoringScreen({ navigation }: any) {
         </View>
 
         {/* === Generate ECC Compliance Monitoring Report Button === */}
-        <TouchableOpacity
-          style={styles.saveButton}
-        >
+        <TouchableOpacity style={styles.saveButton}>
           <Text style={styles.saveButtonText}>Generate ECC Report</Text>
           <Ionicons
             name="arrow-forward"
@@ -592,7 +634,6 @@ export default function ECCMonitoringScreen({ navigation }: any) {
             color="#fff"
           />
         </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );

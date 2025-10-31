@@ -22,7 +22,6 @@ import WaterQualityScreen from "../screens/WaterQualityScreen";
 import NoiseQualityScreen from "../screens/NoiseQualityScreen";
 import ECCMonitoringScreen from "../screens/ecc/ECCMonitoringScreen"
 import ECCMonitoringScreen2 from "../screens/ecc/conditions";
-import ECCMonitoringScreen3 from "../screens/ecc/ECCMonitoringScreen2";
 
 const RootStack = createStackNavigator();
 
@@ -61,8 +60,8 @@ const AppNavigator = () => {
               <RootStack.Screen name="CMVRReport" component={CMVRReportScreen} />
               <RootStack.Screen name="CMVRPage2" component={CMVRPage2Screen} />
               <RootStack.Screen name="ECCMonitoring" component={ECCMonitoringScreen} />
-              <RootStack.Screen name="ECCMonitoringScreen2" component={ECCMonitoringScreen2} />
-              <RootStack.Screen name="ECCMonitoringScreen3" component={ECCMonitoringScreen3} />
+              <RootStack.Screen name="ECCMonitoringScreen" component={ECCMonitoringScreen} />
+
               {/* <RootStack.Screen
                 name="EIACompliance"
                 component={EIAComplianceScreen}
