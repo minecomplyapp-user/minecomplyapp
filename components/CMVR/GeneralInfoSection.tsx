@@ -1,6 +1,8 @@
-import React from "react";
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Modal, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
 
 interface GeneralInfoProps {
   companyName: string;
@@ -21,6 +23,67 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
   municipality,
   onChange,
 }) => {
+  const [showMap, setShowMap] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 10.3157,
+    longitude: 123.8854,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Denied',
+          'Location permission is required to use GPS.'
+        );
+        return;
+      }
+
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      const { latitude, longitude } = currentLocation.coords;
+      
+      setMapRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      });
+      
+      setSelectedLocation({ latitude, longitude });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to get current location.');
+    }
+  };
+
+  const openMapPicker = async () => {
+    await getCurrentLocation();
+    setShowMap(true);
+  };
+
+  const handleMapPress = (event: any) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    setSelectedLocation({ latitude, longitude });
+  };
+
+  const confirmLocation = () => {
+    if (selectedLocation) {
+      const locationString = `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`;
+      onChange("location", locationString);
+      setShowMap(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -64,13 +127,21 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Project Location</Text>
-          <TextInput
-            style={styles.input}
-            value={location}
-            onChangeText={(text) => onChange("location", text)}
-            placeholder="Enter full address or coordinates"
-            placeholderTextColor="#94A3B8"
-          />
+          <TouchableOpacity 
+            style={styles.mapButton}
+            onPress={openMapPicker}
+          >
+            <Ionicons name="map" size={20} color="white" />
+            <Text style={styles.mapButtonText}>
+              {location ? "Change Location" : "Select Location on Map"}
+            </Text>
+          </TouchableOpacity>
+          {location && (
+            <View style={styles.locationDisplay}>
+              <Ionicons name="location" size={16} color="#10B981" />
+              <Text style={styles.locationText}>{location}</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.multiFieldContainer}>
@@ -113,6 +184,57 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
           <Text style={styles.saveButtonText}>Save General Info</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Map Modal */}
+      <Modal
+        visible={showMap}
+        animationType="slide"
+        onRequestClose={() => setShowMap(false)}
+      >
+        <View style={styles.mapContainer}>
+          <View style={styles.mapHeader}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => setShowMap(false)}
+            >
+              <Ionicons name="arrow-back" size={24} color="#1E293B" />
+            </TouchableOpacity>
+            <Text style={styles.mapTitle}>Select Project Location</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          <MapView
+            style={styles.map}
+            region={mapRegion}
+            onPress={handleMapPress}
+            showsUserLocation
+            showsMyLocationButton
+          >
+            {selectedLocation && (
+              <Marker coordinate={selectedLocation} />
+            )}
+          </MapView>
+
+          <View style={styles.mapFooter}>
+            <TouchableOpacity
+              style={styles.myLocationButton}
+              onPress={getCurrentLocation}
+            >
+              <Ionicons name="navigate" size={20} color="white" />
+              <Text style={styles.myLocationButtonText}>My Location</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.confirmButton, !selectedLocation && styles.confirmButtonDisabled]}
+              onPress={confirmLocation}
+              disabled={!selectedLocation}
+            >
+              <Ionicons name="checkmark" size={20} color="white" />
+              <Text style={styles.confirmButtonText}>Confirm Location</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -199,6 +321,43 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#0F172A",
   },
+  mapButton: {
+    backgroundColor: "#10B981",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  mapButtonText: {
+    color: "white",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  locationDisplay: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#F0FDF4",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+  },
+  locationText: {
+    fontSize: 13,
+    color: "#166534",
+    flex: 1,
+    fontWeight: "500",
+  },
   multiFieldContainer: {
     flexDirection: "column",
     gap: 16,
@@ -222,6 +381,71 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   saveButtonText: {
+    color: "white",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  mapContainer: {
+    flex: 1,
+  },
+  mapHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: "white",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+  },
+  backButton: {
+    padding: 8,
+  },
+  mapTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1E293B",
+  },
+  map: {
+    flex: 1,
+  },
+  mapFooter: {
+    flexDirection: "row",
+    padding: 16,
+    gap: 12,
+    backgroundColor: "white",
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+  },
+  myLocationButton: {
+    flex: 1,
+    backgroundColor: "#64748B",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  myLocationButtonText: {
+    color: "white",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  confirmButton: {
+    flex: 1,
+    backgroundColor: "#10B981",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  confirmButtonDisabled: {
+    backgroundColor: "#94A3B8",
+  },
+  confirmButtonText: {
     color: "white",
     fontSize: 15,
     fontWeight: "600",

@@ -7,12 +7,14 @@ import {
   ScrollView,
   StyleSheet,
   SafeAreaView,
-  Modal, 
+  Modal,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { CMSHeader } from '../../components/CMSHeader';
 import { Ionicons } from '@expo/vector-icons';
 
+// --- Interfaces ---
 interface RecommendationItem {
   recommendation: string;
   commitment: string;
@@ -30,13 +32,6 @@ interface SectionHeaderProps {
   title: string;
 }
 
-const SectionHeader: React.FC<SectionHeaderProps> = ({ title }) => (
-  <View style={styles.sectionHeaderContainer}>
-    <Text style={styles.sectionHeaderTitle}>{title}</Text>
-  </View>
-);
-
-
 interface PickerItem {
   label: string;
   value: string;
@@ -48,9 +43,70 @@ interface CustomPickerProps {
   items: PickerItem[];
 }
 
+interface QuarterSelectorProps {
+  selectedQuarter: string;
+  onQuarterChange: (quarter: string) => void;
+  year: string;
+  onYearChange: (year: string) => void;
+}
+
+interface RecommendationItemProps {
+  index: number;
+  data: RecommendationItem;
+  onChange: (data: RecommendationItem) => void;
+  onRemove: (() => void) | null;
+  showStatus: boolean;
+}
+
+interface RecommendationSectionProps {
+  title: string;
+  data: SectionData;
+  onChange: (data: SectionData) => void;
+  onAdd: () => void;
+  showStatus: boolean;
+}
+
+// --- Stack Param List ---
+type RootStackParamList = {
+  CMVRDocumentExport: {
+    generalInfo?: any;
+    eccInfo?: any;
+    eccAdditionalForms?: any[];
+    isagInfo?: any;
+    isagAdditionalForms?: any[];
+    epepInfo?: any;
+    epepAdditionalForms?: any[];
+    rcfInfo?: any;
+    rcfAdditionalForms?: any[];
+    mtfInfo?: any;
+    fmrdfInfo?: any;
+    fmrdfAdditionalForms?: any[];
+    fileName: string;
+    recommendations: any;
+  };
+  Recommendations: any;
+};
+
+type RecommendationsScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  'Recommendations'
+>;
+
+type RecommendationsScreenRouteProp = RouteProp<
+  RootStackParamList,
+  'Recommendations'
+>;
+
+// --- Components ---
+const SectionHeader: React.FC<SectionHeaderProps> = ({ title }) => (
+  <View style={styles.sectionHeaderContainer}>
+    <Text style={styles.sectionHeaderTitle}>{title}</Text>
+  </View>
+);
+
 const CustomPicker: React.FC<CustomPickerProps> = ({ selectedValue, onValueChange, items }) => {
   const [modalVisible, setModalVisible] = useState(false);
-  const selectedLabel = items.find(item => item.value === selectedValue)?.label || 'Select...';
+  const selectedLabel = items.find((item) => item.value === selectedValue)?.label || 'Select...';
 
   const handleSelect = (value: string) => {
     onValueChange(value);
@@ -63,28 +119,31 @@ const CustomPicker: React.FC<CustomPickerProps> = ({ selectedValue, onValueChang
         <Text style={styles.pickerButtonText}>{selectedLabel}</Text>
         <Ionicons name="chevron-down" size={20} color="#64748B" />
       </TouchableOpacity>
-
       <Modal
         transparent
         animationType="fade"
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setModalVisible(false)}>
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setModalVisible(false)}
+        >
           <View style={styles.modalContent}>
-            {items.map(item => (
+            {items.map((item) => (
               <TouchableOpacity
                 key={item.value}
                 style={[
                   styles.modalItem,
-                  item.value === selectedValue && styles.modalItemSelected
+                  item.value === selectedValue && styles.modalItemSelected,
                 ]}
                 onPress={() => handleSelect(item.value)}
               >
-                <Text 
+                <Text
                   style={[
                     styles.modalItemText,
-                    item.value === selectedValue && styles.modalItemTextSelected
+                    item.value === selectedValue && styles.modalItemTextSelected,
                   ]}
                 >
                   {item.label}
@@ -101,22 +160,12 @@ const CustomPicker: React.FC<CustomPickerProps> = ({ selectedValue, onValueChang
   );
 };
 
-// --- 3. UPDATED QUARTER SELECTOR ---
-
-// Define items for the picker
 const quarterItems = [
-  { label: "1st", value: "1st" },
-  { label: "2nd", value: "2nd" },
-  { label: "3rd", value: "3rd" },
-  { label: "4th", value: "4th" },
+  { label: '1st', value: '1st' },
+  { label: '2nd', value: '2nd' },
+  { label: '3rd', value: '3rd' },
+  { label: '4th', value: '4th' },
 ];
-
-interface QuarterSelectorProps {
-  selectedQuarter: string;
-  onQuarterChange: (quarter: string) => void;
-  year: string;
-  onYearChange: (year: string) => void;
-}
 
 const QuarterSelector: React.FC<QuarterSelectorProps> = ({
   selectedQuarter,
@@ -127,7 +176,6 @@ const QuarterSelector: React.FC<QuarterSelectorProps> = ({
   <View style={styles.quarterSelectorCard}>
     <View style={styles.quarterRow}>
       <Text style={styles.fieldLabel}>Prev Quarter:</Text>
-      {/* Replaced old <Picker> with <CustomPicker> */}
       <CustomPicker
         selectedValue={selectedQuarter}
         onValueChange={onQuarterChange}
@@ -149,15 +197,6 @@ const QuarterSelector: React.FC<QuarterSelectorProps> = ({
   </View>
 );
 
-// --- RecommendationItem Component (Unchanged) ---
-interface RecommendationItemProps {
-  index: number;
-  data: RecommendationItem;
-  onChange: (data: RecommendationItem) => void;
-  onRemove: (() => void) | null;
-  showStatus: boolean;
-}
-
 const RecommendationItemComponent: React.FC<RecommendationItemProps> = ({
   index,
   data,
@@ -176,7 +215,6 @@ const RecommendationItemComponent: React.FC<RecommendationItemProps> = ({
         </TouchableOpacity>
       )}
     </View>
-
     <View style={styles.fieldGroup}>
       <Text style={styles.fieldLabel}>Recommendation</Text>
       <TextInput
@@ -188,7 +226,6 @@ const RecommendationItemComponent: React.FC<RecommendationItemProps> = ({
         multiline
       />
     </View>
-
     <View style={styles.fieldGroup}>
       <Text style={styles.fieldLabel}>Commitment</Text>
       <TextInput
@@ -200,7 +237,6 @@ const RecommendationItemComponent: React.FC<RecommendationItemProps> = ({
         multiline
       />
     </View>
-
     {showStatus && (
       <View style={styles.fieldGroup}>
         <Text style={styles.fieldLabel}>Status</Text>
@@ -215,15 +251,6 @@ const RecommendationItemComponent: React.FC<RecommendationItemProps> = ({
     )}
   </View>
 );
-
-// --- RecommendationSection Component (Unchanged) ---
-interface RecommendationSectionProps {
-  title: string;
-  data: SectionData;
-  onChange: (data: SectionData) => void;
-  onAdd: () => void;
-  showStatus: boolean;
-}
 
 const RecommendationSection: React.FC<RecommendationSectionProps> = ({
   title,
@@ -248,7 +275,6 @@ const RecommendationSection: React.FC<RecommendationSectionProps> = ({
           </TouchableOpacity>
         </View>
       </View>
-
       {!hasNA && (
         <View style={styles.sectionContent}>
           {data.items.map((item, index) => (
@@ -274,7 +300,6 @@ const RecommendationSection: React.FC<RecommendationSectionProps> = ({
               showStatus={showStatus}
             />
           ))}
-
           <TouchableOpacity style={styles.addButton} onPress={onAdd}>
             <Ionicons name="add" size={18} color="#1E40AF" />
             <Text style={styles.addButtonText}>Add More Recommendation</Text>
@@ -285,31 +310,27 @@ const RecommendationSection: React.FC<RecommendationSectionProps> = ({
   );
 };
 
-// --- Main Screen Component (Dynamic Title logic is unchanged) ---
+// --- Main Screen Component ---
 const RecommendationsScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<RecommendationsScreenNavigationProp>();
+  const route = useRoute<RecommendationsScreenRouteProp>();
+
+  const allPreviousParams = route.params || {};
   const [prevYear, setPrevYear] = useState('');
   const [prevQuarter, setPrevQuarter] = useState('1st');
 
-  // State for Current Recommendations
-  const [currentSections, setCurrentSections] = useState<
-    Record<SectionKey, SectionData>
-  >({
+  const [currentSections, setCurrentSections] = useState<Record<SectionKey, SectionData>>({
     plant: { isNA: false, items: [{ recommendation: '', commitment: '', status: '' }] },
     quarry: { isNA: false, items: [{ recommendation: '', commitment: '', status: '' }] },
     port: { isNA: false, items: [{ recommendation: '', commitment: '', status: '' }] },
   });
 
-  // State for Previous Recommendations
-  const [previousSections, setPreviousSections] = useState<
-    Record<SectionKey, SectionData>
-  >({
+  const [previousSections, setPreviousSections] = useState<Record<SectionKey, SectionData>>({
     plant: { isNA: false, items: [{ recommendation: '', commitment: '', status: '' }] },
     quarry: { isNA: false, items: [{ recommendation: '', commitment: '', status: '' }] },
     port: { isNA: false, items: [{ recommendation: '', commitment: '', status: '' }] },
   });
 
-  // Handlers
   const updateCurrentSection = (sectionKey: SectionKey, data: SectionData) =>
     setCurrentSections({ ...currentSections, [sectionKey]: data });
 
@@ -327,50 +348,62 @@ const RecommendationsScreen: React.FC = () => {
   };
 
   const handleSave = () => {
-    console.log('Saving current recommendations:', currentSections);
-    console.log('Saving previous recommendations:', previousSections);
-    // navigation.navigate('NextScreen');
+    const recommendationsData = {
+      currentRecommendations: currentSections,
+      previousRecommendations: previousSections,
+    };
+
+    const exportParams = {
+      generalInfo: allPreviousParams.generalInfo || {},
+      eccInfo: allPreviousParams.eccInfo || {},
+      eccAdditionalForms: allPreviousParams.eccAdditionalForms || [],
+      isagInfo: allPreviousParams.isagInfo || {},
+      isagAdditionalForms: allPreviousParams.isagAdditionalForms || [],
+      epepInfo: allPreviousParams.epepInfo || {},
+      epepAdditionalForms: allPreviousParams.epepAdditionalForms || [],
+      rcfInfo: allPreviousParams.rcfInfo || {},
+      rcfAdditionalForms: allPreviousParams.rcfAdditionalForms || [],
+      mtfInfo: allPreviousParams.mtfInfo || {},
+      fmrdfInfo: allPreviousParams.fmrdfInfo || {},
+      fmrdfAdditionalForms: allPreviousParams.fmrdfAdditionalForms || [],
+      fileName: allPreviousParams.fileName || 'File_Name',
+      recommendations: recommendationsData,
+    };
+
+    navigation.navigate('CMVRDocumentExport', exportParams);
   };
 
   const handleBack = () => navigation.goBack();
 
-  // Dynamic Title Logic
-  let nextQuarterStr = "2nd"; 
-  let nextYearStr = prevYear; 
-
-  if (prevQuarter === "1st") {
-    nextQuarterStr = "2nd";
-  } else if (prevQuarter === "2nd") {
-    nextQuarterStr = "3rd";
-  } else if (prevQuarter === "3rd") {
-    nextQuarterStr = "4th";
-  } else if (prevQuarter === "4th") {
-    nextQuarterStr = "1st";
+  let nextQuarterStr = '2nd';
+  let nextYearStr = prevYear;
+  if (prevQuarter === '1st') {
+    nextQuarterStr = '2nd';
+  } else if (prevQuarter === '2nd') {
+    nextQuarterStr = '3rd';
+  } else if (prevQuarter === '3rd') {
+    nextQuarterStr = '4th';
+  } else if (prevQuarter === '4th') {
+    nextQuarterStr = '1st';
     const yearNum = parseInt(prevYear, 10);
     if (!isNaN(yearNum)) {
       nextYearStr = (yearNum + 1).toString();
     } else {
-      nextYearStr = ""; 
+      nextYearStr = '';
     }
   }
 
-  const yearForTitle = nextYearStr || "[YEAR]";
+  const yearForTitle = nextYearStr || '[YEAR]';
   const currentTitle = `RECOMMENDATIONS FOR THE ${nextQuarterStr} QUARTER ${yearForTitle}`;
 
   return (
     <SafeAreaView style={styles.container}>
-      <CMSHeader
-        fileName="File_Name"
-        onBack={handleBack}
-        onSave={handleSave}
-      />
-
-      <ScrollView 
+      <CMSHeader fileName="File_Name" onBack={handleBack} onSave={handleSave} />
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Previous Recommendations */}
         <SectionHeader title="PREVIOUS RECOMMENDATIONS" />
         <QuarterSelector
           selectedQuarter={prevQuarter}
@@ -399,8 +432,6 @@ const RecommendationsScreen: React.FC = () => {
           onAdd={() => addPreviousRecommendation('port')}
           showStatus={true}
         />
-
-        {/* Current Recommendations */}
         <SectionHeader title={currentTitle} />
         <RecommendationSection
           title="PLANT"
@@ -423,25 +454,22 @@ const RecommendationsScreen: React.FC = () => {
           onAdd={() => addCurrentRecommendation('port')}
           showStatus={false}
         />
-
-        {/* Save Button */}
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Text style={styles.saveButtonText}>Save & Next</Text>
           <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-// --- 4. UPDATED STYLESHEET ---
+// --- Styles ---
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
     backgroundColor: '#F1F5F9',
   },
-  scrollView: { 
+  scrollView: {
     flex: 1,
   },
   scrollContent: {
@@ -449,7 +477,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingBottom: 48,
   },
-  // Section Header (PREVIOUS..., CURRENT...)
   sectionHeaderContainer: {
     backgroundColor: '#EFF6FF',
     paddingVertical: 12,
@@ -468,7 +495,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     textTransform: 'uppercase',
   },
-  // Quarter Selector Card
   quarterSelectorCard: {
     backgroundColor: 'white',
     borderRadius: 12,
@@ -487,7 +513,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  // --- Styles for NEW CustomPicker ---
   pickerContainer: {
     flex: 1,
   },
@@ -544,12 +569,10 @@ const styles = StyleSheet.create({
     color: '#1E40AF',
     fontWeight: '600',
   },
-  // --- End of CustomPicker Styles ---
   yearInput: {
     flex: 1,
     height: 44,
   },
-  // Section Card (PLANT, QUARRY, PORT)
   sectionCard: {
     backgroundColor: 'white',
     borderRadius: 12,
@@ -572,18 +595,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#BFDBFE',
   },
-  sectionTitle: { 
-    fontSize: 16, 
-    fontWeight: '700', 
-    color: '#1E40AF' 
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E40AF',
   },
-  naContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center' 
+  naContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  naLabel: { 
-    fontSize: 14, 
-    fontWeight: '500', 
+  naLabel: {
+    fontSize: 14,
+    fontWeight: '500',
     color: '#1E293B',
     marginRight: 8,
   },
@@ -604,7 +627,6 @@ const styles = StyleSheet.create({
   sectionContent: {
     padding: 16,
   },
-  // Recommendation Item Card
   itemCard: {
     backgroundColor: 'white',
     borderRadius: 8,
@@ -613,36 +635,35 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
   },
-  itemHeader: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    marginBottom: 12 
-  },
-  itemNumber: { 
-    width: 28, 
-    height: 28, 
-    borderRadius: 14, 
-    backgroundColor: '#1E40AF', 
-    justifyContent: 'center', 
-    alignItems: 'center' 
-  },
-  itemNumberText: { 
-    color: 'white', 
-    fontSize: 14, 
-    fontWeight: '600' 
-  },
-  removeButton: { 
-    padding: 4 
-  },
-  // Form Fields
-  fieldGroup: { 
+  itemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
   },
-  fieldLabel: { 
-    fontSize: 14, 
-    fontWeight: '600', 
-    color: '#1E293B', 
+  itemNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#1E40AF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  itemNumberText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  removeButton: {
+    padding: 4,
+  },
+  fieldGroup: {
+    marginBottom: 12,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
     marginBottom: 6,
     marginRight: 8,
   },
@@ -657,7 +678,6 @@ const styles = StyleSheet.create({
     minHeight: 44,
     color: '#1E293B',
   },
-  // Buttons
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -669,9 +689,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginTop: 8,
   },
-  addButtonText: { 
-    fontSize: 14, 
-    color: '#1E40AF', 
+  addButtonText: {
+    fontSize: 14,
+    color: '#1E40AF',
     fontWeight: '600',
     marginLeft: 6,
   },
@@ -690,9 +710,9 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-  saveButtonText: { 
-    color: 'white', 
-    fontSize: 16, 
+  saveButtonText: {
+    color: 'white',
+    fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.3,
   },

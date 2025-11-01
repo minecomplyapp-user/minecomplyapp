@@ -1,3 +1,5 @@
+// AppNavigator.tsx
+
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
@@ -110,6 +112,13 @@ const AppNavigator = () => {
               <RootStack.Screen
                 name="Recommendations"
                 component={RecommendationsScreen}
+                options={{ headerShown: false }}
+              />
+              
+              {/* --- 2. ADD THE SCREEN TO THE NAVIGATOR --- */}
+              <RootStack.Screen
+                name="CMVRDocumentExport"
+                component={CMVRDocumentExportScreen}
                 options={{ headerShown: false }}
               />
             </>
