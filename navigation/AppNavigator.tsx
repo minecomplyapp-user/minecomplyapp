@@ -42,7 +42,11 @@ const AppNavigator = () => {
   return (
     <FileNameProvider>
       <NavigationContainer>
-        <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        {/* Use a different navigator key to fully reset routes on auth changes */}
+        <RootStack.Navigator
+          key={session ? "app" : "auth"}
+          screenOptions={{ headerShown: false }}
+        >
           {!session ? (
             <RootStack.Screen
               name="Auth"
