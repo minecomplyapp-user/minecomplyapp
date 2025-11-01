@@ -74,7 +74,7 @@ export const PortSection: React.FC<PortSectionProps> = ({
       {/* Port Header */}
       <View style={styles.portHeaderContainer}>
         <View style={styles.portLabelContainer}>
-          <Ionicons name="location" size={16} color="#2563EB" style={styles.icon} />
+          <Ionicons name="location" size={16} color='#02217C' style={styles.icon} />
           <Text style={styles.portLabel}>Port</Text>
         </View>
         <TextInput
@@ -125,7 +125,7 @@ export const PortSection: React.FC<PortSectionProps> = ({
           style={styles.addParameterButton}
           onPress={() => onAddParameter(port.id)}
         >
-          <Ionicons name="add-circle-outline" size={18} color="#2563EB" />
+          <Ionicons name="add-circle-outline" size={18} color='#02217C' />
           <Text style={styles.addParameterText}>Add More Parameter</Text>
         </TouchableOpacity>
       </View>
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     borderColor: '#93C5FD',
     borderRadius: 10,
     gap: 10,
-    shadowColor: '#2563EB',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   portLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#02217C',
   },
   portInput: {
     flex: 1,
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 10,
-    shadowColor: '#2563EB',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -209,6 +209,6 @@ const styles = StyleSheet.create({
   addParameterText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#2563EB',
+    color: '#02217C',
   },
 });

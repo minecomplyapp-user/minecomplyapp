@@ -621,14 +621,13 @@ const RCFSection: React.FC<RCFSectionProps> = ({
   );
 };
 
-// Styles remain unchanged
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "white",
     borderRadius: 16,
     marginHorizontal: 16,
     marginVertical: 8,
-    shadowColor: "#1E40AF",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -653,7 +652,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#1E40AF",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -666,7 +665,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1E40AF",
+    color: '#02217C',
     letterSpacing: -0.3,
   },
   sectionSubtitle: {
@@ -723,8 +722,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   checkboxChecked: {
-    backgroundColor: "#1E40AF",
-    borderColor: "#1E40AF",
+    backgroundColor: '#02217C',
+    borderColor: '#02217C',
   },
   checkboxInner: {
     width: 10,
@@ -771,13 +770,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   submitButton: {
-    backgroundColor: "#1E40AF",
+    backgroundColor: '#02217C',
     width: 44,
     height: 44,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#1E40AF",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -804,7 +803,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     fontSize: 14,
-    color: "#1E40AF",
+    color: '#02217C',
     fontWeight: "600",
   },
   disabledText: {
@@ -833,7 +832,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   badge: {
-    backgroundColor: "#1E40AF",
+    backgroundColor: '#02217C',
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -848,7 +847,7 @@ const styles = StyleSheet.create({
   additionalFormTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#1E40AF",
+    color: '#02217C',
   },
   divider: {
     height: 1.5,

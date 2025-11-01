@@ -272,34 +272,31 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 12 : 12, // Basic safe area padding top
+    paddingTop: Platform.OS === 'ios' ? 12 : 12, 
     paddingBottom: 12,
     backgroundColor: "white",
-    // No shadow properties
-    // Optional border instead:
-    // borderBottomWidth: 1,
-    // borderBottomColor: '#E2E8F0',
+
   },
   scrollContent: {
     paddingTop: 8,
-    paddingBottom: 20, // Add padding at the bottom
+    paddingBottom: 20, 
   },
   divider: {
     height: 8,
     backgroundColor: "#F8F9FA",
   },
   saveNextButton: {
-     backgroundColor: "#1E40AF",
+     backgroundColor: '#02217C',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
-    marginHorizontal: 16, // Use horizontal margin to constrain width
+    marginHorizontal: 16, 
     marginTop: 24,       // Add margin top
     marginBottom: 16,      // Add margin bottom
     flexDirection: "row",
     justifyContent: "center",
     gap: 10,
-    shadowColor: "#1E40AF",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

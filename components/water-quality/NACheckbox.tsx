@@ -14,7 +14,7 @@ export const NACheckbox: React.FC<NACheckboxProps> = ({ checked, onPress }) => {
         style={[styles.checkbox, checked && styles.checkboxChecked]} 
         onPress={onPress}
       >
-        {checked && <Ionicons name="checkmark" size={14} color="#2563EB" />}
+        {checked && <Ionicons name="checkmark" size={14} color='#02217C' />}
       </TouchableOpacity>
       <Text style={styles.label}>N/A</Text>
     </View>
@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#2563EB',
+    borderColor: '#02217C',
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',

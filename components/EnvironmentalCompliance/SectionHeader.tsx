@@ -34,14 +34,14 @@ const styles = StyleSheet.create({
     gap: 12,
     borderWidth: 1,
     borderColor: '#BFDBFE',
-    shadowColor: '#2563EB',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
   },
   numberBadge: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#02217C',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E40AF',
+    color: '#02217C',
     flex: 1,
   },
 });

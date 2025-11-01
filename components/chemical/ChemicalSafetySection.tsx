@@ -67,7 +67,7 @@ export const ChemicalSafetySection: React.FC<ChemicalSafetySectionProps> = ({
       <View style={styles.headerSection}>
         <View style={styles.headerLeft}>
           <View style={styles.iconContainer}>
-            <Ionicons name="flask" size={24} color="#2563EB" />
+            <Ionicons name="flask" size={24} color='#02217C' />
           </View>
           <View style={styles.headerTextContainer}>
             <Text style={styles.sectionNumber}>4.</Text>
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginHorizontal: 16,
     marginVertical: 12,
-    shadowColor: "#1E40AF",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 16,
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#2563EB",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -166,13 +166,13 @@ const styles = StyleSheet.create({
   sectionNumber: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#2563EB",
+    color:'#02217C',
     marginRight: 8,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#1E40AF",
+    color: '#02217C',
     flexShrink: 1,
   },
   sectionContent: {
@@ -220,8 +220,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   checkboxChecked: {
-    backgroundColor: "#2563EB",
-    borderColor: "#2563EB",
+    backgroundColor: '#02217C',
+    borderColor: '#02217C',
   },
   adequateLabel: {
     fontSize: 14,
@@ -273,13 +273,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   radioSelected: {
-    borderColor: "#2563EB",
+    borderColor:'#02217C',
   },
   radioDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: "#2563EB",
+    backgroundColor:'#02217C',
   },
   disabledRadio: {
     borderColor: "#E2E8F0",

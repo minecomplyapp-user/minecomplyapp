@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   badge: {
-    backgroundColor: '#1E40AF',
+    backgroundColor: '#02217C',
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#02217C',
   },
   deleteButton: {
     padding: 6,
@@ -284,8 +284,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#1E40AF',
-    borderColor: '#1E40AF',
+    backgroundColor: '#02217C',
+    borderColor: '#02217C',
   },
   input: {
     backgroundColor: 'white',

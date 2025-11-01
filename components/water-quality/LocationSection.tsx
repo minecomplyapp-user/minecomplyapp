@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 10,
-    shadowColor: '#2563EB',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E40AF',
+    color:'#02217C',
     marginBottom: 14,
     textTransform: 'uppercase',
     letterSpacing: 0.5,

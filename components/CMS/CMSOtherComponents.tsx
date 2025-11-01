@@ -88,7 +88,7 @@ export const CMSOtherComponents: React.FC<CMSOtherComponentsProps> = ({
         </View>
       ))}
       <TouchableOpacity style={styles.addButton} onPress={onAddComponent}>
-        <Plus size={16} color="#2563EB" />
+        <Plus size={16} color='#02217C' />
         <Text style={styles.addButtonText}>Add More Components</Text>
       </TouchableOpacity>
     </>
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 8,
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     borderColor: '#93C5FD',
   },
   labelText: {
-    color: '#1E40AF',
+    color: '#02217C',
     fontWeight: '700',
     fontSize: 11,
     textAlign: 'center',
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: '#2563EB',
+    borderColor: '#02217C',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#02217C',
   },
   radioText: {
     fontSize: 11,
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     fontSize: 13,
-    color: '#2563EB',
+    color: '#02217C',
     fontWeight: '700',
   },
 });

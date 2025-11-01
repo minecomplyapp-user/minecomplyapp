@@ -41,7 +41,7 @@ export const ExecutiveSummarySection: React.FC<ExecutiveSummaryProps> = ({
     <View style={styles.container}>
       <View style={styles.headerSection}>
         <View style={styles.iconContainer}>
-          <Ionicons name="document-text" size={24} color="#1E40AF" />
+          <Ionicons name="document-text" size={24} color='#02217C' />
         </View>
         <View style={styles.headerTextContainer}>
           <Text style={styles.sectionTitle}>Executive Summary</Text>
@@ -51,7 +51,7 @@ export const ExecutiveSummarySection: React.FC<ExecutiveSummaryProps> = ({
 
       <View style={styles.sectionContent}>
         <View style={styles.infoBox}>
-          <Ionicons name="information-circle" size={20} color="#3B82F6" />
+          <Ionicons name="information-circle" size={20} color='#02217C' />
           <Text style={styles.infoText}>Unticked checkboxes are considered 'No' or 'Not Complied'.</Text>
         </View>
 
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginHorizontal: 16,
     marginVertical: 8,
-    shadowColor: "#1E40AF",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#1E40AF",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1E40AF",
+    color: '#02217C',
     letterSpacing: -0.3,
   },
   sectionSubtitle: {
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: "#1E40AF",
+    color: '#02217C',
     flex: 1,
     lineHeight: 18,
     fontWeight: "500",
@@ -436,8 +436,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   checkboxChecked: {
-    backgroundColor: "#1E40AF",
-    borderColor: "#1E40AF",
+    backgroundColor: '#02217C',
+    borderColor: '#02217C',
   },
   disabledCheckbox: {
     backgroundColor: "#E2E8F0",

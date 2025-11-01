@@ -27,6 +27,7 @@ import ChemicalSafetyScreen from "../screens/CMVRPAGE/ChemicalSafetyScreen";
 import RecommendationsScreen from "../screens/CMVRPAGE/RecommendationsScreen";
 import ECCMonitoringScreen from "../screens/ecc/ECCMonitoringScreen"
 import ECCMonitoringScreen2 from "../screens/ecc/conditions";
+import CMVRDocumentExportScreen from "../screens/CMVRPAGE/CMVRDocumentExportScreen";
 
 
 const RootStack = createStackNavigator();

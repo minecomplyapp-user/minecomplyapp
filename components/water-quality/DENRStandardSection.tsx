@@ -36,7 +36,7 @@ export const DENRStandardSection: React.FC<DENRStandardSectionProps> = ({
                 }
               }}
             >
-              {redFlagEnabled && <Ionicons name="checkmark" size={14} color="#2563EB" />}
+              {redFlagEnabled && <Ionicons name="checkmark" size={14} color='#02217C' />}
             </TouchableOpacity>
             <Text style={styles.inputLabel}>Red Flag:</Text>
           </View>
@@ -62,7 +62,7 @@ export const DENRStandardSection: React.FC<DENRStandardSectionProps> = ({
                 }
               }}
             >
-              {actionEnabled && <Ionicons name="checkmark" size={14} color="#2563EB" />}
+              {actionEnabled && <Ionicons name="checkmark" size={14} color='#02217C' />}
             </TouchableOpacity>
             <Text style={styles.inputLabel}>Action:</Text>
           </View>
@@ -88,7 +88,7 @@ export const DENRStandardSection: React.FC<DENRStandardSectionProps> = ({
                 }
               }}
             >
-              {limitEnabled && <Ionicons name="checkmark" size={14} color="#2563EB" />}
+              {limitEnabled && <Ionicons name="checkmark" size={14} color='#02217C' />}
             </TouchableOpacity>
             <Text style={styles.inputLabel}>Limit (mg/L):</Text>
           </View>
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#02217C',
     fontStyle: 'italic',
     marginBottom: 12,
   },
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#2563EB',
+    borderColor: '#02217C',
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',

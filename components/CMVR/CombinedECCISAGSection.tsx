@@ -104,7 +104,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
       <View style={styles.headerSection}>
         <View style={styles.headerLeft}>
           <View style={styles.iconContainer}>
-            <Ionicons name="shield-checkmark" size={24} color="#1E40AF" />
+            <Ionicons name="shield-checkmark" size={24} color='#02217C' />
           </View>
           <View style={styles.headerTextContainer}>
             <Text style={styles.sectionTitle}>ECC / ISAG-MPP</Text>
@@ -294,7 +294,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
               />
             </View>
             <TouchableOpacity style={styles.addButtonISAG} onPress={addISAGForm}>
-              <Ionicons name="add-circle-outline" size={20} color="#5B4FC7" />
+              <Ionicons name="add-circle-outline" size={20} color='#02217C' />
               <Text style={styles.addButtonTextISAG}>Add More Permit Holders</Text>
             </TouchableOpacity>
             {isagAdditionalForms.map((form, index) => (
@@ -493,13 +493,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginHorizontal: 16,
     marginVertical: 8,
-    shadowColor: "#1E40AF",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
+    borderColor: "#CBD5E1",
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: "#E0E7FF",
   },
   headerSection: {
     flexDirection: "row",
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#1E40AF",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1E40AF",
+    color: '#02217C',
     letterSpacing: -0.3,
   },
   sectionSubtitle: {
@@ -557,12 +557,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   checkboxCheckedECC: {
-    backgroundColor: "#1E40AF",
-    borderColor: "#1E40AF",
+    backgroundColor: '#02217C',
+    borderColor: '#02217C',
   },
   checkboxCheckedISAG: {
-    backgroundColor: "#5B4FC7",
-    borderColor: "#5B4FC7",
+    backgroundColor:'#02217C',
+    borderColor: '#02217C',
   },
   sectionContent: {
     padding: 20,
@@ -608,8 +608,8 @@ const styles = StyleSheet.create({
   formContainerISAG: {
     paddingTop: 20,
     paddingHorizontal: 4,
-    backgroundColor: "#F8F7FF",
-    borderColor: "#C4B5FD",
+     backgroundColor: "#F8FAFC",
+    borderColor: "#CBD5E1",
     borderWidth: 1.5,
     borderTopWidth: 0,
     padding: 16,
@@ -624,10 +624,10 @@ const styles = StyleSheet.create({
   sectionBadgeText: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#1E40AF",
+    color: '#02217C',
   },
   isagBadge: {
-    color: "#5B4FC7",
+    color: '#02217C',
   },
   fieldGroup: {
     marginBottom: 20,
@@ -657,26 +657,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   submitButton: {
-    backgroundColor: "#1E40AF",
+    backgroundColor: '#02217C',
     width: 44,
     height: 44,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#1E40AF",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   submitButtonISAG: {
-    backgroundColor: "#5B4FC7",
+    backgroundColor: '#02217C',
     width: 44,
     height: 44,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#5B4FC7",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -698,13 +698,13 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     fontSize: 14,
-    color: "#1E40AF",
+    color: '#02217C',
     fontWeight: "600",
   },
   addButtonISAG: {
-    backgroundColor: "#EDE9FE",
+    backgroundColor: "#EFF6FF",
     borderWidth: 2,
-    borderColor: "#C4B5FD",
+    borderColor: "#BFDBFE",
     borderStyle: "dashed",
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -717,7 +717,7 @@ const styles = StyleSheet.create({
   },
   addButtonTextISAG: {
     fontSize: 14,
-    color: "#5B4FC7",
+    color: '#02217C',
     fontWeight: "600",
   },
   additionalForm: {
@@ -729,12 +729,12 @@ const styles = StyleSheet.create({
     borderColor: "#CBD5E1",
   },
   additionalFormISAG: {
-    backgroundColor: "#F8F7FF",
+    backgroundColor: "#F8FAFC",
     borderRadius: 12,
     padding: 16,
     marginTop: 16,
     borderWidth: 1.5,
-    borderColor: "#E9D5FF",
+    borderColor: "#CBD5E1",
   },
   additionalFormHeader: {
     flexDirection: "row",
@@ -751,7 +751,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   badge: {
-    backgroundColor: "#1E40AF",
+    backgroundColor:'#02217C',
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   badgeISAG: {
-    backgroundColor: "#5B4FC7",
+    backgroundColor: '#02217C',
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -774,10 +774,10 @@ const styles = StyleSheet.create({
   additionalFormTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#1E40AF",
+    color: '#02217C',
   },
   isagTitle: {
-    color: "#5B4FC7",
+    color: '#02217C',
   },
   deleteButton: {
     padding: 6,

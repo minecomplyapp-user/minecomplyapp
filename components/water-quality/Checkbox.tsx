@@ -18,7 +18,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
       style={[styles.checkbox, { width: size, height: size }]}
       onPress={onPress}
     >
-      {checked && <Ionicons name="checkmark" size={size * 0.7} color="#2563EB" />}
+      {checked && <Ionicons name="checkmark" size={size * 0.7} color='#02217C' />}
     </TouchableOpacity>
   );
 };
@@ -26,7 +26,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
 const styles = StyleSheet.create({
   checkbox: {
     borderWidth: 2,
-    borderColor: '#2563EB',
+    borderColor: '#02217C',
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',

@@ -111,7 +111,7 @@ export const ResultMonitoring: React.FC<ResultMonitoringProps> = ({
           <Text style={styles.monthText}>
             {resultType || 'Select Month'}
           </Text>
-          <Ionicons name="chevron-down" size={16} color="#2563EB" />
+          <Ionicons name="chevron-down" size={16} color='#02217C' />
         </TouchableOpacity>
       </View>
 
@@ -154,7 +154,7 @@ export const ResultMonitoring: React.FC<ResultMonitoringProps> = ({
                     {month}
                   </Text>
                   {resultType === month && (
-                    <Ionicons name="checkmark" size={20} color="#2563EB" />
+                    <Ionicons name="checkmark" size={20} color='#02217C' />
                   )}
                 </TouchableOpacity>
               ))}
@@ -171,7 +171,7 @@ export const ResultMonitoring: React.FC<ResultMonitoringProps> = ({
               style={[styles.tssCheckbox, mainTSSChecked && styles.tssCheckboxChecked]}
               onPress={toggleMainTSSCheckbox}
             >
-              {mainTSSChecked && <Ionicons name="checkmark" size={14} color="#2563EB" />}
+              {mainTSSChecked && <Ionicons name="checkmark" size={14} color='#02217C' />}
             </TouchableOpacity>
             <Text style={styles.tssName}>TSS 01</Text>
           </View>
@@ -211,7 +211,7 @@ export const ResultMonitoring: React.FC<ResultMonitoringProps> = ({
                 style={[styles.tssCheckbox, tss.isChecked && styles.tssCheckboxChecked]}
                 onPress={() => toggleTSSCheckbox(tss.id)}
               >
-                {tss.isChecked && <Ionicons name="checkmark" size={14} color="#2563EB" />}
+                {tss.isChecked && <Ionicons name="checkmark" size={14} color='#02217C' />}
               </TouchableOpacity>
               <Text style={styles.tssName}>{tss.name}</Text>
             </View>
@@ -251,7 +251,7 @@ export const ResultMonitoring: React.FC<ResultMonitoringProps> = ({
 
       {/* Add More TSS Button */}
       <TouchableOpacity style={styles.addTSSButton} onPress={addTSS}>
-        <Ionicons name="add-circle-outline" size={16} color="#2563EB" />
+        <Ionicons name="add-circle-outline" size={16} color='#02217C' />
         <Text style={styles.addTSSText}>Add More TSS</Text>
       </TouchableOpacity>
     </>
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     fontStyle: 'italic',
-    color: '#1E40AF',
+    color: '#02217C',
     marginRight: 6,
   },
   resultLabel: {
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E40AF',
+    color:'#02217C',
   },
   monthList: {
     maxHeight: 400,
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   monthOptionTextSelected: {
-    color: '#2563EB',
+    color:'#02217C',
     fontWeight: '700',
   },
   tssContainer: {
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   tssName: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1E40AF',
+    color:'#02217C',
   },
   tssInputs: {
     flexDirection: 'row',
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#2563EB',
+    borderColor: '#02217C',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -438,6 +438,6 @@ const styles = StyleSheet.create({
   addTSSText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#2563EB',
+    color: '#02217C',
   },
 });

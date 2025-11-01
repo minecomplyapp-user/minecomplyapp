@@ -46,12 +46,12 @@ export const OverallCompliance: React.FC<OverallComplianceProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1E40AF',
+    backgroundColor: '#02217C',
     marginTop: 8,
     marginBottom: 16,
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   iconText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#2563EB',
+    color: '#02217C',
   },
   label: {
     fontSize: 14,
@@ -96,8 +96,8 @@ const styles = StyleSheet.create({
     color: '#1E293B',
   },
   inputFocused: {
-    borderColor: '#60A5FA',
-    shadowColor: '#2563EB',
+    borderColor: '#02217C',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,

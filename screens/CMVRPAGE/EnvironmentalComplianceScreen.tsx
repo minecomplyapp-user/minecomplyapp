@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { CMSHeader } from '../../components/CMSHeader';
 import { CheckboxField } from '../../components/EnvironmentalCompliance/CheckboxField';
@@ -62,7 +63,7 @@ type ComplianceData = {
 };
 
 export default function EnvironmentalComplianceScreen({ navigation, route }: any) {
-  const [isEccChecked, setIsEccChecked] = useState(false);
+  const [uploadedEccFile, setUploadedEccFile] = useState<any>(null);
   const [selectedLocations, setSelectedLocations] = useState<LocationState>({
     quarry: false,
     plant: false,
@@ -99,21 +100,46 @@ export default function EnvironmentalComplianceScreen({ navigation, route }: any
     setData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleEccCheckbox = () => {
-    const newCheckedState = !isEccChecked;
-    setIsEccChecked(newCheckedState);
-    if (newCheckedState) {
-      Alert.alert('Loading ECC', 'Loading ECC conditions from CMVR...');
-      setData((prev) => ({
-        ...prev,
-        eccConditions: 'ECC conditions from CMVR',
-      }));
-    } else {
-      setData((prev) => ({
-        ...prev,
-        eccConditions: '',
-      }));
+  const uploadEccFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/*'],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setUploadedEccFile(result.assets[0]);
+        Alert.alert('File Uploaded', `File "${result.assets[0].name}" uploaded successfully!`);
+        setData((prev) => ({
+          ...prev,
+          eccConditions: result.assets[0].name,
+        }));
+      }
+    } catch (error) {
+      Alert.alert('Upload Error', 'Failed to upload file. Please try again.');
+      console.error('Document picker error:', error);
     }
+  };
+
+  const removeEccFile = () => {
+    Alert.alert(
+      'Remove File',
+      'Are you sure you want to remove this file?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            setUploadedEccFile(null);
+            setData((prev) => ({
+              ...prev,
+              eccConditions: '',
+            }));
+          },
+        },
+      ]
+    );
   };
 
   const pickImage = async () => {
@@ -234,12 +260,34 @@ export default function EnvironmentalComplianceScreen({ navigation, route }: any
           title="Compliance to Environmental Compliance Certificate Conditions"
         />
         
-        {/* Upload ECC Conditions Checkbox */}
-        <CheckboxField
-          checked={isEccChecked}
-          onPress={handleEccCheckbox}
-          label="Use ECC Conditions from CMVR"
-        />
+        {/* Upload ECC Conditions File */}
+        <View style={styles.uploadSection}>
+          <Text style={styles.uploadLabel}>Upload ECC Conditions Document</Text>
+          {!uploadedEccFile ? (
+            <TouchableOpacity style={styles.uploadButton} onPress={uploadEccFile}>
+              <Ionicons name="cloud-upload-outline" size={24} color='#02217C' />
+              <Text style={styles.uploadButtonText}>Choose File</Text>
+              <Text style={styles.uploadHint}>PDF, DOC, or Image</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.uploadedFileContainer}>
+              <View style={styles.fileInfo}>
+                <Ionicons name="document-text" size={24} color="#10B981" />
+                <View style={styles.fileDetails}>
+                  <Text style={styles.fileName} numberOfLines={1}>
+                    {uploadedEccFile.name}
+                  </Text>
+                  <Text style={styles.fileSize}>
+                    {uploadedEccFile.size ? `${(uploadedEccFile.size / 1024).toFixed(2)} KB` : 'Size unknown'}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={removeEccFile} style={styles.removeButton}>
+                <Ionicons name="close-circle" size={24} color="#EF4444" />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
         
         {/* B.3 Section */}
         <SectionHeader number="B.3." title="Air Quality Impact Assessment" />
@@ -309,7 +357,7 @@ export default function EnvironmentalComplianceScreen({ navigation, route }: any
           
           {/* Add New Parameter Button */}
           <TouchableOpacity style={styles.addButton} onPress={addParameter}>
-            <Ionicons name="add-circle-outline" size={20} color="#2563EB" />
+            <Ionicons name="add-circle-outline" size={20} color='#02217C' />
             <Text style={styles.addButtonText}>Add New Parameter</Text>
           </TouchableOpacity>
         </View>
@@ -351,10 +399,82 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#02217C',
     marginBottom: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  uploadSection: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#02217C',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  uploadLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 12,
+  },
+  uploadButton: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 2,
+    borderColor: '#BFDBFE',
+    borderStyle: 'dashed',
+    borderRadius: 10,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#02217C',
+    marginTop: 8,
+  },
+  uploadHint: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 4,
+  },
+  uploadedFileContainer: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    borderRadius: 10,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  fileInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  fileDetails: {
+    flex: 1,
+  },
+  fileName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#166534',
+    marginBottom: 2,
+  },
+  fileSize: {
+    fontSize: 12,
+    color: '#16A34A',
+  },
+  removeButton: {
+    padding: 4,
   },
   formSection: {
     backgroundColor: '#FFFFFF',
@@ -363,7 +483,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    shadowColor: '#2563EB',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -387,7 +507,7 @@ const styles = StyleSheet.create({
     gap: 8,
     borderWidth: 1,
     borderColor: '#BFDBFE',
-    shadowColor: '#2563EB',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -399,12 +519,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   overallSection: {
-    backgroundColor: '#1E40AF',
+    backgroundColor: '#02217C',
     padding: 16,
     borderRadius: 12,
     marginTop: 16,
     marginBottom: 20,
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
@@ -429,7 +549,7 @@ const styles = StyleSheet.create({
   overallIcon: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#2563EB',
+    color: '#02217C',
   },
   overallLabel: {
     fontSize: 14,
@@ -438,7 +558,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   saveNextButton: {
-    backgroundColor:  "#1E40AF",
+    backgroundColor:  '#02217C',
     paddingVertical: 16,
     borderRadius: 10,
     alignItems: "center",
@@ -448,7 +568,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     gap: 10,
-    shadowColor:  "#1E40AF",
+    shadowColor:  '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
