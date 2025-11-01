@@ -25,16 +25,13 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({ onBack, onSave, fileName: 
   const [modalVisible, setModalVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
  
-  // Use prop if provided, otherwise use context
   const displayFileName = fileNameProp || contextFileName;
   const [editableFileName, setEditableFileName] = useState(displayFileName);
 
-  // Log the current display file name for debugging
   useEffect(() => {
     console.log('CMSHeader displayFileName:', displayFileName);
   }, [displayFileName]);
 
-  // Sync editableFileName when displayFileName changes
   useEffect(() => {
     console.log('Updating editableFileName to:', displayFileName);
     setEditableFileName(displayFileName);
