@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   number: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#02217C',
   },
   inputsRow: {
     flex: 1,

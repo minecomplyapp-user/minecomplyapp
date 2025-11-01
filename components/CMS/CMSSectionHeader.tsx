@@ -15,7 +15,7 @@ export const CMSSectionHeader: React.FC<CMSSectionHeaderProps> = ({
     <View style={styles.container}>
       <View style={styles.iconContainer}>
         <View style={styles.iconCircle}>
-          <Ionicons name="document-text-outline" size={20} color="#2563EB" />
+          <Ionicons name="document-text-outline" size={20} color='#02217C' />
         </View>
       </View>
       <View style={styles.textContainer}>
@@ -52,8 +52,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#93C5FD',
-    shadowColor: '#2563EB',
+    borderColor: '#02217C',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -65,11 +65,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E3A8A',
+    color: '#02217C',
     lineHeight: 19,
   },
   sectionNumber: {
     fontWeight: '800',
-    color: '#2563EB',
+    color: '#02217C',
   },
 });

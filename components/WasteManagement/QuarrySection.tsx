@@ -17,7 +17,7 @@ export const QuarrySection: React.FC<QuarrySectionProps> = ({ data, onUpdate }) 
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.iconContainer}>
-          <Ionicons name="hammer" size={20} color="#1E40AF" />
+          <Ionicons name="hammer" size={20} color='#02217C' />
         </View>
         <Text style={styles.title}>Quarry</Text>
       </View>
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 16,
     marginBottom: 16,
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#02217C',
   },
   content: {
     padding: 20,
@@ -109,13 +109,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   radioChecked: {
-    borderColor: '#1E40AF',
+    borderColor: '#02217C',
   },
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#1E40AF',
+    backgroundColor: '#02217C',
   },
   radioLabel: {
     fontSize: 14,

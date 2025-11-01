@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
   previewCard: {
     backgroundColor: "white",
     borderRadius: 16,
-    shadowColor: "#1E40AF",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   cardHeader: {
-    backgroundColor: "#1E40AF",
+    backgroundColor: '#02217C',
     padding: 20,
     flexDirection: "row",
     alignItems: "center",
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   formatButtonActive: {
-    borderColor: "#1E40AF",
+    borderColor: '#02217C',
     backgroundColor: "#EFF6FF",
   },
   formatIcon: {
@@ -617,7 +617,7 @@ const styles = StyleSheet.create({
   },
   summaryAdditional: {
     fontSize: 11,
-    color: "#2563EB",
+    color: '#02217C',
     marginTop: 4,
   },
   generatedSection: {

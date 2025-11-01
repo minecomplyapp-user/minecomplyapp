@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-// --- New Types for PlantSection ---
 
 type PlantSectionData = {
   noSignificantImpact: boolean;
@@ -14,17 +13,14 @@ type PlantSectionProps = {
   onUpdate: (field: keyof PlantSectionData, value: boolean) => void;
 };
 
-// --- New PlantSection Component ---
 
 export const PlantSection: React.FC<PlantSectionProps> = ({ data, onUpdate }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.iconContainer}>
-          {/* Changed icon to "leaf" */}
-          <Ionicons name="leaf" size={20} color="#1E40AF" />
+          <Ionicons name="leaf" size={20} color='#02217C' />
         </View>
-        {/* Changed title to "Plant" */}
         <Text style={styles.title}>Plant</Text>
       </View>
 
@@ -53,16 +49,13 @@ export const PlantSection: React.FC<PlantSectionProps> = ({ data, onUpdate }) =>
   );
 };
 
-// --- This section assumes the 'styles' object ---
-// --- from your QuarrySection is in the same file or imported ---
-// --- No need to duplicate the styles code. ---
 
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'white',
     borderRadius: 16,
     marginBottom: 16,
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -88,7 +81,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -97,7 +90,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#02217C',
   },
   content: {
     padding: 20,
@@ -119,13 +112,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   radioChecked: {
-    borderColor: '#1E40AF',
+    borderColor: '#02217C',
   },
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#1E40AF',
+    backgroundColor: '#02217C',
   },
   radioLabel: {
     fontSize: 14,

@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   parameterLabel: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#02217C',
   },
   naContainer: {
     flexDirection: 'row',
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderWidth: 2,
-    borderColor: '#2563EB',
+    borderColor: '#02217C',
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   resultsTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#02217C',
     marginBottom: 16,
   },
   resultsGrid: {
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   columnHeader: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#02217C',
     textAlign: 'center',
   },
   fieldLabel: {
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
   eqplTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#02217C',
     marginBottom: 12,
   },
   input: {

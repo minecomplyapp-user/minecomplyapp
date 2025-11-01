@@ -190,7 +190,7 @@ export default function NoiseQualityScreen({ navigation }: any) {
           ))}
 
           <TouchableOpacity style={styles.addButton} onPress={addParameter}>
-            <Ionicons name="add-circle" size={20} color="#1E40AF" />
+            <Ionicons name="add-circle" size={20} color='#02217C' />
             <Text style={styles.addButtonText}>Add More Parameter</Text>
           </TouchableOpacity>
         </View>
@@ -259,7 +259,7 @@ export default function NoiseQualityScreen({ navigation }: any) {
 
         <View style={styles.overallAssessmentContainer}>
           <View style={styles.overallHeader}>
-            <Ionicons name="analytics" size={20} color="#1E40AF" />
+            <Ionicons name="analytics" size={20} color='#02217C' />
             <Text style={styles.overallTitle}>Overall Noise Quality Impact Assessment</Text>
           </View>
         </View>
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 16,
     marginVertical: 16,
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#BFDBFE',
   },
   sectionBadge: {
-    backgroundColor: '#1E40AF',
+    backgroundColor: '#02217C',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#02217C',
     flex: 1,
     letterSpacing: -0.3,
   },
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     fontSize: 14,
-    color: '#1E40AF',
+    color: '#02217C',
     fontWeight: '600',
   },
   additionalFieldsContainer: {
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -458,8 +458,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#1E40AF',
-    borderColor: '#1E40AF',
+    backgroundColor: '#02217C',
+    borderColor: '#02217C',
   },
   input: {
     backgroundColor: '#F8FAFC',
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 16,
     marginBottom: 16,
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
   overallTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#02217C',
     flex: 1,
   },
   quartersContainer: {
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -549,14 +549,14 @@ const styles = StyleSheet.create({
     color: '#0F172A',
   },
   saveNextButton: {
-    backgroundColor: '#1E40AF',
+    backgroundColor: '#02217C',
     paddingVertical: 16,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 12,

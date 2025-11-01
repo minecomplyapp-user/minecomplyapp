@@ -48,7 +48,7 @@ export const ProcessDocumentationSection: React.FC<ProcessDocumentationProps> = 
     <View style={styles.container}>
       <View style={styles.headerSection}>
         <View style={styles.iconContainer}>
-          <Ionicons name="clipboard" size={24} color="#1E40AF" />
+          <Ionicons name="clipboard" size={24} color='#02217C' />
         </View>
         <View style={styles.headerTextContainer}>
           <Text style={styles.sectionTitle}>Process Documentation</Text>
@@ -81,14 +81,14 @@ export const ProcessDocumentationSection: React.FC<ProcessDocumentationProps> = 
 
         <View style={styles.subsectionHeader}>
           <View style={styles.subsectionIconContainer}>
-            <Ionicons name="folder-open" size={18} color="#1E40AF" />
+            <Ionicons name="folder-open" size={18} color='#02217C'/>
           </View>
           <Text style={styles.subsectionTitle}>Document Review Activities</Text>
         </View>
 
         <View style={styles.activityCard}>
           <View style={styles.activityHeader}>
-            <Ionicons name="document" size={18} color="#1E40AF" />
+            <Ionicons name="document" size={18} color='#02217C' />
             <Text style={styles.activityTitle}>ECC Conditions/Commitments</Text>
           </View>
           <View style={styles.fieldGroup}>
@@ -119,14 +119,14 @@ export const ProcessDocumentationSection: React.FC<ProcessDocumentationProps> = 
             </View>
           ))}
           <TouchableOpacity style={styles.addButton} onPress={addEccMmtMember}>
-            <Ionicons name="add-circle" size={20} color="#1E40AF" />
+            <Ionicons name="add-circle" size={20} color='#02217C' />
             <Text style={styles.addButtonText}>Add more members</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.activityCard}>
           <View style={styles.activityHeader}>
-            <Ionicons name="leaf" size={18} color="#1E40AF" />
+            <Ionicons name="leaf" size={18} color='#02217C' />
             <Text style={styles.activityTitle}>EPEP/AEPEP Conditions</Text>
           </View>
           <View style={styles.fieldGroup}>
@@ -157,7 +157,7 @@ export const ProcessDocumentationSection: React.FC<ProcessDocumentationProps> = 
             </View>
           ))}
           <TouchableOpacity style={styles.addButton} onPress={addEpepMmtMember}>
-            <Ionicons name="add-circle" size={20} color="#1E40AF" />
+            <Ionicons name="add-circle" size={20} color='#02217C'/>
             <Text style={styles.addButtonText}>Add more members</Text>
           </TouchableOpacity>
         </View>
@@ -166,14 +166,14 @@ export const ProcessDocumentationSection: React.FC<ProcessDocumentationProps> = 
 
         <View style={styles.subsectionHeader}>
           <View style={styles.subsectionIconContainer}>
-            <Ionicons name="eye" size={18} color="#1E40AF" />
+            <Ionicons name="eye" size={18} color='#02217C'/>
           </View>
           <Text style={styles.subsectionTitle}>Site Validation Activities</Text>
         </View>
 
         <View style={styles.activityCard}>
           <View style={styles.activityHeader}>
-            <Ionicons name="walk" size={18} color="#1E40AF" />
+            <Ionicons name="walk" size={18} color='#02217C'/>
             <Text style={styles.activityTitle}>Site Ocular Validation</Text>
             <TouchableOpacity
               style={styles.naButton}
@@ -222,7 +222,7 @@ export const ProcessDocumentationSection: React.FC<ProcessDocumentationProps> = 
               onPress={addOcularMmtMember}
               disabled={processDoc.ocularNA}
             >
-              <Ionicons name="add-circle" size={20} color={processDoc.ocularNA ? "#94A3B8" : "#1E40AF"} />
+              <Ionicons name="add-circle" size={20} color={processDoc.ocularNA ? "#94A3B8" : '#02217C'} />
               <Text style={[styles.addButtonText, processDoc.ocularNA && styles.disabledButtonText]}>Add more members</Text>
             </TouchableOpacity>
           </View>
@@ -230,7 +230,7 @@ export const ProcessDocumentationSection: React.FC<ProcessDocumentationProps> = 
 
         <View style={styles.activityCard}>
           <View style={styles.activityHeader}>
-            <Ionicons name="flask" size={18} color="#1E40AF" />
+            <Ionicons name="flask" size={18} color='#02217C' />
             <View style={{ flex: 1 }}>
               <Text style={styles.activityTitle}>Confirmatory Sampling</Text>
               <Text style={styles.activitySubtitle}>(if needed)</Text>
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginHorizontal: 16,
     marginVertical: 8,
-    shadowColor: "#1E40AF",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#1E40AF",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1E40AF",
+    color: '#02217C',
     letterSpacing: -0.3,
   },
   sectionSubtitle: {
@@ -406,8 +406,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   checkboxChecked: {
-    backgroundColor: "#1E40AF",
-    borderColor: "#1E40AF",
+    backgroundColor: '#02217C',
+    borderColor: '#02217C',
   },
   checkboxLabel: {
     fontSize: 14,
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
   activityTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#1E40AF",
+    color: '#02217C',
     flexShrink: 1,
   },
   activitySubtitle: {
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     fontSize: 14,
-    color: "#1E40AF",
+    color: '#02217C',
     fontWeight: "600",
   },
   disabledContent: {

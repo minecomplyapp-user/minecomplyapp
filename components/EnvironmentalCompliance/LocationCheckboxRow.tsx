@@ -23,7 +23,7 @@ export const LocationCheckboxRow: React.FC<LocationCheckboxRowProps> = ({
         style={[styles.checkbox, isSelected && styles.checkboxSelected]} 
         onPress={onCheckboxPress}
       >
-        {isSelected && <Ionicons name="checkmark" size={14} color="#2563EB" />}
+        {isSelected && <Ionicons name="checkmark" size={14} color='#02217C' />}
       </TouchableOpacity>
       <Text style={styles.formLabel}>{label}</Text>
       <TextInput
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#2563EB',
+    borderColor: '#02217C',
     borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',

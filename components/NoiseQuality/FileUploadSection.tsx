@@ -53,7 +53,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.uploadButton} onPress={pickFile}>
-        <Ionicons name="cloud-upload" size={20} color="#1E40AF" />
+        <Ionicons name="cloud-upload" size={20} color='#02217C' />
         <Text style={styles.uploadText}>Upload File / Image</Text>
       </TouchableOpacity>
 
@@ -62,7 +62,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
           <Text style={styles.fileListHeader}>Selected Files ({uploadedFiles.length})</Text>
           {uploadedFiles.map((file) => (
             <View key={file.uri} style={styles.fileRow}>
-              <Ionicons name="document-text" size={18} color="#3B82F6" />
+              <Ionicons name="document-text" size={18} color='#02217C'/>
               <Text style={styles.fileName} numberOfLines={1}>
                 {file.name}
               </Text>
@@ -98,8 +98,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#1E40AF',
-    borderColor: '#1E40AF',
+    backgroundColor: '#02217C',
+    borderColor: '#02217C',
   },
   checkboxLabel: {
     fontSize: 14,
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   },
   uploadText: {
     fontSize: 14,
-    color: '#1E40AF',
+    color: '#02217C',
     fontWeight: '600',
   },
   fileListContainer: {

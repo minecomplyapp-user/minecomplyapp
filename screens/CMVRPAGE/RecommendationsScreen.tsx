@@ -68,7 +68,7 @@ interface RecommendationSectionProps {
 
 // --- Stack Param List ---
 type RootStackParamList = {
-  CMVRDocumentExport: {
+  AttendanceRecords: {
     generalInfo?: any;
     eccInfo?: any;
     eccAdditionalForms?: any[];
@@ -370,7 +370,7 @@ const RecommendationsScreen: React.FC = () => {
       recommendations: recommendationsData,
     };
 
-    navigation.navigate('CMVRDocumentExport', exportParams);
+    navigation.navigate('AttendanceRecords', exportParams);
   };
 
   const handleBack = () => navigation.goBack();
@@ -463,7 +463,6 @@ const RecommendationsScreen: React.FC = () => {
   );
 };
 
-// --- Styles ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -491,7 +490,7 @@ const styles = StyleSheet.create({
   sectionHeaderTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#02217C',
     textAlign: 'center',
     textTransform: 'uppercase',
   },
@@ -502,7 +501,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#E0E7FF',
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
@@ -566,7 +565,7 @@ const styles = StyleSheet.create({
     color: '#1E293B',
   },
   modalItemTextSelected: {
-    color: '#1E40AF',
+    color: '#02217C',
     fontWeight: '600',
   },
   yearInput: {
@@ -579,7 +578,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E7FF',
     marginBottom: 16,
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
@@ -598,7 +597,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E40AF',
+    color:'#02217C',
   },
   naContainer: {
     flexDirection: 'row',
@@ -615,14 +614,14 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#1E40AF',
+    borderColor: '#02217C',
     backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#1E40AF',
-    borderColor: '#1E40AF',
+    backgroundColor: '#02217C',
+    borderColor: '#02217C',
   },
   sectionContent: {
     padding: 16,
@@ -645,7 +644,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#1E40AF',
+    backgroundColor: '#02217C',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -691,12 +690,12 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     fontSize: 14,
-    color: '#1E40AF',
+    color: '#02217C',
     fontWeight: '600',
     marginLeft: 6,
   },
   saveButton: {
-    backgroundColor: '#1E40AF',
+    backgroundColor: '#02217C',
     paddingVertical: 16,
     borderRadius: 12,
     flexDirection: 'row',
@@ -704,7 +703,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
     marginTop: 24,
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 12,

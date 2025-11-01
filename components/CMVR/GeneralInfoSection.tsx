@@ -3,6 +3,7 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity, Modal, Alert } fro
 import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { Picker } from '@react-native-picker/picker';
 
 interface GeneralInfoProps {
   companyName: string;
@@ -11,6 +12,11 @@ interface GeneralInfoProps {
   region: string;
   province: string;
   municipality: string;
+  quarter: string;
+  year: string;
+  dateOfCompliance: string;
+  monitoringPeriod: string;
+  dateOfCMRSubmission: string;
   onChange: (field: string, value: string) => void;
 }
 
@@ -21,6 +27,11 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
   region,
   province,
   municipality,
+  quarter,
+  year,
+  dateOfCompliance,
+  monitoringPeriod,
+  dateOfCMRSubmission,
   onChange,
 }) => {
   const [showMap, setShowMap] = useState(false);
@@ -76,10 +87,35 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
     setSelectedLocation({ latitude, longitude });
   };
 
-  const confirmLocation = () => {
+  const confirmLocation = async () => {
     if (selectedLocation) {
-      const locationString = `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`;
-      onChange("location", locationString);
+      try {
+        const [address] = await Location.reverseGeocodeAsync({
+          latitude: selectedLocation.latitude,
+          longitude: selectedLocation.longitude,
+        });
+
+        if (address) {
+          const addressParts = [
+            address.street,
+            address.district,
+            address.city || address.subregion,
+          ].filter(Boolean);
+          const fullAddress = addressParts.join(', ');
+          
+          onChange("location", fullAddress || `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`);
+          onChange("region", address.region || '');
+          onChange("province", address.subregion || address.region || '');
+          onChange("municipality", address.city || address.subregion || '');
+        } else {
+          const locationString = `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`;
+          onChange("location", locationString);
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Failed to get address for this location.');
+        const locationString = `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`;
+        onChange("location", locationString);
+      }
       setShowMap(false);
     }
   };
@@ -90,7 +126,7 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
       <View style={styles.headerSection}>
         <View style={styles.headerLeft}>
           <View style={styles.iconContainer}>
-            <Ionicons name="information-circle" size={24} color="#2563EB" />
+            <Ionicons name="information-circle" size={24} color='#02217C' />
           </View>
           <View style={styles.headerTextContainer}>
             <Text style={styles.sectionTitle}>General Information</Text>
@@ -179,6 +215,65 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
           </View>
         </View>
 
+        {/* Quarter and Year Row */}
+        <View style={styles.rowContainer}>
+          <View style={styles.halfField}>
+            <Text style={styles.label}>Quarter</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={quarter}
+                onValueChange={(value: string) => onChange("quarter", value)}
+                style={styles.picker}
+              >
+                <Picker.Item label="Select Quarter" value="" />
+                <Picker.Item label="1st Quarter" value="1st" />
+                <Picker.Item label="2nd Quarter" value="2nd" />
+                <Picker.Item label="3rd Quarter" value="3rd" />
+                <Picker.Item label="4th Quarter" value="4th" />
+              </Picker>
+            </View>
+          </View>
+
+          <View style={styles.halfField}>
+            <Text style={styles.label}>Year</Text>
+            <TextInput
+              style={styles.input}
+              value={year}
+              onChangeText={(text) => onChange("year", text)}
+              placeholder="Enter year"
+              placeholderTextColor="#94A3B8"
+              keyboardType="numeric"
+            />
+          </View>
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Date of Compliance Monitoring and Validation</Text>
+          
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Monitoring Period Covered</Text>
+          <TextInput
+            style={styles.input}
+            value={monitoringPeriod}
+            onChangeText={(text) => onChange("monitoringPeriod", text)}
+            placeholder="Enter monitoring period"
+            placeholderTextColor="#94A3B8"
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Date of CMR Submission</Text>
+          <TextInput
+            style={styles.input}
+            value={dateOfCMRSubmission}
+            onChangeText={(text) => onChange("dateOfCMRSubmission", text)}
+            placeholder="Month/Date/Year"
+            placeholderTextColor="#94A3B8"
+          />
+        </View>
+
         <TouchableOpacity style={styles.saveButton}>
           <Ionicons name="save" size={18} color="white" />
           <Text style={styles.saveButtonText}>Save General Info</Text>
@@ -245,7 +340,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginHorizontal: 16,
     marginVertical: 8,
-    shadowColor: "#2563EB",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -275,7 +370,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#2563EB",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -288,7 +383,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1E3A8A",
+    color: '#02217C',
     letterSpacing: -0.3,
   },
   sectionSubtitle: {
@@ -322,14 +417,14 @@ const styles = StyleSheet.create({
     color: "#0F172A",
   },
   mapButton: {
-    backgroundColor: "#10B981",
+    backgroundColor: '#02217C',
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
-    shadowColor: "#10B981",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -366,15 +461,33 @@ const styles = StyleSheet.create({
   multiField: {
     flex: 1,
   },
+  rowContainer: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 18,
+  },
+  halfField: {
+    flex: 1,
+  },
+  pickerContainer: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  picker: {
+    color: "#0F172A",
+  },
   saveButton: {
-    backgroundColor: "#2563EB",
+    backgroundColor: '#02217C',
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
-    shadowColor: "#2563EB",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -434,7 +547,7 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     flex: 1,
-    backgroundColor: "#10B981",
+    backgroundColor: '#02217C',
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

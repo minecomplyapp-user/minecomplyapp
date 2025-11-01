@@ -112,7 +112,7 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
           {showUploadImage && (
             <>
               <TouchableOpacity style={styles.uploadButton} onPress={onUploadImage}>
-                <Upload size={14} color="#2563EB" />
+                <Upload size={14} color='#02217C' />
                 <Text style={styles.uploadText}>Upload Image</Text>
               </TouchableOpacity>
               {uploadedImage && (
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 8,
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     borderColor: '#93C5FD',
   },
   labelText: {
-    color: '#1E40AF',
+    color: '#02217C',
     fontWeight: '700',
     fontSize: 11,
     textAlign: 'center',
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#02217C',
     marginRight: 6,
   },
   subFieldLabelText: {
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: '#2563EB',
+    borderColor:'#02217C',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#02217C',
   },
   radioText: {
     fontSize: 11,
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2563EB',
+    borderColor: '#02217C',
     paddingHorizontal: 8,
     paddingVertical: 6,
     marginTop: 10,
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   uploadText: {
     marginLeft: 4,
     fontSize: 10,
-    color: '#2563EB',
+    color: '#02217C',
     fontWeight: '600',
   },
   imagePreviewContainer: {

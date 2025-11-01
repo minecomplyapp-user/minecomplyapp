@@ -214,7 +214,7 @@ export default function ChemicalSafetyScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F1F5F9', // Screen background
+    backgroundColor: '#F1F5F9', 
   },
   scrollView: {
     flex: 1,
@@ -222,16 +222,15 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingVertical: 16,
     paddingBottom: 32,
-    paddingHorizontal: 16, // Add horizontal padding for content
+    paddingHorizontal: 16, 
   },
   saveButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#02217C',
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: 'center',
-    // marginHorizontal: 16, // Removed, now handled by scrollContent
     marginTop: 24,
-    shadowColor: '#2563EB',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

@@ -47,7 +47,7 @@ export const OperationSectionComponent: React.FC<OperationSectionProps> = ({
       ))}
 
       <TouchableOpacity style={styles.addButton} onPress={onAddMeasure}>
-        <Plus size={16} color="#2563EB" />
+        <Plus size={16} color='#02217C' />
         <Text style={styles.addButtonText}>Add More</Text>
       </TouchableOpacity>
     </View>
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 16,
     padding: 16,
-    shadowColor: '#2563EB',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   titleText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1E40AF',
+    color:'#02217C',
   },
   naContainer: {
     flexDirection: 'row',
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     fontSize: 13,
-    color: '#2563EB',
+    color: '#02217C',
     fontWeight: '700',
   },
 });

@@ -224,7 +224,6 @@ export default function WasteManagementScreen({ navigation }: any) {
 
         <QuarrySection data={quarryData} onUpdate={updateQuarryData} />
 
-        {/* --- 4. Add the new PlantSection component --- */}
         <PlantSection data={plantSimpleData} onUpdate={updatePlantSimpleData} />
 
         <PlantPortSection
@@ -274,7 +273,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -288,7 +287,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 16,
     marginVertical: 16,
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -306,7 +305,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#BFDBFE',
   },
   sectionBadge: {
-    backgroundColor: '#1E40AF',
+    backgroundColor: '#02217C',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -321,12 +320,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#02217C',
     flex: 1,
     letterSpacing: -0.3,
   },
   saveNextButton: {
-    backgroundColor: '#1E40AF',
+    backgroundColor: '#02217C',
     paddingVertical: 16,
     borderRadius: 12,
     flexDirection: 'row',
@@ -334,7 +333,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
     marginTop: 8,
-    shadowColor: '#1E40AF',
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 12,

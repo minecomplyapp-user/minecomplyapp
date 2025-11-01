@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TextInput, TouchableOpacity, Modal, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons"; // Assuming you might want icons later
+import { Ionicons } from "@expo/vector-icons"; 
 
 interface FileNameModalProps {
   isEditingFileName: boolean;
@@ -22,16 +22,16 @@ export const FileNameModal: React.FC<FileNameModalProps> = ({
       visible={isEditingFileName}
       transparent={true}
       animationType="fade"
-      onRequestClose={handleCancelEdit} // Handles Android back button press
+      onRequestClose={handleCancelEdit}
     >
-      <TouchableOpacity // Use TouchableOpacity for the overlay to allow dismissing by tapping outside
+      <TouchableOpacity
         style={styles.modalOverlay}
         activeOpacity={1}
-        onPressOut={handleCancelEdit} // Dismiss when tapping the overlay
+        onPressOut={handleCancelEdit}
       >
         <View
             style={styles.modalContent}
-            onStartShouldSetResponder={() => true} // Prevent taps inside the modal from closing it
+            onStartShouldSetResponder={() => true}
         >
           <Text style={styles.modalTitle}>Edit File Name</Text>
           <TextInput
@@ -39,9 +39,9 @@ export const FileNameModal: React.FC<FileNameModalProps> = ({
             value={tempFileName}
             onChangeText={setTempFileName}
             placeholder="Enter file name"
-            placeholderTextColor="#9CA3AF" // Consistent placeholder color
-            autoFocus // Keep autofocus
-            selectionColor="#5B4FC7" // Set cursor/selection color
+            placeholderTextColor="#9CA3AF" 
+            autoFocus 
+            selectionColor='#02217C'
           />
           <View style={styles.modalButtons}>
             {/* Cancel Button */}
@@ -65,77 +65,76 @@ export const FileNameModal: React.FC<FileNameModalProps> = ({
   );
 };
 
-// --- Updated Styles ---
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.6)", // Slightly darker overlay
+    backgroundColor: "rgba(0, 0, 0, 0.6)", 
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 20, // Add padding to overlay
+    paddingHorizontal: 20, 
   },
   modalContent: {
     backgroundColor: "white",
-    borderRadius: 16, // More rounded corners
-    padding: 24, // Increased padding
-    width: "100%", // Take full width within overlay padding
+    borderRadius: 16, 
+    padding: 24,
+    width: "100%", 
     maxWidth: 400,
-    shadowColor: "#000", // Add shadow for depth
+    shadowColor: "#000", 
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 10,
   },
   modalTitle: {
-    fontSize: 20, // Larger title
-    fontWeight: "700", // Bolder
-    color: "#5B4FC7", // Theme color
-    marginBottom: 20, // More space below title
+    fontSize: 20, 
+    fontWeight: "700",
+    color: '#02217C', 
+    marginBottom: 20, 
     textAlign: "center",
   },
   modalInput: {
-    backgroundColor: "#F8FAFC", // Match input background
+    backgroundColor: "#F8FAFC", 
     borderWidth: 1.5,
-    borderColor: "#CBD5E1", // Match input border
-    borderRadius: 12, // Match input border radius
+    borderColor: "#CBD5E1", 
+    borderRadius: 12, 
     paddingHorizontal: 16,
     paddingVertical: 14,
-    fontSize: 16, // Slightly larger font
-    color: "#0F172A", // Match input text color
-    marginBottom: 24, // More space below input
+    fontSize: 16, 
+    color: "#0F172A", 
+    marginBottom: 24, 
   },
   modalButtons: {
     flexDirection: "row",
-    gap: 12, // Keep gap
+    gap: 12, 
   },
   modalButton: {
     flex: 1,
-    paddingVertical: 14, // Increased padding
-    borderRadius: 12, // Match input border radius
+    paddingVertical: 14, 
+    borderRadius: 12, 
     alignItems: "center",
     justifyContent: 'center',
   },
   modalCancelButton: {
-    backgroundColor: "#F1F5F9", // Lighter grey background
+    backgroundColor: "#F1F5F9", 
     borderWidth: 1.5,
-    borderColor: "#E2E8F0", // Subtle border
+    borderColor: "#E2E8F0", 
   },
   modalSaveButton: {
-    backgroundColor: "#5B4FC7", // Theme color
-    shadowColor: "#5B4FC7", // Add shadow to primary button
+    backgroundColor: '#02217C', 
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
   },
   modalCancelButtonText: {
-    color: "#475569", // Darker grey text
+    color: "#475569", 
     fontSize: 16,
-    fontWeight: "600", // Semi-bold
+    fontWeight: "600",
   },
   modalSaveButtonText: {
     color: "white",
     fontSize: 16,
-    fontWeight: "600", // Semi-bold
+    fontWeight: "600", 
   },
 });

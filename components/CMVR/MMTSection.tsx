@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginHorizontal: 16,
     marginVertical: 8,
-    shadowColor: "#1E40AF",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#1E40AF",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1E40AF",
+    color: '#02217C',
     letterSpacing: -0.3,
   },
   sectionSubtitle: {
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   },
   autoPopulateText: {
     fontSize: 13,
-    color: "#1E40AF",
+    color:'#02217C',
     fontWeight: "600",
   },
   formContent: {
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     paddingTop: 14,
   },
   saveButton: {
-    backgroundColor: "#1E40AF",
+    backgroundColor: '#02217C',
     paddingVertical: 16,
     borderRadius: 12,
     flexDirection: "row",
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     marginTop: 8,
-    shadowColor: "#1E40AF",
+    shadowColor:'#02217C',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 12,

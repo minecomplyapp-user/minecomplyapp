@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   parameterLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#02217C',
   },
   parameterInput: {
     backgroundColor: '#F8FAFC',

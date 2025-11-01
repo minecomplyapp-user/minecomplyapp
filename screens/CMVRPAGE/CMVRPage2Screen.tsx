@@ -218,17 +218,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   saveNextButton: {
-     backgroundColor: "#1E40AF",
+     backgroundColor: '#02217C',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
-    marginHorizontal: 16, // Use horizontal margin to constrain width
-    marginTop: 24,       // Add margin top
-    marginBottom: 16,      // Add margin bottom
+    marginHorizontal: 16, 
+    marginTop: 24,       
+    marginBottom: 16,      
     flexDirection: "row",
     justifyContent: "center",
     gap: 10,
-    shadowColor: "#1E40AF",
+    shadowColor: '#02217C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
