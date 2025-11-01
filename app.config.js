@@ -31,8 +31,8 @@ export default {
         "READ_EXTERNAL_STORAGE",
         "CAMERA",
         "RECORD_AUDIO",
-        "ACCESS_COARSE_LOCATION", 
-        "ACCESS_FINE_LOCATION",  
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
       ],
     },
 
@@ -48,7 +48,7 @@ export default {
         NSLocationWhenInUseUsageDescription:
           "This app uses your location to provide location-based services.",
         NSLocationAlwaysAndWhenInUseUsageDescription:
-          "This app may need your location even when not in use for better service accuracy.", 
+          "This app may need your location even when not in use for better service accuracy.",
       },
     },
 
@@ -85,6 +85,13 @@ export default {
       USE_RENDER_API: process.env.USE_RENDER_API ?? "false",
       API_BASE_URL: process.env.API_BASE_URL ?? null,
       EXPO_PUBLIC_API_BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL ?? null,
+      // Where Supabase should redirect users after they click the
+      // "Verify email" button in the confirmation email.
+      // You can override this via env: EXPO_PUBLIC_CONFIRMATION_REDIRECT_URL or CONFIRMATION_REDIRECT_URL
+      confirmationRedirectUrl:
+        process.env.EXPO_PUBLIC_CONFIRMATION_REDIRECT_URL ??
+        process.env.CONFIRMATION_REDIRECT_URL ??
+        "https://kwiruu.github.io/minecomplyconfirmpage/",
     },
   },
 };
