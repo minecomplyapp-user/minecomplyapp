@@ -1,112 +1,43 @@
-import React, { useState } from 'react';
+// RecommendationsScreen.tsx
+import React, { useState } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
-  StyleSheet,
   SafeAreaView,
+  Alert,
   Modal,
-} from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { CMSHeader } from '../../components/CMSHeader';
-import { Ionicons } from '@expo/vector-icons';
-
-// --- Interfaces ---
-interface RecommendationItem {
-  recommendation: string;
-  commitment: string;
-  status: string;
-}
-
-interface SectionData {
-  isNA: boolean;
-  items: RecommendationItem[];
-}
-
-type SectionKey = 'plant' | 'quarry' | 'port';
-
-interface SectionHeaderProps {
-  title: string;
-}
-
-interface PickerItem {
-  label: string;
-  value: string;
-}
-
-interface CustomPickerProps {
-  selectedValue: string;
-  onValueChange: (value: string) => void;
-  items: PickerItem[];
-}
-
-interface QuarterSelectorProps {
-  selectedQuarter: string;
-  onQuarterChange: (quarter: string) => void;
-  year: string;
-  onYearChange: (year: string) => void;
-}
-
-interface RecommendationItemProps {
-  index: number;
-  data: RecommendationItem;
-  onChange: (data: RecommendationItem) => void;
-  onRemove: (() => void) | null;
-  showStatus: boolean;
-}
-
-interface RecommendationSectionProps {
-  title: string;
-  data: SectionData;
-  onChange: (data: SectionData) => void;
-  onAdd: () => void;
-  showStatus: boolean;
-}
-
-// --- Stack Param List ---
-type RootStackParamList = {
-  AttendanceRecords: {
-    generalInfo?: any;
-    eccInfo?: any;
-    eccAdditionalForms?: any[];
-    isagInfo?: any;
-    isagAdditionalForms?: any[];
-    epepInfo?: any;
-    epepAdditionalForms?: any[];
-    rcfInfo?: any;
-    rcfAdditionalForms?: any[];
-    mtfInfo?: any;
-    fmrdfInfo?: any;
-    fmrdfAdditionalForms?: any[];
-    fileName: string;
-    recommendations: any;
-  };
-  Recommendations: any;
-};
-
-type RecommendationsScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  'Recommendations'
->;
-
-type RecommendationsScreenRouteProp = RouteProp<
-  RootStackParamList,
-  'Recommendations'
->;
+} from "react-native";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { Ionicons } from "@expo/vector-icons";
+import { CMSHeader } from "../../components/CMSHeader";
+import {
+  RecommendationItem,
+  SectionData,
+  SectionKey,
+  PickerItem,
+  RecommendationsScreenNavigationProp,
+  RecommendationsScreenRouteProp,
+} from "./types/RecommendationsScreen.types";
+import { styles } from "./styles/RecommendationsScreen.styles";
 
 // --- Components ---
-const SectionHeader: React.FC<SectionHeaderProps> = ({ title }) => (
+const SectionHeader: React.FC<{ title: string }> = ({ title }) => (
   <View style={styles.sectionHeaderContainer}>
     <Text style={styles.sectionHeaderTitle}>{title}</Text>
   </View>
 );
 
-const CustomPicker: React.FC<CustomPickerProps> = ({ selectedValue, onValueChange, items }) => {
+const CustomPicker: React.FC<{
+  selectedValue: string;
+  onValueChange: (value: string) => void;
+  items: PickerItem[];
+}> = ({ selectedValue, onValueChange, items }) => {
   const [modalVisible, setModalVisible] = useState(false);
-  const selectedLabel = items.find((item) => item.value === selectedValue)?.label || 'Select...';
+  const selectedLabel = items.find((item) => item.value === selectedValue)?.label || "Select...";
 
   const handleSelect = (value: string) => {
     onValueChange(value);
@@ -161,18 +92,18 @@ const CustomPicker: React.FC<CustomPickerProps> = ({ selectedValue, onValueChang
 };
 
 const quarterItems = [
-  { label: '1st', value: '1st' },
-  { label: '2nd', value: '2nd' },
-  { label: '3rd', value: '3rd' },
-  { label: '4th', value: '4th' },
+  { label: "1st", value: "1st" },
+  { label: "2nd", value: "2nd" },
+  { label: "3rd", value: "3rd" },
+  { label: "4th", value: "4th" },
 ];
 
-const QuarterSelector: React.FC<QuarterSelectorProps> = ({
-  selectedQuarter,
-  onQuarterChange,
-  year,
-  onYearChange,
-}) => (
+const QuarterSelector: React.FC<{
+  selectedQuarter: string;
+  onQuarterChange: (quarter: string) => void;
+  year: string;
+  onYearChange: (year: string) => void;
+}> = ({ selectedQuarter, onQuarterChange, year, onYearChange }) => (
   <View style={styles.quarterSelectorCard}>
     <View style={styles.quarterRow}>
       <Text style={styles.fieldLabel}>Prev Quarter:</Text>
@@ -197,13 +128,13 @@ const QuarterSelector: React.FC<QuarterSelectorProps> = ({
   </View>
 );
 
-const RecommendationItemComponent: React.FC<RecommendationItemProps> = ({
-  index,
-  data,
-  onChange,
-  onRemove,
-  showStatus,
-}) => (
+const RecommendationItemComponent: React.FC<{
+  index: number;
+  data: RecommendationItem;
+  onChange: (data: RecommendationItem) => void;
+  onRemove: (() => void) | null;
+  showStatus: boolean;
+}> = ({ index, data, onChange, onRemove, showStatus }) => (
   <View style={styles.itemCard}>
     <View style={styles.itemHeader}>
       <View style={styles.itemNumber}>
@@ -252,13 +183,13 @@ const RecommendationItemComponent: React.FC<RecommendationItemProps> = ({
   </View>
 );
 
-const RecommendationSection: React.FC<RecommendationSectionProps> = ({
-  title,
-  data,
-  onChange,
-  onAdd,
-  showStatus,
-}) => {
+const RecommendationSection: React.FC<{
+  title: string;
+  data: SectionData;
+  onChange: (data: SectionData) => void;
+  onAdd: () => void;
+  showStatus: boolean;
+}> = ({ title, data, onChange, onAdd, showStatus }) => {
   const hasNA = data.isNA || false;
 
   return (
@@ -291,7 +222,7 @@ const RecommendationSection: React.FC<RecommendationSectionProps> = ({
                 data.items.length > 1
                   ? () => {
                       const newItems = data.items.filter(
-                        (_: RecommendationItem, i: number) => i !== index,
+                        (_: RecommendationItem, i: number) => i !== index
                       );
                       onChange({ ...data, items: newItems });
                     }
@@ -314,28 +245,25 @@ const RecommendationSection: React.FC<RecommendationSectionProps> = ({
 const RecommendationsScreen: React.FC = () => {
   const navigation = useNavigation<RecommendationsScreenNavigationProp>();
   const route = useRoute<RecommendationsScreenRouteProp>();
-
   const allPreviousParams = route.params || {};
-  const [prevYear, setPrevYear] = useState('');
-  const [prevQuarter, setPrevQuarter] = useState('1st');
-
+  const [prevYear, setPrevYear] = useState("");
+  const [prevQuarter, setPrevQuarter] = useState("1st");
   const [currentSections, setCurrentSections] = useState<Record<SectionKey, SectionData>>({
-    plant: { isNA: false, items: [{ recommendation: '', commitment: '', status: '' }] },
-    quarry: { isNA: false, items: [{ recommendation: '', commitment: '', status: '' }] },
-    port: { isNA: false, items: [{ recommendation: '', commitment: '', status: '' }] },
+    plant: { isNA: false, items: [{ recommendation: "", commitment: "", status: "" }] },
+    quarry: { isNA: false, items: [{ recommendation: "", commitment: "", status: "" }] },
+    port: { isNA: false, items: [{ recommendation: "", commitment: "", status: "" }] },
   });
-
   const [previousSections, setPreviousSections] = useState<Record<SectionKey, SectionData>>({
-    plant: { isNA: false, items: [{ recommendation: '', commitment: '', status: '' }] },
-    quarry: { isNA: false, items: [{ recommendation: '', commitment: '', status: '' }] },
-    port: { isNA: false, items: [{ recommendation: '', commitment: '', status: '' }] },
+    plant: { isNA: false, items: [{ recommendation: "", commitment: "", status: "" }] },
+    quarry: { isNA: false, items: [{ recommendation: "", commitment: "", status: "" }] },
+    port: { isNA: false, items: [{ recommendation: "", commitment: "", status: "" }] },
   });
 
   const updateCurrentSection = (sectionKey: SectionKey, data: SectionData) =>
     setCurrentSections({ ...currentSections, [sectionKey]: data });
 
   const addCurrentRecommendation = (sectionKey: SectionKey) => {
-    const newItems = [...currentSections[sectionKey].items, { recommendation: '', commitment: '', status: '' }];
+    const newItems = [...currentSections[sectionKey].items, { recommendation: "", commitment: "", status: "" }];
     updateCurrentSection(sectionKey, { ...currentSections[sectionKey], items: newItems });
   };
 
@@ -343,7 +271,7 @@ const RecommendationsScreen: React.FC = () => {
     setPreviousSections({ ...previousSections, [sectionKey]: data });
 
   const addPreviousRecommendation = (sectionKey: SectionKey) => {
-    const newItems = [...previousSections[sectionKey].items, { recommendation: '', commitment: '', status: '' }];
+    const newItems = [...previousSections[sectionKey].items, { recommendation: "", commitment: "", status: "" }];
     updatePreviousSection(sectionKey, { ...previousSections[sectionKey], items: newItems });
   };
 
@@ -352,48 +280,40 @@ const RecommendationsScreen: React.FC = () => {
       currentRecommendations: currentSections,
       previousRecommendations: previousSections,
     };
-
-    const exportParams = {
-      generalInfo: allPreviousParams.generalInfo || {},
-      eccInfo: allPreviousParams.eccInfo || {},
-      eccAdditionalForms: allPreviousParams.eccAdditionalForms || [],
-      isagInfo: allPreviousParams.isagInfo || {},
-      isagAdditionalForms: allPreviousParams.isagAdditionalForms || [],
-      epepInfo: allPreviousParams.epepInfo || {},
-      epepAdditionalForms: allPreviousParams.epepAdditionalForms || [],
-      rcfInfo: allPreviousParams.rcfInfo || {},
-      rcfAdditionalForms: allPreviousParams.rcfAdditionalForms || [],
-      mtfInfo: allPreviousParams.mtfInfo || {},
-      fmrdfInfo: allPreviousParams.fmrdfInfo || {},
-      fmrdfAdditionalForms: allPreviousParams.fmrdfAdditionalForms || [],
-      fileName: allPreviousParams.fileName || 'File_Name',
-      recommendations: recommendationsData,
+    // Create a sample record object for AttendanceDetail
+    const record = {
+      id: Date.now(),
+      title: allPreviousParams.fileName || "Compliance Report",
+      date: new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
     };
-
-    navigation.navigate('AttendanceRecords', exportParams);
+    // Navigate to AttendanceDetail with the record
+    navigation.navigate("AttendanceDetail", { record });
   };
 
   const handleBack = () => navigation.goBack();
 
-  let nextQuarterStr = '2nd';
+  let nextQuarterStr = "2nd";
   let nextYearStr = prevYear;
-  if (prevQuarter === '1st') {
-    nextQuarterStr = '2nd';
-  } else if (prevQuarter === '2nd') {
-    nextQuarterStr = '3rd';
-  } else if (prevQuarter === '3rd') {
-    nextQuarterStr = '4th';
-  } else if (prevQuarter === '4th') {
-    nextQuarterStr = '1st';
+  if (prevQuarter === "1st") {
+    nextQuarterStr = "2nd";
+  } else if (prevQuarter === "2nd") {
+    nextQuarterStr = "3rd";
+  } else if (prevQuarter === "3rd") {
+    nextQuarterStr = "4th";
+  } else if (prevQuarter === "4th") {
+    nextQuarterStr = "1st";
     const yearNum = parseInt(prevYear, 10);
     if (!isNaN(yearNum)) {
       nextYearStr = (yearNum + 1).toString();
     } else {
-      nextYearStr = '';
+      nextYearStr = "";
     }
   }
-
-  const yearForTitle = nextYearStr || '[YEAR]';
+  const yearForTitle = nextYearStr || "[YEAR]";
   const currentTitle = `RECOMMENDATIONS FOR THE ${nextQuarterStr} QUARTER ${yearForTitle}`;
 
   return (
@@ -414,44 +334,44 @@ const RecommendationsScreen: React.FC = () => {
         <RecommendationSection
           title="PLANT"
           data={previousSections.plant}
-          onChange={(data: SectionData) => updatePreviousSection('plant', data)}
-          onAdd={() => addPreviousRecommendation('plant')}
+          onChange={(data: SectionData) => updatePreviousSection("plant", data)}
+          onAdd={() => addPreviousRecommendation("plant")}
           showStatus={true}
         />
         <RecommendationSection
           title="QUARRY"
           data={previousSections.quarry}
-          onChange={(data: SectionData) => updatePreviousSection('quarry', data)}
-          onAdd={() => addPreviousRecommendation('quarry')}
+          onChange={(data: SectionData) => updatePreviousSection("quarry", data)}
+          onAdd={() => addPreviousRecommendation("quarry")}
           showStatus={true}
         />
         <RecommendationSection
           title="PORT"
           data={previousSections.port}
-          onChange={(data: SectionData) => updatePreviousSection('port', data)}
-          onAdd={() => addPreviousRecommendation('port')}
+          onChange={(data: SectionData) => updatePreviousSection("port", data)}
+          onAdd={() => addPreviousRecommendation("port")}
           showStatus={true}
         />
         <SectionHeader title={currentTitle} />
         <RecommendationSection
           title="PLANT"
           data={currentSections.plant}
-          onChange={(data: SectionData) => updateCurrentSection('plant', data)}
-          onAdd={() => addCurrentRecommendation('plant')}
+          onChange={(data: SectionData) => updateCurrentSection("plant", data)}
+          onAdd={() => addCurrentRecommendation("plant")}
           showStatus={false}
         />
         <RecommendationSection
           title="QUARRY"
           data={currentSections.quarry}
-          onChange={(data: SectionData) => updateCurrentSection('quarry', data)}
-          onAdd={() => addCurrentRecommendation('quarry')}
+          onChange={(data: SectionData) => updateCurrentSection("quarry", data)}
+          onAdd={() => addCurrentRecommendation("quarry")}
           showStatus={false}
         />
         <RecommendationSection
           title="PORT"
           data={currentSections.port}
-          onChange={(data: SectionData) => updateCurrentSection('port', data)}
-          onAdd={() => addCurrentRecommendation('port')}
+          onChange={(data: SectionData) => updateCurrentSection("port", data)}
+          onAdd={() => addCurrentRecommendation("port")}
           showStatus={false}
         />
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
@@ -462,259 +382,5 @@ const RecommendationsScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F1F5F9',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingBottom: 48,
-  },
-  sectionHeaderContainer: {
-    backgroundColor: '#EFF6FF',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    alignItems: 'center',
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  sectionHeaderTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#02217C',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-  },
-  quarterSelectorCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E0E7FF',
-    shadowColor: '#02217C',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  quarterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  pickerContainer: {
-    flex: 1,
-  },
-  pickerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: '#F8FAFC',
-    minHeight: 44,
-  },
-  pickerButtonText: {
-    fontSize: 14,
-    color: '#1E293B',
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    width: '80%',
-    maxHeight: '50%',
-    padding: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  modalItemSelected: {
-    backgroundColor: '#EFF6FF',
-  },
-  modalItemText: {
-    fontSize: 16,
-    color: '#1E293B',
-  },
-  modalItemTextSelected: {
-    color: '#02217C',
-    fontWeight: '600',
-  },
-  yearInput: {
-    flex: 1,
-    height: 44,
-  },
-  sectionCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E0E7FF',
-    marginBottom: 16,
-    shadowColor: '#02217C',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 3,
-    overflow: 'hidden',
-  },
-  sectionTitleBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#BFDBFE',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color:'#02217C',
-  },
-  naContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  naLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1E293B',
-    marginRight: 8,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#02217C',
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: '#02217C',
-    borderColor: '#02217C',
-  },
-  sectionContent: {
-    padding: 16,
-  },
-  itemCard: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E0E7FF',
-    padding: 12,
-    marginBottom: 12,
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  itemNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#02217C',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  itemNumberText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  removeButton: {
-    padding: 4,
-  },
-  fieldGroup: {
-    marginBottom: 12,
-  },
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 6,
-    marginRight: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    backgroundColor: '#F8FAFC',
-    minHeight: 44,
-    color: '#1E293B',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    backgroundColor: '#EFF6FF',
-    borderRadius: 8,
-    paddingVertical: 10,
-    marginTop: 8,
-  },
-  addButtonText: {
-    fontSize: 14,
-    color: '#02217C',
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-  saveButton: {
-    backgroundColor: '#02217C',
-    paddingVertical: 16,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    marginTop: 24,
-    shadowColor: '#02217C',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-});
 
 export default RecommendationsScreen;

@@ -12,22 +12,24 @@ import RoleSelectionScreen from "../screens/role-selection/RoleSelectionScreen";
 import DashboardScreen from "../screens/dashboard/DashboardScreen";
 import SubmissionsScreen from "../screens/SubmissionsScreen";
 import ProfileScreen from "../screens/profile/ProfileScreen";
-import CMVRReportScreen from "../screens/CMVRPAGE/CMVRReportScreen";
-import CMVRPage2Screen from "../screens/CMVRPAGE/CMVRPage2Screen";
+import CMVRReportScreen from "../screens/CMVRPAGE/CMVR/CMVRReportScreen";
+import CMVRPage2Screen from "../screens/CMVRPAGE/CMVRPage2/CMVRPage2Screen";
 import CreateAttendanceScreen from "../screens/attendance/CreateAttendanceScreen";
 import AttendanceRecordScreen from "../screens/attendance/AttendanceRecordScreen";
+import AttendanceDetailScreen from "../screens/CMVRPAGE/AttendanceDetailScreen";
 import ReportsScreen from "../screens/reports/ReportsScreen";
-import ComplianceMonitoringScreen from "../screens/CMVRPAGE/ComplianceMonitoringScreen";
-import EIAComplianceScreen from "../screens/CMVRPAGE/EIAComplianceScreen";
-import EnvironmentalComplianceScreen from "../screens/CMVRPAGE/EnvironmentalComplianceScreen";
-import WaterQualityScreen from "../screens/CMVRPAGE/WaterQualityScreen";
-import NoiseQualityScreen from "../screens/CMVRPAGE/NoiseQualityScreen";
-import WasteManagementScreen from "../screens/CMVRPAGE/WasteManagementScreen";
-import ChemicalSafetyScreen from "../screens/CMVRPAGE/ChemicalSafetyScreen";
+import ComplianceMonitoringScreen from "../screens/CMVRPAGE/CMS/ComplianceMonitoringScreen";
+import EIAComplianceScreen from "../screens/CMVRPAGE/EIA/EIAComplianceScreen";
+import EnvironmentalComplianceScreen from "../screens/CMVRPAGE/EnvironmentalCompliance/EnvironmentalComplianceScreen";
+import WaterQualityScreen from "../screens/CMVRPAGE/water-quality/WaterQualityScreen";
+import NoiseQualityScreen from "../screens/CMVRPAGE/NoiseQuality/NoiseQualityScreen";
+import WasteManagementScreen from "../screens/CMVRPAGE/WasteManagement/WasteManagementScreen";
+import ChemicalSafetyScreen from "../screens/CMVRPAGE/chemical/ChemicalSafetyScreen";
 import RecommendationsScreen from "../screens/CMVRPAGE/RecommendationsScreen";
 import ECCMonitoringScreen from "../screens/ecc/ECCMonitoringScreen"
 import ECCMonitoringScreen2 from "../screens/ecc/conditions";
 import CMVRDocumentExportScreen from "../screens/CMVRPAGE/CMVRDocumentExportScreen";
+import ExportReportScreen from "../screens/CMVRPAGE/ExportReportScreen";
 
 
 const RootStack = createStackNavigator();
@@ -59,8 +61,21 @@ const AppNavigator = () => {
                 component={DashboardScreen}
                 options={{ headerShown: false }}
               />
-              <RootStack.Screen name="AttendanceRecords" component={AttendanceRecordScreen} />
-              <RootStack.Screen name="CreateAttendance" component={CreateAttendanceScreen} />
+              <RootStack.Screen 
+                name="AttendanceRecords" 
+                component={AttendanceRecordScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen 
+                name="CreateAttendance" 
+                component={CreateAttendanceScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen 
+                name="AttendanceDetail" 
+                component={AttendanceDetailScreen}
+                options={{ headerShown: false }}
+              />
               <RootStack.Screen name="Reports" component={ReportsScreen} />
               <RootStack.Screen name="Submissions" component={SubmissionsScreen} />
               <RootStack.Screen name="Profile" component={ProfileScreen} />
@@ -109,17 +124,19 @@ const AppNavigator = () => {
                 component={EIAComplianceScreen}
                 options={{ headerShown: false }}
               />
-              {/* ADD THIS */}
               <RootStack.Screen
                 name="Recommendations"
                 component={RecommendationsScreen}
                 options={{ headerShown: false }}
               />
-              
-              {/* --- 2. ADD THE SCREEN TO THE NAVIGATOR --- */}
               <RootStack.Screen
                 name="CMVRDocumentExport"
                 component={CMVRDocumentExportScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen
+                name="ExportReport"
+                component={ExportReportScreen}
                 options={{ headerShown: false }}
               />
             </>
