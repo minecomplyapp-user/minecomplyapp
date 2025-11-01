@@ -1,3 +1,5 @@
+// AppNavigator.tsx
+
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
@@ -23,6 +25,8 @@ import NoiseQualityScreen from "../screens/CMVRPAGE/NoiseQualityScreen";
 import WasteManagementScreen from "../screens/CMVRPAGE/WasteManagementScreen";
 import ChemicalSafetyScreen from "../screens/CMVRPAGE/ChemicalSafetyScreen";
 import RecommendationsScreen from "../screens/CMVRPAGE/RecommendationsScreen";
+// --- 1. IMPORT THE EXPORT SCREEN ---
+import CMVRDocumentExportScreen from "../screens/CMVRPAGE/CMVRDocumentExportScreen";
 
 const RootStack = createStackNavigator();
 
@@ -95,10 +99,16 @@ const AppNavigator = () => {
                 component={ChemicalSafetyScreen}
                 options={{ headerShown: false }}
               />
-              {/* ADD THIS */}
               <RootStack.Screen
                 name="Recommendations"
                 component={RecommendationsScreen}
+                options={{ headerShown: false }}
+              />
+              
+              {/* --- 2. ADD THE SCREEN TO THE NAVIGATOR --- */}
+              <RootStack.Screen
+                name="CMVRDocumentExport"
+                component={CMVRDocumentExportScreen}
                 options={{ headerShown: false }}
               />
             </>
