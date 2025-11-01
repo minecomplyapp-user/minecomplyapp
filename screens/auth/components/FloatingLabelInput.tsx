@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { View, TextInput, Animated } from "react-native";
-import { theme } from "../../theme/theme";
-import { styles } from "../../styles/authScreen";
-import { moderateScale } from "../../utils/responsive";
+import { theme } from "../../../theme/theme";
+import { styles } from "../styles/authScreen";
+import { moderateScale } from "../../../utils/responsive";
 
 interface FloatingLabelInputProps {
   label: string;

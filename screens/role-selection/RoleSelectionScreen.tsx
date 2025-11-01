@@ -9,9 +9,9 @@ import {
   ScrollView,
 } from "react-native";
 import { Users, UserCog, User, UserPlus } from "lucide-react-native";
-import { theme } from "../theme/theme";
-import styles from "../styles/roleSelectionScreen";
-import { responsiveIconSize } from "../utils/responsive";
+import { theme } from "../../theme/theme";
+import styles from "./styles/roleSelectionScreen";
+
 
 const roles = [
   { label: "MMT Chair", icon: UserCog },
@@ -64,7 +64,6 @@ function RoleCard({ role, onPress }: any) {
         >
           <Icon
             color={theme.colors.primaryDark}
-            size={responsiveIconSize(28)}
             strokeWidth={2.2}
           />
         </View>
@@ -89,7 +88,7 @@ export default function RoleSelectionScreen({ navigation }: any) {
         {/* Header */}
         <View style={styles.header} className="items-center">
           <Image
-            source={require("../assets/images/mc-logo.png")}
+            source={require("../../assets/images/mc-logo.png")}
             style={styles.logo}
             resizeMode="contain"
           />

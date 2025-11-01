@@ -17,9 +17,10 @@ interface CMSHeaderProps {
   onBack?: () => void;
   onSave?: () => void;
   fileName?: string;
+  onEditFileName?: () => void;
 }
 
-export const CMSHeader: React.FC<CMSHeaderProps> = ({ onBack, onSave, fileName: fileNameProp }) => {
+export const CMSHeader: React.FC<CMSHeaderProps> = ({ onBack, onSave, fileName: fileNameProp, onEditFileName }) => {
   const { fileName: contextFileName, setFileName, isLoaded } = useFileName();
   const [modalVisible, setModalVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -71,6 +72,9 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({ onBack, onSave, fileName: 
     console.log('Opening modal with fileName:', displayFileName);
     setEditableFileName(displayFileName);
     setModalVisible(true);
+    if (typeof onEditFileName === 'function') {
+      onEditFileName();
+    }
   };
 
   // Show loading indicator while loading from storage

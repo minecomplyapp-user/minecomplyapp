@@ -9,10 +9,10 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { styles } from '../styles/authScreen';
-import { FloatingLabelInput } from '../components/auth/FloatingLabelInput';
-import { scale } from '../utils/responsive';
-import { useAuth } from '../contexts/AuthContext';
+import { styles } from './styles/authScreen';
+import { FloatingLabelInput } from './components/FloatingLabelInput';
+// import { scale } from '../utils/responsive';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function AuthScreen({ navigation }: any) {
   const [isLogin, setIsLogin] = useState(true);
@@ -79,7 +79,7 @@ export default function AuthScreen({ navigation }: any) {
         {/* Header Section */}
         <View style={styles.header}>
           <Image
-            source={require('../assets/images/mc-logo.png')}
+            source={require('../../assets/images/mc-logo.png')}
             style={styles.logo}
           />
           <Text style={styles.title}>

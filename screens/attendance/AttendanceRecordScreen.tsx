@@ -15,8 +15,9 @@ import {
   Trash2,
   Download,
 } from "lucide-react-native";
-import { theme } from "../theme/theme";
-import { attendanceRecordStyles as styles } from "../styles/attendanceRecordScreen";
+import { theme } from "../../theme/theme";
+import { attendanceRecordStyles as styles } from "./styles/attendanceRecordScreen";
+import { CustomHeader } from "../../components/CustomHeader";
 
 // sample data only
 const sampleAttendance = [
@@ -63,6 +64,7 @@ export default function AttendanceRecordScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
+      <CustomHeader showSave={false} />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}

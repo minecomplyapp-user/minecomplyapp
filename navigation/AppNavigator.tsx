@@ -7,16 +7,16 @@ import { useAuth } from "../contexts/AuthContext";
 import { FileNameProvider } from "../contexts/FileNameContext";
 
 // Screens
-import AuthScreen from "../screens/AuthScreen";
-import RoleSelectionScreen from "../screens/RoleSelectionScreen";
-import DashboardScreen from "../screens/DashboardScreen";
+import AuthScreen from "../screens/auth/AuthScreen";
+import RoleSelectionScreen from "../screens/role-selection/RoleSelectionScreen";
+import DashboardScreen from "../screens/dashboard/DashboardScreen";
 import SubmissionsScreen from "../screens/SubmissionsScreen";
-import ProfileScreen from "../screens/ProfileScreen";
+import ProfileScreen from "../screens/profile/ProfileScreen";
 import CMVRReportScreen from "../screens/CMVRPAGE/CMVRReportScreen";
 import CMVRPage2Screen from "../screens/CMVRPAGE/CMVRPage2Screen";
-import CreateAttendanceScreen from "../screens/CreateAttendanceScreen";
-import AttendanceRecordScreen from "../screens/AttendanceRecordScreen";
-import ReportsScreen from "../screens/ReportsScreen";
+import CreateAttendanceScreen from "../screens/attendance/CreateAttendanceScreen";
+import AttendanceRecordScreen from "../screens/attendance/AttendanceRecordScreen";
+import ReportsScreen from "../screens/reports/ReportsScreen";
 import ComplianceMonitoringScreen from "../screens/CMVRPAGE/ComplianceMonitoringScreen";
 import EIAComplianceScreen from "../screens/CMVRPAGE/EIAComplianceScreen";
 import EnvironmentalComplianceScreen from "../screens/CMVRPAGE/EnvironmentalComplianceScreen";
@@ -25,8 +25,9 @@ import NoiseQualityScreen from "../screens/CMVRPAGE/NoiseQualityScreen";
 import WasteManagementScreen from "../screens/CMVRPAGE/WasteManagementScreen";
 import ChemicalSafetyScreen from "../screens/CMVRPAGE/ChemicalSafetyScreen";
 import RecommendationsScreen from "../screens/CMVRPAGE/RecommendationsScreen";
-// --- 1. IMPORT THE EXPORT SCREEN ---
-import CMVRDocumentExportScreen from "../screens/CMVRPAGE/CMVRDocumentExportScreen";
+import ECCMonitoringScreen from "../screens/ecc/ECCMonitoringScreen"
+import ECCMonitoringScreen2 from "../screens/ecc/conditions";
+
 
 const RootStack = createStackNavigator();
 
@@ -38,7 +39,7 @@ const AppNavigator = () => {
   return (
     <FileNameProvider>
       <NavigationContainer>
-        <RootStack.Navigator screenOptions={{ headerShown: true }}>
+        <RootStack.Navigator screenOptions={{ headerShown: false }}>
           {!session ? (
             <RootStack.Screen
               name="Auth"
@@ -64,16 +65,14 @@ const AppNavigator = () => {
               <RootStack.Screen name="Profile" component={ProfileScreen} />
               <RootStack.Screen name="CMVRReport" component={CMVRReportScreen} />
               <RootStack.Screen name="CMVRPage2" component={CMVRPage2Screen} />
-              <RootStack.Screen
-                name="ComplianceMonitoring"
-                component={ComplianceMonitoringScreen}
-                options={{ headerShown: false }}
-              />
-              <RootStack.Screen
+              <RootStack.Screen name="ECCMonitoring" component={ECCMonitoringScreen} />
+              <RootStack.Screen name="ECCMonitoringScreen" component={ECCMonitoringScreen} />
+
+              {/* <RootStack.Screen
                 name="EIACompliance"
                 component={EIAComplianceScreen}
                 options={{ headerShown: false }}
-              />
+              /> */}
               <RootStack.Screen
                 name="EnvironmentalCompliance"
                 component={EnvironmentalComplianceScreen}
@@ -99,6 +98,17 @@ const AppNavigator = () => {
                 component={ChemicalSafetyScreen}
                 options={{ headerShown: false }}
               />
+              <RootStack.Screen
+                name="ComplianceMonitoring"
+                component={ComplianceMonitoringScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen
+                name="EIACompliance"
+                component={EIAComplianceScreen}
+                options={{ headerShown: false }}
+              />
+              {/* ADD THIS */}
               <RootStack.Screen
                 name="Recommendations"
                 component={RecommendationsScreen}

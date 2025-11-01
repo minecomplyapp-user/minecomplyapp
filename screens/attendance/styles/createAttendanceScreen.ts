@@ -1,12 +1,12 @@
 import { StyleSheet } from "react-native";
-import { theme } from "../theme/theme";
+import { theme } from "../../../theme/theme";
 import {
   scale,
   verticalScale,
   moderateScale,
   normalizeFont,
   isTablet,
-} from "../utils/responsive";
+} from "../../../utils/responsive";
 
 export const createAttendanceStyles = StyleSheet.create({
   safeContainer: {
@@ -16,14 +16,16 @@ export const createAttendanceStyles = StyleSheet.create({
   scrollContent: {
     paddingBottom: verticalScale(theme.spacing.xl),
   },
+
+  // HEADER
   header: {
     paddingHorizontal: scale(theme.spacing.lg),
     paddingTop: verticalScale(theme.spacing.lg),
-    paddingBottom: verticalScale(theme.spacing.lg),
+    paddingBottom: verticalScale(theme.spacing.md),
   },
   headerTitle: {
     fontFamily: theme.typography.bold,
-    fontSize: normalizeFont(isTablet() ? 30 : theme.typography.sizes.xxl),
+    fontSize: normalizeFont(isTablet() ? 28 : theme.typography.sizes.xxl),
     color: theme.colors.primaryDark,
   },
   headerSubtitle: {
@@ -32,20 +34,25 @@ export const createAttendanceStyles = StyleSheet.create({
     color: theme.colors.textLight,
     marginTop: verticalScale(4),
   },
+
+  // TOP INPUTS
   topInputsContainer: {
     paddingHorizontal: scale(theme.spacing.lg),
     gap: verticalScale(theme.spacing.md),
-    marginBottom: verticalScale(theme.spacing.md),
+    marginBottom: verticalScale(theme.spacing.lg),
   },
+
+  // SECTION
   section: {
     paddingHorizontal: scale(theme.spacing.lg),
-    gap: verticalScale(theme.spacing.lg),
+    gap: verticalScale(theme.spacing.md),
+    marginBottom: verticalScale(theme.spacing.lg),
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: verticalScale(theme.spacing.md),
+    marginBottom: verticalScale(theme.spacing.sm),
   },
   sectionTitle: {
     fontFamily: theme.typography.semibold,
@@ -54,10 +61,12 @@ export const createAttendanceStyles = StyleSheet.create({
   },
   card: {
     backgroundColor: theme.colors.surface,
-    borderRadius: moderateScale(theme.radii.lg),
+    borderRadius: moderateScale(theme.radii.md),
     padding: scale(theme.spacing.lg),
     ...theme.shadows.light,
   },
+
+  // INPUTS
   inputContainer: {
     marginBottom: verticalScale(theme.spacing.md),
   },
@@ -69,7 +78,7 @@ export const createAttendanceStyles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: "#E0E0E0",
     borderRadius: moderateScale(theme.radii.md),
     paddingVertical: verticalScale(theme.spacing.md),
     paddingHorizontal: scale(theme.spacing.md),
@@ -80,45 +89,42 @@ export const createAttendanceStyles = StyleSheet.create({
   },
   inputFilled: {
     borderColor: theme.colors.primaryDark,
-    borderWidth: 1,
   },
   inputError: {
     borderColor: theme.colors.error,
-    borderWidth: 1,
   },
   labelError: {
     color: theme.colors.error,
   },
   errorText: {
     fontFamily: theme.typography.regular,
-    fontSize: normalizeFont(isTablet() ? 14 : theme.typography.sizes.sm),
+    fontSize: normalizeFont(isTablet() ? 13 : theme.typography.sizes.xs),
     color: theme.colors.error,
-    marginTop: verticalScale(4),
+    marginTop: verticalScale(2),
     marginLeft: scale(theme.spacing.xs),
   },
-  radioError: {
-    borderColor: theme.colors.error,
-  },
+
+  // RADIO
   radioGroup: {
     flexDirection: "row",
-    alignItems: 'center',
-    justifyContent: 'space-between', // Distributes items evenly
-    marginTop: verticalScale(theme.spacing.xs),
+    alignItems: "center",
+    justifyContent: "flex-start",
+    gap: scale(theme.spacing.md),
+    marginTop: verticalScale(theme.spacing.sm),
   },
   radioButtonContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    // marginRight is no longer needed
+    flexDirection: "row",
+    alignItems: "center",
   },
   radioButton: {
     height: moderateScale(20),
     width: moderateScale(20),
     borderRadius: moderateScale(10),
     borderWidth: 2,
-    borderColor: '#EAEAEA',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: scale(theme.spacing.sm),
+    borderColor: "#E0E0E0",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: scale(theme.spacing.xs),
   },
   radioButtonSelected: {
     borderColor: theme.colors.primaryDark,
@@ -134,26 +140,32 @@ export const createAttendanceStyles = StyleSheet.create({
     color: theme.colors.text,
     fontSize: normalizeFont(isTablet() ? 15 : theme.typography.sizes.sm),
   },
+  radioError: {
+    borderColor: theme.colors.error,
+  },
+
+  // SIGNATURE
   signatureWrapper: {
     position: "relative",
+    marginTop: verticalScale(theme.spacing.md),
   },
   signatureContainer: {
     borderWidth: 1,
-    borderColor: '#EAEAEA',
+    borderColor: "#E0E0E0",
     borderRadius: moderateScale(theme.radii.md),
-    height: verticalScale(180),
+    height: verticalScale(isTablet() ? 260 : 220),
     overflow: "hidden",
     backgroundColor: theme.colors.surface,
   },
   signatureActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     gap: scale(theme.spacing.lg),
     marginTop: verticalScale(theme.spacing.sm),
   },
   sigActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: scale(theme.spacing.xs),
   },
   sigActionText: {
@@ -169,23 +181,24 @@ export const createAttendanceStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
+  // BUTTONS
   bottomButtonsContainer: {
     paddingHorizontal: scale(theme.spacing.lg),
-    marginTop: verticalScale(theme.spacing.lg),
+    marginTop: verticalScale(theme.spacing.xl),
     gap: verticalScale(theme.spacing.md),
   },
   actionButtonWrapper: {
     width: "100%",
   },
   actionButton: {
-    flexDirection: 'row',
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: 'center',
+    justifyContent: "center",
     gap: scale(8),
-    backgroundColor: theme.colors.primaryLight + '15',
+    backgroundColor: theme.colors.primaryLight + "15",
     borderRadius: moderateScale(theme.radii.md),
     paddingVertical: verticalScale(theme.spacing.md),
-    borderWidth: 0,
   },
   actionButtonText: {
     color: theme.colors.primaryDark,
@@ -193,13 +206,13 @@ export const createAttendanceStyles = StyleSheet.create({
     fontSize: normalizeFont(isTablet() ? 18 : theme.typography.sizes.md),
   },
   saveButton: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: scale(theme.spacing.sm),
     backgroundColor: theme.colors.primaryDark,
     borderRadius: moderateScale(theme.radii.md),
     alignItems: "center",
-    justifyContent: 'center',
-    paddingVertical: verticalScale(theme.spacing.lg),
+    justifyContent: "center",
+    paddingVertical: verticalScale(theme.spacing.md),
     ...theme.shadows.light,
   },
   saveButtonText: {
@@ -208,4 +221,3 @@ export const createAttendanceStyles = StyleSheet.create({
     fontSize: normalizeFont(isTablet() ? 18 : theme.typography.sizes.md),
   },
 });
-
