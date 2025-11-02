@@ -125,25 +125,28 @@ export default function AttendanceRecordScreen({ navigation }: any) {
     try {
       const base = getApiBaseUrl();
       const token = await getJwt();
-      
+
       // Build URL with token as query parameter for browser download
       const url = `${base}/api/attendance/${id}/pdf?token=${encodeURIComponent(token)}`;
-      
+
       // Check if the URL can be opened
       const canOpen = await Linking.canOpenURL(url);
-      
+
       if (canOpen) {
         // Open URL in browser - this will trigger native download
         await Linking.openURL(url);
         Alert.alert(
-          "Download Started", 
+          "Download Started",
           "The PDF will be downloaded by your browser. Check your Downloads folder or notification bar."
         );
       } else {
         Alert.alert("Error", "Unable to open browser for download");
       }
     } catch (e: any) {
-      Alert.alert("Download failed", e?.message || "Could not open download URL");
+      Alert.alert(
+        "Download failed",
+        e?.message || "Could not open download URL"
+      );
     }
   };
 
