@@ -153,6 +153,7 @@ export const styles = StyleSheet.create({
     fontSize: 15,
     color: "#0F172A",
   },
+  
   textArea: {
     minHeight: 90,
     textAlignVertical: "top",

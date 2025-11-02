@@ -12,11 +12,10 @@ import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { CMSHeader } from "../../../components/CMSHeader";
-import { CheckboxField } from "./CheckboxField";
-import { LocationCheckboxRow } from "./LocationCheckboxRow";
-import { ParameterForm } from "./ParameterForm";
-import { SectionHeader } from "./SectionHeader";
-import { FormInputField } from "./FormInputField";
+import { LocationCheckboxRow } from "./components/LocationCheckboxRow";
+import { ParameterForm } from "./components/ParameterForm";
+import { SectionHeader } from "./components/SectionHeader";
+import { FormInputField } from "./components/FormInputField";
 import {
   ParameterData,
   LocationState,
@@ -315,13 +314,6 @@ export default function EnvironmentalComplianceScreen({ navigation, route }: any
             showNA={true}
             naChecked={naChecked}
             onNAChange={() => setNaChecked(!naChecked)}
-            showAdditionalFields={true}
-            dateTime={data.dateTime}
-            weatherWind={data.weatherWind}
-            explanation={data.explanation}
-            onDateTimeChange={(text) => updateField("dateTime", text)}
-            onWeatherWindChange={(text) => updateField("weatherWind", text)}
-            onExplanationChange={(text) => updateField("explanation", text)}
           />
 
           {/* Additional Parameters */}
@@ -345,8 +337,31 @@ export default function EnvironmentalComplianceScreen({ navigation, route }: any
           {/* Add New Parameter Button */}
           <TouchableOpacity style={styles.addButton} onPress={addParameter}>
             <Ionicons name="add-circle-outline" size={20} color="#02217C" />
-            <Text style={styles.addButtonText}>Add New Parameter</Text>
+            <Text style={styles.addButtonText}>Add More Parameter</Text>
           </TouchableOpacity>
+
+          {/* Additional Fields - Outside Parameters */}
+          <View style={styles.additionalFieldsSection}>
+            <FormInputField
+              label="Date/Time of Sampling:"
+              value={data.dateTime}
+              onChangeText={(text) => updateField("dateTime", text)}
+            />
+
+            <FormInputField
+              label="Weather and Wind Direction:"
+              value={data.weatherWind}
+              onChangeText={(text) => updateField("weatherWind", text)}
+            />
+
+            <FormInputField
+              label="Explanation of why confirmatory sampling was conducted for specific parameter in the sampling station:"
+              value={data.explanation}
+              onChangeText={(text) => updateField("explanation", text)}
+              multiline
+              numberOfLines={3}
+            />
+          </View>
         </View>
 
         {/* Overall Compliance */}

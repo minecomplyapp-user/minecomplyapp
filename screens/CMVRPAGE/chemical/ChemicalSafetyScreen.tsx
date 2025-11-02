@@ -1,4 +1,3 @@
-// ChemicalSafetyScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -9,18 +8,18 @@ import {
   Text,
 } from 'react-native';
 import { CMSHeader } from '../../../components/CMSHeader';
-import { ChemicalSafetySection } from './ChemicalSafetySection';
-import { ComplianceCheckboxSection } from './ComplianceCheckboxSection';
-import { ComplaintsSection } from './ComplaintsSection';
+import { ChemicalSafetySection } from './components/ChemicalSafetySection';
+import { ComplianceCheckboxSection } from './components/ComplianceCheckboxSection';
+import { ComplaintsSection } from './components/ComplaintsSection';
 import {
   ChemicalSafetyData,
   Complaint,
   YesNoNull,
+  ChemicalCategory,
 } from '../types/ChemicalSafetyScreen.types';
 import { styles } from '../styles/ChemicalSafetyScreen.styles';
 
 export default function ChemicalSafetyScreen({ navigation }: any) {
-  // --- State Variables ---
   const [chemicalSafety, setChemicalSafety] = useState<ChemicalSafetyData>({
     isNA: false,
     riskManagement: null,
@@ -28,6 +27,8 @@ export default function ChemicalSafetyScreen({ navigation }: any) {
     handling: null,
     emergencyPreparedness: null,
     remarks: '',
+    chemicalCategory: null,
+    othersSpecify: '',
   });
   const [healthSafetyChecked, setHealthSafetyChecked] = useState(false);
   const [socialDevChecked, setSocialDevChecked] = useState(false);
@@ -43,10 +44,9 @@ export default function ChemicalSafetyScreen({ navigation }: any) {
     },
   ]);
 
-  // --- Handlers ---
   const updateChemicalSafety = (
     field: keyof ChemicalSafetyData,
-    value: YesNoNull | string | boolean
+    value: YesNoNull | string | boolean | ChemicalCategory
   ) => {
     setChemicalSafety((prev) => {
       const newState = { ...prev };
@@ -58,10 +58,15 @@ export default function ChemicalSafetyScreen({ navigation }: any) {
           newState.handling = null;
           newState.emergencyPreparedness = null;
           newState.remarks = '';
+          newState.chemicalCategory = null;
+          newState.othersSpecify = '';
         }
       } else {
         newState.isNA = false;
         (newState[field] as any) = value;
+        if (field === 'chemicalCategory' && value !== 'Others') {
+          newState.othersSpecify = '';
+        }
       }
       return newState;
     });
@@ -125,7 +130,10 @@ export default function ChemicalSafetyScreen({ navigation }: any) {
             if (complaints.length > 1) {
               setComplaints((prev) => prev.filter((c) => c.id !== id));
             } else {
-              Alert.alert('Cannot Remove', 'At least one complaint entry is required.');
+              Alert.alert(
+                'Cannot Remove',
+                'At least one complaint entry is required.'
+              );
             }
           },
         },

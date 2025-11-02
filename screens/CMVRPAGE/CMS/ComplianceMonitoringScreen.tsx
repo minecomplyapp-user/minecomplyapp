@@ -13,10 +13,10 @@ import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { CMSHeader } from "../../../components/CMSHeader";
-import { CMSTitlePill } from "./CMSTitlePill";
-import { CMSSectionHeader } from "./CMSSectionHeader";
-import { CMSFormField } from "./CMSFormField";
-import { CMSOtherComponents } from "./CMSOtherComponents";
+import { CMSTitlePill } from "./components/CMSTitlePill";
+import { CMSSectionHeader } from "./components/CMSSectionHeader";
+import { CMSFormField } from "./components//CMSFormField";
+import { CMSOtherComponents } from "./components/CMSOtherComponents";
 import { useFileName } from "../../../contexts/FileNameContext";
 import {
   FormData,
@@ -90,10 +90,6 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
       specification: "",
       remarks: "",
       withinSpecs: null,
-      subFields: [
-        { label: "Plant:", specification: "" },
-        { label: "Port:", specification: "" },
-      ],
     },
     powerSupply: {
       label: "Power Supply",

@@ -10,8 +10,8 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { CMSHeader } from "../../../components/CMSHeader";
-import { ExecutiveSummarySection } from "./ExecutiveSummarySection";
-import { ProcessDocumentationSection } from "./ProcessDocumentationSection";
+import { ExecutiveSummarySection } from "./components/ExecutiveSummarySection";
+import { ProcessDocumentationSection } from "./components/ProcessDocumentationSection";
 import {
   CMVRPage2ScreenNavigationProp,
   CMVRPage2ScreenRouteProp,

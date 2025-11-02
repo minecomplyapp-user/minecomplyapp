@@ -7,13 +7,14 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Alert
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { CMSHeader } from "../../../components/CMSHeader";
-import { ProjectImpacts } from "./ProjectImpacts";
-import { OperationSectionComponent } from "./OperationSection";
-import { OverallCompliance } from "./OverallCompliance";
+import { ProjectImpacts } from "./components/ProjectImpacts";
+import { OperationSectionComponent } from "./components/OperationSection";
+import { OverallCompliance } from "./components/OverallCompliance";
 import {
   EIAComplianceScreenNavigationProp,
   YesNoNull,
@@ -124,27 +125,63 @@ const EIAComplianceScreen: React.FC<{ navigation: EIAComplianceScreenNavigationP
     }
   };
 
-  const updateMeasure = (
-  section: "quarry" | "plant" | "port",
-  measureId: string,
-  field: keyof MitigatingMeasure,
-  value: any
-) => {
-  const updateSection = (current: OperationSection) => ({
-    ...current,
-    measures: current.measures.map((m) =>
-      m.id === measureId ? { ...m, [field]: value } : m
-    ),
-  });
-  if (section === "quarry") {
-    setQuarryOperation(updateSection(quarryOperation));
-  } else if (section === "plant") {
-    setPlantOperation(updateSection(plantOperation));
-  } else {
-    setPortOperation(updateSection(portOperation));
-  }
+const deleteMeasure = (section: "quarry" | "plant" | "port", measureId: string) => {
+  const deleteFromSection = (current: OperationSection) => {
+    if (current.measures.length <= 1) {
+      return current;
+    }
+    return {
+      ...current,
+      measures: current.measures.filter((m) => m.id !== measureId),
+    };
+  };
+
+  // Show confirmation alert
+  Alert.alert(
+    "Delete Measure",
+    "Are you sure you want to remove this mitigating measure?",
+    [
+      {
+        text: "Cancel",
+        style: "cancel"
+      },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          if (section === "quarry") {
+            setQuarryOperation(deleteFromSection(quarryOperation));
+          } else if (section === "plant") {
+            setPlantOperation(deleteFromSection(plantOperation));
+          } else {
+            setPortOperation(deleteFromSection(portOperation));
+          }
+        }
+      }
+    ]
+  );
 };
 
+  const updateMeasure = (
+    section: "quarry" | "plant" | "port",
+    measureId: string,
+    field: keyof MitigatingMeasure,
+    value: any
+  ) => {
+    const updateSection = (current: OperationSection) => ({
+      ...current,
+      measures: current.measures.map((m) =>
+        m.id === measureId ? { ...m, [field]: value } : m
+      ),
+    });
+    if (section === "quarry") {
+      setQuarryOperation(updateSection(quarryOperation));
+    } else if (section === "plant") {
+      setPlantOperation(updateSection(plantOperation));
+    } else {
+      setPortOperation(updateSection(portOperation));
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -153,9 +190,8 @@ const EIAComplianceScreen: React.FC<{ navigation: EIAComplianceScreenNavigationP
     >
       <View style={styles.headerContainer}>
         <CMSHeader
-          fileName="File_Name"
-          onSave={handleSave}
           onBack={() => navigation.goBack()}
+          onSave={handleSave}
         />
       </View>
       <ScrollView
@@ -192,6 +228,7 @@ const EIAComplianceScreen: React.FC<{ navigation: EIAComplianceScreenNavigationP
             updateMeasure("quarry", measureId, field, value)
           }
           onAddMeasure={() => addMeasure("quarry")}
+          onDeleteMeasure={(measureId) => deleteMeasure("quarry", measureId)}
         />
         <View style={styles.dividerSmall} />
         <OperationSectionComponent
@@ -206,6 +243,7 @@ const EIAComplianceScreen: React.FC<{ navigation: EIAComplianceScreenNavigationP
             updateMeasure("plant", measureId, field, value)
           }
           onAddMeasure={() => addMeasure("plant")}
+          onDeleteMeasure={(measureId) => deleteMeasure("plant", measureId)}
         />
         <View style={styles.dividerSmall} />
         <OperationSectionComponent
@@ -220,6 +258,7 @@ const EIAComplianceScreen: React.FC<{ navigation: EIAComplianceScreenNavigationP
             updateMeasure("port", measureId, field, value)
           }
           onAddMeasure={() => addMeasure("port")}
+          onDeleteMeasure={(measureId) => deleteMeasure("port", measureId)}
         />
         <View style={styles.divider} />
         <OverallCompliance

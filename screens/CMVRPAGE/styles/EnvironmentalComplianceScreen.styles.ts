@@ -194,4 +194,10 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.3,
   },
+  additionalFieldsSection: {
+  marginTop: 24,
+  paddingTop: 20,
+  borderTopWidth: 1,
+  borderTopColor: '#E2E8F0',
+},
 });

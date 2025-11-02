@@ -1,4 +1,3 @@
-// WaterQualityScreen.styles.ts
 import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
@@ -59,6 +58,27 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+  },
+  internalMonitoringContainer: {
+    marginTop: 12,
+  },
+  internalMonitoringTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#02217C",
+    marginBottom: 8,
+  },
+  mmtSubSection: {
+    marginTop: 8,
+    paddingLeft: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: "#02217C",
+  },
+  mmtTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#02217C",
+    marginBottom: 6,
   },
   addButton: {
     backgroundColor: "#EFF6FF",

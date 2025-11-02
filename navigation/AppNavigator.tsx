@@ -26,8 +26,8 @@ import WaterQualityScreen from "../screens/CMVRPAGE/water-quality/WaterQualitySc
 import NoiseQualityScreen from "../screens/CMVRPAGE/NoiseQuality/NoiseQualityScreen";
 import WasteManagementScreen from "../screens/CMVRPAGE/WasteManagement/WasteManagementScreen";
 import ChemicalSafetyScreen from "../screens/CMVRPAGE/chemical/ChemicalSafetyScreen";
-import RecommendationsScreen from "../screens/CMVRPAGE/RecommendationsScreen";
-import ECCMonitoringScreen from "../screens/ecc/ECCMonitoringScreen";
+import RecommendationsScreen from "../screens/CMVRPAGE/recommendations/RecommendationsScreen";
+import ECCMonitoringScreen from "../screens/ecc/ECCMonitoringScreen"
 import ECCMonitoringScreen2 from "../screens/ecc/conditions";
 import CMVRDocumentExportScreen from "../screens/CMVRPAGE/CMVRDocumentExportScreen";
 import ExportReportScreen from "../screens/CMVRPAGE/ExportReportScreen";
