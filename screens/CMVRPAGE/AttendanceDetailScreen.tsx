@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   RefreshControl,
   TextInput,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import {
   Calendar,
@@ -24,12 +25,20 @@ import {
   Plus,
   Camera,
   ImageIcon,
+  PenTool,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system/legacy";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import SignatureScreen from "react-native-signature-canvas";
 import { CustomHeader } from "../../components/CustomHeader";
 import { apiGet, apiDelete, apiPatch, apiPost } from "../../lib/api";
-import { createSignedDownloadUrl, uploadFileFromUri } from "../../lib/storage";
+import {
+  createSignedDownloadUrl,
+  uploadFileFromUri,
+  uploadSignature,
+} from "../../lib/storage";
 import { theme } from "../../theme/theme";
 
 interface Person {
@@ -40,6 +49,7 @@ interface Person {
   position: string;
   status: string;
   signatureUrl?: string;
+  signaturePath?: string; // To store the permanent path
 }
 
 interface AttachmentWithCaption {
@@ -88,6 +98,15 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
 
   // Edit attendees state
   const [editedAttendees, setEditedAttendees] = useState<Person[]>([]);
+
+  // Signature modal state
+  const [signatureModalVisible, setSignatureModalVisible] = useState(false);
+  const [currentAttendeeIndex, setCurrentAttendeeIndex] = useState<
+    number | null
+  >(null);
+  const [uploadingSignature, setUploadingSignature] = useState(false);
+  const signatureRef = useRef<any>(null);
+  const [newlyUploadedPaths, setNewlyUploadedPaths] = useState<string[]>([]);
 
   const fetchAttendanceDetail = async () => {
     if (!recordId) return;
@@ -222,6 +241,9 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
 
       // Upload new attachments
       const attachmentPayload: Array<{ path: string; caption?: string }> = [];
+      const currentAttachmentPaths = new Set(
+        editedAttachments.map((a) => a.path).filter(Boolean)
+      );
 
       for (const att of editedAttachments) {
         if (att.isNew) {
@@ -236,6 +258,8 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
             path: uploadResult.path,
             caption: att.caption || undefined,
           });
+          // Track newly uploaded file
+          setNewlyUploadedPaths((prev) => [...prev, uploadResult.path]);
         } else if (att.path) {
           // Keep existing attachment
           attachmentPayload.push({
@@ -252,7 +276,7 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
         office: person.office,
         position: person.position,
         attendanceStatus: person.status,
-        signatureUrl: person.signatureUrl,
+        signatureUrl: person.signaturePath || person.signatureUrl, // Prioritize the new path
       }));
 
       const updatePayload: any = {
@@ -269,6 +293,25 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
 
       await apiPatch(`/attendance/${recordId}`, updatePayload);
 
+      // Cleanup: Find which of the newly uploaded files were removed during the edit
+      const finalAttachmentPaths = new Set(
+        attachmentPayload.map((a) => a.path)
+      );
+      const finalSignaturePaths = new Set(
+        attendeesPayload.map((a) => a.signatureUrl).filter(Boolean)
+      );
+
+      const pathsToDelete = newlyUploadedPaths.filter(
+        (p) => !finalAttachmentPaths.has(p) && !finalSignaturePaths.has(p)
+      );
+
+      if (pathsToDelete.length > 0) {
+        await apiPost("/storage/delete-files", { paths: pathsToDelete });
+      }
+
+      // Clear the tracking list after a successful save
+      setNewlyUploadedPaths([]);
+
       // Refresh data after save
       await fetchAttendanceDetail();
       setIsEditing(false);
@@ -280,7 +323,41 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
     }
   };
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = async () => {
+    // If there are newly uploaded files, ask the user if they want to delete them
+    if (newlyUploadedPaths.length > 0) {
+      Alert.alert(
+        "Discard Changes?",
+        "You have new uploads. Do you want to delete them and discard your changes?",
+        [
+          { text: "Don't Discard", style: "cancel" },
+          {
+            text: "Delete and Discard",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await apiPost("/storage/delete-files", {
+                  paths: newlyUploadedPaths,
+                });
+                setNewlyUploadedPaths([]); // Clear the list
+                resetEditState();
+              } catch (error) {
+                console.error("Failed to delete orphaned files:", error);
+                Alert.alert(
+                  "Error",
+                  "Could not delete uploaded files. Please try again."
+                );
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      resetEditState();
+    }
+  };
+
+  const resetEditState = () => {
     // Reset form fields and exit edit mode
     setEditedTitle("");
     setEditedDescription("");
@@ -395,6 +472,135 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
           style: "destructive",
           onPress: () => {
             const updated = editedAttendees.filter((_, i) => i !== index);
+            setEditedAttendees(updated);
+          },
+        },
+      ]
+    );
+  };
+
+  // Signature handling functions
+  const handleAddSignature = (index: number) => {
+    console.log("🖊️ handleAddSignature called for attendee index:", index);
+    setCurrentAttendeeIndex(index);
+    setSignatureModalVisible(true);
+  };
+
+  const handleSignatureEnd = () => {
+    console.log("🖊️ handleSignatureEnd called. Reading signature...");
+    if (signatureRef.current) {
+      signatureRef.current.readSignature();
+    }
+  };
+
+  const handleSignatureClear = () => {
+    if (signatureRef.current) {
+      signatureRef.current.clearSignature();
+    }
+  };
+
+  const handleSignatureOK = async (signature: string) => {
+    console.log(
+      "🖊️ handleSignatureOK called, currentAttendeeIndex:",
+      currentAttendeeIndex
+    );
+
+    if (currentAttendeeIndex === null) {
+      console.log("❌ currentAttendeeIndex is null, aborting");
+      return;
+    }
+
+    try {
+      setUploadingSignature(true);
+      console.log("✅ Starting signature processing...");
+
+      // Convert base64 to temporary file
+      const base64Data = signature.replace(/^data:image\/\w+;base64,/, "");
+      const tempFilePath = `${FileSystem.cacheDirectory}temp-signature-${Date.now()}.png`;
+      console.log("📝 Writing signature to temp file:", tempFilePath);
+
+      // Write base64 to file
+      await FileSystem.writeAsStringAsync(tempFilePath, base64Data, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      console.log("✅ Temp file written");
+
+      // Compress and resize the image (reduce quality and size)
+      console.log("🔄 Compressing signature...");
+      const manipulatedImage = await manipulateAsync(
+        tempFilePath,
+        [
+          { resize: { width: 400 } }, // Resize to max width 400px
+        ],
+        {
+          compress: 0.5, // 50% quality compression
+          format: SaveFormat.PNG,
+        }
+      );
+      console.log("✅ Signature compressed:", manipulatedImage.uri);
+
+      // Upload compressed signature to Supabase
+      console.log("🚀 Calling uploadSignature...");
+      const { path } = await uploadSignature(manipulatedImage.uri);
+      console.log("✅ Signature uploaded successfully, path:", path);
+
+      // Get a signed URL for immediate preview
+      const { url } = await createSignedDownloadUrl(path, 60); // URL valid for 1 minute
+
+      // Track the newly uploaded path for potential cleanup
+      setNewlyUploadedPaths((prev) => [...prev, path]);
+
+      // Clean up temporary file
+      try {
+        await FileSystem.deleteAsync(tempFilePath, { idempotent: true });
+      } catch (cleanupError) {
+        console.log("Failed to cleanup temp file:", cleanupError);
+      }
+
+      // Update the attendee with the signature path and the preview URL
+      const updated = [...editedAttendees];
+      updated[currentAttendeeIndex].signatureUrl = url; // Use the signed URL for preview
+      // We also need to store the permanent path to be saved later
+      (updated[currentAttendeeIndex] as any).signaturePath = path;
+      setEditedAttendees(updated);
+
+      setSignatureModalVisible(false);
+      setCurrentAttendeeIndex(null);
+      Alert.alert("Success", "Signature added successfully");
+    } catch (error: any) {
+      console.error("Failed to upload signature:", error);
+      Alert.alert("Error", error?.message || "Failed to upload signature");
+    } finally {
+      setUploadingSignature(false);
+    }
+  };
+
+  const handleRemoveSignature = (index: number) => {
+    Alert.alert(
+      "Remove Signature",
+      "Are you sure you want to remove this signature?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            const updated = [...editedAttendees];
+            const person = updated[index];
+
+            // If the signature being removed was just uploaded, untrack it
+            if (
+              person.signaturePath &&
+              newlyUploadedPaths.includes(person.signaturePath)
+            ) {
+              // It's a new signature, we can just clear it locally
+              person.signatureUrl = undefined;
+              person.signaturePath = undefined;
+            } else {
+              // It's an existing signature, mark for deletion on save
+              person.signatureUrl = undefined; // This will be handled by the main save logic
+            }
+
             setEditedAttendees(updated);
           },
         },
@@ -838,6 +1044,40 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
                           ))}
                         </View>
                       </View>
+
+                      {/* Signature Section in Edit Mode */}
+                      <View style={styles.signatureEditContainer}>
+                        <Text style={styles.signatureLabel}>Signature:</Text>
+                        {person.signatureUrl ? (
+                          <View style={styles.signaturePreviewContainer}>
+                            <Image
+                              source={{ uri: person.signatureUrl }}
+                              style={styles.signaturePreview}
+                              resizeMode="contain"
+                            />
+                            <TouchableOpacity
+                              style={styles.removeSignatureButton}
+                              onPress={() => handleRemoveSignature(index)}
+                            >
+                              <X size={16} color={theme.colors.error} />
+                            </TouchableOpacity>
+                          </View>
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.addSignatureButton}
+                            onPress={() => handleAddSignature(index)}
+                          >
+                            <PenTool
+                              size={18}
+                              color={theme.colors.primaryDark}
+                              strokeWidth={2}
+                            />
+                            <Text style={styles.addSignatureText}>
+                              Add Signature
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
                     </>
                   ) : (
                     <>
@@ -891,6 +1131,84 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
           )}
         </View>
       </ScrollView>
+
+      {/* Signature Modal */}
+      <Modal
+        visible={signatureModalVisible}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setSignatureModalVisible(false)}
+      >
+        <SafeAreaView style={styles.signatureModalContainer}>
+          <View style={styles.signatureModalHeader}>
+            <Text style={styles.signatureModalTitle}>Add Signature</Text>
+            <View style={styles.signatureModalButtons}>
+              <TouchableOpacity
+                style={styles.signatureModalButton}
+                onPress={handleSignatureClear}
+              >
+                <Text style={styles.signatureModalButtonText}>Clear</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.signatureModalButton,
+                  styles.signatureModalCancelButton,
+                ]}
+                onPress={() => setSignatureModalVisible(false)}
+                disabled={uploadingSignature}
+              >
+                <Text style={styles.signatureModalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.signatureModalButton,
+                  styles.signatureModalSaveButton,
+                ]}
+                onPress={handleSignatureEnd}
+                disabled={uploadingSignature}
+              >
+                {uploadingSignature ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text
+                    style={[
+                      styles.signatureModalButtonText,
+                      styles.signatureModalSaveText,
+                    ]}
+                  >
+                    Save
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+          <SignatureScreen
+            ref={signatureRef}
+            onOK={handleSignatureOK}
+            onEmpty={() => {
+              console.log("🖊️ Signature component reported empty signature.");
+              Alert.alert("Error", "Please draw a signature");
+            }}
+            descriptionText="Sign above"
+            clearText="Clear"
+            confirmText="Save"
+            webStyle={`
+              .m-signature-pad {
+                box-shadow: none;
+                border: 2px solid ${theme.colors.border};
+                border-radius: 8px;
+                margin: 16px;
+              }
+              .m-signature-pad--body {
+                border: none;
+              }
+              .m-signature-pad--footer {
+                display: none;
+              }
+            `}
+          />
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -1236,6 +1554,100 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: theme.colors.border,
+  },
+  // Signature Edit Mode Styles
+  signatureEditContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
+  signaturePreviewContainer: {
+    position: "relative",
+    marginTop: 8,
+  },
+  signaturePreview: {
+    width: "100%",
+    height: 100,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  removeSignatureButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 4,
+    ...theme.shadows.light,
+  },
+  addSignatureButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primaryDark,
+    borderStyle: "dashed",
+    backgroundColor: theme.colors.primaryDark + "08",
+    marginTop: 8,
+  },
+  addSignatureText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.primaryDark,
+  },
+  // Signature Modal Styles
+  signatureModalContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  signatureModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+  signatureModalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.colors.text,
+  },
+  signatureModalButtons: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  signatureModalButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  signatureModalCancelButton: {
+    backgroundColor: theme.colors.error + "15",
+    borderColor: theme.colors.error,
+  },
+  signatureModalSaveButton: {
+    backgroundColor: theme.colors.success,
+    borderColor: theme.colors.success,
+  },
+  signatureModalButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.text,
+  },
+  signatureModalSaveText: {
+    color: "#fff",
   },
 });
 

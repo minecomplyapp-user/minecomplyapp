@@ -264,4 +264,9 @@ async function safeJson(res: Response): Promise<any | null> {
   }
 })();
 
+export async function deleteFiles(paths: string[]): Promise<void> {
+  if (paths.length === 0) return;
+  await apiPost("/storage/delete-files", { paths });
+}
+
 export type {};
