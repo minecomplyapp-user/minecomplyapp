@@ -127,7 +127,7 @@ export default function AttendanceRecordScreen({ navigation }: any) {
       const token = await getJwt();
 
       // Build URL with token as query parameter for browser download
-      const url = `${base}/api/attendance/${id}/pdf?token=${encodeURIComponent(token)}`;
+      const url = `${base}/api/attendance/${id}/docx?token=${encodeURIComponent(token)}`;
 
       // Check if the URL can be opened
       const canOpen = await Linking.canOpenURL(url);
@@ -137,7 +137,7 @@ export default function AttendanceRecordScreen({ navigation }: any) {
         await Linking.openURL(url);
         Alert.alert(
           "Download Started",
-          "The PDF will be downloaded by your browser. Check your Downloads folder or notification bar."
+          "The Docx will be downloaded by your browser. Check your Downloads folder or notification bar."
         );
       } else {
         Alert.alert("Error", "Unable to open browser for download");
