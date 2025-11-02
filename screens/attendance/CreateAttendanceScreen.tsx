@@ -63,7 +63,7 @@ export default function CreateAttendanceScreen({ navigation }: any) {
   const [location, setLocation] = useState("");
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [attachments, setAttachments] = useState<
-    { uri: string; path?: string; uploading?: boolean }[]
+    { uri: string; path?: string; uploading?: boolean; caption?: string }[]
   >([]);
   const [attendees, setAttendees] = useState([
     {
@@ -155,10 +155,11 @@ export default function CreateAttendanceScreen({ navigation }: any) {
 
   // --- Attachments Handlers ---
   const processPickedAsset = async (asset: ImagePicker.ImagePickerAsset) => {
-    const newItem = { uri: asset.uri, uploading: true } as {
+    const newItem = { uri: asset.uri, uploading: true, caption: "" } as {
       uri: string;
       path?: string;
       uploading?: boolean;
+      caption?: string;
     };
     setAttachments((prev) => [...prev, newItem]);
     try {
@@ -235,6 +236,12 @@ export default function CreateAttendanceScreen({ navigation }: any) {
 
   const removeAttachment = (uri: string) => {
     setAttachments((prev) => prev.filter((a) => a.uri !== uri));
+  };
+
+  const updateAttachmentCaption = (uri: string, caption: string) => {
+    setAttachments((prev) =>
+      prev.map((a) => (a.uri === uri ? { ...a, caption } : a))
+    );
   };
 
   // --- Date Picker Handlers ---
@@ -383,7 +390,10 @@ export default function CreateAttendanceScreen({ navigation }: any) {
       meetingDate: meetingDate ? formatDateOnly(meetingDate) : undefined,
       location: location?.trim() || undefined,
       attachments:
-        attachments.filter((a) => !!a.path).map((a) => a.path!) || undefined,
+        attachments
+          .filter((a) => !!a.path)
+          .map((a) => ({ path: a.path!, caption: a.caption || undefined })) ||
+        undefined,
       attendees: attendees.map((a) => ({
         name: a.name.trim(),
         agency: a.agency?.trim() || undefined,
@@ -548,41 +558,63 @@ export default function CreateAttendanceScreen({ navigation }: any) {
           {/* Attachments (optional) */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Attachments (optional)</Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
               {attachments.map((att) => (
-                <View key={att.uri} style={{ position: "relative" }}>
-                  <Image
-                    source={{ uri: att.uri }}
-                    style={{
-                      width: 72,
-                      height: 72,
-                      borderRadius: 8,
-                      backgroundColor: "#eee",
-                    }}
-                  />
-                  <View style={{ position: "absolute", top: -8, right: -8 }}>
-                    <TouchableOpacity
-                      onPress={() => removeAttachment(att.uri)}
+                <View key={att.uri} style={{ width: 160 }}>
+                  <View style={{ position: "relative" }}>
+                    <Image
+                      source={{ uri: att.uri }}
                       style={{
-                        backgroundColor: "#0008",
-                        padding: 4,
-                        borderRadius: 12,
+                        width: 160,
+                        height: 120,
+                        borderRadius: 8,
+                        backgroundColor: "#eee",
                       }}
-                    >
-                      <Feather name="x" size={12} color="#fff" />
-                    </TouchableOpacity>
+                    />
+                    <View style={{ position: "absolute", top: -8, right: -8 }}>
+                      <TouchableOpacity
+                        onPress={() => removeAttachment(att.uri)}
+                        style={{
+                          backgroundColor: "#0008",
+                          padding: 4,
+                          borderRadius: 12,
+                        }}
+                      >
+                        <Feather name="x" size={12} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                    {att.uploading && (
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: theme.colors.textLight,
+                          marginTop: 4,
+                        }}
+                      >
+                        Uploading…
+                      </Text>
+                    )}
                   </View>
-                  {att.uploading && (
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        color: theme.colors.textLight,
-                        marginTop: 4,
-                      }}
-                    >
-                      Uploading…
-                    </Text>
-                  )}
+                  <TextInput
+                    value={att.caption || ""}
+                    onChangeText={(text) =>
+                      updateAttachmentCaption(att.uri, text)
+                    }
+                    placeholder="Add caption..."
+                    style={{
+                      marginTop: 8,
+                      paddingVertical: 6,
+                      paddingHorizontal: 10,
+                      borderRadius: 6,
+                      borderWidth: 1,
+                      borderColor: theme.colors.border,
+                      backgroundColor: theme.colors.background,
+                      fontSize: 12,
+                      color: theme.colors.text,
+                    }}
+                    placeholderTextColor={theme.colors.textLight}
+                    editable={!att.uploading}
+                  />
                 </View>
               ))}
             </View>
