@@ -12,6 +12,7 @@ import RoleSelectionScreen from "../screens/role-selection/RoleSelectionScreen";
 import DashboardScreen from "../screens/dashboard/DashboardScreen";
 import SubmissionsScreen from "../screens/SubmissionsScreen";
 import ProfileScreen from "../screens/profile/ProfileScreen";
+import EditProfileScreen from "../screens/profile/EditProfileScreen";
 import CMVRReportScreen from "../screens/CMVRPAGE/CMVR/CMVRReportScreen";
 import CMVRPage2Screen from "../screens/CMVRPAGE/CMVRPage2/CMVRPage2Screen";
 import CreateAttendanceScreen from "../screens/attendance/CreateAttendanceScreen";
@@ -31,7 +32,6 @@ import ECCMonitoringScreen2 from "../screens/ecc/conditions";
 import CMVRDocumentExportScreen from "../screens/CMVRPAGE/CMVRDocumentExportScreen";
 import ExportReportScreen from "../screens/CMVRPAGE/ExportReportScreen";
 
-
 const RootStack = createStackNavigator();
 
 const AppNavigator = () => {
@@ -42,7 +42,11 @@ const AppNavigator = () => {
   return (
     <FileNameProvider>
       <NavigationContainer>
-        <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        {/* Use a different navigator key to fully reset routes on auth changes */}
+        <RootStack.Navigator
+          key={session ? "app" : "auth"}
+          screenOptions={{ headerShown: false }}
+        >
           {!session ? (
             <RootStack.Screen
               name="Auth"
@@ -61,28 +65,44 @@ const AppNavigator = () => {
                 component={DashboardScreen}
                 options={{ headerShown: false }}
               />
-              <RootStack.Screen 
-                name="AttendanceRecords" 
+              <RootStack.Screen
+                name="AttendanceRecords"
                 component={AttendanceRecordScreen}
                 options={{ headerShown: false }}
               />
-              <RootStack.Screen 
-                name="CreateAttendance" 
+              <RootStack.Screen
+                name="CreateAttendance"
                 component={CreateAttendanceScreen}
                 options={{ headerShown: false }}
               />
-              <RootStack.Screen 
-                name="AttendanceDetail" 
+              <RootStack.Screen
+                name="AttendanceDetail"
                 component={AttendanceDetailScreen}
                 options={{ headerShown: false }}
               />
               <RootStack.Screen name="Reports" component={ReportsScreen} />
-              <RootStack.Screen name="Submissions" component={SubmissionsScreen} />
+              <RootStack.Screen
+                name="Submissions"
+                component={SubmissionsScreen}
+              />
               <RootStack.Screen name="Profile" component={ProfileScreen} />
-              <RootStack.Screen name="CMVRReport" component={CMVRReportScreen} />
+              <RootStack.Screen
+                name="EditProfile"
+                component={EditProfileScreen}
+              />
+              <RootStack.Screen
+                name="CMVRReport"
+                component={CMVRReportScreen}
+              />
               <RootStack.Screen name="CMVRPage2" component={CMVRPage2Screen} />
-              <RootStack.Screen name="ECCMonitoring" component={ECCMonitoringScreen} />
-              <RootStack.Screen name="ECCMonitoringScreen" component={ECCMonitoringScreen} />
+              <RootStack.Screen
+                name="ECCMonitoring"
+                component={ECCMonitoringScreen}
+              />
+              <RootStack.Screen
+                name="ECCMonitoringScreen"
+                component={ECCMonitoringScreen}
+              />
 
               {/* <RootStack.Screen
                 name="EIACompliance"

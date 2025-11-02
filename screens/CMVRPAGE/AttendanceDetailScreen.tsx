@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,15 +9,18 @@ import {
   Alert,
   Modal,
   TextInput,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { CustomHeader } from '../../components/CustomHeader';
+  Image,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { CustomHeader } from "../../components/CustomHeader";
+import { apiGet } from "../../lib/api";
+import { createSignedDownloadUrl } from "../../lib/storage";
 
 interface Person {
   id: string;
   name: string;
   position: string;
-  status: 'present' | 'absent' | 'late';
+  status: "present" | "absent" | "late";
   timeIn?: string;
   timeOut?: string;
 }
@@ -31,54 +34,26 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
   navigation,
   route,
 }) => {
-  const { record } = route.params;
+  const { record } = route.params || {};
+  const recordId: string | undefined = record?.id;
+  const [loading, setLoading] = useState(false);
+  const [attachments, setAttachments] = useState<string[]>([]);
 
-  // Sample attendance data
-  const [people, setPeople] = useState<Person[]>([
-    {
-      id: '1',
-      name: 'John Doe',
-      position: 'Engineer',
-      status: 'present',
-      timeIn: '8:00 AM',
-      timeOut: '5:00 PM',
-    },
-    {
-      id: '2',
-      name: 'Jane Smith',
-      position: 'Manager',
-      status: 'present',
-      timeIn: '8:15 AM',
-      timeOut: '5:30 PM',
-    },
-    {
-      id: '3',
-      name: 'Mike Johnson',
-      position: 'Technician',
-      status: 'late',
-      timeIn: '9:30 AM',
-      timeOut: '5:00 PM',
-    },
-    {
-      id: '4',
-      name: 'Sarah Williams',
-      position: 'Supervisor',
-      status: 'absent',
-    },
-  ]);
+  // People from API (fallback to empty)
+  const [people, setPeople] = useState<Person[]>([]);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [newPerson, setNewPerson] = useState({
-    name: '',
-    position: '',
-    status: 'present' as 'present' | 'absent' | 'late',
-    timeIn: '',
-    timeOut: '',
+    name: "",
+    position: "",
+    status: "present" as "present" | "absent" | "late",
+    timeIn: "",
+    timeOut: "",
   });
 
   const handleAddPerson = () => {
     if (!newPerson.name || !newPerson.position) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      Alert.alert("Error", "Please fill in all required fields");
       return;
     }
 
@@ -94,72 +69,121 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
     setPeople([...people, person]);
     setModalVisible(false);
     setNewPerson({
-      name: '',
-      position: '',
-      status: 'present',
-      timeIn: '',
-      timeOut: '',
+      name: "",
+      position: "",
+      status: "present",
+      timeIn: "",
+      timeOut: "",
     });
   };
 
   const handleDeletePerson = (id: string) => {
     Alert.alert(
-      'Delete Person',
-      'Are you sure you want to remove this person from attendance?',
+      "Delete Person",
+      "Are you sure you want to remove this person from attendance?",
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: "Delete",
+          style: "destructive",
           onPress: () => setPeople(people.filter((p) => p.id !== id)),
         },
       ]
     );
   };
 
-  const handleStatusChange = (id: string, status: 'present' | 'absent' | 'late') => {
-    setPeople(
-      people.map((p) => (p.id === id ? { ...p, status } : p))
-    );
+  const handleStatusChange = (
+    id: string,
+    status: "present" | "absent" | "late"
+  ) => {
+    setPeople(people.map((p) => (p.id === id ? { ...p, status } : p)));
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'present':
-        return '#10B981';
-      case 'absent':
-        return '#EF4444';
-      case 'late':
-        return '#F59E0B';
+      case "present":
+        return "#10B981";
+      case "absent":
+        return "#EF4444";
+      case "late":
+        return "#F59E0B";
       default:
-        return '#6B7280';
+        return "#6B7280";
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'present':
-        return 'checkmark-circle';
-      case 'absent':
-        return 'close-circle';
-      case 'late':
-        return 'time';
+      case "present":
+        return "checkmark-circle";
+      case "absent":
+        return "close-circle";
+      case "late":
+        return "time";
       default:
-        return 'help-circle';
+        return "help-circle";
     }
   };
 
   const stats = {
     total: people.length,
-    present: people.filter((p) => p.status === 'present').length,
-    absent: people.filter((p) => p.status === 'absent').length,
-    late: people.filter((p) => p.status === 'late').length,
+    present: people.filter((p) => p.status === "present").length,
+    absent: people.filter((p) => p.status === "absent").length,
+    late: people.filter((p) => p.status === "late").length,
   };
+
+  useEffect(() => {
+    if (!recordId) return;
+    (async () => {
+      try {
+        setLoading(true);
+        const data: any = await apiGet(`/attendance/${recordId}`);
+        // Map attendees -> people format
+        const mapped: Person[] = Array.isArray(data?.attendees)
+          ? data.attendees.map((a: any, idx: number) => ({
+              id: String(a.id ?? idx + 1),
+              name: a.name ?? "Unknown",
+              position: a.position ?? a.office ?? "",
+              status: mapStatusToPerson(a.attendanceStatus),
+              timeIn: a.timeIn ?? undefined,
+              timeOut: a.timeOut ?? undefined,
+            }))
+          : [];
+        setPeople(mapped);
+
+        if (Array.isArray(data?.attachments) && data.attachments.length) {
+          try {
+            const urls = await Promise.all(
+              data.attachments.map(async (p: string) => {
+                const { url } = await createSignedDownloadUrl(p, 600);
+                return url;
+              })
+            );
+            setAttachments(urls);
+          } catch {}
+        } else {
+          setAttachments([]);
+        }
+      } catch (e) {
+        // Non-fatal; keep header info from route
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [recordId]);
+
+  function mapStatusToPerson(s: any): "present" | "absent" | "late" {
+    if (!s) return "present";
+    const v = String(s).toUpperCase();
+    if (v.includes("ABSENT")) return "absent";
+    if (v.includes("LATE")) return "late";
+    return "present";
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <CustomHeader showSave={false} />
-      
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -174,26 +198,43 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
             </View>
           </View>
 
+          {attachments.length > 0 && (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {attachments.map((u, idx) => (
+                <Image
+                  key={`${u}-${idx}`}
+                  source={{ uri: u }}
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 8,
+                    backgroundColor: "#eee",
+                  }}
+                />
+              ))}
+            </View>
+          )}
+
           {/* Statistics */}
           <View style={styles.statsContainer}>
-            <View style={[styles.statCard, { backgroundColor: '#DBEAFE' }]}>
+            <View style={[styles.statCard, { backgroundColor: "#DBEAFE" }]}>
               <Text style={styles.statNumber}>{stats.total}</Text>
               <Text style={styles.statLabel}>Total</Text>
             </View>
-            <View style={[styles.statCard, { backgroundColor: '#D1FAE5' }]}>
-              <Text style={[styles.statNumber, { color: '#10B981' }]}>
+            <View style={[styles.statCard, { backgroundColor: "#D1FAE5" }]}>
+              <Text style={[styles.statNumber, { color: "#10B981" }]}>
                 {stats.present}
               </Text>
               <Text style={styles.statLabel}>Present</Text>
             </View>
-            <View style={[styles.statCard, { backgroundColor: '#FEE2E2' }]}>
-              <Text style={[styles.statNumber, { color: '#EF4444' }]}>
+            <View style={[styles.statCard, { backgroundColor: "#FEE2E2" }]}>
+              <Text style={[styles.statNumber, { color: "#EF4444" }]}>
                 {stats.absent}
               </Text>
               <Text style={styles.statLabel}>Absent</Text>
             </View>
-            <View style={[styles.statCard, { backgroundColor: '#FEF3C7' }]}>
-              <Text style={[styles.statNumber, { color: '#F59E0B' }]}>
+            <View style={[styles.statCard, { backgroundColor: "#FEF3C7" }]}>
+              <Text style={[styles.statNumber, { color: "#F59E0B" }]}>
                 {stats.late}
               </Text>
               <Text style={styles.statLabel}>Late</Text>
@@ -213,11 +254,13 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
         {/* Attendance List */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Attendance List</Text>
-          
+
           {people.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="people-outline" size={64} color="#CBD5E1" />
-              <Text style={styles.emptyStateText}>No attendance records yet</Text>
+              <Text style={styles.emptyStateText}>
+                No attendees found for this record
+              </Text>
             </View>
           ) : (
             people.map((person) => (
@@ -227,7 +270,7 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
                     <Text style={styles.personName}>{person.name}</Text>
                     <Text style={styles.personPosition}>{person.position}</Text>
                   </View>
-                  
+
                   <TouchableOpacity
                     style={styles.deleteIconButton}
                     onPress={() => handleDeletePerson(person.id)}
@@ -241,20 +284,22 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
                   <TouchableOpacity
                     style={[
                       styles.statusBadge,
-                      person.status === 'present' && styles.statusBadgeActive,
-                      { borderColor: '#10B981' },
+                      person.status === "present" && styles.statusBadgeActive,
+                      { borderColor: "#10B981" },
                     ]}
-                    onPress={() => handleStatusChange(person.id, 'present')}
+                    onPress={() => handleStatusChange(person.id, "present")}
                   >
                     <Ionicons
                       name="checkmark-circle"
                       size={16}
-                      color={person.status === 'present' ? '#10B981' : '#94A3B8'}
+                      color={
+                        person.status === "present" ? "#10B981" : "#94A3B8"
+                      }
                     />
                     <Text
                       style={[
                         styles.statusText,
-                        person.status === 'present' && { color: '#10B981' },
+                        person.status === "present" && { color: "#10B981" },
                       ]}
                     >
                       Present
@@ -264,20 +309,20 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
                   <TouchableOpacity
                     style={[
                       styles.statusBadge,
-                      person.status === 'late' && styles.statusBadgeActive,
-                      { borderColor: '#F59E0B' },
+                      person.status === "late" && styles.statusBadgeActive,
+                      { borderColor: "#F59E0B" },
                     ]}
-                    onPress={() => handleStatusChange(person.id, 'late')}
+                    onPress={() => handleStatusChange(person.id, "late")}
                   >
                     <Ionicons
                       name="time"
                       size={16}
-                      color={person.status === 'late' ? '#F59E0B' : '#94A3B8'}
+                      color={person.status === "late" ? "#F59E0B" : "#94A3B8"}
                     />
                     <Text
                       style={[
                         styles.statusText,
-                        person.status === 'late' && { color: '#F59E0B' },
+                        person.status === "late" && { color: "#F59E0B" },
                       ]}
                     >
                       Late
@@ -287,20 +332,20 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
                   <TouchableOpacity
                     style={[
                       styles.statusBadge,
-                      person.status === 'absent' && styles.statusBadgeActive,
-                      { borderColor: '#EF4444' },
+                      person.status === "absent" && styles.statusBadgeActive,
+                      { borderColor: "#EF4444" },
                     ]}
-                    onPress={() => handleStatusChange(person.id, 'absent')}
+                    onPress={() => handleStatusChange(person.id, "absent")}
                   >
                     <Ionicons
                       name="close-circle"
                       size={16}
-                      color={person.status === 'absent' ? '#EF4444' : '#94A3B8'}
+                      color={person.status === "absent" ? "#EF4444" : "#94A3B8"}
                     />
                     <Text
                       style={[
                         styles.statusText,
-                        person.status === 'absent' && { color: '#EF4444' },
+                        person.status === "absent" && { color: "#EF4444" },
                       ]}
                     >
                       Absent
@@ -309,20 +354,28 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
                 </View>
 
                 {/* Time Info */}
-                {person.status !== 'absent' && (
+                {person.status !== "absent" && (
                   <View style={styles.timeRow}>
                     <View style={styles.timeItem}>
-                      <Ionicons name="log-in-outline" size={16} color="#64748B" />
+                      <Ionicons
+                        name="log-in-outline"
+                        size={16}
+                        color="#64748B"
+                      />
                       <Text style={styles.timeLabel}>Time In:</Text>
                       <Text style={styles.timeValue}>
-                        {person.timeIn || 'Not set'}
+                        {person.timeIn || "Not set"}
                       </Text>
                     </View>
                     <View style={styles.timeItem}>
-                      <Ionicons name="log-out-outline" size={16} color="#64748B" />
+                      <Ionicons
+                        name="log-out-outline"
+                        size={16}
+                        color="#64748B"
+                      />
                       <Text style={styles.timeLabel}>Time Out:</Text>
                       <Text style={styles.timeValue}>
-                        {person.timeOut || 'Not set'}
+                        {person.timeOut || "Not set"}
                       </Text>
                     </View>
                   </View>
@@ -372,7 +425,7 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
 
               <Text style={styles.inputLabel}>Status</Text>
               <View style={styles.statusSelector}>
-                {(['present', 'late', 'absent'] as const).map((status) => (
+                {(["present", "late", "absent"] as const).map((status) => (
                   <TouchableOpacity
                     key={status}
                     style={[
@@ -380,9 +433,7 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
                       newPerson.status === status && styles.statusOptionActive,
                       { borderColor: getStatusColor(status) },
                     ]}
-                    onPress={() =>
-                      setNewPerson({ ...newPerson, status })
-                    }
+                    onPress={() => setNewPerson({ ...newPerson, status })}
                   >
                     <Ionicons
                       name={getStatusIcon(status) as any}
@@ -390,7 +441,7 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
                       color={
                         newPerson.status === status
                           ? getStatusColor(status)
-                          : '#94A3B8'
+                          : "#94A3B8"
                       }
                     />
                     <Text
@@ -407,7 +458,7 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
                 ))}
               </View>
 
-              {newPerson.status !== 'absent' && (
+              {newPerson.status !== "absent" && (
                 <>
                   <Text style={styles.inputLabel}>Time In</Text>
                   <TextInput
@@ -456,7 +507,7 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
   },
   scrollView: {
     flex: 1,
@@ -465,11 +516,11 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
-    shadowColor: '#02217C',
+    shadowColor: "#02217C",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
@@ -483,45 +534,45 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#1E293B',
+    fontWeight: "700",
+    color: "#1E293B",
   },
   date: {
     fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
+    color: "#64748B",
+    fontWeight: "500",
   },
   statsContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   statCard: {
     flex: 1,
     padding: 12,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   statNumber: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#02217C',
+    fontWeight: "700",
+    color: "#02217C",
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 11,
-    color: '#64748B',
-    fontWeight: '600',
+    color: "#64748B",
+    fontWeight: "600",
   },
   addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#02217C',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#02217C",
     padding: 16,
     borderRadius: 10,
     gap: 8,
     marginBottom: 20,
-    shadowColor: '#02217C',
+    shadowColor: "#02217C",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -529,46 +580,46 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   section: {
     marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
+    fontWeight: "700",
+    color: "#1E293B",
     marginBottom: 16,
   },
   emptyState: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 40,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: "#94A3B8",
     marginTop: 12,
   },
   personCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#02217C',
+    borderColor: "#E2E8F0",
+    shadowColor: "#02217C",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 1,
   },
   personHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 12,
   },
   personInfo: {
@@ -576,132 +627,132 @@ const styles = StyleSheet.create({
   },
   personName: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
+    fontWeight: "700",
+    color: "#1E293B",
     marginBottom: 2,
   },
   personPosition: {
     fontSize: 13,
-    color: '#64748B',
+    color: "#64748B",
   },
   deleteIconButton: {
     padding: 4,
   },
   statusRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
     marginBottom: 12,
   },
   statusBadge: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
     gap: 4,
   },
   statusBadgeActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#94A3B8',
+    fontWeight: "600",
+    color: "#94A3B8",
   },
   timeRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   timeItem: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
     padding: 8,
     borderRadius: 6,
     gap: 4,
   },
   timeLabel: {
     fontSize: 11,
-    color: '#64748B',
-    fontWeight: '600',
+    color: "#64748B",
+    fontWeight: "600",
   },
   timeValue: {
     fontSize: 11,
-    color: '#1E293B',
-    fontWeight: '700',
+    color: "#1E293B",
+    fontWeight: "700",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    maxHeight: '90%',
+    maxHeight: "90%",
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#1E293B',
+    fontWeight: "700",
+    color: "#1E293B",
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B',
+    fontWeight: "600",
+    color: "#1E293B",
     marginBottom: 8,
     marginTop: 12,
   },
   input: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: '#1E293B',
+    color: "#1E293B",
   },
   statusSelector: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
     marginBottom: 12,
   },
   statusOption: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
     gap: 6,
   },
   statusOptionActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   statusOptionText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#94A3B8',
+    fontWeight: "600",
+    color: "#94A3B8",
   },
   modalButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     marginTop: 20,
   },
@@ -709,25 +760,25 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   cancelButton: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: "#E2E8F0",
   },
   cancelButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
+    fontWeight: "600",
+    color: "#64748B",
   },
   confirmButton: {
-    backgroundColor: '#02217C',
+    backgroundColor: "#02217C",
   },
   confirmButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
 });
 

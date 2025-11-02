@@ -87,6 +87,12 @@ export const createAttendanceStyles = StyleSheet.create({
     fontFamily: theme.typography.regular,
     backgroundColor: theme.colors.surface,
   },
+  // Use this when mimicking TextInput text in non-TextInput elements (e.g., date display)
+  inputText: {
+    fontFamily: theme.typography.regular,
+    fontSize: normalizeFont(isTablet() ? 16 : theme.typography.sizes.md),
+    color: theme.colors.text,
+  },
   inputFilled: {
     borderColor: theme.colors.primaryDark,
   },

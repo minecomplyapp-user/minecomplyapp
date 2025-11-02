@@ -108,15 +108,24 @@ async function getAccessToken(): Promise<string> {
 
 export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
   const token = await getAccessToken();
-  const res = await fetch(`${apiBaseUrl}/api${path}`, {
-    ...init,
-    method: "GET",
-    headers: {
-      ...(init?.headers || {}),
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${apiBaseUrl}/api${path}`, {
+      ...init,
+      method: "GET",
+      headers: {
+        ...(init?.headers || {}),
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+  } catch (e: any) {
+    const msg = String(e?.message || e);
+    throw new Error(
+      `Network error calling GET ${apiBaseUrl}/api${path}: ${msg}. ` +
+        `If you're on a physical device, ensure API_BASE_URL is your LAN IP or set USE_RENDER_API=true with EXPO_PUBLIC_API_BASE_URL.`
+    );
+  }
   if (!res.ok) {
     const body = await safeJson(res);
     throw new Error(body?.message || `GET ${path} failed (${res.status})`);
@@ -130,21 +139,74 @@ export async function apiPost<T>(
   init?: RequestInit
 ): Promise<T> {
   const token = await getAccessToken();
-  const res = await fetch(`${apiBaseUrl}/api${path}`, {
-    ...init,
-    method: "POST",
-    headers: {
-      ...(init?.headers || {}),
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${apiBaseUrl}/api${path}`, {
+      ...init,
+      method: "POST",
+      headers: {
+        ...(init?.headers || {}),
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (e: any) {
+    const msg = String(e?.message || e);
+    throw new Error(
+      `Network error calling POST ${apiBaseUrl}/api${path}: ${msg}. ` +
+        `If you're on a physical device, ensure API_BASE_URL is your LAN IP or set USE_RENDER_API=true with EXPO_PUBLIC_API_BASE_URL.`
+    );
+  }
   if (!res.ok) {
     const data = await safeJson(res);
     throw new Error(data?.message || `POST ${path} failed (${res.status})`);
   }
   return (await res.json()) as T;
+}
+
+export async function apiDelete<T = void>(
+  path: string,
+  init?: RequestInit
+): Promise<T | void> {
+  const token = await getAccessToken();
+  let res: Response;
+  try {
+    res = await fetch(`${apiBaseUrl}/api${path}`, {
+      ...init,
+      method: "DELETE",
+      headers: {
+        ...(init?.headers || {}),
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch (e: any) {
+    const msg = String(e?.message || e);
+    throw new Error(
+      `Network error calling DELETE ${apiBaseUrl}/api${path}: ${msg}. ` +
+        `If you're on a physical device, ensure API_BASE_URL is your LAN IP or set USE_RENDER_API=true with EXPO_PUBLIC_API_BASE_URL.`
+    );
+  }
+  if (!res.ok) {
+    const data = await safeJson(res);
+    throw new Error(data?.message || `DELETE ${path} failed (${res.status})`);
+  }
+  // Try to parse JSON; if none, return void
+  try {
+    const ct = res.headers.get("content-type") || "";
+    if (ct.includes("application/json")) {
+      return (await res.json()) as T;
+    }
+  } catch {}
+  return undefined;
+}
+
+export function getApiBaseUrl(): string {
+  return apiBaseUrl;
+}
+
+export async function getJwt(): Promise<string> {
+  return getAccessToken();
 }
 
 async function safeJson(res: Response): Promise<any | null> {

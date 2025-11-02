@@ -1,5 +1,7 @@
 import { apiPost } from "./api";
 import { supabase } from "./supabase";
+import Constants from "expo-constants";
+import * as FileSystem from "expo-file-system/legacy";
 
 export type SignedUploadUrlResponse = {
   url: string;
@@ -40,7 +42,7 @@ export async function uploadFileFromUri({
   contentType,
   upsert,
 }: UploadFromUriParams): Promise<{ path: string }> {
-  console.log("📤 Starting uploadFileFromUri...");
+  console.log("📤 Starting uploadFileFromUri (Supabase SDK direct upload)...");
   console.log("📝 Parameters:", {
     fileName,
     contentType,
@@ -48,86 +50,62 @@ export async function uploadFileFromUri({
     uriLength: uri.length,
   });
 
-  console.log("🔗 Creating signed upload URL...");
-  const { url, token, path } = await createSignedUploadUrl(fileName, {
-    upsert,
-  });
-  console.log("✅ Signed URL created:", {
-    path,
-    hasUrl: !!url,
-    hasToken: !!token,
-    urlLength: url?.length,
-  });
+  // Generate unique path with UUID prefix
+  const uniqueId =
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15);
+  const path = `uploads/${uniqueId}-${fileName}`;
 
-  console.log("📋 Preparing FormData...");
-  const formData = new FormData();
-  if (token) {
-    console.log("🔑 Adding token to FormData");
-    formData.append("token", token);
-  } else {
-    console.log("⚠️ No token received from backend");
+  console.log("📂 Upload path:", path);
+
+  // Read file as base64 (React Native requires this for Supabase upload)
+  console.log("� Reading file from URI...");
+  let arrayBuffer: ArrayBuffer;
+
+  try {
+    // Try to read as base64 first
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    console.log("✅ File read as base64, length:", base64.length);
+
+    // Convert base64 to ArrayBuffer for Supabase upload
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    arrayBuffer = bytes.buffer;
+  } catch (readError: any) {
+    console.error("❌ Failed to read file:", readError);
+    throw new Error(`Failed to read file: ${readError.message}`);
   }
 
-  const fileObject = {
-    uri,
-    name: fileName,
-    type: contentType ?? "application/octet-stream",
-  };
-  console.log("📎 File object:", fileObject);
-  formData.append("file", fileObject as any);
-
-  // Get the user's access token for authorization header
-  console.log("� Getting user access token...");
-  const { data } = await supabase.auth.getSession();
-  const accessToken = data.session?.access_token;
-
-  if (!accessToken) {
-    throw new Error("No access token found - user may not be authenticated");
-  }
-  console.log("✅ Access token obtained");
-
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${accessToken}`,
-  };
-
-  console.log("�🚀 Making upload request to:", url.substring(0, 100) + "...");
-  console.log("🔑 Including Authorization header");
-  const response = await fetch(url, {
-    method: "POST",
-    headers,
-    body: formData,
-  });
-
-  console.log("📨 Upload response:", {
-    status: response.status,
-    statusText: response.statusText,
-    headers: Object.fromEntries(response.headers.entries()),
-  });
-
-  if (!response.ok) {
-    const errorText = await safeReadText(response);
-    console.error("❌ Upload failed - Error text:", errorText);
-    console.error("❌ Response details:", {
-      status: response.status,
-      statusText: response.statusText,
-      url: url.substring(0, 100) + "...",
+  // Upload using Supabase SDK directly (no signed URL needed)
+  console.log("🚀 Uploading to Supabase Storage via SDK...");
+  const { data, error } = await supabase.storage
+    .from("minecomplyapp-bucket")
+    .upload(path, arrayBuffer, {
+      contentType: contentType ?? "application/octet-stream",
+      cacheControl: "3600",
+      upsert: upsert ?? false,
     });
 
-    throw new Error(
-      errorText
-        ? `Upload failed: ${errorText}`
-        : `Upload failed (${response.status})`
-    );
+  if (error) {
+    console.error("❌ Supabase upload failed:", {
+      message: error.message,
+      statusCode: (error as any).statusCode,
+      error: error,
+    });
+    throw new Error(`Upload failed: ${error.message}`);
   }
 
-  console.log("🎉 Upload successful! Path:", path);
-  return { path };
-}
+  console.log("✅ Upload succeeded!", {
+    path: data.path,
+    id: data.id,
+    fullPath: data.fullPath,
+  });
+  console.log("✅ File should now be visible at path:", data.path);
 
-async function safeReadText(res: Response): Promise<string | undefined> {
-  try {
-    return await res.text();
-  } catch {
-    return undefined;
-  }
+  return { path: data.path };
 }
