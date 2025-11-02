@@ -13,6 +13,9 @@ export type Parameter = {
   weatherWind: string;
   explanation: string;
   isExplanationNA: boolean;
+  mmtCurrent?: string;      // Add this
+  mmtPrevious?: string;     // Add this
+  isMMTNA?: boolean;        // Add this
 };
 
 export type LocationState = {

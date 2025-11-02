@@ -10,11 +10,12 @@ import {
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { CMSHeader } from "../../../components/CMSHeader";
-import GeneralInfoSection from "./GeneralInfoSection";
-import CombinedECCISAGSection from "./CombinedECCISAGSection";
-import EPEPSection from "./EPEPSection";
-import RCFSection from "./RCFSection";
-import MMTSection, { MMTInfo } from "./MMTSection";
+import GeneralInfoSection from "./components/GeneralInfoSection";
+import CombinedECCISAGSection from "./components/CombinedECCISAGSection";
+import EPEPSection from "./components/EPEPSection";
+import RCFSection from "./components/RCFSection";
+import MMTSection from "./components/MMTSection";
+import type { MMTInfo } from "./types/mmt.types";;
 import { Ionicons } from "@expo/vector-icons";
 import { useFileName } from "../../../contexts/FileNameContext";
 import {
@@ -35,10 +36,8 @@ const CMVRReportScreen = () => {
   const route = useRoute<CMVRReportScreenRouteProp>();
   const { submissionId, projectName, projectId } = route.params;
   
-  // Use context instead of local state
   const { fileName, setFileName } = useFileName();
 
-  // Initialize fileName from route params if provided
   useEffect(() => {
     if (route.params.fileName && route.params.fileName !== fileName) {
       setFileName(route.params.fileName);

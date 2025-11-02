@@ -1,4 +1,3 @@
-// NoiseQualityScreen.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -11,15 +10,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { CMSHeader } from "../../../components/CMSHeader";
-import * as DocumentPicker from "expo-document-picker";
-import { NoiseParameterCard } from "./NoiseParameterCard";
-import { FileUploadSection } from "./FileUploadSection";
-import {
-  UploadedFile,
-  QuarterData,
-  NoiseParameter,
-} from "../types/NoiseQualityScreen.types";
-import { styles } from "../styles/NoiseQualityScreen.styles";
+import { NoiseParameterCard } from "./components/NoiseParameterCard";
+import { FileUploadSection } from "./components/FileUploadSection";
+import { UploadedFile, QuarterData, NoiseParameter } from "./types";
+import { noiseQualityScreenStyles as styles } from "./styles";
 
 export default function NoiseQualityScreen({ navigation }: any) {
   const [hasInternalNoise, setHasInternalNoise] = useState(false);
@@ -29,8 +23,8 @@ export default function NoiseQualityScreen({ navigation }: any) {
       id: `param-${Date.now()}`,
       parameter: "",
       isParameterNA: false,
-      currentInSABR: "",
-      previousInSABR: "",
+      currentInSMR: "",
+      previousInSMR: "",
       mmtCurrent: "",
       mmtPrevious: "",
       redFlag: "",
@@ -65,8 +59,8 @@ export default function NoiseQualityScreen({ navigation }: any) {
         id: newId,
         parameter: "",
         isParameterNA: false,
-        currentInSABR: "",
-        previousInSABR: "",
+        currentInSMR: "",
+        previousInSMR: "",
         mmtCurrent: "",
         mmtPrevious: "",
         redFlag: "",
@@ -146,6 +140,7 @@ export default function NoiseQualityScreen({ navigation }: any) {
           uploadedFiles={uploadedFiles}
           onFilesChange={setUploadedFiles}
         />
+
         <View style={styles.parametersSection}>
           {parameters.map((param, index) => (
             <NoiseParameterCard
@@ -157,12 +152,8 @@ export default function NoiseQualityScreen({ navigation }: any) {
               onDelete={removeParameter}
             />
           ))}
-          <TouchableOpacity style={styles.addButton} onPress={addParameter}>
-            <Ionicons name="add-circle" size={20} color="#02217C" />
-            <Text style={styles.addButtonText}>Add More Parameter</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.additionalFieldsContainer}>
+          
+          {/* Remarks placed above Add More Parameter button */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Remarks</Text>
             <TextInput
@@ -175,6 +166,14 @@ export default function NoiseQualityScreen({ navigation }: any) {
               numberOfLines={3}
             />
           </View>
+
+          <TouchableOpacity style={styles.addButton} onPress={addParameter}>
+            <Ionicons name="add-circle" size={20} color="#02217C" />
+            <Text style={styles.addButtonText}>Add More Parameter</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.additionalFieldsContainer}>
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Date/Time of Sampling</Text>
             <TextInput
@@ -198,15 +197,7 @@ export default function NoiseQualityScreen({ navigation }: any) {
           <View style={styles.fieldGroup}>
             <View style={styles.labelWithAction}>
               <Text style={styles.label}>Explanation of Confirmatory Sampling</Text>
-              <TouchableOpacity
-                style={styles.naButton}
-                onPress={() => setExplanationNA(!explanationNA)}
-              >
-                <View style={[styles.checkbox, explanationNA && styles.checkboxChecked]}>
-                  {explanationNA && <Ionicons name="checkmark" size={14} color="white" />}
-                </View>
-                <Text style={styles.naText}>N/A</Text>
-              </TouchableOpacity>
+              
             </View>
             <TextInput
               style={[styles.input, styles.textArea, explanationNA && styles.disabledInput]}
@@ -220,55 +211,38 @@ export default function NoiseQualityScreen({ navigation }: any) {
             />
           </View>
         </View>
+
         <View style={styles.overallAssessmentContainer}>
           <View style={styles.overallHeader}>
             <Ionicons name="analytics" size={20} color="#02217C" />
             <Text style={styles.overallTitle}>Overall Noise Quality Impact Assessment</Text>
           </View>
         </View>
+
+        {/* Changed quarters from checkboxes to bullets */}
         <View style={styles.quartersContainer}>
           {[
-            { key: "first", label: "1st Quarter", checked: "isFirstChecked" },
-            { key: "second", label: "2nd Quarter", checked: "isSecondChecked" },
-            { key: "third", label: "3rd Quarter", checked: "isThirdChecked" },
-            { key: "fourth", label: "4th Quarter", checked: "isFourthChecked" },
+            { key: "first", label: "1st Quarter" },
+            { key: "second", label: "2nd Quarter" },
+            { key: "third", label: "3rd Quarter" },
+            { key: "fourth", label: "4th Quarter" },
           ].map((quarter) => (
             <View key={quarter.key} style={styles.quarterRow}>
-              <TouchableOpacity
-                style={styles.quarterCheckbox}
-                onPress={() =>
-                  updateQuarter(
-                    quarter.checked as keyof QuarterData,
-                    !quarters[quarter.checked as keyof QuarterData]
-                  )
-                }
-              >
-                <View
-                  style={[
-                    styles.checkbox,
-                    quarters[quarter.checked as keyof QuarterData] && styles.checkboxChecked,
-                  ]}
-                >
-                  {quarters[quarter.checked as keyof QuarterData] && (
-                    <Ionicons name="checkmark" size={16} color="white" />
-                  )}
-                </View>
+              <View style={styles.bulletRow}>
+                <View style={styles.bullet} />
                 <Text style={styles.quarterLabel}>{quarter.label}</Text>
-              </TouchableOpacity>
+              </View>
               <TextInput
-                style={[
-                  styles.quarterInput,
-                  !quarters[quarter.checked as keyof QuarterData] && styles.disabledInput,
-                ]}
+                style={styles.quarterInput}
                 value={quarters[quarter.key as keyof QuarterData] as string}
                 onChangeText={(text) => updateQuarter(quarter.key as keyof QuarterData, text)}
                 placeholder="Enter assessment"
                 placeholderTextColor="#94A3B8"
-                editable={quarters[quarter.checked as keyof QuarterData] as boolean}
               />
             </View>
           ))}
         </View>
+
         <TouchableOpacity style={styles.saveNextButton} onPress={handleSaveAndNext}>
           <Text style={styles.saveNextButtonText}>Save & Next</Text>
           <Ionicons name="arrow-forward" size={20} color="white" />

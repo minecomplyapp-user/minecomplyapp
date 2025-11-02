@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#e5e5e5',
   },
   saveModalButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#02217C',
   },
   modalButtonText: {
     fontSize: 16,

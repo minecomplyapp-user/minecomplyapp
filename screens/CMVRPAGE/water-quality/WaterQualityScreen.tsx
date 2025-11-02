@@ -1,4 +1,3 @@
-// WaterQualityScreen.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -10,11 +9,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { CMSHeader } from "../../../components/CMSHeader";
-import { LocationSection } from "./LocationSection";
-import { ParameterForm } from "./ParameterForm";
-import { MMTSection } from "./MMTSection";
-import { OverallComplianceSection } from "./OverallComplianceSection";
-import { PortSection } from "./PortSection";
+import { LocationSection } from "./components/LocationSection";
+import { ParameterForm } from "./components/ParameterForm";
+import { OverallComplianceSection } from "./components/OverallComplianceSection";
+import { PortSection } from "./components/PortSection";
 import {
   Parameter,
   LocationState,
@@ -90,6 +88,9 @@ export default function WaterQualityScreen({ navigation }: any) {
         resultType: "Month",
         tssCurrent: "",
         tssPrevious: "",
+        mmtCurrent: "",
+        mmtPrevious: "",
+        isMMTNA: false,
         eqplRedFlag: "",
         action: "",
         limit: "",
@@ -107,6 +108,14 @@ export default function WaterQualityScreen({ navigation }: any) {
     field: keyof Omit<Parameter, "id">,
     value: string | boolean
   ) => {
+    setParameters(
+      parameters.map((param) =>
+        param.id === id ? { ...param, [field]: value } : param
+      )
+    );
+  };
+
+  const handleParameterMMTInputChange = (id: string, field: string, value: string) => {
     setParameters(
       parameters.map((param) =>
         param.id === id ? { ...param, [field]: value } : param
@@ -263,13 +272,19 @@ export default function WaterQualityScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <CMSHeader onBack={() => navigation.goBack()} />
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.sectionHeader}>
           <View style={styles.sectionNumberBadge}>
             <Text style={styles.sectionNumber}>B.4.</Text>
           </View>
-          <Text style={styles.sectionTitle}>Water Quality Impact Assessment</Text>
+          <Text style={styles.sectionTitle}>
+            Water Quality Impact Assessment
+          </Text>
         </View>
+
         <LocationSection
           selectedLocations={selectedLocations}
           quarryInput={data.quarryInput}
@@ -278,20 +293,24 @@ export default function WaterQualityScreen({ navigation }: any) {
           onLocationToggle={handleLocationToggle}
           onInputChange={handleLocationInputChange}
         />
-        <View style={styles.parameterSection}>
-          <ParameterForm
-            parameter={mainParameter}
-            isMain={true}
-            onUpdate={handleMainParameterUpdate}
-          />
 
-          <MMTSection
-            mmtCurrent={data.mmtCurrent}
-            mmtPrevious={data.mmtPrevious}
-            isMMTNA={data.isMMTNA}
-            onInputChange={handleMMTInputChange}
-            onNAToggle={() => handleInputChange("isMMTNA", !data.isMMTNA)}
-          />
+        <View style={styles.parameterSection}>
+          <View style={styles.internalMonitoringContainer}>
+            <Text style={styles.internalMonitoringTitle}>
+              Internal Monitoring
+            </Text>
+            <ParameterForm
+              parameter={mainParameter}
+              isMain={true}
+              onUpdate={handleMainParameterUpdate}
+              mmtCurrent={data.mmtCurrent}
+              mmtPrevious={data.mmtPrevious}
+              isMMTNA={data.isMMTNA}
+              onMMTInputChange={handleMMTInputChange}
+              onMMTNAToggle={() => handleInputChange("isMMTNA", !data.isMMTNA)}
+            />
+          </View>
+
           {parameters.map((param) => (
             <ParameterForm
               key={param.id}
@@ -299,13 +318,20 @@ export default function WaterQualityScreen({ navigation }: any) {
               isMain={false}
               onUpdate={(field, value) => updateParameter(param.id, field, value)}
               onDelete={() => removeParameter(param.id)}
+              mmtCurrent={param.mmtCurrent}
+              mmtPrevious={param.mmtPrevious}
+              isMMTNA={param.isMMTNA}
+              onMMTInputChange={(field, value) => updateParameter(param.id, field as keyof Omit<Parameter, "id">, value)}
+              onMMTNAToggle={() => updateParameter(param.id, "isMMTNA", !param.isMMTNA)}
             />
           ))}
+
           <TouchableOpacity style={styles.addButton} onPress={addParameter}>
-            <Ionicons name="add-circle-outline" size={18} color="#2563EB" />
+            <Ionicons name="add-circle-outline" size={16} color="#02217C" />
             <Text style={styles.addButtonText}>Add More Parameter</Text>
           </TouchableOpacity>
         </View>
+
         {ports.map((port, idx) => (
           <PortSection
             key={port.id}
@@ -318,14 +344,17 @@ export default function WaterQualityScreen({ navigation }: any) {
             onDeleteParameter={deletePortParameter}
           />
         ))}
+
         <OverallComplianceSection
           value={data.overallCompliance}
           onChangeText={(text) => handleInputChange("overallCompliance", text)}
         />
+
         <TouchableOpacity style={styles.addPortButton} onPress={addPort}>
-          <Ionicons name="add" size={20} color="#2563EB" />
+          <Ionicons name="add" size={20} color="#02217C" />
           <Text style={styles.addPortText}>Add PORT</Text>
         </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.saveNextButton}
           onPress={() => navigation.navigate("NoiseQuality")}
