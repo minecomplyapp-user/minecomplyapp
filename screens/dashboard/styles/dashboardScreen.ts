@@ -18,6 +18,22 @@ export const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  backButton: {
+  position: "absolute",
+  marginTop: 50,
+  top: 10,
+  left: 15,
+  zIndex: 10,
+  backgroundColor: "rgba(255,255,255,0.9)",
+  borderRadius: 20,
+  padding: 6,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.15,
+  shadowRadius: 2,
+  elevation: 2,
+},
+  
   greeting: {
     fontFamily: theme.typography.bold,
     fontSize: normalizeFont(theme.typography.sizes.xxl),
