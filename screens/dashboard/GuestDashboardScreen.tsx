@@ -27,6 +27,7 @@ import {
 } from "../../utils/responsive";
 import { supabase } from "../../lib/supabase";
 import { uploadQRCode } from "../../lib/storage";
+import { useAuth } from "../../contexts/AuthContext";
 
 export const GuestDashboardScreen = () => {
   const navigation = useNavigation();
@@ -100,6 +101,18 @@ export const GuestDashboardScreen = () => {
         setQrImage(publicUrl);
         setQrPath(path);
 
+        // Save to profile so other devices see it
+        try {
+          if (user?.id) {
+            await supabase
+              .from("profiles")
+              .update({ qr_path: path, qr_public_url: publicUrl })
+              .eq("id", user.id);
+          }
+        } catch (e) {
+          console.warn("Failed to update profile with QR info", e);
+        }
+
         await AsyncStorage.setItem("guest_qr_public_url", publicUrl);
         await AsyncStorage.setItem("guest_qr_path", path);
         Alert.alert("Success", "QR code uploaded successfully!");
@@ -159,6 +172,18 @@ export const GuestDashboardScreen = () => {
       if (publicUrl) {
         setQrImage(publicUrl);
         setQrPath(path);
+        // Update profile so other devices see it
+        try {
+          if (user?.id) {
+            await supabase
+              .from("profiles")
+              .update({ qr_path: path, qr_public_url: publicUrl })
+              .eq("id", user.id);
+          }
+        } catch (e) {
+          console.warn("Failed to update profile with generated QR info", e);
+        }
+
         await AsyncStorage.setItem("guest_qr_public_url", publicUrl);
         await AsyncStorage.setItem("guest_qr_path", path);
         Alert.alert("Success", "QR code generated and uploaded successfully!");
@@ -172,18 +197,81 @@ export const GuestDashboardScreen = () => {
   };
 
   // Load persisted QR on mount
+  const { user } = useAuth();
+
+  // Load persisted QR on mount and subscribe to profile changes for real-time updates
   useEffect(() => {
+    let channel: any;
     (async () => {
       try {
-        const savedUrl = await AsyncStorage.getItem("guest_qr_public_url");
-        const savedPath = await AsyncStorage.getItem("guest_qr_path");
-        if (savedUrl) setQrImage(savedUrl);
-        if (savedPath) setQrPath(savedPath);
+        // First try to load from profiles table for the logged in user
+        if (user?.id) {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("qr_path, qr_public_url")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          if (error) console.warn("Failed to load profile QR", error);
+          if (data) {
+            if (data.qr_public_url) setQrImage(data.qr_public_url);
+            if (data.qr_path) setQrPath(data.qr_path);
+          }
+
+          // Subscribe to realtime updates on the profiles row (if supported)
+          try {
+            channel = supabase
+              .channel(`profiles:${user.id}`)
+              .on(
+                "postgres_changes",
+                { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
+                (payload: any) => {
+                  const newRow = payload.new || payload.record || {};
+                  if (newRow.qr_public_url) setQrImage(newRow.qr_public_url);
+                  if (newRow.qr_path) setQrPath(newRow.qr_path);
+                }
+              )
+              .subscribe();
+          } catch (subErr) {
+            console.warn("Realtime subscription failed (falling back to polling)", subErr);
+            // fallback: simple polling every 15s
+            channel = setInterval(async () => {
+              try {
+                const { data: d } = await supabase
+                  .from("profiles")
+                  .select("qr_path, qr_public_url")
+                  .eq("id", user.id)
+                  .maybeSingle();
+                if (d) {
+                  if (d.qr_public_url) setQrImage(d.qr_public_url);
+                  if (d.qr_path) setQrPath(d.qr_path);
+                }
+              } catch (e) {
+                // ignore
+              }
+            }, 15000);
+          }
+        } else {
+          // Not logged in yet: fallback to AsyncStorage
+          const savedUrl = await AsyncStorage.getItem("guest_qr_public_url");
+          const savedPath = await AsyncStorage.getItem("guest_qr_path");
+          if (savedUrl) setQrImage(savedUrl);
+          if (savedPath) setQrPath(savedPath);
+        }
       } catch (e) {
         console.warn("Failed to load saved guest QR", e);
       }
     })();
-  }, []);
+
+    return () => {
+      try {
+        if (channel?.unsubscribe) channel.unsubscribe();
+        else if (channel) clearInterval(channel);
+      } catch (e) {
+        // ignore
+      }
+    };
+  }, [user]);
 
   const isQrSet = !!qrImage;
 
@@ -200,7 +288,7 @@ export const GuestDashboardScreen = () => {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
         {/* Debug button to open picker directly */}
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.debugButton}
           onPress={async () => {
             console.log("Debug: opening image picker");
@@ -208,7 +296,7 @@ export const GuestDashboardScreen = () => {
           }}
         >
           <Text style={styles.debugButtonText}>Debug: Open Picker</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       {/* Main Content */}
@@ -470,10 +558,9 @@ const styles = StyleSheet.create({
   },
   qrPromptBox: {
     backgroundColor: theme.colors.primaryLight + "15",
-    borderRadius: moderateScale(theme.radii.md),
+    borderRadius: moderateScale(theme.radii.lg),
     paddingVertical: verticalScale(theme.spacing.md),
     paddingHorizontal: scale(theme.spacing.lg),
-    ...theme.shadows.light,
   },
 
   qrPromptText: {
@@ -519,7 +606,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalCard: {
-    width: "90%",
+    width: "100%",
     maxWidth: 450,
     minWidth: 280,
     backgroundColor: "#ffffff",
