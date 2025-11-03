@@ -89,7 +89,7 @@ export default function DashboardScreen({ navigation }: any) {
               icon={Copy}
               title="Duplicate Report"
               subtitle="Use a previous template"
-              onPress={() => console.log("Duplicate Report")}
+              onPress={() => navigation.navigate("DuplicateReport")}
             />
           </View>
         </View>

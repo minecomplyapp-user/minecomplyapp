@@ -10,6 +10,7 @@ import { FileNameProvider } from "../contexts/FileNameContext";
 import AuthScreen from "../screens/auth/AuthScreen";
 import RoleSelectionScreen from "../screens/role-selection/RoleSelectionScreen";
 import DashboardScreen from "../screens/dashboard/DashboardScreen";
+import DuplicateReportScreen from "../screens/dashboard/DuplicateReportScreen";
 import SubmissionsScreen from "../screens/SubmissionsScreen";
 import ProfileScreen from "../screens/profile/ProfileScreen";
 import EditProfileScreen from "../screens/profile/EditProfileScreen";
@@ -66,6 +67,11 @@ const AppNavigator = () => {
                 options={{ headerShown: false }}
               />
               <RootStack.Screen
+                name="DuplicateReport"
+                component={DuplicateReportScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen
                 name="AttendanceRecords"
                 component={AttendanceRecordScreen}
                 options={{ headerShown: false }}
@@ -101,14 +107,8 @@ const AppNavigator = () => {
               />
               <RootStack.Screen
                 name="ECCMonitoringScreen"
-                component={ECCMonitoringScreen}
+                component={ECCMonitoringScreen2}
               />
-
-              {/* <RootStack.Screen
-                name="EIACompliance"
-                component={EIAComplianceScreen}
-                options={{ headerShown: false }}
-              /> */}
               <RootStack.Screen
                 name="EnvironmentalCompliance"
                 component={EnvironmentalComplianceScreen}
