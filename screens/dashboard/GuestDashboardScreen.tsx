@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
+  InteractionManager,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
@@ -48,43 +49,33 @@ export const GuestDashboardScreen = () => {
 
   // Handle QR image selection + Supabase upload
   const handlePickImage = async () => {
-    const { status, canAskAgain } =
-      await ImagePicker.getMediaLibraryPermissionsAsync();
-
-    if (status !== "granted") {
-      if (canAskAgain) {
-        const { status: newStatus } =
-          await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-        if (newStatus !== "granted") {
-          Alert.alert(
-            "Permission Needed",
-            "Please allow access to your photos so you can upload your QR code."
-          );
-          return;
-        }
-      } else {
+  let result: any;
+  try {
+      // Request permission (use request directly to simplify flow)
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (perm.status !== "granted") {
         Alert.alert(
-          "Permission Required",
-          "Access to your photos is disabled. Please enable it in your settings.",
-          [
-            { text: "Cancel", style: "cancel" },
-            { text: "Open Settings", onPress: () => Linking.openSettings() },
-          ]
+          "Permission Needed",
+          "Please allow access to your photos so you can upload your QR code.",
+          [{ text: "Open Settings", onPress: () => Linking.openSettings() }, { text: "Cancel", style: "cancel" }]
         );
         return;
       }
+
+      // ✅ Pick the QR code image
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 1,
+      });
+
+  if (result.canceled || !result.assets?.length) return;
+
+    } catch (permErr) {
+      console.warn("Image picker permission/error:", permErr);
+      Alert.alert("Error", "Could not open image picker.");
+      return;
     }
-
-    // ✅ Pick the QR code image
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      quality: 1,
-    });
-
-    if (result.canceled || !result.assets?.length) return;
-
     const imageUri = result.assets[0].uri;
     const fileName = `qr_${Date.now()}.jpg`;
 
@@ -208,6 +199,16 @@ export const GuestDashboardScreen = () => {
           />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
+        {/* Debug button to open picker directly */}
+        <TouchableOpacity
+          style={styles.debugButton}
+          onPress={async () => {
+            console.log("Debug: opening image picker");
+            await handlePickImage();
+          }}
+        >
+          <Text style={styles.debugButtonText}>Debug: Open Picker</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Main Content */}
@@ -306,126 +307,127 @@ export const GuestDashboardScreen = () => {
             {isQrSet ? "Edit QR Code" : "Add QR Code"}
           </Text>
         </TouchableOpacity>
-        {/* Options Modal: Upload Image or Enter Link */}
-        <Modal visible={optionsVisible} transparent animationType="fade">
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "rgba(0,0,0,0.4)",
-              justifyContent: "center",
-              alignItems: "center",
-              padding: 20,
-            }}
-          >
-            <View
-              style={{
-                width: "100%",
-                backgroundColor: "white",
-                borderRadius: 10,
-                padding: 16,
-              }}
-            >
-              <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 12 }}>
-                Add or edit QR
-              </Text>
-              <TouchableOpacity
-                onPress={async () => {
-                  setOptionsVisible(false);
-                  // call existing image picker flow
-                  await handlePickImage();
-                }}
-                style={{ paddingVertical: 12 }}
-              >
-                <Text style={{ fontSize: 15 }}>Upload image</Text>
-              </TouchableOpacity>
+        
+{/* Options Modal: Upload Image or Enter Link */}
+<Modal visible={optionsVisible} transparent animationType="fade">
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalCard}>
+      <Text style={styles.modalTitle}>Add or edit QR</Text>
 
-              <TouchableOpacity
-                onPress={() => {
-                  setOptionsVisible(false);
-                  setLinkModalVisible(true);
-                }}
-                style={{ paddingVertical: 12 }}
-              >
-                <Text style={{ fontSize: 15 }}>Enter link (convert → QR)</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity onPress={() => setOptionsVisible(false)} style={{ paddingVertical: 12 }}>
-                <Text style={{ fontSize: 15, color: "#888" }}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
+      <TouchableOpacity
+        onPress={() => {
+          setOptionsVisible(false);
+          // Wait until modal dismissal and interactions finish, then open picker
+          InteractionManager.runAfterInteractions(() => {
+            handlePickImage();
+          });
+        }}
+        style={styles.optionButton}
+      >
+        <View style={styles.optionRow}>
+          <View style={styles.optionIconWrap}>
+            <Ionicons
+              name="image-outline"
+              size={20}
+              color={theme.colors.primaryDark}
+            />
           </View>
-        </Modal>
-
-        {/* Link input modal */}
-        <Modal visible={linkModalVisible} transparent animationType="fade">
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "rgba(0,0,0,0.4)",
-              justifyContent: "center",
-              alignItems: "center",
-              padding: 20,
-            }}
-          >
-            <View
-              style={{
-                width: "100%",
-                backgroundColor: "white",
-                borderRadius: 10,
-                padding: 16,
-              }}
-            >
-              <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8 }}>
-                Paste link to convert to QR
-              </Text>
-              <TextInput
-                value={linkInput}
-                onChangeText={setLinkInput}
-                placeholder="https://example.com"
-                autoCapitalize="none"
-                keyboardType="url"
-                style={{
-                  borderWidth: 1,
-                  borderColor: "#ddd",
-                  padding: 10,
-                  borderRadius: 6,
-                  marginBottom: 12,
-                }}
-              />
-
-              <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
-                <TouchableOpacity
-                  onPress={() => {
-                    setLinkModalVisible(false);
-                    setLinkInput("");
-                  }}
-                  style={{ padding: 10, marginRight: 8 }}
-                >
-                  <Text style={{ color: "#888" }}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={async () => {
-                    // generate QR from link
-                    setSubmitting(true);
-                    try {
-                      await handleGenerateFromLink(linkInput.trim());
-                    } catch (e) {
-                      console.warn(e);
-                    } finally {
-                      setSubmitting(false);
-                      setLinkModalVisible(false);
-                      setLinkInput("");
-                    }
-                  }}
-                  style={{ padding: 10 }}
-                >
-                  <Text style={{ color: theme.colors.primaryDark }}>{submitting ? "..." : "Convert"}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+          <View style={styles.optionTextContainer}>
+            <Text style={styles.optionText}>Upload image</Text>
+            <Text style={styles.optionSubText}>
+              Choose a photo from your device
+            </Text>
           </View>
-        </Modal>
+        </View>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => {
+          setOptionsVisible(false);
+          setLinkModalVisible(true);
+        }}
+        style={styles.optionButton}
+      >
+        <View style={styles.optionRow}>
+          <View style={styles.optionIconWrap}>
+            <Ionicons
+              name="link-outline"
+              size={20}
+              color={theme.colors.primaryDark}
+            />
+          </View>
+          <View style={styles.optionTextContainer}>
+            <Text style={styles.optionText}>Enter link</Text>
+            <Text style={styles.optionSubText}>
+              Paste a URL and we’ll generate a QR image
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      {/* ✅ WRAP YOUR CANCEL BUTTON IN A modalButtonRow FOR CONSISTENT ALIGNMENT */}
+      <View style={styles.modalButtonRow}>
+        <TouchableOpacity
+          onPress={() => setOptionsVisible(false)}
+          style={[styles.modalAction, styles.cancelButton]}
+        >
+          <Text style={styles.cancelText}>Cancel</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+</Modal>
+
+{/* Link input modal */}
+<Modal visible={linkModalVisible} transparent animationType="fade">
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalCard}>
+      <Text style={styles.modalTitle}>Paste link to convert to QR</Text>
+<TextInput
+  value={linkInput}
+  onChangeText={setLinkInput}
+  placeholder="https://example.com"
+  placeholderTextColor="#9CA3AF" // ✅ ADD THIS (a medium gray)
+  autoCapitalize="none"
+  keyboardType="url"
+  style={styles.input}
+/>
+
+      <View style={styles.modalButtonRow}>
+        <TouchableOpacity
+          onPress={() => {
+            setLinkModalVisible(false);
+            setLinkInput("");
+          }}
+          style={[styles.modalAction, styles.cancelButton]}
+        >
+          <Text style={styles.cancelText}>Cancel</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={async () => {
+            setSubmitting(true);
+            try {
+              await handleGenerateFromLink(linkInput.trim());
+            } catch (e) {
+              console.warn(e);
+            } finally {
+              setSubmitting(false);
+              setLinkModalVisible(false);
+              setLinkInput("");
+            }
+          }}
+          style={styles.modalAction}
+        >
+          <Text style={styles.convertButtonText}>
+            {submitting ? "..." : "Convert"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+</Modal>
+
       </View>
     </SafeAreaView>
   );
@@ -492,11 +494,118 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontSize: 13,
   },
+  debugButton: {
+    marginTop: verticalScale(12),
+    backgroundColor: "#f3f4f6",
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: scale(12),
+    borderRadius: moderateScale(8),
+  },
+  debugButtonText: {
+    color: theme.colors.primaryDark,
+    fontFamily: theme.typography.semibold,
+  },
   qrStatusText: {
     marginTop: verticalScale(theme.spacing.md),
     fontFamily: theme.typography.regular,
     fontSize: normalizeFont(theme.typography.sizes.sm),
     color: theme.colors.success || "#28a745",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalCard: {
+    width: "90%",
+    maxWidth: 450,
+    minWidth: 280,
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    padding: 16,
+    ...theme.shadows.light,
+  },
+  modalTitle: {
+    fontSize: normalizeFont(theme.typography.sizes.lg), 
+    fontFamily: theme.typography.semibold,
+    color: theme.colors.primaryDark,
+    marginBottom: verticalScale(24), 
+  },
+  optionButton: {
+    backgroundColor: "#f3f4f6",
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    marginBottom: 10,
+    width: "100%",
+    maxWidth: 400,
+  },
+  optionRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  optionIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.primaryLight + "20",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  optionTextContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  optionText: {
+    fontSize: normalizeFont(theme.typography.sizes.md),
+    fontFamily: theme.typography.semibold,
+    color: theme.colors.primaryDark,
+  },
+  optionSubText: {
+    fontSize: normalizeFont(theme.typography.sizes.sm),
+    fontFamily: theme.typography.regular,
+    color: "#6b7280",
+    marginTop: 2,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#eee",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    backgroundColor: "#fff",
+    color: "#111827", 
+  },
+  modalAction: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    minWidth: 80, 
+    justifyContent: "center", 
+    alignItems: "center", 
+  },
+  modalButtonRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: verticalScale(24), 
+    gap: 12, 
+  },
+  cancelButton: {
+    backgroundColor: "transparent",
+  },
+  cancelText: {
+    color: "#888",
+    fontFamily: theme.typography.regular,
+    fontSize: normalizeFont(theme.typography.sizes.md),
+  },
+  convertButtonText: {
+    // ✅ NEW STYLE
+    color: theme.colors.primaryDark,
+    fontSize: normalizeFont(theme.typography.sizes.md), // Same size as cancel
+    fontFamily: theme.typography.regular, // As requested
   },
 });
 
