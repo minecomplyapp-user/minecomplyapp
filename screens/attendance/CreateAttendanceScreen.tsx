@@ -9,6 +9,8 @@ import {
   SafeAreaView,
   Alert,
   Image,
+  Modal,
+  ActivityIndicator,
 } from "react-native";
 import SignatureScreen from "react-native-signature-canvas";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
@@ -20,7 +22,13 @@ import { CustomHeader } from "../../components/CustomHeader";
 import { apiPost } from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
 import * as ImagePicker from "expo-image-picker";
-import { uploadFileFromUri } from "../../lib/storage";
+import {
+  uploadFileFromUri,
+  uploadSignature,
+  createSignedDownloadUrl,
+} from "../../lib/storage";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
+import * as FileSystem from "expo-file-system/legacy";
 
 // RadioButton component (gi tapol ko ug separate gamay rakayo sila bitaw)
 const RadioButton = ({
@@ -63,7 +71,7 @@ export default function CreateAttendanceScreen({ navigation }: any) {
   const [location, setLocation] = useState("");
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [attachments, setAttachments] = useState<
-    { uri: string; path?: string; uploading?: boolean }[]
+    { uri: string; path?: string; uploading?: boolean; caption?: string }[]
   >([]);
   const [attendees, setAttendees] = useState([
     {
@@ -72,15 +80,23 @@ export default function CreateAttendanceScreen({ navigation }: any) {
       agency: "",
       position: "",
       attendance: "",
-      signature: "",
+      signatureUrl: "",
+      signaturePath: "",
     },
   ]);
+
+  const [signatureModalVisible, setSignatureModalVisible] = useState(false);
+  const [currentAttendeeId, setCurrentAttendeeId] = useState<number | null>(
+    null
+  );
+  const [uploadingSignature, setUploadingSignature] = useState(false);
+  const [newlyUploadedPaths, setNewlyUploadedPaths] = useState<string[]>([]);
 
   const [isSigning, setIsSigning] = useState(false);
   const [errors, setErrors] = useState<any>({});
   const [saving, setSaving] = useState(false);
 
-  const signatureRefs = useRef<{ [key: number]: any }>({});
+  const signatureCanvasRef = useRef<any>(null);
   const [scaleAnim] = useState(new Animated.Value(1));
 
   // --- Animation Handlers ---
@@ -109,14 +125,14 @@ export default function CreateAttendanceScreen({ navigation }: any) {
         agency: "",
         position: "",
         attendance: "",
-        signature: "",
+        signatureUrl: "",
+        signaturePath: "",
       },
     ]);
   };
 
   const removeAttendee = (id: number) => {
     setAttendees(attendees.filter((a) => a.id !== id));
-    delete signatureRefs.current[id];
   };
 
   const handleSetFileName = (text: string) => {
@@ -130,35 +146,15 @@ export default function CreateAttendanceScreen({ navigation }: any) {
     setAttendees((prev) =>
       prev.map((a) => (a.id === id ? { ...a, [field]: value } : a))
     );
-
-    // Clear error for this specific field
-    if (errors.attendees?.[id]?.[field]) {
-      setErrors((prevErrors: any) => {
-        const newErrors = { ...prevErrors };
-        if (newErrors.attendees?.[id]) {
-          delete newErrors.attendees[id][field];
-          if (Object.keys(newErrors.attendees[id]).length === 0) {
-            delete newErrors.attendees[id];
-          }
-        }
-        return newErrors;
-      });
-    }
-  };
-
-  const handleClearSignature = (id: number) => {
-    if (signatureRefs.current[id]) {
-      signatureRefs.current[id].clearSignature();
-    }
-    updateField(id, "signature", ""); // This will also clear the error
   };
 
   // --- Attachments Handlers ---
   const processPickedAsset = async (asset: ImagePicker.ImagePickerAsset) => {
-    const newItem = { uri: asset.uri, uploading: true } as {
+    const newItem = { uri: asset.uri, uploading: true, caption: "" } as {
       uri: string;
       path?: string;
       uploading?: boolean;
+      caption?: string;
     };
     setAttachments((prev) => [...prev, newItem]);
     try {
@@ -181,6 +177,7 @@ export default function CreateAttendanceScreen({ navigation }: any) {
         contentType,
         upsert: false,
       });
+      setNewlyUploadedPaths((prev) => [...prev, path]);
       setAttachments((prev) =>
         prev.map((a) =>
           a.uri === newItem.uri ? { ...a, path, uploading: false } : a
@@ -235,6 +232,12 @@ export default function CreateAttendanceScreen({ navigation }: any) {
 
   const removeAttachment = (uri: string) => {
     setAttachments((prev) => prev.filter((a) => a.uri !== uri));
+  };
+
+  const updateAttachmentCaption = (uri: string, caption: string) => {
+    setAttachments((prev) =>
+      prev.map((a) => (a.uri === uri ? { ...a, caption } : a))
+    );
   };
 
   // --- Date Picker Handlers ---
@@ -298,6 +301,82 @@ export default function CreateAttendanceScreen({ navigation }: any) {
     }
   };
 
+  // --- Signature Handlers ---
+  const handleAddSignature = (id: number) => {
+    setCurrentAttendeeId(id);
+    setSignatureModalVisible(true);
+  };
+
+  const handleSignatureOK = async (signature: string) => {
+    if (currentAttendeeId === null) return;
+
+    try {
+      setUploadingSignature(true);
+      const base64Data = signature.replace(/^data:image\/\w+;base64,/, "");
+      const tempFilePath = `${
+        FileSystem.cacheDirectory
+      }temp-signature-${Date.now()}.png`;
+
+      await FileSystem.writeAsStringAsync(tempFilePath, base64Data, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      const manipulatedImage = await manipulateAsync(
+        tempFilePath,
+        [{ resize: { width: 400 } }],
+        { compress: 0.5, format: SaveFormat.PNG }
+      );
+
+      const { path } = await uploadSignature(manipulatedImage.uri);
+
+      // Get a signed URL for immediate preview
+      const { url } = await createSignedDownloadUrl(path, 60);
+
+      // Track the newly uploaded path for potential cleanup
+      setNewlyUploadedPaths((prev) => [...prev, path]);
+
+      // Update the attendee with the signature path for submission and the URL for preview
+      const currentId = currentAttendeeId;
+      setAttendees((prev) =>
+        prev.map((a) =>
+          a.id === currentId
+            ? { ...a, signatureUrl: url, signaturePath: path }
+            : a
+        )
+      );
+
+      await FileSystem.deleteAsync(tempFilePath, { idempotent: true });
+
+      setSignatureModalVisible(false);
+      setCurrentAttendeeId(null);
+      Alert.alert("Success", "Signature added successfully.");
+    } catch (error: any) {
+      Alert.alert("Error", error?.message || "Failed to upload signature.");
+    } finally {
+      setUploadingSignature(false);
+    }
+  };
+
+  const handleRemoveSignature = (id: number) => {
+    const attendee = attendees.find((a) => a.id === id);
+    if (attendee?.signaturePath) {
+      // If the signature being removed was just uploaded, untrack it
+      setNewlyUploadedPaths((prev) =>
+        prev.filter((p) => p !== (attendee as any).signaturePath)
+      );
+    }
+    updateField(id, "signatureUrl", "");
+    updateField(id, "signaturePath", "");
+  };
+
+  const handleSignatureClear = () => {
+    signatureCanvasRef.current?.clearSignature();
+  };
+
+  const handleSignatureEnd = () => {
+    signatureCanvasRef.current?.readSignature();
+  };
+
   // --- Validation and Save ---
   const validate = () => {
     const newErrors: any = { attendees: {} };
@@ -326,8 +405,11 @@ export default function CreateAttendanceScreen({ navigation }: any) {
         attendeeErrors.attendance = true;
         isValid = false;
       }
-      if (!attendee.signature.trim()) {
-        attendeeErrors.signature = true;
+      if (
+        attendee.attendance.toLowerCase() !== "absent" &&
+        !attendee.signatureUrl?.trim()
+      ) {
+        attendeeErrors.signatureUrl = true;
         isValid = false;
       }
 
@@ -357,6 +439,44 @@ export default function CreateAttendanceScreen({ navigation }: any) {
       .finally(() => setSaving(false));
   };
 
+  React.useEffect(() => {
+    const handleBeforeRemove = (e: any) => {
+      if (newlyUploadedPaths.length === 0 || saving) {
+        return;
+      }
+
+      e.preventDefault();
+
+      Alert.alert(
+        "Discard Changes?",
+        "You have unsaved uploads. Are you sure you want to leave and discard them?",
+        [
+          { text: "Don't Leave", style: "cancel", onPress: () => {} },
+          {
+            text: "Discard",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await apiPost("/storage/delete-files", {
+                  paths: newlyUploadedPaths,
+                });
+              } catch (error) {
+                console.error("Failed to delete orphaned files:", error);
+              }
+              navigation.dispatch(e.data.action);
+            },
+          },
+        ]
+      );
+    };
+
+    navigation.addListener("beforeRemove", handleBeforeRemove);
+
+    return () => {
+      navigation.removeListener("beforeRemove", handleBeforeRemove);
+    };
+  }, [navigation, newlyUploadedPaths, saving]);
+
   const mapAttendanceStatus = (
     val: string
   ): "IN_PERSON" | "ONLINE" | "ABSENT" => {
@@ -383,18 +503,26 @@ export default function CreateAttendanceScreen({ navigation }: any) {
       meetingDate: meetingDate ? formatDateOnly(meetingDate) : undefined,
       location: location?.trim() || undefined,
       attachments:
-        attachments.filter((a) => !!a.path).map((a) => a.path!) || undefined,
+        attachments
+          .filter((a) => !!a.path)
+          .map((a) => ({ path: a.path!, caption: a.caption || undefined })) ||
+        undefined,
       attendees: attendees.map((a) => ({
         name: a.name.trim(),
         agency: a.agency?.trim() || undefined,
         office: a.agency?.trim() || undefined, // TODO: add separate Office field in UI
         position: a.position?.trim() || undefined,
-        signatureUrl: a.signature?.trim() || undefined, // data URL for now; can be uploaded for a permanent URL
+        signatureUrl:
+          (a as any).signaturePath?.trim() ||
+          a.signatureUrl?.trim() ||
+          undefined,
         attendanceStatus: mapAttendanceStatus(a.attendance),
       })),
     };
 
     const res = await apiPost<{ id: string }>("/attendance", payload);
+    // Clear the list of newly uploaded files since they are now saved
+    setNewlyUploadedPaths([]);
     Alert.alert("Success", "Attendance record saved!", [
       { text: "OK", onPress: () => navigation.goBack() },
     ]);
@@ -548,41 +676,63 @@ export default function CreateAttendanceScreen({ navigation }: any) {
           {/* Attachments (optional) */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Attachments (optional)</Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
               {attachments.map((att) => (
-                <View key={att.uri} style={{ position: "relative" }}>
-                  <Image
-                    source={{ uri: att.uri }}
-                    style={{
-                      width: 72,
-                      height: 72,
-                      borderRadius: 8,
-                      backgroundColor: "#eee",
-                    }}
-                  />
-                  <View style={{ position: "absolute", top: -8, right: -8 }}>
-                    <TouchableOpacity
-                      onPress={() => removeAttachment(att.uri)}
+                <View key={att.uri} style={{ width: 160 }}>
+                  <View style={{ position: "relative" }}>
+                    <Image
+                      source={{ uri: att.uri }}
                       style={{
-                        backgroundColor: "#0008",
-                        padding: 4,
-                        borderRadius: 12,
+                        width: 160,
+                        height: 120,
+                        borderRadius: 8,
+                        backgroundColor: "#eee",
                       }}
-                    >
-                      <Feather name="x" size={12} color="#fff" />
-                    </TouchableOpacity>
+                    />
+                    <View style={{ position: "absolute", top: -8, right: -8 }}>
+                      <TouchableOpacity
+                        onPress={() => removeAttachment(att.uri)}
+                        style={{
+                          backgroundColor: "#0008",
+                          padding: 4,
+                          borderRadius: 12,
+                        }}
+                      >
+                        <Feather name="x" size={12} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                    {att.uploading && (
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          color: theme.colors.textLight,
+                          marginTop: 4,
+                        }}
+                      >
+                        Uploading…
+                      </Text>
+                    )}
                   </View>
-                  {att.uploading && (
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        color: theme.colors.textLight,
-                        marginTop: 4,
-                      }}
-                    >
-                      Uploading…
-                    </Text>
-                  )}
+                  <TextInput
+                    value={att.caption || ""}
+                    onChangeText={(text) =>
+                      updateAttachmentCaption(att.uri, text)
+                    }
+                    placeholder="Add caption..."
+                    style={{
+                      marginTop: 8,
+                      paddingVertical: 6,
+                      paddingHorizontal: 10,
+                      borderRadius: 6,
+                      borderWidth: 1,
+                      borderColor: theme.colors.border,
+                      backgroundColor: theme.colors.background,
+                      fontSize: 12,
+                      color: theme.colors.text,
+                    }}
+                    placeholderTextColor={theme.colors.textLight}
+                    editable={!att.uploading}
+                  />
                 </View>
               ))}
             </View>
@@ -763,68 +913,42 @@ export default function CreateAttendanceScreen({ navigation }: any) {
                 <Text
                   style={[
                     styles.label,
-                    errors.attendees?.[attendee.id]?.signature &&
+                    errors.attendees?.[attendee.id]?.signatureUrl &&
                       styles.labelError,
                   ]}
                 >
                   Signature
                 </Text>
-                <View style={styles.signatureWrapper}>
-                  <View
-                    style={[
-                      styles.signatureContainer,
-                      errors.attendees?.[attendee.id]?.signature &&
-                        styles.inputError,
-                    ]}
-                  >
-                    <SignatureScreen
-                      ref={(ref) => {
-                        if (ref) {
-                          signatureRefs.current[attendee.id] = ref;
-                        }
-                      }}
-                      webStyle={`.m-signature-pad { box-shadow: none; border: none; } 
-                                 .m-signature-pad--body { border: none; }
-                                 .m-signature-pad--footer { display: none; margin: 0px; }`}
-                      onBegin={() => setIsSigning(true)}
-                      onEnd={() => {
-                        // Trigger signature capture so onOK receives the data URL
-                        try {
-                          signatureRefs.current[attendee.id]?.readSignature?.();
-                        } catch {}
-                        setIsSigning(false);
-                      }}
-                      onOK={(sig) => {
-                        updateField(attendee.id, "signature", sig);
-                        setIsSigning(false);
-                      }}
-                      onEmpty={() => {
-                        updateField(attendee.id, "signature", "");
-                        setIsSigning(false);
-                      }}
-                      autoClear={false}
-                      backgroundColor="#fff"
-                      penColor={"black"}
+                {attendee.signatureUrl ? (
+                  <View style={styles.signaturePreviewContainer}>
+                    <Image
+                      source={{ uri: attendee.signatureUrl }}
+                      style={styles.signaturePreview}
+                      resizeMode="contain"
                     />
+                    <TouchableOpacity
+                      style={styles.removeSignatureButton}
+                      onPress={() => handleRemoveSignature(attendee.id)}
+                    >
+                      <Feather name="x" size={16} color={theme.colors.error} />
+                    </TouchableOpacity>
                   </View>
-                </View>
-                {errors.attendees?.[attendee.id]?.signature && (
-                  <Text style={styles.errorText}>Signature is required</Text>
-                )}
-
-                <View style={styles.signatureActions}>
+                ) : (
                   <TouchableOpacity
-                    style={styles.sigActionButton}
-                    onPress={() => handleClearSignature(attendee.id)}
+                    style={styles.addSignatureButton}
+                    onPress={() => handleAddSignature(attendee.id)}
                   >
                     <Feather
-                      name="x"
-                      size={16}
+                      name="edit-3"
+                      size={18}
                       color={theme.colors.primaryDark}
                     />
-                    <Text style={styles.sigActionText}>Clear</Text>
+                    <Text style={styles.addSignatureText}>Add Signature</Text>
                   </TouchableOpacity>
-                </View>
+                )}
+                {errors.attendees?.[attendee.id]?.signatureUrl && (
+                  <Text style={styles.errorText}>Signature is required</Text>
+                )}
               </View>
             </View>
           ))}
@@ -863,6 +987,81 @@ export default function CreateAttendanceScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Signature Modal */}
+      <Modal
+        visible={signatureModalVisible}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setSignatureModalVisible(false)}
+      >
+        <SafeAreaView style={styles.signatureModalContainer}>
+          <View style={styles.signatureModalHeader}>
+            <Text style={styles.signatureModalTitle}>Add Signature</Text>
+            <View style={styles.signatureModalButtons}>
+              <TouchableOpacity
+                style={styles.signatureModalButton}
+                onPress={handleSignatureClear}
+              >
+                <Text style={styles.signatureModalButtonText}>Clear</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.signatureModalButton,
+                  styles.signatureModalCancelButton,
+                ]}
+                onPress={() => setSignatureModalVisible(false)}
+                disabled={uploadingSignature}
+              >
+                <Text style={styles.signatureModalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.signatureModalButton,
+                  styles.signatureModalSaveButton,
+                ]}
+                onPress={handleSignatureEnd}
+                disabled={uploadingSignature}
+              >
+                {uploadingSignature ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text
+                    style={[
+                      styles.signatureModalButtonText,
+                      styles.signatureModalSaveText,
+                    ]}
+                  >
+                    Save
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+          <SignatureScreen
+            ref={signatureCanvasRef}
+            onOK={handleSignatureOK}
+            onEmpty={() => Alert.alert("Error", "Please draw a signature")}
+            descriptionText="Sign above"
+            clearText="Clear"
+            confirmText="Save"
+            webStyle={`
+              .m-signature-pad {
+                box-shadow: none;
+                border: 2px solid ${theme.colors.border};
+                border-radius: 8px;
+                margin: 16px;
+              }
+              .m-signature-pad--body {
+                border: none;
+              }
+              .m-signature-pad--footer {
+                display: none;
+              }
+            `}
+          />
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }

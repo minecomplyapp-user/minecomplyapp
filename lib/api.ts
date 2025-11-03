@@ -201,6 +201,38 @@ export async function apiDelete<T = void>(
   return undefined;
 }
 
+export async function apiPatch<T>(
+  path: string,
+  body?: unknown,
+  init?: RequestInit
+): Promise<T> {
+  const token = await getAccessToken();
+  let res: Response;
+  try {
+    res = await fetch(`${apiBaseUrl}/api${path}`, {
+      ...init,
+      method: "PATCH",
+      headers: {
+        ...(init?.headers || {}),
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (e: any) {
+    const msg = String(e?.message || e);
+    throw new Error(
+      `Network error calling PATCH ${apiBaseUrl}/api${path}: ${msg}. ` +
+        `If you're on a physical device, ensure API_BASE_URL is your LAN IP or set USE_RENDER_API=true with EXPO_PUBLIC_API_BASE_URL.`
+    );
+  }
+  if (!res.ok) {
+    const data = await safeJson(res);
+    throw new Error(data?.message || `PATCH ${path} failed (${res.status})`);
+  }
+  return (await res.json()) as T;
+}
+
 export function getApiBaseUrl(): string {
   return apiBaseUrl;
 }
@@ -231,5 +263,10 @@ async function safeJson(res: Response): Promise<any | null> {
     console.log("[JWT] Error fetching Supabase access token:", e);
   }
 })();
+
+export async function deleteFiles(paths: string[]): Promise<void> {
+  if (paths.length === 0) return;
+  await apiPost("/storage/delete-files", { paths });
+}
 
 export type {};

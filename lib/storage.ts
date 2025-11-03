@@ -109,3 +109,144 @@ export async function uploadFileFromUri({
 
   return { path: data.path };
 }
+
+/**
+ * Upload a signature image to the signatures/ folder
+ */
+export async function uploadSignature(uri: string): Promise<{ path: string }> {
+  console.log("📤 Starting uploadSignature (Supabase SDK direct upload)...");
+  console.log("📝 URI length:", uri.length);
+
+  // Generate unique path with UUID prefix
+  const timestamp = Date.now();
+  const uniqueId =
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15);
+  const path = `signatures/${uniqueId}-signature-${timestamp}.png`;
+
+  console.log("📂 Upload path:", path);
+
+  // Read file as base64 (React Native requires this for Supabase upload)
+  console.log("� Reading file from URI...");
+  let arrayBuffer: ArrayBuffer;
+
+  try {
+    // Try to read as base64 first
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    console.log("✅ File read as base64, length:", base64.length);
+
+    // Convert base64 to ArrayBuffer for Supabase upload
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    arrayBuffer = bytes.buffer;
+  } catch (readError: any) {
+    console.error("❌ Failed to read signature:", readError);
+    throw new Error(`Failed to read signature: ${readError.message}`);
+  }
+
+  // Upload using Supabase SDK directly (no signed URL needed)
+  console.log("🚀 Uploading to Supabase Storage via SDK...");
+  const { data, error } = await supabase.storage
+    .from("minecomplyapp-bucket")
+    .upload(path, arrayBuffer, {
+      contentType: "image/png",
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+  if (error) {
+    console.error("❌ Supabase upload failed:", {
+      message: error.message,
+      statusCode: (error as any).statusCode,
+      error: error,
+    });
+    throw new Error(`Upload failed: ${error.message}`);
+  }
+
+  console.log("✅ Upload succeeded!", {
+    path: data.path,
+    id: data.id,
+    fullPath: data.fullPath,
+  });
+  console.log("✅ File should now be visible at path:", data.path);
+
+  return { path: data.path };
+}
+
+/**
+ * Upload an attachment image to the uploads/ folder
+ */
+export async function uploadAttachment(
+  uri: string,
+  fileName?: string
+): Promise<{ path: string }> {
+  console.log("📤 Starting uploadAttachment (Supabase SDK direct upload)...");
+  console.log("📝 URI length:", uri.length);
+
+  // Generate unique path with UUID prefix
+  const timestamp = Date.now();
+  const defaultFileName = `attachment-${timestamp}.jpg`;
+  const finalFileName = fileName || defaultFileName;
+  const uniqueId =
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15);
+  const path = `uploads/${uniqueId}-${finalFileName}`;
+
+  console.log("📂 Upload path:", path);
+
+  // Read file as base64 (React Native requires this for Supabase upload)
+  console.log("📖 Reading file from URI...");
+  let arrayBuffer: ArrayBuffer;
+
+  try {
+    // Try to read as base64 first
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    console.log("✅ File read as base64, length:", base64.length);
+
+    // Convert base64 to ArrayBuffer for Supabase upload
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    arrayBuffer = bytes.buffer;
+  } catch (readError: any) {
+    console.error("❌ Failed to read attachment:", readError);
+    throw new Error(`Failed to read attachment: ${readError.message}`);
+  }
+
+  // Upload using Supabase SDK directly (no signed URL needed)
+  console.log("🚀 Uploading to Supabase Storage via SDK...");
+  const { data, error } = await supabase.storage
+    .from("minecomplyapp-bucket")
+    .upload(path, arrayBuffer, {
+      contentType: "image/jpeg",
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+  if (error) {
+    console.error("❌ Supabase upload failed:", {
+      message: error.message,
+      statusCode: (error as any).statusCode,
+      error: error,
+    });
+    throw new Error(`Upload failed: ${error.message}`);
+  }
+
+  console.log("✅ Upload succeeded!", {
+    path: data.path,
+    id: data.id,
+    fullPath: data.fullPath,
+  });
+  console.log("✅ File should now be visible at path:", data.path);
+
+  return { path: data.path };
+}

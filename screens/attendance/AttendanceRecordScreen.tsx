@@ -8,6 +8,7 @@ import {
   Animated,
   SafeAreaView,
   RefreshControl,
+  Linking,
 } from "react-native";
 import {
   Calendar,
@@ -22,10 +23,6 @@ import { CustomHeader } from "../../components/CustomHeader";
 import { apiGet, apiDelete, getApiBaseUrl, getJwt } from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
-import * as FileSystem from "expo-file-system/legacy";
-import * as Sharing from "expo-sharing";
-import { Platform } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type AttendanceRecordItem = {
   id: string;
@@ -125,79 +122,31 @@ export default function AttendanceRecordScreen({ navigation }: any) {
   };
 
   const handleDownload = async (id: string) => {
-    const record = attendanceRecords.find((r) => r.id === id);
-    const base = getApiBaseUrl();
-    const url = `${base}/api/attendance/${id}/pdf`;
-    const token = await getJwt();
-    const rawName = (record?.title || record?.fileName || `attendance_${id}`)
-      .toString()
-      .replace(/[^a-z0-9._-]/gi, "_");
-    const fsAny = FileSystem as any;
-    const baseDir: string =
-      fsAny.documentDirectory || fsAny.cacheDirectory || "";
-    const localFileUri = `${baseDir}${rawName}.pdf`;
-
     try {
-      // Download via fetch and write as base64 to avoid deprecated APIs
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/pdf",
-        },
-      });
-      if (!res.ok) {
-        throw new Error(`Download failed with status ${res.status}`);
-      }
-      const buffer = await res.arrayBuffer();
-      const base64 = arrayBufferToBase64(buffer);
+      const base = getApiBaseUrl();
+      const token = await getJwt();
 
-      if (
-        Platform.OS === "android" &&
-        (FileSystem as any).StorageAccessFramework
-      ) {
-        try {
-          const savedPath = await savePdfToAndroidDownloads(
-            `${rawName}.pdf`,
-            base64
-          );
-          Alert.alert("Downloaded", `Saved to Downloads: ${savedPath}`);
-        } catch (e: any) {
-          // Clear saved dir so next attempt will re-prompt
-          try {
-            await AsyncStorage.removeItem(ANDROID_DOWNLOADS_DIR_KEY);
-          } catch {}
-          // Fallback: save internally and offer system share to let user choose a folder
-          await FileSystem.writeAsStringAsync(localFileUri, base64, {
-            encoding: (FileSystem as any).EncodingType?.Base64 || "base64",
-          });
-          try {
-            await Sharing.shareAsync(localFileUri, {
-              mimeType: "application/pdf",
-              dialogTitle: "Save PDF",
-              UTI: "com.adobe.pdf",
-            } as any);
-          } catch {}
-          Alert.alert(
-            "Downloaded",
-            `Saved to app storage: ${localFileUri}\nSave-to-Downloads failed: ${e?.message || "Unknown error"}\nIf Android asked to choose another folder, open Downloads, create/select a subfolder (e.g. MineComply), then tap Use this folder -> Allow.`
-          );
-        }
+      // Build URL with token as query parameter for browser download
+      const url = `${base}/api/attendance/${id}/docx?token=${encodeURIComponent(token)}`;
+
+      // Check if the URL can be opened
+      const canOpen = await Linking.canOpenURL(url);
+
+      if (canOpen) {
+        // Open URL in browser - this will trigger native download
+        await Linking.openURL(url);
+        Alert.alert(
+          "Download Started",
+          "The Docx will be downloaded by your browser. Check your Downloads folder or notification bar."
+        );
       } else {
-        // iOS and others: save in app storage
-        await FileSystem.writeAsStringAsync(localFileUri, base64, {
-          encoding: (FileSystem as any).EncodingType?.Base64 || "base64",
-        });
-        try {
-          await Sharing.shareAsync(localFileUri, {
-            mimeType: "application/pdf",
-            dialogTitle: "Save PDF",
-            UTI: "com.adobe.pdf",
-          } as any);
-        } catch {}
-        Alert.alert("Downloaded", `Saved to app storage: ${localFileUri}`);
+        Alert.alert("Error", "Unable to open browser for download");
       }
     } catch (e: any) {
-      Alert.alert("Download failed", e?.message || "Could not download PDF");
+      Alert.alert(
+        "Download failed",
+        e?.message || "Could not open download URL"
+      );
     }
   };
 
@@ -325,6 +274,7 @@ export default function AttendanceRecordScreen({ navigation }: any) {
   );
 }
 
+/* UNUSED - Kept for reference if needed in future
 // Minimal base64 encoder for ArrayBuffer (avoids deprecated download APIs)
 const _b64chars =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -386,6 +336,7 @@ async function savePdfToAndroidDownloads(
   });
   return fileUri;
 }
+*/
 
 /* ---------- Animated Record Card ---------- */
 function AnimatedRecordCard({ record, onDelete, onDownload, onOpen }: any) {

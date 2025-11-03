@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -7,22 +7,62 @@ import {
   StyleSheet,
   SafeAreaView,
   Alert,
-  Modal,
-  TextInput,
   Image,
+  RefreshControl,
+  TextInput,
+  ActivityIndicator,
+  Modal,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import {
+  Calendar,
+  MapPin,
+  Users,
+  FileText,
+  Trash2,
+  Edit3,
+  Save,
+  X,
+  Plus,
+  Camera,
+  ImageIcon,
+  PenTool,
+} from "lucide-react-native";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system/legacy";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
+import SignatureScreen from "react-native-signature-canvas";
 import { CustomHeader } from "../../components/CustomHeader";
-import { apiGet } from "../../lib/api";
-import { createSignedDownloadUrl } from "../../lib/storage";
+import { apiGet, apiDelete, apiPatch, apiPost } from "../../lib/api";
+import {
+  createSignedDownloadUrl,
+  uploadFileFromUri,
+  uploadSignature,
+} from "../../lib/storage";
+import { theme } from "../../theme/theme";
 
 interface Person {
   id: string;
   name: string;
+  agency?: string;
+  office?: string;
   position: string;
-  status: "present" | "absent" | "late";
-  timeIn?: string;
-  timeOut?: string;
+  status: string;
+  signatureUrl?: string;
+  signaturePath?: string; // To store the permanent path
+}
+
+interface AttachmentWithCaption {
+  url: string;
+  caption?: string;
+  path?: string;
+}
+
+interface EditableAttachment {
+  uri: string;
+  caption: string;
+  path?: string;
+  isNew?: boolean;
 }
 
 interface AttendanceDetailScreenProps {
@@ -37,748 +77,1577 @@ const AttendanceDetailScreen: React.FC<AttendanceDetailScreenProps> = ({
   const { record } = route.params || {};
   const recordId: string | undefined = record?.id;
   const [loading, setLoading] = useState(false);
-  const [attachments, setAttachments] = useState<string[]>([]);
-
-  // People from API (fallback to empty)
+  const [refreshing, setRefreshing] = useState(false);
+  const [attendanceData, setAttendanceData] = useState<any>(null);
+  const [attachments, setAttachments] = useState<AttachmentWithCaption[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [newPerson, setNewPerson] = useState({
-    name: "",
-    position: "",
-    status: "present" as "present" | "absent" | "late",
-    timeIn: "",
-    timeOut: "",
-  });
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editedTitle, setEditedTitle] = useState("");
+  const [editedDescription, setEditedDescription] = useState("");
+  const [editedLocation, setEditedLocation] = useState("");
+  const [editedDate, setEditedDate] = useState<Date | null>(null);
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
-  const handleAddPerson = () => {
-    if (!newPerson.name || !newPerson.position) {
-      Alert.alert("Error", "Please fill in all required fields");
-      return;
+  // Edit attachments state
+  const [editedAttachments, setEditedAttachments] = useState<
+    EditableAttachment[]
+  >([]);
+
+  // Edit attendees state
+  const [editedAttendees, setEditedAttendees] = useState<Person[]>([]);
+
+  // Signature modal state
+  const [signatureModalVisible, setSignatureModalVisible] = useState(false);
+  const [currentAttendeeIndex, setCurrentAttendeeIndex] = useState<
+    number | null
+  >(null);
+  const [uploadingSignature, setUploadingSignature] = useState(false);
+  const signatureRef = useRef<any>(null);
+  const [newlyUploadedPaths, setNewlyUploadedPaths] = useState<string[]>([]);
+
+  const fetchAttendanceDetail = async () => {
+    if (!recordId) return;
+    try {
+      setLoading(true);
+      const data: any = await apiGet(`/attendance/${recordId}`);
+      setAttendanceData(data);
+
+      // Map attendees
+      const mapped: Person[] = Array.isArray(data?.attendees)
+        ? data.attendees.map((a: any, idx: number) => ({
+            id: String(a.id ?? idx + 1),
+            name: a.name ?? "Unknown",
+            agency: a.agency || a.office,
+            position: a.position ?? "",
+            status: a.attendanceStatus || "ABSENT",
+            signatureUrl: a.signatureUrl,
+          }))
+        : [];
+      setPeople(mapped);
+
+      // Load attachments
+      if (Array.isArray(data?.attachments) && data.attachments.length) {
+        try {
+          const attachmentsWithUrls = await Promise.all(
+            data.attachments.map(async (att: any) => {
+              const path = typeof att === "string" ? att : att.path;
+              const caption =
+                typeof att === "object" && att?.caption
+                  ? att.caption
+                  : undefined;
+
+              if (!path) return null;
+
+              const { url } = await createSignedDownloadUrl(path, 600);
+              return { url, caption, path };
+            })
+          );
+          setAttachments(
+            attachmentsWithUrls.filter(
+              (a): a is AttachmentWithCaption => a !== null
+            )
+          );
+        } catch (e) {
+          console.error("Failed to load attachments:", e);
+        }
+      } else {
+        setAttachments([]);
+      }
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Failed to load attendance details");
+    } finally {
+      setLoading(false);
     }
-
-    const person: Person = {
-      id: Date.now().toString(),
-      name: newPerson.name,
-      position: newPerson.position,
-      status: newPerson.status,
-      timeIn: newPerson.timeIn || undefined,
-      timeOut: newPerson.timeOut || undefined,
-    };
-
-    setPeople([...people, person]);
-    setModalVisible(false);
-    setNewPerson({
-      name: "",
-      position: "",
-      status: "present",
-      timeIn: "",
-      timeOut: "",
-    });
   };
 
-  const handleDeletePerson = (id: string) => {
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchAttendanceDetail();
+    setRefreshing(false);
+  };
+
+  const handleDelete = () => {
     Alert.alert(
-      "Delete Person",
-      "Are you sure you want to remove this person from attendance?",
+      "Delete Attendance",
+      "Are you sure you want to delete this attendance record? This will also delete all attached images.",
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => setPeople(people.filter((p) => p.id !== id)),
+          onPress: async () => {
+            try {
+              await apiDelete(`/attendance/${recordId}`);
+              Alert.alert("Deleted", "Attendance record has been deleted.");
+              navigation.goBack();
+            } catch (e: any) {
+              Alert.alert("Delete failed", e?.message || "Unable to delete");
+            }
+          },
         },
       ]
     );
   };
 
-  const handleStatusChange = (
-    id: string,
-    status: "present" | "absent" | "late"
+  const getStatusBadge = (status: string) => {
+    const statusUpper = status.toUpperCase();
+    if (statusUpper.includes("IN_PERSON") || statusUpper.includes("PERSON")) {
+      return { label: "In Person", color: theme.colors.success };
+    } else if (statusUpper.includes("ONLINE")) {
+      return { label: "Online", color: theme.colors.primaryDark };
+    } else {
+      return { label: "Absent", color: theme.colors.error };
+    }
+  };
+
+  const handleEdit = () => {
+    // Populate edit fields from current data
+    setEditedTitle(attendanceData?.title || "");
+    setEditedDescription(attendanceData?.description || "");
+    setEditedLocation(attendanceData?.location || "");
+    if (attendanceData?.meetingDate) {
+      setEditedDate(new Date(attendanceData.meetingDate));
+    }
+
+    // Populate attachments for editing
+    const editableAttachments: EditableAttachment[] = attachments.map(
+      (att) => ({
+        uri: att.url,
+        caption: att.caption || "",
+        path: att.path,
+        isNew: false,
+      })
+    );
+    setEditedAttachments(editableAttachments);
+
+    // Populate attendees for editing
+    setEditedAttendees([...people]);
+
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    if (!recordId) return;
+
+    setSaving(true);
+    try {
+      // Format date to YYYY-MM-DD for backend
+      const formattedDate = editedDate
+        ? editedDate.toISOString().split("T")[0]
+        : undefined;
+
+      // Upload new attachments
+      const attachmentPayload: Array<{ path: string; caption?: string }> = [];
+      const currentAttachmentPaths = new Set(
+        editedAttachments.map((a) => a.path).filter(Boolean)
+      );
+
+      for (const att of editedAttachments) {
+        if (att.isNew) {
+          // Upload new image
+          const fileName = `attendance-${recordId}-${Date.now()}.jpg`;
+          const uploadResult = await uploadFileFromUri({
+            uri: att.uri,
+            fileName: fileName,
+            contentType: "image/jpeg",
+          });
+          attachmentPayload.push({
+            path: uploadResult.path,
+            caption: att.caption || undefined,
+          });
+          // Track newly uploaded file
+          setNewlyUploadedPaths((prev) => [...prev, uploadResult.path]);
+        } else if (att.path) {
+          // Keep existing attachment
+          attachmentPayload.push({
+            path: att.path,
+            caption: att.caption || undefined,
+          });
+        }
+      }
+
+      // Format attendees for backend
+      const attendeesPayload = editedAttendees.map((person) => ({
+        name: person.name,
+        agency: person.agency,
+        office: person.office,
+        position: person.position,
+        attendanceStatus: person.status,
+        signatureUrl: person.signaturePath || person.signatureUrl, // Prioritize the new path
+      }));
+
+      const updatePayload: any = {
+        title: editedTitle,
+        description: editedDescription,
+        location: editedLocation,
+        attachments: attachmentPayload,
+        attendees: attendeesPayload,
+      };
+
+      if (formattedDate) {
+        updatePayload.meetingDate = formattedDate;
+      }
+
+      await apiPatch(`/attendance/${recordId}`, updatePayload);
+
+      // Cleanup: Find which of the newly uploaded files were removed during the edit
+      const finalAttachmentPaths = new Set(
+        attachmentPayload.map((a) => a.path)
+      );
+      const finalSignaturePaths = new Set(
+        attendeesPayload.map((a) => a.signatureUrl).filter(Boolean)
+      );
+
+      const pathsToDelete = newlyUploadedPaths.filter(
+        (p) => !finalAttachmentPaths.has(p) && !finalSignaturePaths.has(p)
+      );
+
+      if (pathsToDelete.length > 0) {
+        await apiPost("/storage/delete-files", { paths: pathsToDelete });
+      }
+
+      // Clear the tracking list after a successful save
+      setNewlyUploadedPaths([]);
+
+      // Refresh data after save
+      await fetchAttendanceDetail();
+      setIsEditing(false);
+      Alert.alert("Success", "Attendance record updated successfully.");
+    } catch (e: any) {
+      Alert.alert("Update failed", e?.message || "Unable to update record");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = async () => {
+    // If there are newly uploaded files, ask the user if they want to delete them
+    if (newlyUploadedPaths.length > 0) {
+      Alert.alert(
+        "Discard Changes?",
+        "You have new uploads. Do you want to delete them and discard your changes?",
+        [
+          { text: "Don't Discard", style: "cancel" },
+          {
+            text: "Delete and Discard",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await apiPost("/storage/delete-files", {
+                  paths: newlyUploadedPaths,
+                });
+                setNewlyUploadedPaths([]); // Clear the list
+                resetEditState();
+              } catch (error) {
+                console.error("Failed to delete orphaned files:", error);
+                Alert.alert(
+                  "Error",
+                  "Could not delete uploaded files. Please try again."
+                );
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      resetEditState();
+    }
+  };
+
+  const resetEditState = () => {
+    // Reset form fields and exit edit mode
+    setEditedTitle("");
+    setEditedDescription("");
+    setEditedLocation("");
+    setEditedDate(null);
+    setEditedAttachments([]);
+    setEditedAttendees([]);
+    setIsEditing(false);
+  };
+
+  // Attachment management functions
+  const handleAddAttachmentFromGallery = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission needed", "Please grant gallery access.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+      allowsMultipleSelection: false,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const newAttachment: EditableAttachment = {
+        uri: result.assets[0].uri,
+        caption: "",
+        isNew: true,
+      };
+      setEditedAttachments([...editedAttachments, newAttachment]);
+    }
+  };
+
+  const handleAddAttachmentFromCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission needed", "Please grant camera access.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.8,
+      allowsEditing: false,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const newAttachment: EditableAttachment = {
+        uri: result.assets[0].uri,
+        caption: "",
+        isNew: true,
+      };
+      setEditedAttachments([...editedAttachments, newAttachment]);
+    }
+  };
+
+  const handleUpdateAttachmentCaption = (index: number, caption: string) => {
+    const updated = [...editedAttachments];
+    updated[index].caption = caption;
+    setEditedAttachments(updated);
+  };
+
+  const handleRemoveAttachment = (index: number) => {
+    Alert.alert(
+      "Remove Attachment",
+      "Are you sure you want to remove this attachment?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            const updated = editedAttachments.filter((_, i) => i !== index);
+            setEditedAttachments(updated);
+          },
+        },
+      ]
+    );
+  };
+
+  // Attendee management functions
+  const handleAddAttendee = () => {
+    const newAttendee: Person = {
+      id: `new-${Date.now()}`,
+      name: "",
+      agency: "",
+      office: "",
+      position: "",
+      status: "ABSENT",
+    };
+    setEditedAttendees([...editedAttendees, newAttendee]);
+  };
+
+  const handleUpdateAttendee = (
+    index: number,
+    field: keyof Person,
+    value: string
   ) => {
-    setPeople(people.map((p) => (p.id === id ? { ...p, status } : p)));
+    const updated = [...editedAttendees];
+    (updated[index] as any)[field] = value;
+    setEditedAttendees(updated);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "present":
-        return "#10B981";
-      case "absent":
-        return "#EF4444";
-      case "late":
-        return "#F59E0B";
-      default:
-        return "#6B7280";
+  const handleRemoveAttendee = (index: number) => {
+    Alert.alert(
+      "Remove Attendee",
+      "Are you sure you want to remove this attendee?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            const updated = editedAttendees.filter((_, i) => i !== index);
+            setEditedAttendees(updated);
+          },
+        },
+      ]
+    );
+  };
+
+  // Signature handling functions
+  const handleAddSignature = (index: number) => {
+    console.log("🖊️ handleAddSignature called for attendee index:", index);
+    setCurrentAttendeeIndex(index);
+    setSignatureModalVisible(true);
+  };
+
+  const handleSignatureEnd = () => {
+    console.log("🖊️ handleSignatureEnd called. Reading signature...");
+    if (signatureRef.current) {
+      signatureRef.current.readSignature();
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "present":
-        return "checkmark-circle";
-      case "absent":
-        return "close-circle";
-      case "late":
-        return "time";
-      default:
-        return "help-circle";
+  const handleSignatureClear = () => {
+    if (signatureRef.current) {
+      signatureRef.current.clearSignature();
     }
   };
 
-  const stats = {
-    total: people.length,
-    present: people.filter((p) => p.status === "present").length,
-    absent: people.filter((p) => p.status === "absent").length,
-    late: people.filter((p) => p.status === "late").length,
+  const handleSignatureOK = async (signature: string) => {
+    console.log(
+      "🖊️ handleSignatureOK called, currentAttendeeIndex:",
+      currentAttendeeIndex
+    );
+
+    if (currentAttendeeIndex === null) {
+      console.log("❌ currentAttendeeIndex is null, aborting");
+      return;
+    }
+
+    try {
+      setUploadingSignature(true);
+      console.log("✅ Starting signature processing...");
+
+      // Convert base64 to temporary file
+      const base64Data = signature.replace(/^data:image\/\w+;base64,/, "");
+      const tempFilePath = `${FileSystem.cacheDirectory}temp-signature-${Date.now()}.png`;
+      console.log("📝 Writing signature to temp file:", tempFilePath);
+
+      // Write base64 to file
+      await FileSystem.writeAsStringAsync(tempFilePath, base64Data, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      console.log("✅ Temp file written");
+
+      // Compress and resize the image (reduce quality and size)
+      console.log("🔄 Compressing signature...");
+      const manipulatedImage = await manipulateAsync(
+        tempFilePath,
+        [
+          { resize: { width: 400 } }, // Resize to max width 400px
+        ],
+        {
+          compress: 0.5, // 50% quality compression
+          format: SaveFormat.PNG,
+        }
+      );
+      console.log("✅ Signature compressed:", manipulatedImage.uri);
+
+      // Upload compressed signature to Supabase
+      console.log("🚀 Calling uploadSignature...");
+      const { path } = await uploadSignature(manipulatedImage.uri);
+      console.log("✅ Signature uploaded successfully, path:", path);
+
+      // Get a signed URL for immediate preview
+      const { url } = await createSignedDownloadUrl(path, 60); // URL valid for 1 minute
+
+      // Track the newly uploaded path for potential cleanup
+      setNewlyUploadedPaths((prev) => [...prev, path]);
+
+      // Clean up temporary file
+      try {
+        await FileSystem.deleteAsync(tempFilePath, { idempotent: true });
+      } catch (cleanupError) {
+        console.log("Failed to cleanup temp file:", cleanupError);
+      }
+
+      // Update the attendee with the signature path and the preview URL
+      const updated = [...editedAttendees];
+      updated[currentAttendeeIndex].signatureUrl = url; // Use the signed URL for preview
+      // We also need to store the permanent path to be saved later
+      (updated[currentAttendeeIndex] as any).signaturePath = path;
+      setEditedAttendees(updated);
+
+      setSignatureModalVisible(false);
+      setCurrentAttendeeIndex(null);
+      Alert.alert("Success", "Signature added successfully");
+    } catch (error: any) {
+      console.error("Failed to upload signature:", error);
+      Alert.alert("Error", error?.message || "Failed to upload signature");
+    } finally {
+      setUploadingSignature(false);
+    }
+  };
+
+  const handleRemoveSignature = (index: number) => {
+    Alert.alert(
+      "Remove Signature",
+      "Are you sure you want to remove this signature?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            const updated = [...editedAttendees];
+            const person = updated[index];
+
+            // If the signature being removed was just uploaded, untrack it
+            if (
+              person.signaturePath &&
+              newlyUploadedPaths.includes(person.signaturePath)
+            ) {
+              // It's a new signature, we can just clear it locally
+              person.signatureUrl = undefined;
+              person.signaturePath = undefined;
+            } else {
+              // It's an existing signature, mark for deletion on save
+              person.signatureUrl = undefined; // This will be handled by the main save logic
+            }
+
+            setEditedAttendees(updated);
+          },
+        },
+      ]
+    );
   };
 
   useEffect(() => {
-    if (!recordId) return;
-    (async () => {
-      try {
-        setLoading(true);
-        const data: any = await apiGet(`/attendance/${recordId}`);
-        // Map attendees -> people format
-        const mapped: Person[] = Array.isArray(data?.attendees)
-          ? data.attendees.map((a: any, idx: number) => ({
-              id: String(a.id ?? idx + 1),
-              name: a.name ?? "Unknown",
-              position: a.position ?? a.office ?? "",
-              status: mapStatusToPerson(a.attendanceStatus),
-              timeIn: a.timeIn ?? undefined,
-              timeOut: a.timeOut ?? undefined,
-            }))
-          : [];
-        setPeople(mapped);
-
-        if (Array.isArray(data?.attachments) && data.attachments.length) {
-          try {
-            const urls = await Promise.all(
-              data.attachments.map(async (p: string) => {
-                const { url } = await createSignedDownloadUrl(p, 600);
-                return url;
-              })
-            );
-            setAttachments(urls);
-          } catch {}
-        } else {
-          setAttachments([]);
-        }
-      } catch (e) {
-        // Non-fatal; keep header info from route
-      } finally {
-        setLoading(false);
-      }
-    })();
+    fetchAttendanceDetail();
   }, [recordId]);
 
-  function mapStatusToPerson(s: any): "present" | "absent" | "late" {
-    if (!s) return "present";
-    const v = String(s).toUpperCase();
-    if (v.includes("ABSENT")) return "absent";
-    if (v.includes("LATE")) return "late";
-    return "present";
-  }
-
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeContainer}>
       <CustomHeader showSave={false} />
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
-        {/* Header */}
-        <View style={styles.header}>
+        {/* Header Card */}
+        <View style={styles.headerCard}>
           <View style={styles.headerTop}>
             <View style={styles.titleContainer}>
-              <Text style={styles.title}>{record.title}</Text>
-              <Text style={styles.date}>{record.date}</Text>
+              {isEditing ? (
+                <TextInput
+                  style={styles.titleInput}
+                  value={editedTitle}
+                  onChangeText={setEditedTitle}
+                  placeholder="Enter title"
+                  placeholderTextColor={theme.colors.textLight}
+                />
+              ) : (
+                <Text style={styles.title}>
+                  {attendanceData?.title ||
+                    record?.title ||
+                    "Attendance Record"}
+                </Text>
+              )}
+              <Text style={styles.subtitle}>
+                {attendanceData?.fileName || record?.fileName || ""}
+              </Text>
+            </View>
+
+            <View style={styles.headerButtons}>
+              {isEditing ? (
+                <>
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={handleSave}
+                    disabled={saving}
+                  >
+                    {saving ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={theme.colors.success}
+                      />
+                    ) : (
+                      <Save
+                        size={20}
+                        color={theme.colors.success}
+                        strokeWidth={2}
+                      />
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={handleCancelEdit}
+                    disabled={saving}
+                  >
+                    <X
+                      size={20}
+                      color={theme.colors.textLight}
+                      strokeWidth={2}
+                    />
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={handleEdit}
+                  >
+                    <Edit3
+                      size={20}
+                      color={theme.colors.primaryDark}
+                      strokeWidth={2}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={handleDelete}
+                  >
+                    <Trash2
+                      size={20}
+                      color={theme.colors.error}
+                      strokeWidth={2}
+                    />
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </View>
 
-          {attachments.length > 0 && (
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {attachments.map((u, idx) => (
-                <Image
-                  key={`${u}-${idx}`}
-                  source={{ uri: u }}
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 8,
-                    backgroundColor: "#eee",
-                  }}
+          {/* Meta Information */}
+          <View style={styles.metaContainer}>
+            {(attendanceData?.meetingDate || record?.date || isEditing) && (
+              <View style={styles.metaRow}>
+                <Calendar
+                  size={16}
+                  color={theme.colors.textLight}
+                  strokeWidth={2}
                 />
-              ))}
+                {isEditing ? (
+                  <TouchableOpacity
+                    style={styles.dateButton}
+                    onPress={() => setDatePickerVisibility(true)}
+                  >
+                    <Text style={styles.metaText}>
+                      {editedDate
+                        ? editedDate.toISOString().split("T")[0]
+                        : "Select date"}
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.metaText}>
+                    {attendanceData?.meetingDate || record?.date}
+                  </Text>
+                )}
+              </View>
+            )}
+
+            {(attendanceData?.location || isEditing) && (
+              <View style={styles.metaRow}>
+                <MapPin
+                  size={16}
+                  color={theme.colors.textLight}
+                  strokeWidth={2}
+                />
+                {isEditing ? (
+                  <TextInput
+                    style={styles.metaInput}
+                    value={editedLocation}
+                    onChangeText={setEditedLocation}
+                    placeholder="Enter location"
+                    placeholderTextColor={theme.colors.textLight}
+                  />
+                ) : (
+                  <Text style={styles.metaText}>{attendanceData.location}</Text>
+                )}
+              </View>
+            )}
+
+            <View style={styles.metaRow}>
+              <Users size={16} color={theme.colors.textLight} strokeWidth={2} />
+              <Text style={styles.metaText}>
+                {people.length} {people.length === 1 ? "Attendee" : "Attendees"}
+              </Text>
+            </View>
+          </View>
+
+          {/* Description */}
+          {(attendanceData?.description || isEditing) && (
+            <View style={styles.descriptionContainer}>
+              <View style={styles.descriptionHeader}>
+                <FileText
+                  size={16}
+                  color={theme.colors.textLight}
+                  strokeWidth={2}
+                />
+                <Text style={styles.descriptionLabel}>Description</Text>
+              </View>
+              {isEditing ? (
+                <TextInput
+                  style={styles.descriptionInput}
+                  value={editedDescription}
+                  onChangeText={setEditedDescription}
+                  placeholder="Enter description"
+                  placeholderTextColor={theme.colors.textLight}
+                  multiline
+                  numberOfLines={4}
+                />
+              ) : (
+                <Text style={styles.descriptionText}>
+                  {attendanceData.description}
+                </Text>
+              )}
             </View>
           )}
-
-          {/* Statistics */}
-          <View style={styles.statsContainer}>
-            <View style={[styles.statCard, { backgroundColor: "#DBEAFE" }]}>
-              <Text style={styles.statNumber}>{stats.total}</Text>
-              <Text style={styles.statLabel}>Total</Text>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: "#D1FAE5" }]}>
-              <Text style={[styles.statNumber, { color: "#10B981" }]}>
-                {stats.present}
-              </Text>
-              <Text style={styles.statLabel}>Present</Text>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: "#FEE2E2" }]}>
-              <Text style={[styles.statNumber, { color: "#EF4444" }]}>
-                {stats.absent}
-              </Text>
-              <Text style={styles.statLabel}>Absent</Text>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: "#FEF3C7" }]}>
-              <Text style={[styles.statNumber, { color: "#F59E0B" }]}>
-                {stats.late}
-              </Text>
-              <Text style={styles.statLabel}>Late</Text>
-            </View>
-          </View>
         </View>
 
-        {/* Add Person Button */}
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setModalVisible(true)}
-        >
-          <Ionicons name="person-add" size={20} color="white" />
-          <Text style={styles.addButtonText}>Add Person</Text>
-        </TouchableOpacity>
+        <DateTimePickerModal
+          isVisible={isDatePickerVisible}
+          mode="date"
+          date={editedDate || new Date()}
+          onConfirm={(date) => {
+            setEditedDate(date);
+            setDatePickerVisibility(false);
+          }}
+          onCancel={() => setDatePickerVisibility(false)}
+        />
 
-        {/* Attendance List */}
+        {/* Attachments */}
+        {(isEditing
+          ? editedAttachments.length > 0
+          : attachments.length > 0) && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Attachments</Text>
+              {isEditing && (
+                <View style={styles.addButtonsRow}>
+                  <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={handleAddAttachmentFromGallery}
+                  >
+                    <ImageIcon
+                      size={16}
+                      color={theme.colors.primaryDark}
+                      strokeWidth={2}
+                    />
+                    <Text style={styles.addButtonText}>Gallery</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={handleAddAttachmentFromCamera}
+                  >
+                    <Camera
+                      size={16}
+                      color={theme.colors.primaryDark}
+                      strokeWidth={2}
+                    />
+                    <Text style={styles.addButtonText}>Camera</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+            <View style={styles.attachmentsGrid}>
+              {(isEditing ? editedAttachments : attachments).map((att, idx) => {
+                const imageUri = isEditing
+                  ? (att as EditableAttachment).uri
+                  : (att as AttachmentWithCaption).url;
+                return (
+                  <View
+                    key={`${imageUri}-${idx}`}
+                    style={styles.attachmentItem}
+                  >
+                    <Image
+                      source={{ uri: imageUri }}
+                      style={styles.attachmentImage}
+                      resizeMode="cover"
+                    />
+                    {isEditing ? (
+                      <>
+                        <TextInput
+                          style={styles.attachmentCaptionInput}
+                          value={att.caption}
+                          onChangeText={(text) =>
+                            handleUpdateAttachmentCaption(idx, text)
+                          }
+                          placeholder="Add caption..."
+                          placeholderTextColor={theme.colors.textLight}
+                          multiline
+                        />
+                        <TouchableOpacity
+                          style={styles.removeAttachmentButton}
+                          onPress={() => handleRemoveAttachment(idx)}
+                        >
+                          <X
+                            size={16}
+                            color={theme.colors.error}
+                            strokeWidth={2}
+                          />
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      att.caption && (
+                        <Text
+                          style={styles.attachmentCaption}
+                          numberOfLines={2}
+                        >
+                          {att.caption}
+                        </Text>
+                      )
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Add Attachments button when in edit mode and no attachments */}
+        {isEditing && editedAttachments.length === 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Attachments</Text>
+            <View style={styles.addButtonsRow}>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={handleAddAttachmentFromGallery}
+              >
+                <ImageIcon
+                  size={16}
+                  color={theme.colors.primaryDark}
+                  strokeWidth={2}
+                />
+                <Text style={styles.addButtonText}>Add from Gallery</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={handleAddAttachmentFromCamera}
+              >
+                <Camera
+                  size={16}
+                  color={theme.colors.primaryDark}
+                  strokeWidth={2}
+                />
+                <Text style={styles.addButtonText}>Take Photo</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Attendees List */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Attendance List</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Attendees</Text>
+            {isEditing && (
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={handleAddAttendee}
+              >
+                <Plus
+                  size={16}
+                  color={theme.colors.primaryDark}
+                  strokeWidth={2}
+                />
+                <Text style={styles.addButtonText}>Add Attendee</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
-          {people.length === 0 ? (
+          {(isEditing ? editedAttendees : people).length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="people-outline" size={64} color="#CBD5E1" />
+              <Users
+                size={48}
+                color={theme.colors.textLight}
+                strokeWidth={1.5}
+              />
               <Text style={styles.emptyStateText}>
-                No attendees found for this record
+                {isEditing
+                  ? "No attendees. Tap 'Add Attendee' to add one."
+                  : "No attendees recorded for this event"}
               </Text>
             </View>
           ) : (
-            people.map((person) => (
-              <View key={person.id} style={styles.personCard}>
-                <View style={styles.personHeader}>
-                  <View style={styles.personInfo}>
-                    <Text style={styles.personName}>{person.name}</Text>
-                    <Text style={styles.personPosition}>{person.position}</Text>
-                  </View>
-
-                  <TouchableOpacity
-                    style={styles.deleteIconButton}
-                    onPress={() => handleDeletePerson(person.id)}
-                  >
-                    <Ionicons name="trash-outline" size={20} color="#EF4444" />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Status Badges */}
-                <View style={styles.statusRow}>
-                  <TouchableOpacity
-                    style={[
-                      styles.statusBadge,
-                      person.status === "present" && styles.statusBadgeActive,
-                      { borderColor: "#10B981" },
-                    ]}
-                    onPress={() => handleStatusChange(person.id, "present")}
-                  >
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={16}
-                      color={
-                        person.status === "present" ? "#10B981" : "#94A3B8"
-                      }
-                    />
-                    <Text
-                      style={[
-                        styles.statusText,
-                        person.status === "present" && { color: "#10B981" },
-                      ]}
-                    >
-                      Present
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.statusBadge,
-                      person.status === "late" && styles.statusBadgeActive,
-                      { borderColor: "#F59E0B" },
-                    ]}
-                    onPress={() => handleStatusChange(person.id, "late")}
-                  >
-                    <Ionicons
-                      name="time"
-                      size={16}
-                      color={person.status === "late" ? "#F59E0B" : "#94A3B8"}
-                    />
-                    <Text
-                      style={[
-                        styles.statusText,
-                        person.status === "late" && { color: "#F59E0B" },
-                      ]}
-                    >
-                      Late
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.statusBadge,
-                      person.status === "absent" && styles.statusBadgeActive,
-                      { borderColor: "#EF4444" },
-                    ]}
-                    onPress={() => handleStatusChange(person.id, "absent")}
-                  >
-                    <Ionicons
-                      name="close-circle"
-                      size={16}
-                      color={person.status === "absent" ? "#EF4444" : "#94A3B8"}
-                    />
-                    <Text
-                      style={[
-                        styles.statusText,
-                        person.status === "absent" && { color: "#EF4444" },
-                      ]}
-                    >
-                      Absent
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Time Info */}
-                {person.status !== "absent" && (
-                  <View style={styles.timeRow}>
-                    <View style={styles.timeItem}>
-                      <Ionicons
-                        name="log-in-outline"
-                        size={16}
-                        color="#64748B"
+            (isEditing ? editedAttendees : people).map((person, index) => {
+              const statusBadge = getStatusBadge(person.status);
+              return (
+                <View
+                  key={person.id}
+                  style={[
+                    styles.attendeeCard,
+                    index ===
+                      (isEditing ? editedAttendees : people).length - 1 &&
+                      styles.lastAttendeeCard,
+                  ]}
+                >
+                  {isEditing ? (
+                    <>
+                      <View style={styles.attendeeEditHeader}>
+                        <TextInput
+                          style={styles.attendeeInput}
+                          value={person.name}
+                          onChangeText={(text) =>
+                            handleUpdateAttendee(index, "name", text)
+                          }
+                          placeholder="Name *"
+                          placeholderTextColor={theme.colors.textLight}
+                        />
+                        <TouchableOpacity
+                          style={styles.removeButton}
+                          onPress={() => handleRemoveAttendee(index)}
+                        >
+                          <X
+                            size={20}
+                            color={theme.colors.error}
+                            strokeWidth={2}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                      <TextInput
+                        style={styles.attendeeInput}
+                        value={person.position}
+                        onChangeText={(text) =>
+                          handleUpdateAttendee(index, "position", text)
+                        }
+                        placeholder="Position"
+                        placeholderTextColor={theme.colors.textLight}
                       />
-                      <Text style={styles.timeLabel}>Time In:</Text>
-                      <Text style={styles.timeValue}>
-                        {person.timeIn || "Not set"}
-                      </Text>
-                    </View>
-                    <View style={styles.timeItem}>
-                      <Ionicons
-                        name="log-out-outline"
-                        size={16}
-                        color="#64748B"
+                      <TextInput
+                        style={styles.attendeeInput}
+                        value={person.agency || ""}
+                        onChangeText={(text) =>
+                          handleUpdateAttendee(index, "agency", text)
+                        }
+                        placeholder="Agency"
+                        placeholderTextColor={theme.colors.textLight}
                       />
-                      <Text style={styles.timeLabel}>Time Out:</Text>
-                      <Text style={styles.timeValue}>
-                        {person.timeOut || "Not set"}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              </View>
-            ))
+                      <View style={styles.statusPickerContainer}>
+                        <Text style={styles.statusPickerLabel}>Status:</Text>
+                        <View style={styles.statusPicker}>
+                          {["IN_PERSON", "ONLINE", "ABSENT"].map((status) => (
+                            <TouchableOpacity
+                              key={status}
+                              style={[
+                                styles.statusOption,
+                                person.status === status &&
+                                  styles.statusOptionSelected,
+                              ]}
+                              onPress={() =>
+                                handleUpdateAttendee(index, "status", status)
+                              }
+                            >
+                              <Text
+                                style={[
+                                  styles.statusOptionText,
+                                  person.status === status &&
+                                    styles.statusOptionTextSelected,
+                                ]}
+                              >
+                                {status === "IN_PERSON"
+                                  ? "In Person"
+                                  : status === "ONLINE"
+                                    ? "Online"
+                                    : "Absent"}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      </View>
+
+                      {/* Signature Section in Edit Mode */}
+                      <View style={styles.signatureEditContainer}>
+                        <Text style={styles.signatureLabel}>Signature:</Text>
+                        {person.signatureUrl ? (
+                          <View style={styles.signaturePreviewContainer}>
+                            <Image
+                              source={{ uri: person.signatureUrl }}
+                              style={styles.signaturePreview}
+                              resizeMode="contain"
+                            />
+                            <TouchableOpacity
+                              style={styles.removeSignatureButton}
+                              onPress={() => handleRemoveSignature(index)}
+                            >
+                              <X size={16} color={theme.colors.error} />
+                            </TouchableOpacity>
+                          </View>
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.addSignatureButton}
+                            onPress={() => handleAddSignature(index)}
+                          >
+                            <PenTool
+                              size={18}
+                              color={theme.colors.primaryDark}
+                              strokeWidth={2}
+                            />
+                            <Text style={styles.addSignatureText}>
+                              Add Signature
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.attendeeHeader}>
+                        <View style={styles.attendeeInfo}>
+                          <Text style={styles.attendeeName}>{person.name}</Text>
+                          {person.position && (
+                            <Text style={styles.attendeePosition}>
+                              {person.position}
+                            </Text>
+                          )}
+                          {person.agency && (
+                            <Text style={styles.attendeeAgency}>
+                              {person.agency}
+                            </Text>
+                          )}
+                        </View>
+
+                        <View
+                          style={[
+                            styles.statusBadge,
+                            { backgroundColor: statusBadge.color + "15" },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.statusText,
+                              { color: statusBadge.color },
+                            ]}
+                          >
+                            {statusBadge.label}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {person.signatureUrl && (
+                        <View style={styles.signatureContainer}>
+                          <Text style={styles.signatureLabel}>Signature:</Text>
+                          <Image
+                            source={{ uri: person.signatureUrl }}
+                            style={styles.signatureImage}
+                            resizeMode="contain"
+                          />
+                        </View>
+                      )}
+                    </>
+                  )}
+                </View>
+              );
+            })
           )}
         </View>
       </ScrollView>
 
-      {/* Add Person Modal */}
+      {/* Signature Modal */}
       <Modal
+        visible={signatureModalVisible}
         animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        transparent={false}
+        onRequestClose={() => setSignatureModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Person</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#64748B" />
+        <SafeAreaView style={styles.signatureModalContainer}>
+          <View style={styles.signatureModalHeader}>
+            <Text style={styles.signatureModalTitle}>Add Signature</Text>
+            <View style={styles.signatureModalButtons}>
+              <TouchableOpacity
+                style={styles.signatureModalButton}
+                onPress={handleSignatureClear}
+              >
+                <Text style={styles.signatureModalButtonText}>Clear</Text>
               </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.inputLabel}>Name *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter name"
-                value={newPerson.name}
-                onChangeText={(text) =>
-                  setNewPerson({ ...newPerson, name: text })
-                }
-              />
-
-              <Text style={styles.inputLabel}>Position *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter position"
-                value={newPerson.position}
-                onChangeText={(text) =>
-                  setNewPerson({ ...newPerson, position: text })
-                }
-              />
-
-              <Text style={styles.inputLabel}>Status</Text>
-              <View style={styles.statusSelector}>
-                {(["present", "late", "absent"] as const).map((status) => (
-                  <TouchableOpacity
-                    key={status}
+              <TouchableOpacity
+                style={[
+                  styles.signatureModalButton,
+                  styles.signatureModalCancelButton,
+                ]}
+                onPress={() => setSignatureModalVisible(false)}
+                disabled={uploadingSignature}
+              >
+                <Text style={styles.signatureModalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.signatureModalButton,
+                  styles.signatureModalSaveButton,
+                ]}
+                onPress={handleSignatureEnd}
+                disabled={uploadingSignature}
+              >
+                {uploadingSignature ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text
                     style={[
-                      styles.statusOption,
-                      newPerson.status === status && styles.statusOptionActive,
-                      { borderColor: getStatusColor(status) },
+                      styles.signatureModalButtonText,
+                      styles.signatureModalSaveText,
                     ]}
-                    onPress={() => setNewPerson({ ...newPerson, status })}
                   >
-                    <Ionicons
-                      name={getStatusIcon(status) as any}
-                      size={20}
-                      color={
-                        newPerson.status === status
-                          ? getStatusColor(status)
-                          : "#94A3B8"
-                      }
-                    />
-                    <Text
-                      style={[
-                        styles.statusOptionText,
-                        newPerson.status === status && {
-                          color: getStatusColor(status),
-                        },
-                      ]}
-                    >
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {newPerson.status !== "absent" && (
-                <>
-                  <Text style={styles.inputLabel}>Time In</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="e.g., 8:00 AM"
-                    value={newPerson.timeIn}
-                    onChangeText={(text) =>
-                      setNewPerson({ ...newPerson, timeIn: text })
-                    }
-                  />
-
-                  <Text style={styles.inputLabel}>Time Out</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="e.g., 5:00 PM"
-                    value={newPerson.timeOut}
-                    onChangeText={(text) =>
-                      setNewPerson({ ...newPerson, timeOut: text })
-                    }
-                  />
-                </>
-              )}
-            </ScrollView>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.confirmButton]}
-                onPress={handleAddPerson}
-              >
-                <Text style={styles.confirmButtonText}>Add Person</Text>
+                    Save
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+          <SignatureScreen
+            ref={signatureRef}
+            onOK={handleSignatureOK}
+            onEmpty={() => {
+              console.log("🖊️ Signature component reported empty signature.");
+              Alert.alert("Error", "Please draw a signature");
+            }}
+            descriptionText="Sign above"
+            clearText="Clear"
+            confirmText="Save"
+            webStyle={`
+              .m-signature-pad {
+                box-shadow: none;
+                border: 2px solid ${theme.colors.border};
+                border-radius: 8px;
+                margin: 16px;
+              }
+              .m-signature-pad--body {
+                border: none;
+              }
+              .m-signature-pad--footer {
+                display: none;
+              }
+            `}
+          />
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeContainer: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: theme.colors.surface,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    padding: 16,
   },
-  header: {
-    backgroundColor: "#FFFFFF",
+  headerCard: {
+    backgroundColor: theme.colors.background,
     borderRadius: 12,
     padding: 20,
-    marginBottom: 20,
-    shadowColor: "#02217C",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 16,
+    ...theme.shadows.light,
   },
   headerTop: {
-    marginBottom: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 16,
   },
   titleContainer: {
-    gap: 4,
+    flex: 1,
+    marginRight: 12,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "700",
-    color: "#1E293B",
+    color: theme.colors.text,
+    marginBottom: 4,
   },
-  date: {
+  subtitle: {
     fontSize: 14,
-    color: "#64748B",
+    color: theme.colors.textLight,
     fontWeight: "500",
   },
-  statsContainer: {
+  headerButtons: {
     flexDirection: "row",
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#02217C",
-    marginBottom: 2,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: "#64748B",
-    fontWeight: "600",
-  },
-  addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#02217C",
-    padding: 16,
-    borderRadius: 10,
     gap: 8,
-    marginBottom: 20,
-    shadowColor: "#02217C",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  addButtonText: {
-    fontSize: 16,
+  iconButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: theme.colors.surface,
+  },
+  titleInput: {
+    fontSize: 22,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: theme.colors.text,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    padding: 8,
+    backgroundColor: theme.colors.background,
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: theme.colors.error + "10",
+  },
+  metaContainer: {
+    gap: 8,
+    marginBottom: 12,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  metaText: {
+    fontSize: 14,
+    color: theme.colors.textLight,
+    fontWeight: "500",
+  },
+  dateButton: {
+    padding: 4,
+    borderRadius: 4,
+    backgroundColor: theme.colors.surface,
+  },
+  metaInput: {
+    flex: 1,
+    fontSize: 14,
+    color: theme.colors.text,
+    fontWeight: "500",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 4,
+    padding: 4,
+    backgroundColor: theme.colors.background,
+  },
+  descriptionContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
+  descriptionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 8,
+  },
+  descriptionLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.textLight,
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: theme.colors.text,
+    lineHeight: 20,
+  },
+  descriptionInput: {
+    fontSize: 14,
+    color: theme.colors.text,
+    lineHeight: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    padding: 8,
+    backgroundColor: theme.colors.background,
+    minHeight: 80,
+    textAlignVertical: "top",
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#1E293B",
-    marginBottom: 16,
+    color: theme.colors.text,
+  },
+  addButtonsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  addButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  addButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.primaryDark,
+  },
+  attachmentsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  attachmentItem: {
+    width: 160,
+    backgroundColor: theme.colors.background,
+    borderRadius: 8,
+    overflow: "hidden",
+    ...theme.shadows.light,
+    position: "relative",
+  },
+  attachmentImage: {
+    width: 160,
+    height: 120,
+    backgroundColor: theme.colors.surface,
+  },
+  attachmentCaption: {
+    padding: 8,
+    fontSize: 12,
+    color: theme.colors.textLight,
+    fontStyle: "italic",
+    lineHeight: 16,
+  },
+  attachmentCaptionInput: {
+    padding: 8,
+    fontSize: 12,
+    color: theme.colors.text,
+    lineHeight: 16,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    minHeight: 40,
+    textAlignVertical: "top",
+  },
+  removeAttachmentButton: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    ...theme.shadows.light,
   },
   emptyState: {
     alignItems: "center",
     padding: 40,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.colors.background,
     borderRadius: 12,
   },
   emptyStateText: {
     fontSize: 14,
-    color: "#94A3B8",
+    color: theme.colors.textLight,
     marginTop: 12,
+    textAlign: "center",
   },
-  personCard: {
-    backgroundColor: "#FFFFFF",
+  attendeeCard: {
+    backgroundColor: theme.colors.background,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    shadowColor: "#02217C",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    ...theme.shadows.light,
   },
-  personHeader: {
+  lastAttendeeCard: {
+    marginBottom: 0,
+  },
+  attendeeHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 12,
   },
-  personInfo: {
+  attendeeInfo: {
     flex: 1,
+    marginRight: 12,
   },
-  personName: {
+  attendeeName: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#1E293B",
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  attendeePosition: {
+    fontSize: 14,
+    color: theme.colors.textLight,
     marginBottom: 2,
   },
-  personPosition: {
+  attendeeAgency: {
     fontSize: 13,
-    color: "#64748B",
+    color: theme.colors.textLight,
+    fontStyle: "italic",
   },
-  deleteIconButton: {
-    padding: 4,
+  attendeeEditHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
   },
-  statusRow: {
+  attendeeInput: {
+    fontSize: 14,
+    color: theme.colors.text,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: theme.colors.surface,
+    marginBottom: 8,
+  },
+  removeButton: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: theme.colors.error + "15",
+  },
+  statusPickerContainer: {
+    marginTop: 4,
+  },
+  statusPickerLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.textLight,
+    marginBottom: 8,
+  },
+  statusPicker: {
     flexDirection: "row",
     gap: 8,
-    marginBottom: 12,
   },
-  statusBadge: {
+  statusOption: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    backgroundColor: "#F8FAFC",
-    gap: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    alignItems: "center",
   },
-  statusBadgeActive: {
-    backgroundColor: "#FFFFFF",
+  statusOptionSelected: {
+    backgroundColor: theme.colors.primaryDark + "15",
+    borderColor: theme.colors.primaryDark,
+  },
+  statusOptionText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.textLight,
+  },
+  statusOptionTextSelected: {
+    color: theme.colors.primaryDark,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
   statusText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#94A3B8",
   },
-  timeRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  timeItem: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    padding: 8,
-    borderRadius: 6,
-    gap: 4,
-  },
-  timeLabel: {
-    fontSize: 11,
-    color: "#64748B",
-    fontWeight: "600",
-  },
-  timeValue: {
-    fontSize: 11,
-    color: "#1E293B",
-    fontWeight: "700",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: "90%",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#1E293B",
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1E293B",
-    marginBottom: 8,
+  signatureContainer: {
     marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
   },
-  input: {
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+  signatureLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.textLight,
+    marginBottom: 8,
+  },
+  signatureImage: {
+    width: "100%",
+    height: 100,
+    backgroundColor: theme.colors.surface,
     borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: "#1E293B",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
-  statusSelector: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
+  // Signature Edit Mode Styles
+  signatureEditContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
   },
-  statusOption: {
-    flex: 1,
+  signaturePreviewContainer: {
+    position: "relative",
+    marginTop: 8,
+  },
+  signaturePreview: {
+    width: "100%",
+    height: 100,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  removeSignatureButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 4,
+    ...theme.shadows.light,
+  },
+  addSignatureButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 8,
     paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    backgroundColor: "#F8FAFC",
-    gap: 6,
+    borderColor: theme.colors.primaryDark,
+    borderStyle: "dashed",
+    backgroundColor: theme.colors.primaryDark + "08",
+    marginTop: 8,
   },
-  statusOptionActive: {
-    backgroundColor: "#FFFFFF",
-  },
-  statusOptionText: {
-    fontSize: 13,
+  addSignatureText: {
+    fontSize: 14,
     fontWeight: "600",
-    color: "#94A3B8",
+    color: theme.colors.primaryDark,
   },
-  modalButtons: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 20,
-  },
-  modalButton: {
+  // Signature Modal Styles
+  signatureModalContainer: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
+    backgroundColor: theme.colors.background,
+  },
+  signatureModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
   },
-  cancelButton: {
-    backgroundColor: "#F8FAFC",
+  signatureModalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.colors.text,
+  },
+  signatureModalButtons: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  signatureModalButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: theme.colors.border,
   },
-  cancelButtonText: {
+  signatureModalCancelButton: {
+    backgroundColor: theme.colors.error + "15",
+    borderColor: theme.colors.error,
+  },
+  signatureModalSaveButton: {
+    backgroundColor: theme.colors.success,
+    borderColor: theme.colors.success,
+  },
+  signatureModalButtonText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#64748B",
+    color: theme.colors.text,
   },
-  confirmButton: {
-    backgroundColor: "#02217C",
-  },
-  confirmButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#FFFFFF",
+  signatureModalSaveText: {
+    color: "#fff",
   },
 });
 
