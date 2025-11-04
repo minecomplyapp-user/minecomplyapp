@@ -32,6 +32,8 @@ import ECCMonitoringScreen from "../screens/ecc/ECCMonitoringScreen";
 import ECCMonitoringScreen2 from "../screens/ecc/conditions";
 import CMVRDocumentExportScreen from "../screens/CMVRPAGE/CMVRDocumentExportScreen";
 import ExportReportScreen from "../screens/CMVRPAGE/ExportReportScreen";
+import GuestDashboardScreen from "../screens/dashboard/GuestDashboardScreen";
+import EPEPScreen from "../screens/EPEP/epepScreen";
 
 const RootStack = createStackNavigator();
 
@@ -82,6 +84,11 @@ const AppNavigator = () => {
                 options={{ headerShown: false }}
               />
               <RootStack.Screen
+                name="GuestDashboard"
+                component={GuestDashboardScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen
                 name="AttendanceDetail"
                 component={AttendanceDetailScreen}
                 options={{ headerShown: false }}
@@ -106,8 +113,8 @@ const AppNavigator = () => {
                 component={ECCMonitoringScreen}
               />
               <RootStack.Screen
-                name="ECCMonitoringScreen"
-                component={ECCMonitoringScreen2}
+                name="EPEP"
+                component={EPEPScreen}
               />
               <RootStack.Screen
                 name="EnvironmentalCompliance"

@@ -250,3 +250,70 @@ export async function uploadAttachment(
 
   return { path: data.path };
 }
+
+/**
+ * Upload a QR code image to the qr-codes/ folder
+ */
+export async function uploadQRCode(
+  uri: string,
+  fileName?: string,
+  upsert: boolean = true
+): Promise<{ path: string }> {
+  console.log("📤 Starting uploadQRCode (Supabase SDK direct upload)...");
+
+  const timestamp = Date.now();
+  const defaultFileName = fileName || `qr-${timestamp}.jpg`;
+  const uniqueId =
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15);
+  const path = `qr-codes/${uniqueId}-${defaultFileName}`;
+
+  console.log("📂 Upload path:", path);
+
+  // Read file as base64 (React Native requires this for Supabase upload)
+  console.log("📖 Reading file from URI...");
+  let arrayBuffer: ArrayBuffer;
+
+  try {
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    console.log("✅ File read as base64, length:", base64.length);
+
+    // Convert base64 to ArrayBuffer for Supabase upload
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    arrayBuffer = bytes.buffer;
+  } catch (readError: any) {
+    console.error("❌ Failed to read QR file:", readError);
+    throw new Error(`Failed to read QR file: ${readError.message}`);
+  }
+
+  // Upload using Supabase SDK directly
+  console.log("🚀 Uploading QR to Supabase Storage via SDK...");
+  const { data, error } = await supabase.storage
+    .from("minecomplyapp-bucket")
+    .upload(path, arrayBuffer, {
+      contentType: "image/jpeg",
+      cacheControl: "3600",
+      upsert: upsert,
+    });
+
+  if (error) {
+    console.error("❌ Supabase upload failed:", {
+      message: error.message,
+      statusCode: (error as any).statusCode,
+      error: error,
+    });
+    throw new Error(`Upload failed: ${error.message}`);
+  }
+
+  console.log("✅ QR upload succeeded!", {
+    path: data.path,
+  });
+
+  return { path: data.path };
+}

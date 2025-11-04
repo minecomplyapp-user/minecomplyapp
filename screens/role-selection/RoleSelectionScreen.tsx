@@ -12,7 +12,6 @@ import { Users, UserCog, User, UserPlus } from "lucide-react-native";
 import { theme } from "../../theme/theme";
 import styles from "./styles/roleSelectionScreen";
 
-
 const roles = [
   { label: "MMT Chair", icon: UserCog },
   { label: "Co-chair", icon: Users },
@@ -50,22 +49,14 @@ function RoleCard({ role, onPress }: any) {
       className="rounded-3xl"
     >
       <Animated.View
-        style={[
-          styles.roleCard,
-          {
-            transform: [{ scale: scaleAnim }],
-          },
-        ]}
+        style={[styles.roleCard, { transform: [{ scale: scaleAnim }] }]}
         className="bg-white items-center justify-center shadow-sm"
       >
         <View
           style={styles.iconCircle}
           className="bg-blue-100 items-center justify-center"
         >
-          <Icon
-            color={theme.colors.primaryDark}
-            strokeWidth={2.2}
-          />
+          <Icon color={theme.colors.primaryDark} strokeWidth={2.2} />
         </View>
         <Text
           style={styles.roleLabel}
@@ -79,6 +70,14 @@ function RoleCard({ role, onPress }: any) {
 }
 
 export default function RoleSelectionScreen({ navigation }: any) {
+  const handleRoleSelect = (roleLabel: string) => {
+    if (roleLabel === "MMT Chair" || roleLabel === "Co-chair") {
+      navigation.replace("Dashboard", { role: roleLabel });
+    } else if (roleLabel === "Member" || roleLabel === "Guest") {
+      navigation.replace("GuestDashboard", { role: roleLabel });
+    }
+  };
+
   return (
     <SafeAreaProvider style={styles.safeArea} className="bg-background flex-1">
       <ScrollView
@@ -115,10 +114,7 @@ export default function RoleSelectionScreen({ navigation }: any) {
             <RoleCard
               key={role.label}
               role={role}
-              onPress={() =>
-                // Navigate directly to Dashboard (replace RoleSelection in stack)
-                navigation.replace("Dashboard", { role: role.label })
-              }
+              onPress={() => handleRoleSelect(role.label)}
             />
           ))}
         </View>

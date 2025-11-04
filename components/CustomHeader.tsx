@@ -20,6 +20,7 @@ interface CustomHeaderProps {
   showFileName?: boolean; // new
   fileName?: string; // current filename
   onChangeFileName?: (name: string) => void; // callback when changed
+  goBackTo?: string;
 }
 
 export const CustomHeader: React.FC<CustomHeaderProps> = ({
@@ -27,16 +28,21 @@ export const CustomHeader: React.FC<CustomHeaderProps> = ({
   saveDisabled = false,
   showSave = true,
   showFileName = false,
-  fileName = "File_Name",
+  fileName = "Untitled File",
   onChangeFileName,
+  goBackTo,
 }) => {
   const navigation = useNavigation();
   const [modalVisible, setModalVisible] = useState(false);
   const [tempFileName, setTempFileName] = useState(fileName);
 
-  const handleBack = () => {
-    if (navigation.canGoBack()) navigation.goBack();
-  };
+const handleBack = () => {
+  if (goBackTo) {
+    navigation.navigate(goBackTo as never); 
+  } else if (navigation.canGoBack()) {
+    navigation.goBack();
+  }
+};
 
   const handleSaveFileName = () => {
     onChangeFileName?.(tempFileName);

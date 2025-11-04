@@ -25,6 +25,8 @@ import {
 import { theme } from "../../theme/theme";
 import { styles } from "./styles/dashboardScreen";
 import { useAuth } from "../../contexts/AuthContext";
+import { Ionicons } from "@expo/vector-icons";
+import { CustomHeader } from "../../components/CustomHeader";
 
 // SAMPLE RANI HA PWEDE NI TANG2ON
 const sampleReports = [
@@ -49,6 +51,7 @@ export default function DashboardScreen({ navigation }: any) {
   return (
   
     <SafeAreaView style={styles.safeContainer}>
+      <CustomHeader goBackTo="RoleSelection" showSave={false} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -211,10 +214,12 @@ function CreateReportModal({ visible, onClose, navigation }: any) {
                 />
                 <ModalButton
                   icon={AlertTriangle}
-                  title="EPEP / AEPEP"
+                  title="EPEP"
                   onPress={() => {
-                    console.log("EPEP / AEPEP");
                     onClose();
+                    setTimeout(() => {
+                      navigation.navigate('EPEP');
+                    }, 120);
                   }}
                 />
               </View>
