@@ -3,8 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
-  StyleSheet,
   Alert,
   Image,
   ActivityIndicator,
@@ -12,6 +10,7 @@ import {
   TextInput,
   InteractionManager,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -19,15 +18,10 @@ import * as Linking from "expo-linking";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { theme } from "../../theme/theme";
-import {
-  scale,
-  verticalScale,
-  normalizeFont,
-  moderateScale,
-} from "../../utils/responsive";
 import { supabase } from "../../lib/supabase";
 import { uploadQRCode } from "../../lib/storage";
 import { useAuth } from "../../contexts/AuthContext";
+import { styles } from "./styles/guestDashboardScreen";
 
 export const GuestDashboardScreen = () => {
   const navigation = useNavigation();
@@ -50,15 +44,18 @@ export const GuestDashboardScreen = () => {
 
   // Handle QR image selection + Supabase upload
   const handlePickImage = async () => {
-  let result: any;
-  try {
+    let result: any;
+    try {
       // Request permission (use request directly to simplify flow)
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (perm.status !== "granted") {
         Alert.alert(
           "Permission Needed",
           "Please allow access to your photos so you can upload your QR code.",
-          [{ text: "Open Settings", onPress: () => Linking.openSettings() }, { text: "Cancel", style: "cancel" }]
+          [
+            { text: "Open Settings", onPress: () => Linking.openSettings() },
+            { text: "Cancel", style: "cancel" },
+          ]
         );
         return;
       }
@@ -70,8 +67,7 @@ export const GuestDashboardScreen = () => {
         quality: 1,
       });
 
-  if (result.canceled || !result.assets?.length) return;
-
+      if (result.canceled || !result.assets?.length) return;
     } catch (permErr) {
       console.warn("Image picker permission/error:", permErr);
       Alert.alert("Error", "Could not open image picker.");
@@ -144,13 +140,17 @@ export const GuestDashboardScreen = () => {
     )}`;
 
     const fileName = `qr_link_${Date.now()}.png`;
-    const localDir = (FileSystem as any).cacheDirectory || (FileSystem as any).documentDirectory || "";
+    const localDir =
+      (FileSystem as any).cacheDirectory ||
+      (FileSystem as any).documentDirectory ||
+      "";
     const localPath = `${localDir}${fileName}`;
 
     try {
       // Download generated QR to local path
       const dl = await FileSystem.downloadAsync(qrApi, localPath);
-      if (!dl || !dl.uri) throw new Error("Failed to download generated QR image");
+      if (!dl || !dl.uri)
+        throw new Error("Failed to download generated QR image");
 
       // Upload downloaded file to Supabase
       const { path } = await uploadQRCode(dl.uri, fileName, true);
@@ -192,7 +192,10 @@ export const GuestDashboardScreen = () => {
       }
     } catch (err: any) {
       console.error("QR generation/upload error:", err);
-      Alert.alert("Failed", err.message || "Could not generate/upload QR image.");
+      Alert.alert(
+        "Failed",
+        err.message || "Could not generate/upload QR image."
+      );
     }
   };
 
@@ -224,7 +227,12 @@ export const GuestDashboardScreen = () => {
               .channel(`profiles:${user.id}`)
               .on(
                 "postgres_changes",
-                { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
+                {
+                  event: "UPDATE",
+                  schema: "public",
+                  table: "profiles",
+                  filter: `id=eq.${user.id}`,
+                },
                 (payload: any) => {
                   const newRow = payload.new || payload.record || {};
                   if (newRow.qr_public_url) setQrImage(newRow.qr_public_url);
@@ -233,7 +241,10 @@ export const GuestDashboardScreen = () => {
               )
               .subscribe();
           } catch (subErr) {
-            console.warn("Realtime subscription failed (falling back to polling)", subErr);
+            console.warn(
+              "Realtime subscription failed (falling back to polling)",
+              subErr
+            );
             // fallback: simple polling every 15s
             channel = setInterval(async () => {
               try {
@@ -287,7 +298,8 @@ export const GuestDashboardScreen = () => {
           />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
-        {/* Debug button to open picker directly */}
+        {/* ANDROID WORKS FINE BUT IOS DOES NOT HUHU */}
+        {/* Debug button for IOS to open picker directly */}
         {/* <TouchableOpacity
           style={styles.debugButton}
           onPress={async () => {
@@ -321,8 +333,8 @@ export const GuestDashboardScreen = () => {
               <Image
                 source={{ uri: qrImage! }}
                 style={{
-                  width: 300, // ✅ Increased size
-                  height: 300, // ✅ Increased size
+                  width: 300, 
+                  height: 300, 
                   borderRadius: 30,
                   backgroundColor: "transparent",
                 }}
@@ -373,7 +385,12 @@ export const GuestDashboardScreen = () => {
                 }}
               />
               {imageError ? (
-                <Text style={[styles.qrStatusText, { color: "#d9534f", marginTop: 8 }]}>
+                <Text
+                  style={[
+                    styles.qrStatusText,
+                    { color: "#d9534f", marginTop: 8 },
+                  ]}
+                >
                   {imageError}
                 </Text>
               ) : null}
@@ -395,305 +412,129 @@ export const GuestDashboardScreen = () => {
             {isQrSet ? "Edit QR Code" : "Add QR Code"}
           </Text>
         </TouchableOpacity>
-        
-{/* Options Modal: Upload Image or Enter Link */}
-<Modal visible={optionsVisible} transparent animationType="fade">
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalCard}>
-      <Text style={styles.modalTitle}>Add or edit QR</Text>
 
-      <TouchableOpacity
-        onPress={() => {
-          setOptionsVisible(false);
-          // Wait until modal dismissal and interactions finish, then open picker
-          InteractionManager.runAfterInteractions(() => {
-            handlePickImage();
-          });
-        }}
-        style={styles.optionButton}
-      >
-        <View style={styles.optionRow}>
-          <View style={styles.optionIconWrap}>
-            <Ionicons
-              name="image-outline"
-              size={20}
-              color={theme.colors.primaryDark}
-            />
+        {/* Options Modal: Upload Image or Enter Link */}
+        <Modal visible={optionsVisible} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Add or edit QR</Text>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setOptionsVisible(false);
+
+                  InteractionManager.runAfterInteractions(() => {
+                    handlePickImage();
+                  });
+                }}
+                style={styles.optionButton}
+              >
+                <View style={styles.optionRow}>
+                  <View style={styles.optionIconWrap}>
+                    <Ionicons
+                      name="image-outline"
+                      size={20}
+                      color={theme.colors.primaryDark}
+                    />
+                  </View>
+                  <View style={styles.optionTextContainer}>
+                    <Text style={styles.optionText}>Upload image</Text>
+                    <Text style={styles.optionSubText}>
+                      Choose a photo from your device
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setOptionsVisible(false);
+                  setLinkModalVisible(true);
+                }}
+                style={styles.optionButton}
+              >
+                <View style={styles.optionRow}>
+                  <View style={styles.optionIconWrap}>
+                    <Ionicons
+                      name="link-outline"
+                      size={20}
+                      color={theme.colors.primaryDark}
+                    />
+                  </View>
+                  <View style={styles.optionTextContainer}>
+                    <Text style={styles.optionText}>Enter link</Text>
+                    <Text style={styles.optionSubText}>
+                      Paste a URL and we’ll generate a QR image
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              <View style={styles.modalButtonRow}>
+                <TouchableOpacity
+                  onPress={() => setOptionsVisible(false)}
+                  style={[styles.modalAction, styles.cancelButton]}
+                >
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-          <View style={styles.optionTextContainer}>
-            <Text style={styles.optionText}>Upload image</Text>
-            <Text style={styles.optionSubText}>
-              Choose a photo from your device
-            </Text>
+        </Modal>
+
+        {/* Link input modal */}
+        <Modal visible={linkModalVisible} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Paste link to convert to QR</Text>
+              <TextInput
+                value={linkInput}
+                onChangeText={setLinkInput}
+                placeholder="https://example.com"
+                placeholderTextColor="#9CA3AF" // ✅ ADD THIS (a medium gray)
+                autoCapitalize="none"
+                keyboardType="url"
+                style={styles.input}
+              />
+
+              <View style={styles.modalButtonRow}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setLinkModalVisible(false);
+                    setLinkInput("");
+                  }}
+                  style={[styles.modalAction, styles.cancelButton]}
+                >
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={async () => {
+                    setSubmitting(true);
+                    try {
+                      await handleGenerateFromLink(linkInput.trim());
+                    } catch (e) {
+                      console.warn(e);
+                    } finally {
+                      setSubmitting(false);
+                      setLinkModalVisible(false);
+                      setLinkInput("");
+                    }
+                  }}
+                  style={styles.modalAction}
+                >
+                  <Text style={styles.convertButtonText}>
+                    {submitting ? "..." : "Convert"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-        </View>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={() => {
-          setOptionsVisible(false);
-          setLinkModalVisible(true);
-        }}
-        style={styles.optionButton}
-      >
-        <View style={styles.optionRow}>
-          <View style={styles.optionIconWrap}>
-            <Ionicons
-              name="link-outline"
-              size={20}
-              color={theme.colors.primaryDark}
-            />
-          </View>
-          <View style={styles.optionTextContainer}>
-            <Text style={styles.optionText}>Enter link</Text>
-            <Text style={styles.optionSubText}>
-              Paste a URL and we’ll generate a QR image
-            </Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-
-      {/* ✅ WRAP YOUR CANCEL BUTTON IN A modalButtonRow FOR CONSISTENT ALIGNMENT */}
-      <View style={styles.modalButtonRow}>
-        <TouchableOpacity
-          onPress={() => setOptionsVisible(false)}
-          style={[styles.modalAction, styles.cancelButton]}
-        >
-          <Text style={styles.cancelText}>Cancel</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </View>
-</Modal>
-
-{/* Link input modal */}
-<Modal visible={linkModalVisible} transparent animationType="fade">
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalCard}>
-      <Text style={styles.modalTitle}>Paste link to convert to QR</Text>
-<TextInput
-  value={linkInput}
-  onChangeText={setLinkInput}
-  placeholder="https://example.com"
-  placeholderTextColor="#9CA3AF" // ✅ ADD THIS (a medium gray)
-  autoCapitalize="none"
-  keyboardType="url"
-  style={styles.input}
-/>
-
-      <View style={styles.modalButtonRow}>
-        <TouchableOpacity
-          onPress={() => {
-            setLinkModalVisible(false);
-            setLinkInput("");
-          }}
-          style={[styles.modalAction, styles.cancelButton]}
-        >
-          <Text style={styles.cancelText}>Cancel</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={async () => {
-            setSubmitting(true);
-            try {
-              await handleGenerateFromLink(linkInput.trim());
-            } catch (e) {
-              console.warn(e);
-            } finally {
-              setSubmitting(false);
-              setLinkModalVisible(false);
-              setLinkInput("");
-            }
-          }}
-          style={styles.modalAction}
-        >
-          <Text style={styles.convertButtonText}>
-            {submitting ? "..." : "Convert"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </View>
-</Modal>
-
+        </Modal>
       </View>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  safeContainer: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    alignItems: "center",
-    paddingHorizontal: scale(theme.spacing.lg),
-    paddingTop: verticalScale(theme.spacing.lg),
-  },
-  logoutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  logoutText: {
-    fontFamily: theme.typography.semibold,
-    fontSize: normalizeFont(theme.typography.sizes.sm),
-    color: theme.colors.primaryDark,
-    marginLeft: 6,
-  },
-  mainContent: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: scale(theme.spacing.lg),
-  },
-  greeting: {
-    fontFamily: theme.typography.bold,
-    fontSize: normalizeFont(theme.typography.sizes.xxl),
-    color: theme.colors.primaryDark,
-    textAlign: "center",
-    marginBottom: verticalScale(theme.spacing.lg),
-  },
-  qrPromptBox: {
-    backgroundColor: theme.colors.primaryLight + "15",
-    borderRadius: moderateScale(theme.radii.lg),
-    paddingVertical: verticalScale(theme.spacing.md),
-    paddingHorizontal: scale(theme.spacing.lg),
-  },
-
-  qrPromptText: {
-    fontFamily: theme.typography.semibold,
-    fontSize: normalizeFont(theme.typography.sizes.md),
-    color: theme.colors.primaryDark,
-    textAlign: "center",
-  },
-  autoPopulateButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "auto",
-    marginTop: verticalScale(10),
-  },
-  autoPopulateText: {
-    color: theme.colors.primaryDark,
-    fontWeight: "500",
-    marginLeft: 6,
-    fontSize: 13,
-  },
-  debugButton: {
-    marginTop: verticalScale(12),
-    backgroundColor: "#f3f4f6",
-    paddingVertical: verticalScale(8),
-    paddingHorizontal: scale(12),
-    borderRadius: moderateScale(8),
-  },
-  debugButtonText: {
-    color: theme.colors.primaryDark,
-    fontFamily: theme.typography.semibold,
-  },
-  qrStatusText: {
-    marginTop: verticalScale(theme.spacing.md),
-    fontFamily: theme.typography.regular,
-    fontSize: normalizeFont(theme.typography.sizes.sm),
-    color: theme.colors.success || "#28a745",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  modalCard: {
-    width: "100%",
-    maxWidth: 450,
-    minWidth: 280,
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    padding: 16,
-    ...theme.shadows.light,
-  },
-  modalTitle: {
-    fontSize: normalizeFont(theme.typography.sizes.lg), 
-    fontFamily: theme.typography.semibold,
-    color: theme.colors.primaryDark,
-    marginBottom: verticalScale(24), 
-  },
-  optionButton: {
-    backgroundColor: "#f3f4f6",
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    marginBottom: 10,
-    width: "100%",
-    maxWidth: 400,
-  },
-  optionRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-  optionIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.primaryLight + "20",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  optionTextContainer: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  optionText: {
-    fontSize: normalizeFont(theme.typography.sizes.md),
-    fontFamily: theme.typography.semibold,
-    color: theme.colors.primaryDark,
-  },
-  optionSubText: {
-    fontSize: normalizeFont(theme.typography.sizes.sm),
-    fontFamily: theme.typography.regular,
-    color: "#6b7280",
-    marginTop: 2,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#eee",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    backgroundColor: "#fff",
-    color: "#111827", 
-  },
-  modalAction: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    minWidth: 80, 
-    justifyContent: "center", 
-    alignItems: "center", 
-  },
-  modalButtonRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: verticalScale(24), 
-    gap: 12, 
-  },
-  cancelButton: {
-    backgroundColor: "transparent",
-  },
-  cancelText: {
-    color: "#888",
-    fontFamily: theme.typography.regular,
-    fontSize: normalizeFont(theme.typography.sizes.md),
-  },
-  convertButtonText: {
-    // ✅ NEW STYLE
-    color: theme.colors.primaryDark,
-    fontSize: normalizeFont(theme.typography.sizes.md), // Same size as cancel
-    fontFamily: theme.typography.regular, // As requested
-  },
-});
 
 export default GuestDashboardScreen;

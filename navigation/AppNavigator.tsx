@@ -32,6 +32,7 @@ import ECCMonitoringScreen2 from "../screens/ecc/conditions";
 import CMVRDocumentExportScreen from "../screens/CMVRPAGE/CMVRDocumentExportScreen";
 import ExportReportScreen from "../screens/CMVRPAGE/ExportReportScreen";
 import GuestDashboardScreen from "../screens/dashboard/GuestDashboardScreen";
+import EPEPScreen from "../screens/EPEP/epepScreen";
 
 const RootStack = createStackNavigator();
 
@@ -104,6 +105,10 @@ const AppNavigator = () => {
               <RootStack.Screen
                 name="ECCMonitoring"
                 component={ECCMonitoringScreen}
+              />
+              <RootStack.Screen
+                name="EPEP"
+                component={EPEPScreen}
               />
 
               {/* <RootStack.Screen

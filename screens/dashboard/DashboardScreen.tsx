@@ -214,10 +214,12 @@ function CreateReportModal({ visible, onClose, navigation }: any) {
                 />
                 <ModalButton
                   icon={AlertTriangle}
-                  title="EPEP / AEPEP"
+                  title="EPEP"
                   onPress={() => {
-                    console.log("EPEP / AEPEP");
                     onClose();
+                    setTimeout(() => {
+                      navigation.navigate('EPEP');
+                    }, 120);
                   }}
                 />
               </View>
