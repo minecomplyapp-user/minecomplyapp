@@ -24,7 +24,7 @@
     "expo-camera": "^17.0.8",
     "expo-constants": "^18.0.9",
     "expo-document-picker": "~14.0.7",
-    "expo-file-system": "~19.0.16",
+    "expo-file-system": "~19.0.17",
     "expo-font": "~14.0.9",
     "expo-image-manipulator": "~14.0.7",
     "expo-image-picker": "~17.0.8",
@@ -57,7 +57,8 @@
     "react-native-web": "^0.21.0",
     "react-native-worklets-core": "^1.6.2",
     "tailwindcss": "^3.4.18",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
