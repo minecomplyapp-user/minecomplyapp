@@ -20,6 +20,8 @@ import {
   StoredState,
   ChoiceKey,
   CondID,
+  
+  
 } from "../types/eccMonitoring";
 import { DEFAULTS } from "../constants/defaultConditions";
 
@@ -54,9 +56,44 @@ export const ECCMonitoringSection = ({
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [editing, setEditing] = useState<BaseCondition | null>(null);
+    
+ let section = 0;
+
+const toConditionOutput = () => {
+  const conditions = currentList.map((cond, index) => {
+    const status = selections[cond.id] || "";
+    const remarks =
+      status && cond.descriptions[status]
+        ? cond.descriptions[status]
+        : "No remarks.";
+
+    section += 1; // increment section count
+
+    return {
+      nested_to: cond.nested_to ? parseInt(cond.nested_to as string, 10) : undefined,
+      section, 
+      condition_number: index + 1,
+      condition: cond.title,
+      status,
+      remarks,
+      remark_list: [
+        cond.descriptions.complied,
+        cond.descriptions.partial,
+        cond.descriptions.not,
+      ],
+    };
+  });
+
+  return {conditions};
+};
 
   useEffect(() => {
-    onChange({ edits, customs, selections });
+      const formatted = toConditionOutput();
+      console.log(currentList)
+
+    onChange({ edits, customs, selections, formatted  });
+
+    
   }, [edits, customs, selections]);
 
   const currentList = useMemo(() => {
@@ -66,6 +103,7 @@ export const ECCMonitoringSection = ({
       if (!e) return { ...d };
       return {
         ...d,
+        nested_to:d.nested_to,
         title: (e.title as string) ?? d.title,
         descriptions: (e.descriptions as any) ?? d.descriptions,
       };
@@ -76,11 +114,11 @@ export const ECCMonitoringSection = ({
   }, [edits, customs, removedDefaults]);
 
   // display items
-  const displayItems = useMemo(() => {
+   const displayItems = useMemo(() => {
     const items: { cond: BaseCondition; displayLabel: string }[] = [];
     let idx = 1;
     for (const c of currentList) {
-      const isChild = !!c.parentId;
+      const isChild = !!c.nested_to;
       const label = isChild ? c.id : String(idx);
       items.push({ cond: c, displayLabel: label });
       if (!isChild) idx++;
@@ -129,7 +167,7 @@ export const ECCMonitoringSection = ({
   };
 
   const deleteCondition = (cond: BaseCondition) => {
-    if (cond.parentId === "7") {
+    if (cond.nested_to === "7") {
       Alert.alert(
         "Delete Condition",
         "Delete this sub-condition permanently?",
@@ -146,7 +184,7 @@ export const ECCMonitoringSection = ({
               }
               const remainingChildren = currentList.filter(
                 (c) =>
-                  c.parentId === "7" &&
+                  c.nested_to === "7" &&
                   c.id !== cond.id &&
                   !removedDefaults.includes(c.id)
               );
@@ -213,7 +251,8 @@ export const ECCMonitoringSection = ({
           </View>
 
           {displayItems.map(({ cond, displayLabel }) => {
-            const isChild = !!cond.parentId;
+            // console.log(displayItems)
+            const isChild = !!cond.nested_to;
             const isTitleOnly = cond.id === "7";
             const selected = selections[cond.id] ?? null;
 

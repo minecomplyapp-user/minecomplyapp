@@ -31,7 +31,7 @@ import {
 } from "../types/CMVRReportScreen.types";
 import { styles } from "../styles/CMVRReportScreen.styles";
 
-const CMVRReportScreen = () => {
+const CMVRReportScreen: React.FC = () => {
   const navigation = useNavigation<CMVRReportScreenNavigationProp>();
   const route = useRoute<CMVRReportScreenRouteProp>();
   const { submissionId, projectName, projectId } = route.params;

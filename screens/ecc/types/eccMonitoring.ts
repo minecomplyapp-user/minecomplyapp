@@ -7,13 +7,24 @@ export type BaseCondition = {
   title: string;
   descriptions: Record<ChoiceKey, string>;
   isDefault?: boolean;
-  parentId?: CondID | null;
+  nested_to?: CondID | null;
 };
 
 export type StoredState = {
   edits: Record<CondID, Partial<BaseCondition>>;
   customs: BaseCondition[];
   selections: Record<CondID, ChoiceKey | null>;
+  formatted?: {
+    conditions: Array<{
+      nested_to?:string;
+      condition_number: number;
+      condition: string;
+      status: string;
+      remarks: string;
+      remark_list: string[];
+      section: number;
+    }>;
+  }
 };
 
 export type PermitHolder = {
