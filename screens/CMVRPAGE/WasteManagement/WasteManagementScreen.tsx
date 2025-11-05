@@ -41,13 +41,13 @@ export default function WasteManagementScreen({ navigation, route }: any) {
     N_A: false,
   });
 
-  const [selectedQuarter, setSelectedQuarter] = useState("Q2 2025");
+  const [selectedQuarter, setSelectedQuarter] = useState("Q2");
 
   const quarterItems = [
-    { label: "Q1 2025", value: "Q1 2025" },
-    { label: "Q2 2025", value: "Q2 2025" },
-    { label: "Q3 2025", value: "Q3 2025" },
-    { label: "Q4 2025", value: "Q4 2025" },
+    { label: "Q1", value: "Q1" },
+    { label: "Q2", value: "Q2" },
+    { label: "Q3", value: "Q3" },
+    { label: "Q4", value: "Q4" },
   ];
 
   const [quarryPlantData, setQuarryPlantData] = useState<PlantPortSectionData>({
@@ -366,7 +366,7 @@ export default function WasteManagementScreen({ navigation, route }: any) {
   };
 
   const fillTestData = () => {
-    setSelectedQuarter("Q2 2025");
+    setSelectedQuarter("Q2");
 
     // Quarry section
     setQuarryData({
@@ -480,7 +480,6 @@ export default function WasteManagementScreen({ navigation, route }: any) {
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
         <CMSHeader
-          fileName="Waste Management"
           onBack={() => navigation.goBack()}
           onSave={async () => {
             // Collect all previous page data from route.params
@@ -558,19 +557,30 @@ export default function WasteManagementScreen({ navigation, route }: any) {
           </View>
         </View>
 
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Select Quarter</Text>
-          <RNPickerSelect
-            onValueChange={(value) => {
-              if (value) {
-                setSelectedQuarter(value);
-              }
-            }}
-            items={quarterItems}
-            style={pickerSelectStyles}
-            value={selectedQuarter}
-            placeholder={{}}
-          />
+        <View style={styles.quarterPickerContainer}>
+          <Text style={styles.quarterLabel}>Select Quarter</Text>
+          <View style={styles.quarterButtonsRow}>
+            {quarterItems.map((item) => (
+              <TouchableOpacity
+                key={item.value}
+                style={[
+                  styles.quarterButton,
+                  selectedQuarter === item.value && styles.quarterButtonActive,
+                ]}
+                onPress={() => setSelectedQuarter(item.value)}
+              >
+                <Text
+                  style={[
+                    styles.quarterButtonText,
+                    selectedQuarter === item.value &&
+                      styles.quarterButtonTextActive,
+                  ]}
+                >
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         <QuarrySection data={quarryData} onUpdate={updateQuarryData} />

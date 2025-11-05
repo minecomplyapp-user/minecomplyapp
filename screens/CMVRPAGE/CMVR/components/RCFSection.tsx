@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../styles/rcf.styles";
 import type { FundInfo, FundAdditionalForm, RCFSectionProps } from "../types/rcf.types";
@@ -31,51 +31,135 @@ const RCFSection: React.FC<RCFSectionProps> = ({
   };
 
   const addRCFForm = () => {
-    setRcfAdditionalForms([...rcfAdditionalForms, {
-      permitHolder: "", savingsAccount: "", amountDeposited: "", dateUpdated: "",
-    }]);
+    setRcfAdditionalForms([
+      ...rcfAdditionalForms,
+      {
+        permitHolder: "",
+        savingsAccount: "",
+        amountDeposited: "",
+        dateUpdated: "",
+      },
+    ]);
   };
 
   const addMTFForm = () => {
-    setMtfAdditionalForms([...mtfAdditionalForms, {
-      permitHolder: "", savingsAccount: "", amountDeposited: "", dateUpdated: "",
-    }]);
+    setMtfAdditionalForms([
+      ...mtfAdditionalForms,
+      {
+        permitHolder: "",
+        savingsAccount: "",
+        amountDeposited: "",
+        dateUpdated: "",
+      },
+    ]);
   };
 
   const addFMRDFForm = () => {
-    setFmrdfAdditionalForms([...fmrdfAdditionalForms, {
-      permitHolder: "", savingsAccount: "", amountDeposited: "", dateUpdated: "",
-    }]);
+    setFmrdfAdditionalForms([
+      ...fmrdfAdditionalForms,
+      {
+        permitHolder: "",
+        savingsAccount: "",
+        amountDeposited: "",
+        dateUpdated: "",
+      },
+    ]);
   };
 
-  const updateRcfAdditionalForm = (index: number, field: keyof FundAdditionalForm, value: string) => {
+  const updateRcfAdditionalForm = (
+    index: number,
+    field: keyof FundAdditionalForm,
+    value: string
+  ) => {
     const updated = [...rcfAdditionalForms];
     updated[index] = { ...updated[index], [field]: value };
     setRcfAdditionalForms(updated);
   };
 
-  const updateMtfAdditionalForm = (index: number, field: keyof FundAdditionalForm, value: string) => {
+  const updateMtfAdditionalForm = (
+    index: number,
+    field: keyof FundAdditionalForm,
+    value: string
+  ) => {
     const updated = [...mtfAdditionalForms];
     updated[index] = { ...updated[index], [field]: value };
     setMtfAdditionalForms(updated);
   };
 
-  const updateFmrdfAdditionalForm = (index: number, field: keyof FundAdditionalForm, value: string) => {
+  const updateFmrdfAdditionalForm = (
+    index: number,
+    field: keyof FundAdditionalForm,
+    value: string
+  ) => {
     const updated = [...fmrdfAdditionalForms];
     updated[index] = { ...updated[index], [field]: value };
     setFmrdfAdditionalForms(updated);
   };
 
   const removeRcfAdditionalForm = (index: number) => {
-    setRcfAdditionalForms(rcfAdditionalForms.filter((_, i) => i !== index));
+    Alert.alert(
+      "Confirm Deletion",
+      "Are you sure you want to remove this RCF entry?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          onPress: () => {
+            setRcfAdditionalForms(
+              rcfAdditionalForms.filter((_, i) => i !== index)
+            );
+          },
+          style: "destructive",
+        },
+      ]
+    );
   };
 
   const removeMtfAdditionalForm = (index: number) => {
-    setMtfAdditionalForms(mtfAdditionalForms.filter((_, i) => i !== index));
+    Alert.alert(
+      "Confirm Deletion",
+      "Are you sure you want to remove this MTF entry?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          onPress: () => {
+            setMtfAdditionalForms(
+              mtfAdditionalForms.filter((_, i) => i !== index)
+            );
+          },
+          style: "destructive",
+        },
+      ]
+    );
   };
 
   const removeFmrdfAdditionalForm = (index: number) => {
-    setFmrdfAdditionalForms(fmrdfAdditionalForms.filter((_, i) => i !== index));
+    Alert.alert(
+      "Confirm Deletion",
+      "Are you sure you want to remove this FMRDF entry?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          onPress: () => {
+            setFmrdfAdditionalForms(
+              fmrdfAdditionalForms.filter((_, i) => i !== index)
+            );
+          },
+          style: "destructive",
+        },
+      ]
+    );
   };
 
   return (
@@ -89,7 +173,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
           <Text style={styles.sectionSubtitle}>RCF / MTF / FMRDF</Text>
         </View>
       </View>
-
       <View style={styles.formContent}>
         {/* RCF Section */}
         <View style={styles.subsectionContainer}>
@@ -108,7 +191,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
               <Text style={styles.naLabel}>N/A</Text>
             </TouchableOpacity>
           </View>
-
           <View style={[styles.fundContent, rcfInfo.isNA && styles.disabledContent]}>
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Name of Permit Holder</Text>
@@ -129,7 +211,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 </TouchableOpacity>
               </View>
             </View>
-
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Savings Account Number</Text>
               <TextInput
@@ -141,7 +222,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 editable={!rcfInfo.isNA}
               />
             </View>
-
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Amount Deposited (₱)</Text>
               <TextInput
@@ -154,7 +234,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 editable={!rcfInfo.isNA}
               />
             </View>
-
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Date Updated</Text>
               <TextInput
@@ -166,7 +245,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 editable={!rcfInfo.isNA}
               />
             </View>
-
             <TouchableOpacity
               style={[styles.addButton, rcfInfo.isNA && styles.disabledButton]}
               onPress={addRCFForm}
@@ -177,7 +255,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 Add More Entries
               </Text>
             </TouchableOpacity>
-
             {rcfAdditionalForms.map((form, index) => (
               <View key={index} style={styles.additionalForm}>
                 <View style={styles.additionalFormHeader}>
@@ -191,7 +268,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     <Ionicons name="trash" size={20} color="#DC2626" />
                   </TouchableOpacity>
                 </View>
-
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Name of Permit Holder</Text>
                   <View style={styles.inputWithButton}>
@@ -211,7 +287,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     </TouchableOpacity>
                   </View>
                 </View>
-
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Savings Account Number</Text>
                   <TextInput
@@ -223,7 +298,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     editable={!rcfInfo.isNA}
                   />
                 </View>
-
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Amount Deposited (₱)</Text>
                   <TextInput
@@ -236,7 +310,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     editable={!rcfInfo.isNA}
                   />
                 </View>
-
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Date Updated</Text>
                   <TextInput
@@ -252,7 +325,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             ))}
           </View>
         </View>
-
         <View style={styles.divider} />
 
         {/* MTF Section */}
@@ -272,7 +344,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
               <Text style={styles.naLabel}>N/A</Text>
             </TouchableOpacity>
           </View>
-
           <View style={[styles.fundContent, mtfInfo.isNA && styles.disabledContent]}>
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Name of Permit Holder</Text>
@@ -293,7 +364,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 </TouchableOpacity>
               </View>
             </View>
-
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Savings Account Number</Text>
               <TextInput
@@ -305,7 +375,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 editable={!mtfInfo.isNA}
               />
             </View>
-
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Amount Deposited (₱)</Text>
               <TextInput
@@ -318,7 +387,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 editable={!mtfInfo.isNA}
               />
             </View>
-
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Date Updated</Text>
               <TextInput
@@ -330,7 +398,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 editable={!mtfInfo.isNA}
               />
             </View>
-
             <TouchableOpacity
               style={[styles.addButton, mtfInfo.isNA && styles.disabledButton]}
               onPress={addMTFForm}
@@ -341,7 +408,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 Add More Entries
               </Text>
             </TouchableOpacity>
-
             {mtfAdditionalForms.map((form, index) => (
               <View key={index} style={styles.additionalForm}>
                 <View style={styles.additionalFormHeader}>
@@ -355,7 +421,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     <Ionicons name="trash" size={20} color="#DC2626" />
                   </TouchableOpacity>
                 </View>
-
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Name of Permit Holder</Text>
                   <View style={styles.inputWithButton}>
@@ -375,7 +440,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     </TouchableOpacity>
                   </View>
                 </View>
-
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Savings Account Number</Text>
                   <TextInput
@@ -387,7 +451,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     editable={!mtfInfo.isNA}
                   />
                 </View>
-
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Amount Deposited (₱)</Text>
                   <TextInput
@@ -400,7 +463,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     editable={!mtfInfo.isNA}
                   />
                 </View>
-
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Date Updated</Text>
                   <TextInput
@@ -416,7 +478,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             ))}
           </View>
         </View>
-
         <View style={styles.divider} />
 
         {/* FMRDF Section */}
@@ -436,7 +497,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
               <Text style={styles.naLabel}>N/A</Text>
             </TouchableOpacity>
           </View>
-
           <View style={[styles.fundContent, fmrdfInfo.isNA && styles.disabledContent]}>
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Name of Permit Holder</Text>
@@ -457,7 +517,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 </TouchableOpacity>
               </View>
             </View>
-
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Savings Account Number</Text>
               <TextInput
@@ -469,7 +528,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 editable={!fmrdfInfo.isNA}
               />
             </View>
-
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Amount Deposited (₱)</Text>
               <TextInput
@@ -482,7 +540,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 editable={!fmrdfInfo.isNA}
               />
             </View>
-
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Date Updated</Text>
               <TextInput
@@ -494,7 +551,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 editable={!fmrdfInfo.isNA}
               />
             </View>
-
             <TouchableOpacity
               style={[styles.addButton, fmrdfInfo.isNA && styles.disabledButton]}
               onPress={addFMRDFForm}
@@ -505,7 +561,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 Add More Entries
               </Text>
             </TouchableOpacity>
-
             {fmrdfAdditionalForms.map((form, index) => (
               <View key={index} style={styles.additionalForm}>
                 <View style={styles.additionalFormHeader}>
@@ -519,7 +574,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     <Ionicons name="trash" size={20} color="#DC2626" />
                   </TouchableOpacity>
                 </View>
-
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Name of Permit Holder</Text>
                   <View style={styles.inputWithButton}>
@@ -539,7 +593,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     </TouchableOpacity>
                   </View>
                 </View>
-
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Savings Account Number</Text>
                   <TextInput
@@ -551,7 +604,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     editable={!fmrdfInfo.isNA}
                   />
                 </View>
-
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Amount Deposited (₱)</Text>
                   <TextInput
@@ -564,7 +616,6 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     editable={!fmrdfInfo.isNA}
                   />
                 </View>
-
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Date Updated</Text>
                   <TextInput

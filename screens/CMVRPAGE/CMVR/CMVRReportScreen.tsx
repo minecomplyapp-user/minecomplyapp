@@ -1,4 +1,3 @@
-// CMVRReportScreen.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -39,7 +38,6 @@ import {
 import { styles } from "../styles/CMVRReportScreen.styles";
 import ConfirmationDialog from "../components/ConfirmationDialog";
 
-// Helper function to transform frontend data to backend DTO
 const transformToBackendDTO = (
   generalInfo: GeneralInfo,
   eccInfo: ECCInfo,
@@ -57,7 +55,6 @@ const transformToBackendDTO = (
   mmtInfo: MMTInfo
 ): CreateCMVRDto => {
   return {
-    // General Info mapping
     companyName: generalInfo.companyName,
     location: [
       generalInfo.location,
@@ -72,8 +69,6 @@ const transformToBackendDTO = (
     dateOfComplianceMonitoringAndValidation: generalInfo.dateOfCompliance,
     monitoringPeriodCovered: generalInfo.monitoringPeriod,
     dateOfCmrSubmission: generalInfo.dateOfCMRSubmission,
-
-    // ECC array - combine main form and additional forms
     ecc: [
       ...(eccInfo.isNA
         ? []
@@ -90,8 +85,6 @@ const transformToBackendDTO = (
         dateOfIssuance: form.dateOfIssuance,
       })),
     ],
-
-    // ISAG/MPP array - combine main form and additional forms
     isagMpp: [
       ...(isagInfo.isNA
         ? []
@@ -108,8 +101,6 @@ const transformToBackendDTO = (
         dateOfIssuance: form.dateOfIssuance,
       })),
     ],
-
-    // Project info from ISAG section
     projectCurrentName: isagInfo.currentName || generalInfo.projectName,
     projectNameInEcc: isagInfo.nameInECC || generalInfo.projectName,
     projectStatus: isagInfo.projectStatus,
@@ -117,24 +108,18 @@ const transformToBackendDTO = (
       isagInfo.gpsX && isagInfo.gpsY
         ? `X: ${isagInfo.gpsX}, Y: ${isagInfo.gpsY}`
         : "",
-
-    // Proponent info from ISAG section
     proponent: {
       contactPersonAndPosition: isagInfo.proponentContact,
       mailingAddress: isagInfo.proponentAddress,
       telephoneFax: isagInfo.proponentPhone,
       emailAddress: isagInfo.proponentEmail,
     },
-
-    // MMT info
     mmt: {
       contactPersonAndPosition: mmtInfo.contactPerson,
       mailingAddress: mmtInfo.mailingAddress,
       telephoneFax: mmtInfo.phoneNumber,
       emailAddress: mmtInfo.emailAddress,
     },
-
-    // EPEP status and array
     epepFmrdpStatus: epepInfo.isNA ? "N/A" : "Approved",
     epep: [
       ...(epepInfo.isNA
@@ -152,8 +137,6 @@ const transformToBackendDTO = (
         dateOfApproval: form.dateOfApproval,
       })),
     ],
-
-    // Rehabilitation Cash Fund array
     rehabilitationCashFund: [
       ...(rcfInfo.isNA
         ? []
@@ -172,8 +155,6 @@ const transformToBackendDTO = (
         dateUpdated: form.dateUpdated,
       })),
     ],
-
-    // Monitoring Trust Fund array
     monitoringTrustFundUnified: [
       ...(mtfInfo.isNA
         ? []
@@ -192,8 +173,6 @@ const transformToBackendDTO = (
         dateUpdated: form.dateUpdated,
       })),
     ],
-
-    // Final Mine Rehabilitation and Decommissioning Fund array
     finalMineRehabilitationAndDecommissioningFund: [
       ...(fmrdfInfo.isNA
         ? []
@@ -212,11 +191,6 @@ const transformToBackendDTO = (
         dateUpdated: form.dateUpdated,
       })),
     ],
-
-    // Note: These sections will be added in Page 2
-    // executiveSummaryOfCompliance - optional, will be added later
-    // processDocumentationOfActivitiesUndertaken - optional, will be added later
-    // complianceMonitoringReport - optional, will be added later
   };
 };
 
@@ -234,17 +208,14 @@ const CMVRReportScreen: React.FC = () => {
     "";
   const routeFileName =
     routeParams.fileName || draftData?.fileName || undefined;
-
   const { fileName, setFileName } = useFileName();
+  console.log("Initial fileName:", fileName); 
 
-  useEffect(() => {
-    if (routeFileName && routeFileName !== fileName) {
+useEffect(() => {
+    if (routeFileName) {
       setFileName(routeFileName);
-    } else if (!fileName || fileName.trim() === "") {
-      // Set default fileName to "Untitled" if not provided
-      setFileName("Untitled");
     }
-  }, [routeFileName, fileName, setFileName]);
+  }, [routeFileName]);
 
   const [generalInfo, setGeneralInfo] = useState<GeneralInfo>(() => ({
     companyName: draftData?.generalInfo?.companyName || "",
@@ -282,9 +253,9 @@ const CMVRReportScreen: React.FC = () => {
     dateOfIssuance: draftData?.eccInfo?.dateOfIssuance || "",
   });
 
-  const [eccAdditionalForms, setEccAdditionalForms] = useState<
-    ECCAdditionalForm[]
-  >(draftData?.eccAdditionalForms || []);
+  const [eccAdditionalForms, setEccAdditionalForms] = useState<ECCAdditionalForm[]>(
+    draftData?.eccAdditionalForms || []
+  );
 
   const [isagInfo, setIsagInfo] = useState<ISAGInfo>({
     isNA: draftData?.isagInfo?.isNA ?? false,
@@ -303,9 +274,9 @@ const CMVRReportScreen: React.FC = () => {
     proponentEmail: draftData?.isagInfo?.proponentEmail || "",
   });
 
-  const [isagAdditionalForms, setIsagAdditionalForms] = useState<
-    ISAGAdditionalForm[]
-  >(draftData?.isagAdditionalForms || []);
+  const [isagAdditionalForms, setIsagAdditionalForms] = useState<ISAGAdditionalForm[]>(
+    draftData?.isagAdditionalForms || []
+  );
 
   const [epepInfo, setEpepInfo] = useState<EPEPInfo>({
     isNA: draftData?.epepInfo?.isNA ?? false,
@@ -366,7 +337,6 @@ const CMVRReportScreen: React.FC = () => {
   const [showBackDialog, setShowBackDialog] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Track changes to show unsaved warning
   useEffect(() => {
     setHasUnsavedChanges(true);
   }, [
@@ -380,7 +350,6 @@ const CMVRReportScreen: React.FC = () => {
     mmtInfo,
   ]);
 
-  // Fill with test data for quick testing
   const fillTestData = () => {
     setGeneralInfo({
       companyName: "Test Mining Company",
@@ -395,15 +364,12 @@ const CMVRReportScreen: React.FC = () => {
       monitoringPeriod: "2025-01-01 to 2025-03-31",
       dateOfCMRSubmission: "2025-04-15",
     });
-
     setEccInfo({
       isNA: false,
       permitHolder: "First ECC Permit Holder",
       eccNumber: "ECC-2025-001",
       dateOfIssuance: "2025-01-15",
     });
-
-    // Add 2 more ECC entries
     setEccAdditionalForms([
       {
         permitHolder: "Second ECC Permit Holder",
@@ -416,7 +382,6 @@ const CMVRReportScreen: React.FC = () => {
         dateOfIssuance: "2025-01-25",
       },
     ]);
-
     setIsagInfo({
       isNA: false,
       permitHolder: "First ISAG Holder",
@@ -433,8 +398,6 @@ const CMVRReportScreen: React.FC = () => {
       proponentPhone: "+63-912-345-6789",
       proponentEmail: "test@mining.com",
     });
-
-    // Add 2 more ISAG entries
     setIsagAdditionalForms([
       {
         permitHolder: "Second ISAG Holder",
@@ -447,15 +410,12 @@ const CMVRReportScreen: React.FC = () => {
         dateOfIssuance: "2025-01-30",
       },
     ]);
-
     setEpepInfo({
       isNA: false,
       permitHolder: "First EPEP Holder",
       epepNumber: "EPEP-2025-001",
       dateOfApproval: "2025-02-01",
     });
-
-    // Add 2 more EPEP entries
     setEpepAdditionalForms([
       {
         permitHolder: "Second EPEP Holder",
@@ -468,7 +428,6 @@ const CMVRReportScreen: React.FC = () => {
         dateOfApproval: "2025-02-10",
       },
     ]);
-
     setRcfInfo({
       isNA: false,
       permitHolder: "First RCF Holder",
@@ -476,8 +435,6 @@ const CMVRReportScreen: React.FC = () => {
       amountDeposited: "500,000.00",
       dateUpdated: "2025-03-01",
     });
-
-    // Add 2 more RCF entries
     setRcfAdditionalForms([
       {
         permitHolder: "Second RCF Holder",
@@ -492,7 +449,6 @@ const CMVRReportScreen: React.FC = () => {
         dateUpdated: "2025-03-10",
       },
     ]);
-
     setMtfInfo({
       isNA: false,
       permitHolder: "First MTF Holder",
@@ -500,8 +456,6 @@ const CMVRReportScreen: React.FC = () => {
       amountDeposited: "2,500,000.00",
       dateUpdated: "2025-03-01",
     });
-
-    // Add 2 more MTF entries
     setMtfAdditionalForms([
       {
         permitHolder: "Second MTF Holder",
@@ -516,7 +470,6 @@ const CMVRReportScreen: React.FC = () => {
         dateUpdated: "2025-03-10",
       },
     ]);
-
     setFmrdfInfo({
       isNA: false,
       permitHolder: "First FMRDF Holder",
@@ -524,8 +477,6 @@ const CMVRReportScreen: React.FC = () => {
       amountDeposited: "1,500,000.00",
       dateUpdated: "2025-03-01",
     });
-
-    // Add 2 more FMRDF entries
     setFmrdfAdditionalForms([
       {
         permitHolder: "Second FMRDF Holder",
@@ -540,7 +491,6 @@ const CMVRReportScreen: React.FC = () => {
         dateUpdated: "2025-03-10",
       },
     ]);
-
     setMmtInfo({
       isNA: false,
       contactPerson: "Jane Smith, MMT Head",
@@ -548,7 +498,6 @@ const CMVRReportScreen: React.FC = () => {
       phoneNumber: "+63-912-987-6543",
       emailAddress: "mmt@denr.gov",
     });
-
     Alert.alert(
       "Test Data",
       "Form filled with test data! (3 entries per array)"
@@ -560,11 +509,8 @@ const CMVRReportScreen: React.FC = () => {
       console.log("Save already in progress...");
       return;
     }
-
     try {
       setIsSaving(true);
-
-      // Save as draft to AsyncStorage
       const draftData = {
         generalInfo,
         eccInfo,
@@ -583,14 +529,10 @@ const CMVRReportScreen: React.FC = () => {
         fileName,
         savedAt: new Date().toISOString(),
       };
-
       const success = await saveDraft(fileName || "Untitled", draftData);
-
       if (success) {
         setHasUnsavedChanges(false);
         Alert.alert("Success", "Draft saved successfully");
-
-        // Navigate to Dashboard using reset to ensure we go to the root
         navigation.dispatch(
           CommonActions.reset({
             index: 0,
@@ -600,7 +542,6 @@ const CMVRReportScreen: React.FC = () => {
       } else {
         throw new Error("Failed to save draft");
       }
-
       return success;
     } catch (error: any) {
       console.error("Error saving draft:", error);
@@ -614,7 +555,6 @@ const CMVRReportScreen: React.FC = () => {
   };
 
   const handleSaveAndContinue = async () => {
-    // Validate fileName before proceeding
     if (!fileName || fileName.trim() === "") {
       Alert.alert(
         "File Name Required",
@@ -623,11 +563,9 @@ const CMVRReportScreen: React.FC = () => {
       );
       return;
     }
-
     try {
       console.log("Continuing to next page...");
-      setHasUnsavedChanges(false); // Reset flag
-      // Pass all collected Page 1 data forward so later pages and export can use it
+      setHasUnsavedChanges(false);
       navigation.navigate("CMVRPage2", {
         ...(route.params || {}),
         ...(routeParams?.draftData || {}),
@@ -678,14 +616,13 @@ const CMVRReportScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <CMSHeader onBack={handleBack} onSave={handleSave} />
+        <CMSHeader onBack={handleBack} onSave={handleSave} allowEdit={true} />
       </View>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Test Data Button - Only show in development */}
         {__DEV__ && (
           <TouchableOpacity
             style={{
@@ -702,7 +639,6 @@ const CMVRReportScreen: React.FC = () => {
             </Text>
           </TouchableOpacity>
         )}
-
         <GeneralInfoSection
           fileName={fileName}
           {...generalInfo}
@@ -752,7 +688,6 @@ const CMVRReportScreen: React.FC = () => {
         </TouchableOpacity>
         <View style={{ height: 20 }} />
       </ScrollView>
-
       <ConfirmationDialog
         visible={showBackDialog}
         title="Unsaved Changes"

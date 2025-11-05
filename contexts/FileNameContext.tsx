@@ -8,7 +8,7 @@ interface FileNameContextType {
 }
 
 const FileNameContext = createContext<FileNameContextType>({
-  fileName: "Untitled File",
+  fileName: "",
   setFileName: async () => {},
   isLoaded: false,
 });

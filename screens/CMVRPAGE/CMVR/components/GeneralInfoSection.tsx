@@ -46,7 +46,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
   const getCurrentLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-
       if (status !== "granted") {
         Alert.alert(
           "Permission Denied",
@@ -54,20 +53,16 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
         );
         return;
       }
-
       const currentLocation = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
-
       const { latitude, longitude } = currentLocation.coords;
-
       setMapRegion({
         latitude,
         longitude,
         latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
       });
-
       setSelectedLocation({ latitude, longitude });
     } catch (error) {
       Alert.alert("Error", "Failed to get current location.");
@@ -91,7 +86,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
           latitude: selectedLocation.latitude,
           longitude: selectedLocation.longitude,
         });
-
         if (address) {
           const addressParts = [
             address.street,
@@ -99,7 +93,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             address.city || address.subregion,
           ].filter(Boolean);
           const fullAddress = addressParts.join(", ");
-
           onChange(
             "location",
             fullAddress ||
@@ -123,7 +116,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.headerSection}>
         <View style={styles.headerLeft}>
           <View style={styles.iconContainer}>
@@ -137,8 +129,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
           </View>
         </View>
       </View>
-
-      {/* Content */}
       <View style={styles.sectionContent}>
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>
@@ -163,7 +153,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             </Text>
           )}
         </View>
-
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Company Name</Text>
           <TextInput
@@ -174,7 +163,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             placeholderTextColor="#94A3B8"
           />
         </View>
-
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Project Name</Text>
           <TextInput
@@ -185,7 +173,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             placeholderTextColor="#94A3B8"
           />
         </View>
-
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Project Location</Text>
           <TouchableOpacity style={styles.mapButton} onPress={openMapPicker}>
@@ -201,7 +188,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             </View>
           )}
         </View>
-
         <View style={styles.multiFieldContainer}>
           <View style={styles.multiField}>
             <Text style={styles.label}>Region</Text>
@@ -213,7 +199,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
               placeholderTextColor="#94A3B8"
             />
           </View>
-
           <View style={styles.multiField}>
             <Text style={styles.label}>Province</Text>
             <TextInput
@@ -224,7 +209,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
               placeholderTextColor="#94A3B8"
             />
           </View>
-
           <View style={styles.multiField}>
             <Text style={styles.label}>Municipality / City</Text>
             <TextInput
@@ -236,8 +220,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             />
           </View>
         </View>
-
-        {/* Quarter and Year Row */}
         <View style={styles.rowContainer}>
           <View style={styles.halfField}>
             <Text style={styles.label}>Quarter</Text>
@@ -255,7 +237,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
               </Picker>
             </View>
           </View>
-
           <View style={styles.halfField}>
             <Text style={styles.label}>Year</Text>
             <TextInput
@@ -268,7 +249,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             />
           </View>
         </View>
-
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>
             Date of Compliance Monitoring and Validation
@@ -281,7 +261,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             placeholderTextColor="#94A3B8"
           />
         </View>
-
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Monitoring Period Covered</Text>
           <TextInput
@@ -292,7 +271,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             placeholderTextColor="#94A3B8"
           />
         </View>
-
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Date of CMR Submission</Text>
           <TextInput
@@ -304,8 +282,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
           />
         </View>
       </View>
-
-      {/* Map Modal */}
       <Modal
         visible={showMap}
         animationType="slide"
@@ -322,7 +298,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             <Text style={styles.mapTitle}>Select Project Location</Text>
             <View style={{ width: 40 }} />
           </View>
-
           <MapView
             style={styles.map}
             region={mapRegion}
@@ -332,7 +307,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
           >
             {selectedLocation && <Marker coordinate={selectedLocation} />}
           </MapView>
-
           <View style={styles.mapFooter}>
             <TouchableOpacity
               style={styles.myLocationButton}
@@ -341,7 +315,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
               <Ionicons name="navigate" size={20} color="white" />
               <Text style={styles.myLocationButtonText}>My Location</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={[
                 styles.confirmButton,
