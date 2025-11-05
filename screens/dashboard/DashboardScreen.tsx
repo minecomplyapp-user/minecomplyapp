@@ -30,6 +30,9 @@ import {
 import { theme } from "../../theme/theme";
 import { styles } from "./styles/dashboardScreen";
 import { useAuth } from "../../contexts/AuthContext";
+import { useFileName } from "../../contexts/FileNameContext";
+import { getAllDraftMetadata, getDraft } from "../../lib/drafts";
+import { apiGet } from "../../lib/api";
 import { Ionicons } from "@expo/vector-icons";
 import { CustomHeader } from "../../components/CustomHeader";
 
