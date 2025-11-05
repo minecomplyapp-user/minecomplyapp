@@ -530,7 +530,7 @@ function CreateReportModal({ visible, onClose, navigation }: any) {
                   onPress={() => {
                     onClose();
                     setTimeout(() => {
-                      navigation.navigate('EPEP');
+                      navigation.navigate("EPEP");
                     }, 120);
                   }}
                 />
