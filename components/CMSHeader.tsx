@@ -18,6 +18,7 @@ interface CMSHeaderProps {
   onSave?: () => void;
   fileName?: string;
   onEditFileName?: () => void;
+  allowEdit?: boolean; // New prop to control if editing is allowed
 }
 
 export const CMSHeader: React.FC<CMSHeaderProps> = ({
@@ -25,6 +26,7 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({
   onSave,
   fileName: fileNameProp,
   onEditFileName,
+  allowEdit = false, // Default to false (read-only)
 }) => {
   const { fileName: contextFileName, setFileName, isLoaded } = useFileName();
   const [modalVisible, setModalVisible] = useState(false);
@@ -71,6 +73,9 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({
   };
 
   const handleOpenModal = () => {
+    // Only open modal if editing is allowed
+    if (!allowEdit) return;
+    
     console.log("Opening modal with fileName:", displayFileName);
     setEditableFileName(displayFileName);
     setModalVisible(true);
@@ -98,13 +103,19 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({
           <Ionicons name="chevron-back" size={24} color="#000" />
         </TouchableOpacity>
 
-        {/* File Name */}
-        <TouchableOpacity
-          onPress={handleOpenModal}
-          style={styles.titleContainer}
-        >
-          <Text style={styles.headerTitleText}>{displayFileName}</Text>
-        </TouchableOpacity>
+        {/* File Name - Only tappable if allowEdit is true */}
+        {allowEdit ? (
+          <TouchableOpacity
+            onPress={handleOpenModal}
+            style={styles.titleContainer}
+          >
+            <Text style={styles.headerTitleText}>{displayFileName}</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.titleContainer}>
+            <Text style={styles.headerTitleText}>{displayFileName}</Text>
+          </View>
+        )}
 
         {/* Save Button */}
         <TouchableOpacity onPress={handleHeaderSave} style={styles.saveButton}>
@@ -112,49 +123,51 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Modal for Editing */}
-      <Modal
-        transparent
-        animationType="fade"
-        visible={modalVisible}
-        onRequestClose={handleCancel}
-      >
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Edit File Name</Text>
-            <TextInput
-              value={editableFileName}
-              onChangeText={setEditableFileName}
-              style={styles.modalInput}
-              placeholder="Enter new file name"
-              autoFocus
-              editable={!isSaving}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={handleCancel}
-                disabled={isSaving}
-              >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.saveModalButton]}
-                onPress={handleModalSave}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <Text style={[styles.modalButtonText, { color: "white" }]}>
-                    Save
-                  </Text>
-                )}
-              </TouchableOpacity>
+      {/* Modal for Editing - Only shown when allowEdit is true */}
+      {allowEdit && (
+        <Modal
+          transparent
+          animationType="fade"
+          visible={modalVisible}
+          onRequestClose={handleCancel}
+        >
+          <View style={styles.modalBackground}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Edit File Name</Text>
+              <TextInput
+                value={editableFileName}
+                onChangeText={setEditableFileName}
+                style={styles.modalInput}
+                placeholder="Enter new file name"
+                autoFocus
+                editable={!isSaving}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={handleCancel}
+                  disabled={isSaving}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.saveModalButton]}
+                  onPress={handleModalSave}
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={[styles.modalButtonText, { color: "white" }]}>
+                      Save
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -190,7 +203,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   saveButton: {
-    width: 60,
+    width: 90,
     alignItems: "flex-end",
   },
   saveButtonText: {
