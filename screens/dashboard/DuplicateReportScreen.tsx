@@ -22,10 +22,37 @@ import { theme } from "../../theme/theme";
 import { scale, verticalScale, normalizeFont, moderateScale } from "../../utils/responsive";
 import { styles } from "./styles/DuplicateReportScreen.styles";
 
+import {useEccStore} from "../../store/eccStore"
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 // Mock data for attendance records
+
+
+const mockECCReports = [
+  {
+    id: "3a42ec7b-01ef-4a11-ac95-c1a8ec07902f",
+    title: "tester",
+    date: "Oct 28, 2025",
+    attendees: 24,
+    type: "ecc",
+  },
+  {
+    id: 8,
+    title: "Site B - Night Shift",
+    date: "Oct 25, 2025",
+    attendees: 18,
+    type: "ecc",
+  },
+  {
+    id: 90,
+    title: "Engineering Team - Weekly",
+    date: "Oct 20, 2025",
+    attendees: 12,
+    type: "ecc",
+  },
+];
+
 const mockAttendanceRecords = [
   {
     id: 1,
@@ -75,13 +102,15 @@ const mockCMVRReports = [
   },
 ];
 
-type RecordType = "all" | "attendance" | "cmvr";
+type RecordType = "all" | "attendance" | "cmvr"|"ecc";
 
 export default function DuplicateReportScreen({ navigation }: any) {
+  
+  const {getReportById, selectedReport,reports} = useEccStore();
   const [selectedType, setSelectedType] = useState<RecordType>("all");
   const [selectedRecord, setSelectedRecord] = useState<number | null>(null);
 
-  const allRecords = [...mockAttendanceRecords, ...mockCMVRReports].sort(
+  const allRecords = [...mockAttendanceRecords, ...mockCMVRReports,...reports].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
@@ -104,7 +133,7 @@ export default function DuplicateReportScreen({ navigation }: any) {
         },
         {
           text: "Create Copy",
-          onPress: () => {
+          onPress: async () =>  {
             setSelectedRecord(null);
             // Navigate directly to edit the duplicated record
             if (record.type === "attendance") {
@@ -114,8 +143,12 @@ export default function DuplicateReportScreen({ navigation }: any) {
                 templateDate: record.date,
                 templateAttendees: record.attendees,
               });
-            } else {
-              navigation.navigate("CMVRReport", {
+            }
+            else if (record.type === "ecc") {
+               await getReportById(record.id);
+                navigation.navigate("ECCMonitoring",selectedReport); // ECCMonitoring will read selectedReport from store
+            }else {
+                navigation.navigate("CMVRReport", {
                 submissionId: null,
                 projectId: null,
                 projectName: `${record.title} (Copy)`,
@@ -178,6 +211,14 @@ export default function DuplicateReportScreen({ navigation }: any) {
               onPress={() => setSelectedType("cmvr")}
               isTablet={isTablet}
             />
+              <FilterTab
+              label="ECC"
+              count={mockECCReports.length}
+              isActive={selectedType === "ecc"}
+              onPress={() => setSelectedType("ecc")}
+              isTablet={isTablet}
+            />
+            
           </View>
 
           {/* Records List */}

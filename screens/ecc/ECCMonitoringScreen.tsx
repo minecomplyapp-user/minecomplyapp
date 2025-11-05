@@ -9,6 +9,14 @@ import {
   Platform,
   Alert,
 } from "react-native";
+import {
+  BaseCondition,
+  StoredState,
+  ChoiceKey,
+  CondID,
+  
+  
+} from "./types/eccMonitoring";
 
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,14 +31,43 @@ import * as Sharing from 'expo-sharing';
 import {useEccStore} from "../../store/eccStore.js"
 import { useAuth } from "../../contexts/AuthContext";
 
-export default function ECCMonitoringScreen({ navigation }: any) {
+export default function ECCMonitoringScreen({ navigation, route }: any) {
   const { user } = useAuth();
+  const existingReport = route?.params?.report;
+const { selectedReport, isLoading, clearSelectedReport } = useEccStore(state => state);
 
   const {addReport,createAndDownloadReport}= useEccStore();
 // *** Make sure your import looks like this in your file: ***
 // import * as FileSystem from 'expo-file-system/legacy'; 
 // import * as Sharing from 'expo-sharing';
 
+ const loadMonitoringData = (report: any) => {
+    if (!report) return;
+
+    // console.log("report"+report)
+    // General Info
+    setFileName(report.filename || "");
+    setCompanyName(report.generalInfo?.companyName || "");
+    setStatus(report.generalInfo?.status || null);
+    setDate(report.generalInfo?.date ? new Date(report.generalInfo.date) : new Date());
+
+    // MMT Info
+    setContactPerson(report.mmtInfo?.contactPerson || "");
+    setMmtPosition(report.mmtInfo?.position || "");
+    setMailingAddress(report.mmtInfo?.mailingAddress || "");
+    setTelNo(report.mmtInfo?.telNo || "");
+    setFaxNo(report.mmtInfo?.faxNo || "");
+    setEmailAddress(report.mmtInfo?.emailAddress || "");
+    if (report.monitoringData) {
+          setMonitoringState(report.monitoringData); // Assuming monitoringData contains the StoredState structure
+      }
+    // Permit Holders
+    setPermitHolders(report.permit_holders || []);
+    console.log("permit holdersasadasdasdasdasdas",permit_holders)
+    // Recommendations
+    // Ensure recommendations is an array of strings, defaulting to [""]
+    setRecommendations(report.recommendations || [""]);
+  };
 const handleGenerateAndDownload = async (
     reportData: any, 
     // Accept an optional function to update the loading state
@@ -95,7 +132,7 @@ const handleGenerateAndDownload = async (
 };
 
   const getMonitoringData = () => {
-    const permit_holders_with_conditions=permit_holders
+  const permit_holder_with_conditions={permit_holders}
 
   return {
     filename,
@@ -129,7 +166,7 @@ const handleGenerateAndDownload = async (
       faxNo,
       emailAddress,
     },
-    permit_holders_with_conditions,
+    permit_holder_with_conditions,
   conditions: permit_holders
       .map((holder) => holder.monitoringState.formatted)
       .filter(Boolean)
@@ -185,12 +222,11 @@ remarks_list: permit_holders.reduce((acc, holder, index) => {
 
 
 
-useEffect(() => {
-    // 1. Persist local state back to parent state
- 
-     const data = getMonitoringData();
-  console.log(JSON.stringify(data, null, 2));
-  }, [contactPerson, mmtPosition, mailingAddress,telNo,faxNo,emailAddress]);
+  useEffect(() => {
+    if (selectedReport) {
+      loadMonitoringData(selectedReport);
+    }
+  }, [selectedReport]);
 
 
   const onChangeDate = (_event: any, selectedDate?: Date) => {
@@ -515,6 +551,8 @@ useEffect(() => {
           </View>
 
           {permit_holders.map((holder, idx) => {
+            const toDisplay = (holder?.monitoringState ?? []) as BaseCondition[];
+
             const issuanceDateDisplay = holder.issuanceDate
               ? new Date(holder.issuanceDate).toLocaleDateString()
               : null;
@@ -636,8 +674,10 @@ useEffect(() => {
                 </View>
 
                 {/* Monitoring Section */}
+                
                     <ECCMonitoringSection
                       initialState={holder.monitoringState}
+                      toDisplay={toDisplay}
                       onChange={(s) =>
                         setPermitHolders((p) =>
                           p.map((h, index) => {
