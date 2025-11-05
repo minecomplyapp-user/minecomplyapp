@@ -99,11 +99,6 @@ const AppNavigator = () => {
                 component={GuestDashboardScreen}
                 options={{ headerShown: false }}
               />
-              <RootStack.Screen
-                name="AttendanceDetail"
-                component={AttendanceDetailScreen}
-                options={{ headerShown: false }}
-              />
               <RootStack.Screen name="Reports" component={ReportsScreen} />
               <RootStack.Screen
                 name="Submissions"
