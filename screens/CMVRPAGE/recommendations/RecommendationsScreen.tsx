@@ -37,7 +37,8 @@ const CustomPicker: React.FC<{
   items: PickerItem[];
 }> = ({ selectedValue, onValueChange, items }) => {
   const [modalVisible, setModalVisible] = useState(false);
-  const selectedLabel = items.find((item) => item.value === selectedValue)?.label || "Select...";
+  const selectedLabel =
+    items.find((item) => item.value === selectedValue)?.label || "Select...";
 
   const handleSelect = (value: string) => {
     onValueChange(value);
@@ -46,7 +47,10 @@ const CustomPicker: React.FC<{
 
   return (
     <View style={styles.pickerContainer}>
-      <TouchableOpacity style={styles.pickerButton} onPress={() => setModalVisible(true)}>
+      <TouchableOpacity
+        style={styles.pickerButton}
+        onPress={() => setModalVisible(true)}
+      >
         <Text style={styles.pickerButtonText}>{selectedLabel}</Text>
         <Ionicons name="chevron-down" size={20} color="#64748B" />
       </TouchableOpacity>
@@ -74,7 +78,8 @@ const CustomPicker: React.FC<{
                 <Text
                   style={[
                     styles.modalItemText,
-                    item.value === selectedValue && styles.modalItemTextSelected,
+                    item.value === selectedValue &&
+                      styles.modalItemTextSelected,
                   ]}
                 >
                   {item.label}
@@ -248,50 +253,223 @@ const RecommendationsScreen: React.FC = () => {
   const allPreviousParams = route.params || {};
   const [prevYear, setPrevYear] = useState("");
   const [prevQuarter, setPrevQuarter] = useState("1st");
-  const [currentSections, setCurrentSections] = useState<Record<SectionKey, SectionData>>({
-    plant: { isNA: false, items: [{ recommendation: "", commitment: "", status: "" }] },
-    quarry: { isNA: false, items: [{ recommendation: "", commitment: "", status: "" }] },
-    port: { isNA: false, items: [{ recommendation: "", commitment: "", status: "" }] },
+  const [currentSections, setCurrentSections] = useState<
+    Record<SectionKey, SectionData>
+  >({
+    plant: {
+      isNA: false,
+      items: [{ recommendation: "", commitment: "", status: "" }],
+    },
+    quarry: {
+      isNA: false,
+      items: [{ recommendation: "", commitment: "", status: "" }],
+    },
+    port: {
+      isNA: false,
+      items: [{ recommendation: "", commitment: "", status: "" }],
+    },
   });
-  const [previousSections, setPreviousSections] = useState<Record<SectionKey, SectionData>>({
-    plant: { isNA: false, items: [{ recommendation: "", commitment: "", status: "" }] },
-    quarry: { isNA: false, items: [{ recommendation: "", commitment: "", status: "" }] },
-    port: { isNA: false, items: [{ recommendation: "", commitment: "", status: "" }] },
+  const [previousSections, setPreviousSections] = useState<
+    Record<SectionKey, SectionData>
+  >({
+    plant: {
+      isNA: false,
+      items: [{ recommendation: "", commitment: "", status: "" }],
+    },
+    quarry: {
+      isNA: false,
+      items: [{ recommendation: "", commitment: "", status: "" }],
+    },
+    port: {
+      isNA: false,
+      items: [{ recommendation: "", commitment: "", status: "" }],
+    },
   });
 
   const updateCurrentSection = (sectionKey: SectionKey, data: SectionData) =>
     setCurrentSections({ ...currentSections, [sectionKey]: data });
 
   const addCurrentRecommendation = (sectionKey: SectionKey) => {
-    const newItems = [...currentSections[sectionKey].items, { recommendation: "", commitment: "", status: "" }];
-    updateCurrentSection(sectionKey, { ...currentSections[sectionKey], items: newItems });
+    const newItems = [
+      ...currentSections[sectionKey].items,
+      { recommendation: "", commitment: "", status: "" },
+    ];
+    updateCurrentSection(sectionKey, {
+      ...currentSections[sectionKey],
+      items: newItems,
+    });
   };
 
   const updatePreviousSection = (sectionKey: SectionKey, data: SectionData) =>
     setPreviousSections({ ...previousSections, [sectionKey]: data });
 
   const addPreviousRecommendation = (sectionKey: SectionKey) => {
-    const newItems = [...previousSections[sectionKey].items, { recommendation: "", commitment: "", status: "" }];
-    updatePreviousSection(sectionKey, { ...previousSections[sectionKey], items: newItems });
+    const newItems = [
+      ...previousSections[sectionKey].items,
+      { recommendation: "", commitment: "", status: "" },
+    ];
+    updatePreviousSection(sectionKey, {
+      ...previousSections[sectionKey],
+      items: newItems,
+    });
+  };
+
+  const fillTestData = () => {
+    setPrevYear("2024");
+    setPrevQuarter("4th");
+
+    // Current recommendations - 3 per section
+    setCurrentSections({
+      plant: {
+        isNA: false,
+        items: [
+          {
+            recommendation:
+              "Upgrade baghouse filters to improve emission control efficiency",
+            commitment: "Install new filters by end of Q3 2025",
+            status: "",
+          },
+          {
+            recommendation: "Implement real-time air quality monitoring system",
+            commitment: "Deploy monitoring equipment by Q2 2025",
+            status: "",
+          },
+          {
+            recommendation:
+              "Conduct quarterly training on waste segregation protocols",
+            commitment: "Training sessions scheduled for all quarters",
+            status: "",
+          },
+        ],
+      },
+      quarry: {
+        isNA: false,
+        items: [
+          {
+            recommendation: "Expand progressive rehabilitation to Phase 2 area",
+            commitment: "Begin planting native species by June 2025",
+            status: "",
+          },
+          {
+            recommendation:
+              "Install additional dust suppression misters at loading zones",
+            commitment: "Complete installation by May 2025",
+            status: "",
+          },
+          {
+            recommendation: "Improve drainage system to prevent siltation",
+            commitment: "Construct additional drainage channels by August 2025",
+            status: "",
+          },
+        ],
+      },
+      port: {
+        isNA: false,
+        items: [
+          {
+            recommendation: "Upgrade marine water quality monitoring frequency",
+            commitment: "Increase from monthly to bi-weekly sampling",
+            status: "",
+          },
+          {
+            recommendation: "Install covered conveyor system to reduce dust",
+            commitment: "Project completion by Q4 2025",
+            status: "",
+          },
+          {
+            recommendation: "Conduct spill response drill with coast guard",
+            commitment: "Quarterly drills starting Q2 2025",
+            status: "",
+          },
+        ],
+      },
+    });
+
+    // Previous recommendations with status - 3 per section
+    setPreviousSections({
+      plant: {
+        isNA: false,
+        items: [
+          {
+            recommendation: "Repair cracks in wastewater treatment pond liner",
+            commitment: "Complete repairs by Q1 2025",
+            status: "Completed - Repairs finished January 2025",
+          },
+          {
+            recommendation: "Update MSDS for all chemicals in use",
+            commitment: "Review and update by Q4 2024",
+            status: "Completed - MSDS updated December 2024",
+          },
+          {
+            recommendation: "Install flow meters on effluent discharge lines",
+            commitment: "Install by Q1 2025",
+            status: "In Progress - Installation ongoing",
+          },
+        ],
+      },
+      quarry: {
+        isNA: false,
+        items: [
+          {
+            recommendation: "Stabilize haul road slopes to prevent erosion",
+            commitment: "Stabilization works by Q4 2024",
+            status: "Completed - Slopes reinforced November 2024",
+          },
+          {
+            recommendation: "Replace aging water spraying system",
+            commitment: "New system operational by Q1 2025",
+            status: "Completed - System replaced February 2025",
+          },
+          {
+            recommendation:
+              "Conduct biodiversity monitoring in rehabilitation areas",
+            commitment: "Quarterly monitoring starting Q1 2025",
+            status: "Ongoing - First survey completed March 2025",
+          },
+        ],
+      },
+      port: {
+        isNA: false,
+        items: [
+          {
+            recommendation: "Repair damaged sections of pier decking",
+            commitment: "Repairs by Q4 2024",
+            status: "Completed - Repairs finished December 2024",
+          },
+          {
+            recommendation: "Upgrade oil spill containment boom",
+            commitment: "Purchase and deploy new boom by Q1 2025",
+            status: "Completed - New boom deployed January 2025",
+          },
+          {
+            recommendation: "Install CCTV cameras for security monitoring",
+            commitment: "Install by Q1 2025",
+            status: "In Progress - 50% installation complete",
+          },
+        ],
+      },
+    });
+
+    Alert.alert(
+      "Test Data",
+      "Recommendations filled with test data (3 per section, current & previous)"
+    );
   };
 
   const handleSave = () => {
     const recommendationsData = {
       currentRecommendations: currentSections,
       previousRecommendations: previousSections,
+      prevQuarter,
+      prevYear,
     };
-    // Create a sample record object for AttendanceDetail
-    const record = {
-      id: Date.now(),
-      title: allPreviousParams.fileName || "Compliance Report",
-      date: new Date().toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }),
-    };
-    // Navigate to AttendanceDetail with the record
-    navigation.navigate("AttendanceDetail", { record });
+
+    // Navigate to AttendanceList in selection mode
+    navigation.navigate("AttendanceList", {
+      fromRecommendations: true,
+      ...allPreviousParams,
+      recommendationsData,
+    });
   };
 
   const handleBack = () => navigation.goBack();
@@ -341,7 +519,9 @@ const RecommendationsScreen: React.FC = () => {
         <RecommendationSection
           title="QUARRY"
           data={previousSections.quarry}
-          onChange={(data: SectionData) => updatePreviousSection("quarry", data)}
+          onChange={(data: SectionData) =>
+            updatePreviousSection("quarry", data)
+          }
           onAdd={() => addPreviousRecommendation("quarry")}
           showStatus={true}
         />
@@ -374,6 +554,17 @@ const RecommendationsScreen: React.FC = () => {
           onAdd={() => addCurrentRecommendation("port")}
           showStatus={false}
         />
+        {__DEV__ && (
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              { backgroundColor: "#ff8c00", marginTop: 12 },
+            ]}
+            onPress={fillTestData}
+          >
+            <Text style={styles.saveButtonText}>Fill Test Data</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Text style={styles.saveButtonText}>Save & Next</Text>
           <Ionicons name="arrow-forward" size={20} color="white" />

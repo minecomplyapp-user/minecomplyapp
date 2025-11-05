@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
-import { Upload, X } from 'lucide-react-native';
-import { CMSFormFieldProps } from '../types/CMSFormField.types';
-import { styles } from '../styles/CMSFormField.styles';
+import React from "react";
+import { View, Text, TextInput, TouchableOpacity, Image } from "react-native";
+import { Upload, X } from "lucide-react-native";
+import { CMSFormFieldProps } from "../types/CMSFormField.types";
+import { styles } from "../styles/CMSFormField.styles";
 
 export const CMSFormField: React.FC<CMSFormFieldProps> = ({
   label,
@@ -23,9 +23,34 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
     <View style={styles.formField}>
       <View style={styles.fieldRow}>
         <View style={styles.leftSection}>
-          <View style={styles.labelPill}>
-            <Text style={styles.labelText}>{label}</Text>
+          <View style={styles.labelRow}>
+            <View style={styles.labelPill}>
+              <Text style={styles.labelText}>{label}</Text>
+            </View>
+            {showUploadImage && (
+              <TouchableOpacity
+                style={styles.uploadButton}
+                onPress={onUploadImage}
+              >
+                <Upload size={16} color="#1E3A8A" />
+                <Text style={styles.uploadText}>Upload Image</Text>
+              </TouchableOpacity>
+            )}
           </View>
+          {showUploadImage && uploadedImage && (
+            <View style={styles.imagePreviewContainer}>
+              <Image
+                source={{ uri: uploadedImage }}
+                style={styles.imagePreview}
+              />
+              <TouchableOpacity
+                style={styles.removeImageButton}
+                onPress={onRemoveImage}
+              >
+                <X size={16} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
         <View style={styles.middleSection}>
           {subFields ? (
@@ -34,7 +59,9 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
                 <View key={index} style={styles.subFieldRow}>
                   <View style={styles.subFieldLabel}>
                     <View style={styles.bullet} />
-                    <Text style={styles.subFieldLabelText}>{subField.label}</Text>
+                    <Text style={styles.subFieldLabelText}>
+                      {subField.label}
+                    </Text>
                   </View>
                   <TextInput
                     style={styles.input}
@@ -58,7 +85,7 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
           <View style={styles.remarksContainer}>
             <View style={styles.remarksLabelWrapper}>
               <Text style={styles.remarksLabel}>
-                Remarks - Description of{'\n'}Actual Implementation
+                Remarks - Description of{"\n"}Actual Implementation
               </Text>
             </View>
             <TextInput
@@ -94,26 +121,6 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
               <Text style={styles.radioText}>No</Text>
             </TouchableOpacity>
           </View>
-          
-          {showUploadImage && (
-            <>
-              <TouchableOpacity style={styles.uploadButton} onPress={onUploadImage}>
-                <Upload size={14} color='#02217C' />
-                <Text style={styles.uploadText}>Upload Image</Text>
-              </TouchableOpacity>
-              {uploadedImage && (
-                <View style={styles.imagePreviewContainer}>
-                  <Image source={{ uri: uploadedImage }} style={styles.imagePreview} />
-                  <TouchableOpacity
-                    style={styles.removeImageButton}
-                    onPress={onRemoveImage}
-                  >
-                    <X size={16} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              )}
-            </>
-          )}
         </View>
       </View>
     </View>

@@ -1,13 +1,25 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Modal, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Modal,
+  Alert,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import MapView, { Marker } from 'react-native-maps';
-import * as Location from 'expo-location';
-import { Picker } from '@react-native-picker/picker';
+import MapView, { Marker } from "react-native-maps";
+import * as Location from "expo-location";
+import { Picker } from "@react-native-picker/picker";
 import { styles } from "../styles/generalInfo.styles";
-import type { GeneralInfoProps, LocationCoordinates, MapRegion } from "../types/generalInfo.types";
+import type {
+  GeneralInfoProps,
+  LocationCoordinates,
+  MapRegion,
+} from "../types/generalInfo.types";
 
 export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
+  fileName,
   companyName,
   projectName,
   location,
@@ -22,7 +34,8 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
   onChange,
 }) => {
   const [showMap, setShowMap] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<LocationCoordinates | null>(null);
+  const [selectedLocation, setSelectedLocation] =
+    useState<LocationCoordinates | null>(null);
   const [mapRegion, setMapRegion] = useState<MapRegion>({
     latitude: 10.3157,
     longitude: 123.8854,
@@ -33,11 +46,11 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
   const getCurrentLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      
-      if (status !== 'granted') {
+
+      if (status !== "granted") {
         Alert.alert(
-          'Permission Denied',
-          'Location permission is required to use GPS.'
+          "Permission Denied",
+          "Location permission is required to use GPS."
         );
         return;
       }
@@ -47,17 +60,17 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
       });
 
       const { latitude, longitude } = currentLocation.coords;
-      
+
       setMapRegion({
         latitude,
         longitude,
         latitudeDelta: 0.0922,
         longitudeDelta: 0.0421,
       });
-      
+
       setSelectedLocation({ latitude, longitude });
     } catch (error) {
-      Alert.alert('Error', 'Failed to get current location.');
+      Alert.alert("Error", "Failed to get current location.");
     }
   };
 
@@ -85,18 +98,22 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             address.district,
             address.city || address.subregion,
           ].filter(Boolean);
-          const fullAddress = addressParts.join(', ');
-          
-          onChange("location", fullAddress || `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`);
-          onChange("region", address.region || '');
-          onChange("province", address.subregion || address.region || '');
-          onChange("municipality", address.city || address.subregion || '');
+          const fullAddress = addressParts.join(", ");
+
+          onChange(
+            "location",
+            fullAddress ||
+              `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`
+          );
+          onChange("region", address.region || "");
+          onChange("province", address.subregion || address.region || "");
+          onChange("municipality", address.city || address.subregion || "");
         } else {
           const locationString = `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`;
           onChange("location", locationString);
         }
       } catch (error) {
-        Alert.alert('Error', 'Failed to get address for this location.');
+        Alert.alert("Error", "Failed to get address for this location.");
         const locationString = `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`;
         onChange("location", locationString);
       }
@@ -110,7 +127,7 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
       <View style={styles.headerSection}>
         <View style={styles.headerLeft}>
           <View style={styles.iconContainer}>
-            <Ionicons name="information-circle" size={24} color='#02217C' />
+            <Ionicons name="information-circle" size={24} color="#02217C" />
           </View>
           <View style={styles.headerTextContainer}>
             <Text style={styles.sectionTitle}>General Information</Text>
@@ -123,6 +140,30 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
 
       {/* Content */}
       <View style={styles.sectionContent}>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>
+            File Name <Text style={{ color: "#EF4444" }}>*</Text>
+          </Text>
+          <TextInput
+            style={[
+              styles.input,
+              (!fileName || fileName.trim() === "") && {
+                borderColor: "#FCA5A5",
+                backgroundColor: "#FEF2F2",
+              },
+            ]}
+            value={fileName}
+            onChangeText={(text) => onChange("fileName", text)}
+            placeholder="Enter file name (required)"
+            placeholderTextColor="#94A3B8"
+          />
+          {(!fileName || fileName.trim() === "") && (
+            <Text style={{ color: "#EF4444", fontSize: 12, marginTop: 4 }}>
+              File name is required to continue
+            </Text>
+          )}
+        </View>
+
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Company Name</Text>
           <TextInput
@@ -147,10 +188,7 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Project Location</Text>
-          <TouchableOpacity 
-            style={styles.mapButton}
-            onPress={openMapPicker}
-          >
+          <TouchableOpacity style={styles.mapButton} onPress={openMapPicker}>
             <Ionicons name="map" size={20} color="white" />
             <Text style={styles.mapButtonText}>
               {location ? "Change Location" : "Select Location on Map"}
@@ -232,7 +270,9 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
         </View>
 
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Date of Compliance Monitoring and Validation</Text>
+          <Text style={styles.label}>
+            Date of Compliance Monitoring and Validation
+          </Text>
           <TextInput
             style={styles.input}
             value={dateOfCompliance}
@@ -290,9 +330,7 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             showsUserLocation
             showsMyLocationButton
           >
-            {selectedLocation && (
-              <Marker coordinate={selectedLocation} />
-            )}
+            {selectedLocation && <Marker coordinate={selectedLocation} />}
           </MapView>
 
           <View style={styles.mapFooter}>
@@ -305,7 +343,10 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.confirmButton, !selectedLocation && styles.confirmButtonDisabled]}
+              style={[
+                styles.confirmButton,
+                !selectedLocation && styles.confirmButtonDisabled,
+              ]}
               onPress={confirmLocation}
               disabled={!selectedLocation}
             >

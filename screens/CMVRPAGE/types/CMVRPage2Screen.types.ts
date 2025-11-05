@@ -70,4 +70,7 @@ export type ProcessDocumentation = {
   ocularNA: boolean;
   methodologyRemarks: string;
   siteValidationApplicable: string;
+  samplingDateConducted: string;
+  samplingMmtMembers: string;
+  samplingMethodologyRemarks: string;
 };

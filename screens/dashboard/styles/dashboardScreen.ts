@@ -1,6 +1,12 @@
 import { StyleSheet } from "react-native";
 import { theme } from "../../../theme/theme";
-import { scale, verticalScale, normalizeFont, isTablet, moderateScale } from "../../../utils/responsive";
+import {
+  scale,
+  verticalScale,
+  normalizeFont,
+  isTablet,
+  moderateScale,
+} from "../../../utils/responsive";
 
 export const styles = StyleSheet.create({
   safeContainer: {
@@ -50,6 +56,11 @@ export const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: verticalScale(theme.spacing.md),
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: scale(8),
   },
   sectionTitle: {
     fontFamily: theme.typography.semibold,
@@ -120,15 +131,60 @@ export const styles = StyleSheet.create({
     padding: scale(theme.spacing.lg),
     backgroundColor: theme.colors.surface,
   },
+  draftCard: {
+    backgroundColor: "#FFFBEB", // Light amber background for drafts
+  },
   reportContent: {
     flex: 1,
     marginRight: scale(theme.spacing.sm),
+  },
+  reportHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
   },
   reportTitle: {
     fontFamily: theme.typography.medium,
     fontSize: normalizeFont(theme.typography.sizes.sm),
     color: theme.colors.title,
-    marginBottom: 4,
+    flex: 1,
+    marginRight: scale(8),
+  },
+  reportTypeBadge: {
+    backgroundColor: theme.colors.primaryLight + "30",
+    paddingHorizontal: scale(8),
+    paddingVertical: verticalScale(2),
+    borderRadius: moderateScale(4),
+  },
+  reportTypeText: {
+    fontFamily: theme.typography.medium,
+    fontSize: normalizeFont(10),
+    color: theme.colors.primaryDark,
+  },
+  draftBadge: {
+    backgroundColor: "#FEF3C7",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  draftBadgeText: {
+    color: "#D97706",
+  },
+  attendanceStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  attendanceCount: {
+    fontFamily: theme.typography.semibold,
+    fontSize: normalizeFont(theme.typography.sizes.sm),
+    color: theme.colors.success,
+  },
+  attendanceRate: {
+    fontFamily: theme.typography.regular,
+    fontSize: normalizeFont(theme.typography.sizes.xs),
+    color: theme.colors.textLight,
   },
   reportMeta: {
     flexDirection: "row",
@@ -163,19 +219,31 @@ export const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: "center",
   },
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: verticalScale(60),
+  },
+  loadingText: {
+    fontFamily: theme.typography.regular,
+    fontSize: normalizeFont(theme.typography.sizes.sm),
+    color: theme.colors.textLight,
+    marginTop: verticalScale(theme.spacing.md),
+  },
 
   // ---------------------------------
   // 👇 NEW RESPONSIVE MODAL STYLES
   // ---------------------------------
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: scale(theme.spacing.lg), // Ensures modal isn't flush with edges
   },
   modalContent: {
-    width: '100%', // Take up 90% of screen, defined in backdrop padding
+    width: "100%", // Take up 90% of screen, defined in backdrop padding
     maxWidth: moderateScale(400), // Max width on large devices
     backgroundColor: theme.colors.surface,
     borderRadius: moderateScale(theme.radii.lg),
@@ -183,9 +251,9 @@ export const styles = StyleSheet.create({
     ...theme.shadows.medium,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: verticalScale(theme.spacing.lg),
   },
   modalTitle: {
@@ -200,8 +268,8 @@ export const styles = StyleSheet.create({
     gap: verticalScale(theme.spacing.sm),
   },
   modalButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: scale(theme.spacing.md),
     backgroundColor: theme.colors.background,
     borderRadius: moderateScale(theme.radii.md),
@@ -210,9 +278,9 @@ export const styles = StyleSheet.create({
     width: moderateScale(40),
     height: moderateScale(40),
     borderRadius: moderateScale(20),
-    backgroundColor: theme.colors.primaryLight + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: theme.colors.primaryLight + "20",
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalButtonText: {
     flex: 1,

@@ -8,7 +8,7 @@ import {
   isTablet,
 } from "../../../utils/responsive";
 
-export const attendanceRecordStyles = StyleSheet.create({
+export const cmvrDraftStyles = StyleSheet.create({
   safeContainer: {
     flex: 1,
     backgroundColor: "#F1F5F9",
@@ -93,7 +93,7 @@ export const attendanceRecordStyles = StyleSheet.create({
   recordsContainer: {
     gap: verticalScale(16),
   },
-  recordCard: {
+  draftCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: moderateScale(18),
     borderWidth: 1,
@@ -107,29 +107,29 @@ export const attendanceRecordStyles = StyleSheet.create({
       },
     }),
   },
-  recordInner: {
+  draftInner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     padding: scale(20),
   },
-  recordInfo: {
+  draftInfo: {
     flex: 1,
     marginRight: scale(16),
   },
-  recordTitle: {
+  draftTitle: {
     fontFamily: theme.typography.semibold,
     fontSize: normalizeFont(isTablet() ? 19 : 17),
     color: theme.colors.title,
     marginBottom: verticalScale(6),
     letterSpacing: -0.2,
   },
-  recordMeta: {
+  draftMeta: {
     flexDirection: "row",
     alignItems: "center",
     gap: scale(8),
   },
-  recordMetaText: {
+  draftMetaText: {
     fontFamily: theme.typography.regular,
     fontSize: normalizeFont(isTablet() ? 16 : 14),
     color: theme.colors.textLight,
@@ -138,6 +138,12 @@ export const attendanceRecordStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: scale(10),
+  },
+  openButton: {
+    backgroundColor: theme.colors.primaryLight + "25",
+  },
+  deleteButton: {
+    backgroundColor: theme.colors.error + "20",
   },
   iconButton: {
     width: moderateScale(42),
@@ -153,15 +159,6 @@ export const attendanceRecordStyles = StyleSheet.create({
         shadowRadius: 4,
       },
     }),
-  },
-  downloadButton: {
-    backgroundColor: theme.colors.primaryLight + "25",
-  },
-  editButton: {
-    backgroundColor: "#F59E0B" + "25",
-  },
-  deleteButton: {
-    backgroundColor: theme.colors.error + "20",
   },
   emptyStateCard: {
     backgroundColor: theme.colors.surface,

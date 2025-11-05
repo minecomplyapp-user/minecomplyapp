@@ -10,9 +10,10 @@ import {
   Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, CommonActions } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { CMSHeader } from "../../../components/CMSHeader";
+import { saveDraft } from "../../../lib/drafts";
 import { CMSTitlePill } from "./components/CMSTitlePill";
 import { CMSSectionHeader } from "./components/CMSSectionHeader";
 import { CMSFormField } from "./components//CMSFormField";
@@ -174,7 +175,11 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
     }));
   };
 
-  const updateSubField = (key: keyof FormData, index: number, value: string) => {
+  const updateSubField = (
+    key: keyof FormData,
+    index: number,
+    value: string
+  ) => {
     setFormData((prev) => {
       const currentField = prev[key];
       const updatedSubFields = currentField?.subFields?.map((field, i) =>
@@ -225,18 +230,197 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
     setOtherComponents((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     console.log("Form data:", JSON.stringify(formData, null, 2));
     console.log("Other components:", JSON.stringify(otherComponents, null, 2));
     console.log("Uploaded images:", uploadedImages);
+
+    // Collect all previous page data from route.params
+    const prevPageData: any = route.params || {};
+
+    // Prepare compliance monitoring data
+    const complianceToProjectLocationAndCoverageLimits = {
+      formData,
+      otherComponents,
+      uploadedImages,
+    };
+
+    // Combine all data from previous pages + current page
+    const draftData = {
+      generalInfo: prevPageData.generalInfo,
+      eccInfo: prevPageData.eccInfo,
+      eccAdditionalForms: prevPageData.eccAdditionalForms,
+      isagInfo: prevPageData.isagInfo,
+      isagAdditionalForms: prevPageData.isagAdditionalForms,
+      epepInfo: prevPageData.epepInfo,
+      epepAdditionalForms: prevPageData.epepAdditionalForms,
+      rcfInfo: prevPageData.rcfInfo,
+      rcfAdditionalForms: prevPageData.rcfAdditionalForms,
+      mtfInfo: prevPageData.mtfInfo,
+      mtfAdditionalForms: prevPageData.mtfAdditionalForms,
+      fmrdfInfo: prevPageData.fmrdfInfo,
+      fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
+      mmtInfo: prevPageData.mmtInfo,
+      executiveSummary: prevPageData.executiveSummary,
+      processDocumentation: prevPageData.processDocumentation,
+      complianceToProjectLocationAndCoverageLimits,
+      savedAt: new Date().toISOString(),
+    };
+
+    // Resolve fileName from params
+    const resolvedFileName = prevPageData.fileName || "Untitled";
+
+    // Save draft to AsyncStorage
+    const success = await saveDraft(resolvedFileName, draftData);
+
+    if (success) {
+      Alert.alert("Success", "Draft saved successfully");
+      // Navigate to Dashboard using CommonActions.reset
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
+    } else {
+      Alert.alert("Error", "Failed to save draft");
+    }
+  };
+
+  const fillTestData = () => {
+    // Populate main form fields with sample values
+    setFormData({
+      projectLocation: {
+        label: "Project Location",
+        specification: "Sitio Sta. Rosa, Brgy. San Miguel",
+        remarks: "Within permitted boundaries",
+        withinSpecs: true,
+      },
+      projectArea: {
+        label: "Project Area (ha)",
+        specification: "125.4",
+        remarks: "As per approved ECC",
+        withinSpecs: true,
+      },
+      capitalCost: {
+        label: "Capital Cost (Php)",
+        specification: "150000000",
+        remarks: "Updated estimate",
+        withinSpecs: true,
+      },
+      typeOfMinerals: {
+        label: "Type of Minerals",
+        specification: "Nickel",
+        remarks: "Primary commodity",
+        withinSpecs: null,
+      },
+      miningMethod: {
+        label: "Mining Method",
+        specification: "Open pit with staged rehabilitation",
+        remarks: "Conforms to EPEP",
+        withinSpecs: true,
+      },
+      production: {
+        label: "Production",
+        specification: "120000 tons/month",
+        remarks: "Stable production",
+        withinSpecs: null,
+      },
+      mineLife: {
+        label: "Mine Life",
+        specification: "15 years",
+        remarks: "Estimated remaining life",
+        withinSpecs: null,
+      },
+      mineralReserves: {
+        label: "Mineral Reserves/ Resources",
+        specification: "Measured: 2.5M tons",
+        remarks: "Geological update 2024",
+        withinSpecs: null,
+      },
+      accessTransportation: {
+        label: "Access/ Transportation",
+        specification: "Existing access road maintained",
+        remarks: "No encroachment",
+        withinSpecs: true,
+      },
+      powerSupply: {
+        label: "Power Supply",
+        specification: "On-grid with backup genset",
+        remarks: "Verified via plant inspection",
+        withinSpecs: true,
+        subFields: [
+          { label: "Plant:", specification: "2x 1MW genset" },
+          { label: "Port:", specification: "Shared power line" },
+        ],
+      },
+      miningEquipment: {
+        label: "Mining Equipment",
+        specification: "2x excavator, 3x haul trucks",
+        remarks: "Maintained per SOP",
+        withinSpecs: true,
+        subFields: [
+          { label: "Quarry/Plant:", specification: "1 crusher" },
+          { label: "Port:", specification: "Conveyor system" },
+        ],
+      },
+      workForce: {
+        label: "Work Force",
+        specification: "450 employees",
+        remarks: "Includes contractors",
+        withinSpecs: null,
+        subFields: [{ label: "Employees:", specification: "450" }],
+      },
+      developmentSchedule: {
+        label: "Development/ Utilization Schedule",
+        specification: "Phase 2 development Q3 2025",
+        remarks: "On schedule",
+        withinSpecs: null,
+      },
+    });
+
+    // Add 3 other components for testing
+    setOtherComponents([
+      {
+        specification: "Waste Management Facility - Cell A",
+        remarks: "Operational",
+        withinSpecs: true,
+      },
+      {
+        specification: "Sediment Pond - SP1",
+        remarks: "Maintenance required",
+        withinSpecs: false,
+      },
+      {
+        specification: "Rehabilitation Plot - R1",
+        remarks: "Planted with native species",
+        withinSpecs: true,
+      },
+    ]);
+
+    Alert.alert(
+      "Test Data",
+      "Compliance Monitoring section filled with test data (3 other components)"
+    );
   };
 
   const handleSaveAndNext = () => {
-    console.log("Saving and navigating...");
-    handleSave();
-    navigation.navigate("EIACompliance", {
-      fileName: fileName, // Pass fileName to next screen
-    });
+    console.log("Proceeding to next page (no draft save)");
+    const complianceToProjectLocationAndCoverageLimits = {
+      formData,
+      otherComponents,
+      uploadedImages,
+    };
+    const nextParams = {
+      ...(route?.params || {}),
+      fileName: (route?.params as any)?.fileName || fileName,
+      complianceToProjectLocationAndCoverageLimits,
+    } as any;
+    console.log(
+      "Navigating with ComplianceMonitoring params keys:",
+      Object.keys(nextParams)
+    );
+    navigation.navigate("EIACompliance", nextParams);
   };
 
   React.useLayoutEffect(() => {
@@ -245,16 +429,26 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
     });
   }, [navigation]);
 
+  // Hydrate from route params when coming from a draft
+  useEffect(() => {
+    const params: any = route?.params || {};
+    const saved = params.complianceToProjectLocationAndCoverageLimits;
+    if (saved) {
+      if (saved.formData)
+        setFormData((prev) => ({ ...prev, ...saved.formData }));
+      if (Array.isArray(saved.otherComponents))
+        setOtherComponents(saved.otherComponents);
+      if (saved.uploadedImages) setUploadedImages(saved.uploadedImages);
+    }
+  }, [route?.params]);
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.container}
     >
       <View style={styles.headerContainer}>
-        <CMSHeader
-          onBack={() => navigation.goBack()}
-          onSave={handleSave}
-        />
+        <CMSHeader onBack={() => navigation.goBack()} onSave={handleSave} />
       </View>
       <ScrollView
         style={styles.scrollView}
@@ -303,6 +497,18 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
           onAddComponent={addOtherComponent}
           onDeleteComponent={handleDeleteComponent}
         />
+        {__DEV__ && (
+          <TouchableOpacity
+            style={[
+              styles.saveNextButton,
+              { backgroundColor: "#ff8c00", marginTop: 12 },
+            ]}
+            onPress={fillTestData}
+          >
+            <Text style={styles.saveNextButtonText}>Fill Test Data</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity
           style={styles.saveNextButton}
           onPress={handleSaveAndNext}

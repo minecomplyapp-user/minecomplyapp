@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import { Feather } from "@expo/vector-icons";
 import { theme } from "../../theme/theme";
 import { createAttendanceStyles as styles } from "./styles/createAttendanceScreen";
 import { CustomHeader } from "../../components/CustomHeader";
-import { apiPost } from "../../lib/api";
+import { apiPost, apiGet, apiPatch } from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
 import * as ImagePicker from "expo-image-picker";
 import {
@@ -61,8 +61,12 @@ const RadioButton = ({
   );
 };
 
-export default function CreateAttendanceScreen({ navigation }: any) {
+export default function CreateAttendanceScreen({ navigation, route }: any) {
   const { user } = useAuth();
+  const attendanceId = route?.params?.attendanceId;
+  const isEditMode = !!attendanceId;
+
+  const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -98,6 +102,101 @@ export default function CreateAttendanceScreen({ navigation }: any) {
 
   const signatureCanvasRef = useRef<any>(null);
   const [scaleAnim] = useState(new Animated.Value(1));
+
+  // Load existing attendance record if in edit mode
+  useEffect(() => {
+    if (isEditMode && attendanceId) {
+      loadAttendanceRecord();
+    }
+  }, [attendanceId, isEditMode]);
+
+  const loadAttendanceRecord = async () => {
+    try {
+      setLoading(true);
+      const record = await apiGet<any>(`/attendance/${attendanceId}`);
+
+      // Populate fields
+      setFileName(record.fileName || "");
+      setTitle(record.title || "");
+      setDescription(record.description || "");
+      setLocation(record.location || "");
+
+      if (record.meetingDate) {
+        setMeetingDate(new Date(record.meetingDate));
+      }
+
+      // Parse attendees
+      if (record.attendees) {
+        const parsedAttendees = Array.isArray(record.attendees)
+          ? record.attendees
+          : JSON.parse(record.attendees);
+
+        // Load attendees with signed URLs for signatures
+        const attendeesWithSignedUrls = await Promise.all(
+          parsedAttendees.map(async (att: any, index: number) => {
+            // Map attendanceStatus to the radio button values
+            let attendance = "Absent";
+            if (att.attendanceStatus === "IN_PERSON") {
+              attendance = "In Person";
+            } else if (att.attendanceStatus === "ONLINE") {
+              attendance = "Online";
+            }
+
+            // Get signed URL for signature if it exists
+            let signatureUrl = "";
+            const signaturePath = att.signatureUrl || "";
+            if (signaturePath) {
+              try {
+                const { url } = await createSignedDownloadUrl(
+                  signaturePath,
+                  60
+                );
+                signatureUrl = url;
+              } catch (error) {
+                console.log("Failed to load signature URL:", error);
+              }
+            }
+
+            return {
+              id: index + 1,
+              name: att.name || "",
+              agency: att.agency || "",
+              position: att.position || "",
+              attendance: attendance,
+              signatureUrl: signatureUrl,
+              signaturePath: signaturePath,
+            };
+          })
+        );
+
+        setAttendees(attendeesWithSignedUrls);
+      }
+
+      // Parse attachments
+      if (record.attachments) {
+        const parsedAttachments = Array.isArray(record.attachments)
+          ? record.attachments
+          : JSON.parse(record.attachments);
+
+        setAttachments(
+          parsedAttachments.map((att: any) => ({
+            uri: att.uri || att.url || "",
+            path: att.path || "",
+            caption: att.caption || "",
+          }))
+        );
+      }
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        "Failed to load attendance record: " +
+          (error.message || "Unknown error")
+      );
+      navigation.goBack();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // --- Animation Handlers ---
   const handlePressIn = () => {
@@ -357,14 +456,28 @@ export default function CreateAttendanceScreen({ navigation }: any) {
     }
   };
 
-  const handleRemoveSignature = (id: number) => {
+  const handleRemoveSignature = async (id: number) => {
     const attendee = attendees.find((a) => a.id === id);
-    if (attendee?.signaturePath) {
-      // If the signature being removed was just uploaded, untrack it
-      setNewlyUploadedPaths((prev) =>
-        prev.filter((p) => p !== (attendee as any).signaturePath)
-      );
+    const signaturePath =
+      (attendee as any)?.signaturePath || attendee?.signatureUrl;
+
+    if (signaturePath) {
+      try {
+        // Delete from storage bucket
+        await apiPost("/storage/delete-files", {
+          paths: [signaturePath],
+        });
+
+        // If the signature being removed was just uploaded, untrack it
+        setNewlyUploadedPaths((prev) =>
+          prev.filter((p) => p !== signaturePath)
+        );
+      } catch (error) {
+        console.error("Failed to delete signature from storage:", error);
+        // Continue with removal even if deletion fails
+      }
     }
+
     updateField(id, "signatureUrl", "");
     updateField(id, "signaturePath", "");
   };
@@ -520,13 +633,41 @@ export default function CreateAttendanceScreen({ navigation }: any) {
       })),
     };
 
-    const res = await apiPost<{ id: string }>("/attendance", payload);
-    // Clear the list of newly uploaded files since they are now saved
-    setNewlyUploadedPaths([]);
-    Alert.alert("Success", "Attendance record saved!", [
-      { text: "OK", onPress: () => navigation.goBack() },
-    ]);
+    if (isEditMode && attendanceId) {
+      // Update existing record
+      await apiPatch(`/attendance/${attendanceId}`, payload);
+      setNewlyUploadedPaths([]);
+      Alert.alert("Success", "Attendance record updated!", [
+        { text: "OK", onPress: () => navigation.goBack() },
+      ]);
+    } else {
+      // Create new record
+      const res = await apiPost<{ id: string }>("/attendance", payload);
+      setNewlyUploadedPaths([]);
+      Alert.alert("Success", "Attendance record saved!", [
+        { text: "OK", onPress: () => navigation.goBack() },
+      ]);
+    }
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeContainer}>
+        <CustomHeader showSave={false} />
+        <View
+          style={[
+            styles.scrollContent,
+            { justifyContent: "center", alignItems: "center" },
+          ]}
+        >
+          <ActivityIndicator size="large" color={theme.colors.primaryDark} />
+          <Text style={[styles.headerSubtitle, { marginTop: 16 }]}>
+            Loading attendance record...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeContainer}>
@@ -543,9 +684,13 @@ export default function CreateAttendanceScreen({ navigation }: any) {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Create Attendance Record</Text>
+          <Text style={styles.headerTitle}>
+            {isEditMode ? "Edit Attendance Record" : "Create Attendance Record"}
+          </Text>
           <Text style={styles.headerSubtitle}>
-            Fill out attendance details below.
+            {isEditMode
+              ? "Update attendance details below."
+              : "Fill out attendance details below."}
           </Text>
         </View>
 

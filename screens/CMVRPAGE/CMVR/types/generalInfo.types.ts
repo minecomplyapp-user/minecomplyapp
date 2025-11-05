@@ -1,4 +1,5 @@
 export interface GeneralInfoProps {
+  fileName: string;
   companyName: string;
   projectName: string;
   location: string;

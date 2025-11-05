@@ -16,10 +16,11 @@ import {
   Plus,
   Trash2,
   Download,
+  Edit,
 } from "lucide-react-native";
 import { theme } from "../../theme/theme";
-import { attendanceRecordStyles as styles } from "./styles/attendanceRecordScreen";
-import { CustomHeader } from "../../components/CustomHeader";
+import { attendanceRecordStyles as styles } from "../attendance/styles/attendanceRecordScreen";
+import { CMSHeader } from "../../components/CMSHeader";
 import { apiGet, apiDelete, getApiBaseUrl, getJwt } from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
@@ -28,11 +29,11 @@ type AttendanceRecordItem = {
   id: string;
   fileName: string;
   title?: string | null;
-  meetingDate?: string | null; // may be date-only string (YYYY-MM-DD)
-  createdAt?: string | null; // ISO date string
+  meetingDate?: string | null;
+  createdAt?: string | null;
 };
 
-export default function AttendanceRecordScreen({ navigation }: any) {
+export default function AttendanceListScreen({ navigation, route }: any) {
   const { user } = useAuth();
   const [attendanceRecords, setAttendanceRecords] = useState<
     AttendanceRecordItem[]
@@ -42,11 +43,13 @@ export default function AttendanceRecordScreen({ navigation }: any) {
   const hasRecords = attendanceRecords.length > 0;
   const [scaleAnim] = useState(new Animated.Value(1));
 
+  // Check if we're in selection mode (came from recommendations screen)
+  const isSelectionMode = route.params?.fromRecommendations || false;
+  const previousParams = route.params || {};
+
   const fmtDate = (d?: string | null): string => {
     if (!d) return "";
-    // If already a YYYY-MM-DD date-only string, show as is
     if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
-    // Otherwise attempt to parse ISO
     try {
       const dt = new Date(d);
       if (!isNaN(dt.getTime())) {
@@ -82,7 +85,6 @@ export default function AttendanceRecordScreen({ navigation }: any) {
 
   useFocusEffect(
     useCallback(() => {
-      // Refresh when returning to this screen
       fetchRecords();
     }, [fetchRecords])
   );
@@ -126,18 +128,15 @@ export default function AttendanceRecordScreen({ navigation }: any) {
       const base = getApiBaseUrl();
       const token = await getJwt();
 
-      // Build URL with token as query parameter for browser download
-      const url = `${base}/api/attendance/${id}/docx?token=${encodeURIComponent(token)}`;
+      const url = `${base}/api/attendance/${id}/pdf?token=${encodeURIComponent(token)}`;
 
-      // Check if the URL can be opened
       const canOpen = await Linking.canOpenURL(url);
 
       if (canOpen) {
-        // Open URL in browser - this will trigger native download
         await Linking.openURL(url);
         Alert.alert(
           "Download Started",
-          "The Docx will be downloaded by your browser. Check your Downloads folder or notification bar."
+          "The PDF will be downloaded by your browser. Check your Downloads folder or notification bar."
         );
       } else {
         Alert.alert("Error", "Unable to open browser for download");
@@ -150,19 +149,61 @@ export default function AttendanceRecordScreen({ navigation }: any) {
     }
   };
 
+  const handleSelectRecord = (record: AttendanceRecordItem) => {
+    if (isSelectionMode) {
+      // Directly navigate back with the selected record (no highlighting)
+      navigation.navigate("CMVRDocumentExport", {
+        ...previousParams,
+        selectedAttendanceId: record.id,
+        selectedAttendanceTitle: record.title || record.fileName,
+        // Also pass attendanceUrl for payload inclusion
+        attendanceUrl: record.id,
+      });
+    }
+  };
+
   const handleOpenRecord = (
     record: AttendanceRecordItem & { date?: string }
   ) => {
-    // Navigate to CreateAttendance screen with the record ID for viewing/editing
-    navigation.navigate("CreateAttendance", {
-      attendanceId: record.id,
-      mode: "edit",
-    });
+    if (isSelectionMode) {
+      // In selection mode, directly select and navigate back
+      handleSelectRecord(record);
+    } else {
+      // Normal mode - open detail screen
+      try {
+        navigation.navigate("AttendanceDetail", {
+          record: {
+            id: record.id,
+            title: record.title || record.fileName,
+            date: record.date,
+          },
+        });
+      } catch {
+        Alert.alert(
+          "Open Record",
+          `Opening ${record.title || record.fileName}...`
+        );
+      }
+    }
+  };
+
+  const handleBack = () => {
+    navigation.goBack();
+  };
+
+  const handleSave = () => {
+    // In selection mode, user taps record directly to select
+    // Save button just goes back
+    navigation.goBack();
   };
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <CustomHeader showSave={false} />
+      <CMSHeader
+        fileName={isSelectionMode ? "Select Attendance" : "Attendance Records"}
+        onBack={handleBack}
+        onSave={isSelectionMode ? handleSave : handleBack}
+      />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -172,9 +213,15 @@ export default function AttendanceRecordScreen({ navigation }: any) {
       >
         {/* Header */}
         <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>Attendance Records</Text>
+          <Text style={styles.headerTitle}>
+            {isSelectionMode
+              ? "Select Attendance Record"
+              : "Attendance Records"}
+          </Text>
           <Text style={styles.headerSubtitle}>
-            Manage, create, and download attendance reports.
+            {isSelectionMode
+              ? "Choose an attendance record to attach to your CMVR report"
+              : "Manage, create, and download attendance reports."}
           </Text>
         </View>
 
@@ -196,7 +243,15 @@ export default function AttendanceRecordScreen({ navigation }: any) {
             }).start();
           }}
           onPress={() => {
-            navigation.navigate("CreateAttendance");
+            if (isSelectionMode) {
+              // Navigate to create, but pass params so we can return here
+              navigation.navigate("CreateAttendance", {
+                returnToSelection: true,
+                returnParams: previousParams,
+              });
+            } else {
+              navigation.navigate("CreateAttendance");
+            }
           }}
           style={styles.actionButtonWrapper}
         >
@@ -215,7 +270,9 @@ export default function AttendanceRecordScreen({ navigation }: any) {
         {/* Saved Records Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Saved Records</Text>
+            <Text style={styles.sectionTitle}>
+              {isSelectionMode ? "Available Records" : "Saved Records"}
+            </Text>
           </View>
 
           <View style={styles.recordsContainer}>
@@ -235,7 +292,6 @@ export default function AttendanceRecordScreen({ navigation }: any) {
                   key={record.id}
                   record={{
                     ...record,
-                    // Normalize display fields
                     title: record.title || record.fileName,
                     date: fmtDate(
                       record.meetingDate || record.createdAt || null
@@ -244,6 +300,7 @@ export default function AttendanceRecordScreen({ navigation }: any) {
                   onDelete={(id: string) => handleDelete(id)}
                   onDownload={handleDownload}
                   onOpen={handleOpenRecord}
+                  isSelectionMode={isSelectionMode}
                 />
               ))
             ) : (
@@ -264,72 +321,14 @@ export default function AttendanceRecordScreen({ navigation }: any) {
   );
 }
 
-/* UNUSED - Kept for reference if needed in future
-// Minimal base64 encoder for ArrayBuffer (avoids deprecated download APIs)
-const _b64chars =
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let base64 = "";
-  let i = 0;
-  for (; i + 2 < bytes.length; i += 3) {
-    base64 += _b64chars[bytes[i] >> 2];
-    base64 += _b64chars[((bytes[i] & 3) << 4) | (bytes[i + 1] >> 4)];
-    base64 += _b64chars[((bytes[i + 1] & 15) << 2) | (bytes[i + 2] >> 6)];
-    base64 += _b64chars[bytes[i + 2] & 63];
-  }
-  if (i < bytes.length) {
-    base64 += _b64chars[bytes[i] >> 2];
-    if (i === bytes.length - 1) {
-      base64 += _b64chars[(bytes[i] & 3) << 4];
-      base64 += "==";
-    } else {
-      base64 += _b64chars[((bytes[i] & 3) << 4) | (bytes[i + 1] >> 4)];
-      base64 += _b64chars[(bytes[i + 1] & 15) << 2];
-      base64 += "=";
-    }
-  }
-  return base64;
-}
-
-// Persist and reuse the chosen Downloads folder permission (Android SAF)
-const ANDROID_DOWNLOADS_DIR_KEY = "DOWNLOAD_DIR_URI";
-
-async function ensureAndroidDownloadsDir(): Promise<string> {
-  const fsAny = FileSystem as any;
-  const existing = await AsyncStorage.getItem(ANDROID_DOWNLOADS_DIR_KEY);
-  if (existing) return existing;
-
-  const perm =
-    await fsAny.StorageAccessFramework.requestDirectoryPermissionsAsync();
-  if (!perm.granted || !perm.directoryUri) {
-    throw new Error("Storage permission not granted");
-  }
-  await AsyncStorage.setItem(ANDROID_DOWNLOADS_DIR_KEY, perm.directoryUri);
-  return perm.directoryUri;
-}
-
-async function savePdfToAndroidDownloads(
-  filename: string,
-  base64Data: string
-): Promise<string> {
-  const fsAny = FileSystem as any;
-  const dirUri = await ensureAndroidDownloadsDir();
-  // Create the file in the chosen directory (recommend selecting Downloads once)
-  const fileUri = await fsAny.StorageAccessFramework.createFile(
-    dirUri,
-    filename,
-    "application/pdf"
-  );
-  await FileSystem.writeAsStringAsync(fileUri, base64Data, {
-    encoding: (FileSystem as any).EncodingType?.Base64 || "base64",
-  });
-  return fileUri;
-}
-*/
-
 /* ---------- Animated Record Card ---------- */
-function AnimatedRecordCard({ record, onDelete, onDownload, onOpen }: any) {
+function AnimatedRecordCard({
+  record,
+  onDelete,
+  onDownload,
+  onOpen,
+  isSelectionMode,
+}: any) {
   const [scaleAnim] = useState(new Animated.Value(1));
 
   const handlePressIn = () => {
@@ -346,6 +345,12 @@ function AnimatedRecordCard({ record, onDelete, onDownload, onOpen }: any) {
       tension: 50,
       useNativeDriver: true,
     }).start();
+  };
+
+  const handleEdit = (e: any) => {
+    e.stopPropagation();
+    // Navigate to edit screen - you'll need to implement this
+    Alert.alert("Edit", `Edit ${record.title} - Feature coming soon!`);
   };
 
   return (
@@ -372,14 +377,30 @@ function AnimatedRecordCard({ record, onDelete, onDownload, onOpen }: any) {
         <View style={styles.actionRow}>
           <TouchableOpacity
             style={[styles.iconButton, styles.downloadButton]}
-            onPress={() => onDownload(record.id)}
+            onPress={(e) => {
+              e.stopPropagation();
+              onDownload(record.id);
+            }}
           >
             <Download size={18} color={theme.colors.primaryDark} />
           </TouchableOpacity>
 
           <TouchableOpacity
+            style={[styles.iconButton, styles.editButton]}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleEdit(e);
+            }}
+          >
+            <Edit size={18} color="#F59E0B" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={[styles.iconButton, styles.deleteButton]}
-            onPress={() => onDelete(record.id)}
+            onPress={(e) => {
+              e.stopPropagation();
+              onDelete(record.id);
+            }}
           >
             <Trash2 size={18} color={theme.colors.error} />
           </TouchableOpacity>

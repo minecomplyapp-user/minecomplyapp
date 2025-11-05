@@ -17,7 +17,7 @@ import CMVRReportScreen from "../screens/CMVRPAGE/CMVR/CMVRReportScreen";
 import CMVRPage2Screen from "../screens/CMVRPAGE/CMVRPage2/CMVRPage2Screen";
 import CreateAttendanceScreen from "../screens/attendance/CreateAttendanceScreen";
 import AttendanceRecordScreen from "../screens/attendance/AttendanceRecordScreen";
-import AttendanceDetailScreen from "../screens/CMVRPAGE/AttendanceDetailScreen";
+import AttendanceListScreen from "../screens/CMVRPAGE/AttendanceListScreen";
 import ReportsScreen from "../screens/reports/ReportsScreen";
 import ComplianceMonitoringScreen from "../screens/CMVRPAGE/CMS/ComplianceMonitoringScreen";
 import EIAComplianceScreen from "../screens/CMVRPAGE/EIA/EIAComplianceScreen";
@@ -31,6 +31,7 @@ import ECCMonitoringScreen from "../screens/ecc/ECCMonitoringScreen";
 import ECCMonitoringScreen2 from "../screens/ecc/conditions";
 import CMVRDocumentExportScreen from "../screens/CMVRPAGE/CMVRDocumentExportScreen";
 import ExportReportScreen from "../screens/CMVRPAGE/ExportReportScreen";
+import CMVRDraftsScreen from "../screens/CMVRPAGE/CMVRDraftsScreen";
 
 const RootStack = createStackNavigator();
 
@@ -76,8 +77,13 @@ const AppNavigator = () => {
                 options={{ headerShown: false }}
               />
               <RootStack.Screen
-                name="AttendanceDetail"
-                component={AttendanceDetailScreen}
+                name="AttendanceList"
+                component={AttendanceListScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen
+                name="CMVRDrafts"
+                component={CMVRDraftsScreen}
                 options={{ headerShown: false }}
               />
               <RootStack.Screen name="Reports" component={ReportsScreen} />

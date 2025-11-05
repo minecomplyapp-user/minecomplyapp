@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,29 +7,45 @@ import {
   SafeAreaView,
   Alert,
 } from "react-native";
-import {
-  FileText,
-  Calendar,
-  Download,
-  Trash2,
-} from "lucide-react-native";
+import { FileText, Calendar, Download, Trash2 } from "lucide-react-native";
 import { theme } from "../../theme/theme";
 import { reportScreenStyles as styles } from "./styles/reportsScreen";
 import { CustomHeader } from "../../components/CustomHeader";
+import { useAuth } from "../../contexts/AuthContext";
+import { apiGet } from "../../lib/api";
+import { deleteCMVRReport } from "../../lib/cmvr";
 
-// SAMPLE RANI HA PWEDE NI TANG2ON
-const sampleReports = [
-  { id: 1, title: "Environmental Compliance Report", date: "Oct 10, 2025" },
-  { id: 2, title: "Mine Site Safety Inspection", date: "Oct 8, 2025" },
-  { id: 3, title: "Quarterly Water Quality Assessment", date: "Oct 1, 2025" },
-  { id: 4, title: "Annual Equipment Maintenance Log", date: "Sep 25, 2025" },
-  { id: 5, title: "Blast Site Vibration Monitoring", date: "Sep 15, 2025" },
-];
+export default function ReportsScreen({ navigation }: any) {
+  const { user } = useAuth();
+  const [reports, setReports] = useState<
+    Array<{ id: string; title: string; date: string }>
+  >([]);
 
-export default function ReportsScreen() {
-  const [reports, setReports] = useState(sampleReports);
+  useEffect(() => {
+    void fetchReports();
+  }, []);
 
-  const handleDelete = (id: number) => {
+  async function fetchReports() {
+    try {
+      if (!user?.id) return setReports([]);
+      const submissions = await apiGet<any[]>(`/cmvr/user/${user.id}`);
+      const mapped = (submissions || []).map((sub) => {
+        // Use only fileName, with "Untitled" as fallback
+        const title = sub.fileName || "Untitled";
+        const dt = new Date(sub.updatedAt || sub.createdAt).toLocaleDateString(
+          "en-US",
+          { month: "short", day: "numeric", year: "numeric" }
+        );
+        return { id: sub.id as string, title, date: dt };
+      });
+      setReports(mapped);
+    } catch (e) {
+      console.log("Failed to load reports:", e);
+      setReports([]);
+    }
+  }
+
+  const handleDelete = (id: string) => {
     Alert.alert(
       "Delete Report",
       "Are you sure you want to delete this report? This action cannot be undone.",
@@ -38,7 +54,14 @@ export default function ReportsScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => setReports(reports.filter((r) => r.id !== id)),
+          onPress: async () => {
+            try {
+              await deleteCMVRReport(id);
+              setReports((prev) => prev.filter((r) => r.id !== id));
+            } catch (e: any) {
+              Alert.alert("Delete Failed", e?.message || String(e));
+            }
+          },
         },
       ]
     );
@@ -61,6 +84,12 @@ export default function ReportsScreen() {
               <ReportCard
                 key={report.id}
                 report={report}
+                onOpen={() =>
+                  navigation.navigate("CMVRDocumentExport", {
+                    cmvrReportId: report.id,
+                    fileName: report.title,
+                  })
+                }
                 onDelete={() => handleDelete(report.id)}
               />
             ))}
@@ -73,7 +102,15 @@ export default function ReportsScreen() {
   );
 }
 
-const ReportCard = ({ report, onDelete }: { report: any; onDelete: () => void; }) => {
+const ReportCard = ({
+  report,
+  onOpen,
+  onDelete,
+}: {
+  report: any;
+  onOpen: () => void;
+  onDelete: () => void;
+}) => {
   return (
     <View style={styles.reportCard}>
       <View style={styles.cardInner}>
@@ -89,7 +126,7 @@ const ReportCard = ({ report, onDelete }: { report: any; onDelete: () => void; }
         <View style={styles.actionRow}>
           <TouchableOpacity
             style={[styles.iconButton, styles.downloadButton]}
-            onPress={() => Alert.alert("Download", "Download functionality to be implemented.")}
+            onPress={onOpen}
           >
             <Download size={20} color={theme.colors.primaryDark} />
           </TouchableOpacity>

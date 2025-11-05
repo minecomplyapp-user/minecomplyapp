@@ -4,15 +4,16 @@ import { RouteProp } from "@react-navigation/native";
 
 export type RootStackParamList = {
   CMVRReport: {
-    submissionId: string;
-    projectName: string;
-    projectId: string;
+    submissionId?: string | null;
+    projectName?: string | null;
+    projectId?: string | null;
     fileName?: string;
+    draftData?: any;
   };
   CMVRPage2: {
-    submissionId: string;
-    projectName: string;
-    projectId: string;
+    submissionId?: string | null;
+    projectName?: string | null;
+    projectId?: string | null;
     fileName: string;
   };
 };
@@ -27,6 +28,7 @@ export type CMVRReportScreenRouteProp = RouteProp<
   "CMVRReport"
 >;
 
+// Frontend types (UI-friendly field names)
 export type GeneralInfo = {
   companyName: string;
   projectName: string;
@@ -98,4 +100,66 @@ export type MMTInfo = {
   mailingAddress: string;
   phoneNumber: string;
   emailAddress: string;
+};
+
+// Backend DTO types (matches API structure)
+export type ECCDto = {
+  permitHolderName: string;
+  eccNumber: string;
+  dateOfIssuance: string;
+};
+
+export type ISAGMPPDto = {
+  permitHolderName: string;
+  isagPermitNumber: string;
+  dateOfIssuance: string;
+};
+
+export type ContactInfoDto = {
+  contactPersonAndPosition: string;
+  mailingAddress: string;
+  telephoneFax: string;
+  emailAddress: string;
+};
+
+export type EPEPDto = {
+  permitHolderName: string;
+  epepNumber: string;
+  dateOfApproval: string;
+};
+
+export type FundDto = {
+  permitHolderName: string;
+  savingsAccountNumber: string;
+  amountDeposited: string;
+  dateUpdated: string;
+};
+
+// Backend request payload type
+export type CreateCMVRDto = {
+  companyName: string;
+  location: string;
+  quarter: string;
+  year: number;
+  dateOfComplianceMonitoringAndValidation: string;
+  monitoringPeriodCovered: string;
+  dateOfCmrSubmission: string;
+  ecc: ECCDto[];
+  isagMpp: ISAGMPPDto[];
+  projectCurrentName: string;
+  projectNameInEcc: string;
+  projectStatus: string;
+  projectGeographicalCoordinates: string;
+  proponent: ContactInfoDto;
+  mmt: ContactInfoDto;
+  epepFmrdpStatus: string;
+  epep: EPEPDto[];
+  rehabilitationCashFund: FundDto[];
+  monitoringTrustFundUnified: FundDto[];
+  finalMineRehabilitationAndDecommissioningFund: FundDto[];
+  // These will be added in Page 2
+  executiveSummaryOfCompliance?: any;
+  processDocumentationOfActivitiesUndertaken?: any;
+  complianceMonitoringReport?: any;
+  createdById?: string;
 };

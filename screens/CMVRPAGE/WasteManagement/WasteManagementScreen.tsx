@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,27 +6,29 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import RNPickerSelect from 'react-native-picker-select';
-import { CMSHeader } from '../../../components/CMSHeader';
-import { QuarrySection } from './components/QuarrySection';
-import { PlantSection } from './components/PlantSection';
-import { PlantPortSection } from './components/PlantPortSection';
-import { PortSection } from './components/PortSection';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { CommonActions } from "@react-navigation/native";
+import RNPickerSelect from "react-native-picker-select";
+import { CMSHeader } from "../../../components/CMSHeader";
+import { saveDraft } from "../../../lib/drafts";
+import { QuarrySection } from "./components/QuarrySection";
+import { PlantSection } from "./components/PlantSection";
+import { PlantPortSection } from "./components/PlantPortSection";
+import { PortSection } from "./components/PortSection";
 import {
   WasteEntry,
   PlantPortSectionData,
   QuarrySectionData,
   PortSectionData,
   PlantSectionData,
-} from '../types/WasteManagementScreen.types';
+} from "../types/WasteManagementScreen.types";
 import {
   styles,
   pickerSelectStyles,
-} from '../styles/WasteManagementScreen.styles';
+} from "../styles/WasteManagementScreen.styles";
 
-export default function WasteManagementScreen({ navigation }: any) {
+export default function WasteManagementScreen({ navigation, route }: any) {
   const [quarryData, setQuarryData] = useState<QuarrySectionData>({
     noSignificantImpact: false,
     generateTable: false,
@@ -39,38 +41,38 @@ export default function WasteManagementScreen({ navigation }: any) {
     N_A: false,
   });
 
-  const [selectedQuarter, setSelectedQuarter] = useState('Q2 2025');
+  const [selectedQuarter, setSelectedQuarter] = useState("Q2 2025");
 
   const quarterItems = [
-    { label: 'Q1 2025', value: 'Q1 2025' },
-    { label: 'Q2 2025', value: 'Q2 2025' },
-    { label: 'Q3 2025', value: 'Q3 2025' },
-    { label: 'Q4 2025', value: 'Q4 2025' },
+    { label: "Q1 2025", value: "Q1 2025" },
+    { label: "Q2 2025", value: "Q2 2025" },
+    { label: "Q3 2025", value: "Q3 2025" },
+    { label: "Q4 2025", value: "Q4 2025" },
   ];
 
   const [quarryPlantData, setQuarryPlantData] = useState<PlantPortSectionData>({
-    typeOfWaste: '',
+    typeOfWaste: "",
     eccEpepCommitments: [
       {
         id: `waste-${Date.now()}-quarry`,
-        handling: '',
-        storage: '',
-        disposal: '',
+        handling: "",
+        storage: "",
+        disposal: "",
       },
     ],
     isAdequate: null,
-    previousRecord: '',
-    currentQuarterWaste: '',
+    previousRecord: "",
+    currentQuarterWaste: "",
   });
 
   const [plantData, setPlantData] = useState<PlantPortSectionData>({
-    typeOfWaste: '',
+    typeOfWaste: "",
     eccEpepCommitments: [
-      { id: `waste-${Date.now()}-1`, handling: '', storage: '', disposal: '' },
+      { id: `waste-${Date.now()}-1`, handling: "", storage: "", disposal: "" },
     ],
     isAdequate: null,
-    previousRecord: '',
-    currentQuarterWaste: '',
+    previousRecord: "",
+    currentQuarterWaste: "",
   });
 
   const [portData, setPortData] = useState<PortSectionData>({
@@ -80,31 +82,54 @@ export default function WasteManagementScreen({ navigation }: any) {
   });
 
   const [portPlantData, setPortPlantData] = useState<PlantPortSectionData>({
-    typeOfWaste: '',
+    typeOfWaste: "",
     eccEpepCommitments: [
-      { id: `waste-${Date.now()}-2`, handling: '', storage: '', disposal: '' },
+      { id: `waste-${Date.now()}-2`, handling: "", storage: "", disposal: "" },
     ],
     isAdequate: null,
-    previousRecord: '',
-    currentQuarterWaste: '',
+    previousRecord: "",
+    currentQuarterWaste: "",
   });
+
+  // Hydrate from route params when coming from a draft
+  React.useEffect(() => {
+    const params: any = route?.params || {};
+    const saved =
+      params.complianceWithGoodPracticeInSolidAndHazardousWasteManagement;
+    if (saved) {
+      if (typeof saved.selectedQuarter === "string")
+        setSelectedQuarter(saved.selectedQuarter);
+      if (saved.quarryData)
+        setQuarryData((prev) => ({ ...prev, ...saved.quarryData }));
+      if (saved.quarryPlantData)
+        setQuarryPlantData((prev) => ({ ...prev, ...saved.quarryPlantData }));
+      if (saved.plantSimpleData)
+        setPlantSimpleData((prev) => ({ ...prev, ...saved.plantSimpleData }));
+      if (saved.plantData)
+        setPlantData((prev) => ({ ...prev, ...saved.plantData }));
+      if (saved.portData)
+        setPortData((prev) => ({ ...prev, ...saved.portData }));
+      if (saved.portPlantData)
+        setPortPlantData((prev) => ({ ...prev, ...saved.portPlantData }));
+    }
+  }, [route?.params]);
 
   const updateQuarryData = (field: keyof QuarrySectionData, value: boolean) => {
     setQuarryData((prev) => {
-      if (field === 'N_A') {
+      if (field === "N_A") {
         return {
           ...prev,
           N_A: value,
           noSignificantImpact: value ? false : prev.noSignificantImpact,
           generateTable: value ? false : prev.generateTable,
         };
-      } else if (field === 'noSignificantImpact') {
+      } else if (field === "noSignificantImpact") {
         return {
           ...prev,
           noSignificantImpact: value,
           generateTable: value ? false : prev.generateTable,
         };
-      } else if (field === 'generateTable') {
+      } else if (field === "generateTable") {
         return {
           ...prev,
           generateTable: value,
@@ -120,20 +145,20 @@ export default function WasteManagementScreen({ navigation }: any) {
     value: boolean
   ) => {
     setPlantSimpleData((prev) => {
-      if (field === 'N_A') {
+      if (field === "N_A") {
         return {
           ...prev,
           N_A: value,
           noSignificantImpact: value ? false : prev.noSignificantImpact,
           generateTable: value ? false : prev.generateTable,
         };
-      } else if (field === 'noSignificantImpact') {
+      } else if (field === "noSignificantImpact") {
         return {
           ...prev,
           noSignificantImpact: value,
           generateTable: value ? false : prev.generateTable,
         };
-      } else if (field === 'generateTable') {
+      } else if (field === "generateTable") {
         return {
           ...prev,
           generateTable: value,
@@ -146,21 +171,21 @@ export default function WasteManagementScreen({ navigation }: any) {
 
   const updatePortData = (field: keyof PortSectionData, value: boolean) => {
     setPortData((prev) => {
-      if (field === 'noSignificantImpact') {
+      if (field === "noSignificantImpact") {
         return {
           ...prev,
           noSignificantImpact: value,
           generateTable: value ? false : prev.generateTable,
           N_A: value ? false : prev.N_A,
         };
-      } else if (field === 'generateTable') {
+      } else if (field === "generateTable") {
         return {
           ...prev,
           generateTable: value,
           noSignificantImpact: value ? false : prev.noSignificantImpact,
           N_A: value ? false : prev.N_A,
         };
-      } else if (field === 'N_A') {
+      } else if (field === "N_A") {
         return {
           ...prev,
           N_A: value,
@@ -172,20 +197,20 @@ export default function WasteManagementScreen({ navigation }: any) {
     });
   };
 
-  const addWasteEntry = (section: 'quarry' | 'plant' | 'port') => {
+  const addWasteEntry = (section: "quarry" | "plant" | "port") => {
     const newEntry = {
       id: `waste-${Date.now()}-${section}`,
-      handling: '',
-      storage: '',
-      disposal: '',
+      handling: "",
+      storage: "",
+      disposal: "",
     };
 
-    if (section === 'quarry') {
+    if (section === "quarry") {
       setQuarryPlantData((prev) => ({
         ...prev,
         eccEpepCommitments: [...prev.eccEpepCommitments, newEntry],
       }));
-    } else if (section === 'plant') {
+    } else if (section === "plant") {
       setPlantData((prev) => ({
         ...prev,
         eccEpepCommitments: [...prev.eccEpepCommitments, newEntry],
@@ -199,26 +224,26 @@ export default function WasteManagementScreen({ navigation }: any) {
   };
 
   const updateWasteEntry = (
-    section: 'quarry' | 'plant' | 'port',
+    section: "quarry" | "plant" | "port",
     id: string,
-    field: keyof Omit<WasteEntry, 'id'>,
+    field: keyof Omit<WasteEntry, "id">,
     value: string
   ) => {
-    if (section === 'quarry') {
+    if (section === "quarry") {
       setQuarryPlantData((prev) => ({
         ...prev,
         eccEpepCommitments: prev.eccEpepCommitments.map((entry) =>
           entry.id === id ? { ...entry, [field]: value } : entry
         ),
       }));
-    } else if (section === 'plant') {
+    } else if (section === "plant") {
       setPlantData((prev) => ({
         ...prev,
         eccEpepCommitments: prev.eccEpepCommitments.map((entry) =>
           entry.id === id ? { ...entry, [field]: value } : entry
         ),
       }));
-    } else if (section === 'port') {
+    } else if (section === "port") {
       setPortPlantData((prev) => ({
         ...prev,
         eccEpepCommitments: prev.eccEpepCommitments.map((entry) =>
@@ -229,22 +254,22 @@ export default function WasteManagementScreen({ navigation }: any) {
   };
 
   const removeWasteEntry = (
-    section: 'quarry' | 'plant' | 'port',
+    section: "quarry" | "plant" | "port",
     id: string
   ) => {
     Alert.alert(
-      'Confirm Removal',
-      'Are you sure you want to remove this waste entry?',
+      "Confirm Removal",
+      "Are you sure you want to remove this waste entry?",
       [
         {
-          text: 'Cancel',
-          style: 'cancel',
+          text: "Cancel",
+          style: "cancel",
         },
         {
-          text: 'Remove',
-          style: 'destructive',
+          text: "Remove",
+          style: "destructive",
           onPress: () => {
-            if (section === 'quarry') {
+            if (section === "quarry") {
               if (quarryPlantData.eccEpepCommitments.length > 1) {
                 setQuarryPlantData((prev) => ({
                   ...prev,
@@ -254,11 +279,11 @@ export default function WasteManagementScreen({ navigation }: any) {
                 }));
               } else {
                 Alert.alert(
-                  'Cannot Remove',
-                  'At least one waste entry is required.'
+                  "Cannot Remove",
+                  "At least one waste entry is required."
                 );
               }
-            } else if (section === 'plant') {
+            } else if (section === "plant") {
               if (plantData.eccEpepCommitments.length > 1) {
                 setPlantData((prev) => ({
                   ...prev,
@@ -268,11 +293,11 @@ export default function WasteManagementScreen({ navigation }: any) {
                 }));
               } else {
                 Alert.alert(
-                  'Cannot Remove',
-                  'At least one waste entry is required.'
+                  "Cannot Remove",
+                  "At least one waste entry is required."
                 );
               }
-            } else if (section === 'port') {
+            } else if (section === "port") {
               if (portPlantData.eccEpepCommitments.length > 1) {
                 setPortPlantData((prev) => ({
                   ...prev,
@@ -282,8 +307,8 @@ export default function WasteManagementScreen({ navigation }: any) {
                 }));
               } else {
                 Alert.alert(
-                  'Cannot Remove',
-                  'At least one waste entry is required.'
+                  "Cannot Remove",
+                  "At least one waste entry is required."
                 );
               }
             }
@@ -304,20 +329,151 @@ export default function WasteManagementScreen({ navigation }: any) {
     setPlantData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const updatePortPlantData = (field: keyof PlantPortSectionData, value: any) => {
+  const updatePortPlantData = (
+    field: keyof PlantPortSectionData,
+    value: any
+  ) => {
     setPortPlantData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSaveAndNext = () => {
-    console.log('Saving Waste Management data...');
-    console.log('Selected Quarter:', selectedQuarter);
-    console.log('Quarry Checkboxes:', quarryData);
-    console.log('Quarry Table:', quarryPlantData);
-    console.log('Plant Checkboxes:', plantSimpleData);
-    console.log('Plant Table:', plantData);
-    console.log('Port Checkboxes:', portData);
-    console.log('Port Table:', portPlantData);
-    navigation.navigate('ChemicalSafety');
+    console.log("Saving Waste Management data...");
+    console.log("Selected Quarter:", selectedQuarter);
+    console.log("Quarry Checkboxes:", quarryData);
+    console.log("Quarry Table:", quarryPlantData);
+    console.log("Plant Checkboxes:", plantSimpleData);
+    console.log("Plant Table:", plantData);
+    console.log("Port Checkboxes:", portData);
+    console.log("Port Table:", portPlantData);
+    const complianceWithGoodPracticeInSolidAndHazardousWasteManagement = {
+      selectedQuarter,
+      quarryData,
+      quarryPlantData,
+      plantSimpleData,
+      plantData,
+      portData,
+      portPlantData,
+    };
+    const nextParams = {
+      ...(route?.params || {}),
+      complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
+    } as any;
+    console.log(
+      "Navigating with WasteManagement params keys:",
+      Object.keys(nextParams)
+    );
+    navigation.navigate("ChemicalSafety", nextParams);
+  };
+
+  const fillTestData = () => {
+    setSelectedQuarter("Q2 2025");
+
+    // Quarry section
+    setQuarryData({
+      noSignificantImpact: false,
+      generateTable: true,
+      N_A: false,
+    });
+
+    setQuarryPlantData({
+      typeOfWaste: "Overburden, Topsoil, Mine Tailings",
+      eccEpepCommitments: [
+        {
+          id: "1",
+          handling: "Segregated handling by type",
+          storage: "Designated stockpile areas with erosion control",
+          disposal: "Progressive backfilling and rehabilitation",
+        },
+        {
+          id: "2",
+          handling: "Use of covered trucks for transport",
+          storage: "Temporary storage in lined containment",
+          disposal: "Treatment before disposal",
+        },
+        {
+          id: "3",
+          handling: "Immediate containment of spills",
+          storage: "Bunded storage areas",
+          disposal: "Licensed disposal facility",
+        },
+      ],
+      isAdequate: "YES",
+      previousRecord: "2,450 tons",
+      currentQuarterWaste: "2,680 tons",
+    });
+
+    // Plant section
+    setPlantSimpleData({
+      noSignificantImpact: false,
+      generateTable: true,
+      N_A: false,
+    });
+
+    setPlantData({
+      typeOfWaste: "Used oil, Filters, Scrap metal, Office waste",
+      eccEpepCommitments: [
+        {
+          id: "1",
+          handling: "Segregation at source",
+          storage: "Designated waste storage shed",
+          disposal: "Accredited TSD facility",
+        },
+        {
+          id: "2",
+          handling: "Containerized collection",
+          storage: "Roofed and secured area",
+          disposal: "Recycling facility",
+        },
+        {
+          id: "3",
+          handling: "Regular collection schedule",
+          storage: "Separate biodegradable and non-biodegradable bins",
+          disposal: "Municipal waste collection",
+        },
+      ],
+      isAdequate: "YES",
+      previousRecord: "850 liters (used oil), 12 tons (scrap)",
+      currentQuarterWaste: "920 liters (used oil), 14 tons (scrap)",
+    });
+
+    // Port section
+    setPortData({
+      noSignificantImpact: false,
+      generateTable: true,
+      N_A: false,
+    });
+
+    setPortPlantData({
+      typeOfWaste: "Bilge water, Oily rags, Packaging materials",
+      eccEpepCommitments: [
+        {
+          id: "1",
+          handling: "Spill containment protocols",
+          storage: "Sealed drums in designated area",
+          disposal: "Authorized waste hauler",
+        },
+        {
+          id: "2",
+          handling: "Immediate bagging and labeling",
+          storage: "Secured hazmat storage",
+          disposal: "TSD facility",
+        },
+        {
+          id: "3",
+          handling: "Segregation and compaction",
+          storage: "Covered waste bins",
+          disposal: "Recycling or proper disposal",
+        },
+      ],
+      isAdequate: "YES",
+      previousRecord: "180 liters (bilge), 0.5 tons (packaging)",
+      currentQuarterWaste: "165 liters (bilge), 0.6 tons (packaging)",
+    });
+
+    Alert.alert(
+      "Test Data",
+      "Waste Management filled with test data (3 entries per section)"
+    );
   };
 
   return (
@@ -326,10 +482,70 @@ export default function WasteManagementScreen({ navigation }: any) {
         <CMSHeader
           fileName="Waste Management"
           onBack={() => navigation.goBack()}
-          onSave={() => Alert.alert('Saved', 'Data saved successfully')}
+          onSave={async () => {
+            // Collect all previous page data from route.params
+            const prevPageData: any = route.params || {};
+
+            // Prepare waste management data
+            const complianceWithGoodPracticeInSolidAndHazardousWasteManagement =
+              {
+                quarryData,
+                plantSimpleData,
+                selectedQuarter,
+                quarryPlantData,
+                portData,
+              };
+
+            // Combine all data from previous pages + current page
+            const draftData = {
+              generalInfo: prevPageData.generalInfo,
+              eccInfo: prevPageData.eccInfo,
+              eccAdditionalForms: prevPageData.eccAdditionalForms,
+              isagInfo: prevPageData.isagInfo,
+              isagAdditionalForms: prevPageData.isagAdditionalForms,
+              epepInfo: prevPageData.epepInfo,
+              epepAdditionalForms: prevPageData.epepAdditionalForms,
+              rcfInfo: prevPageData.rcfInfo,
+              rcfAdditionalForms: prevPageData.rcfAdditionalForms,
+              mtfInfo: prevPageData.mtfInfo,
+              mtfAdditionalForms: prevPageData.mtfAdditionalForms,
+              fmrdfInfo: prevPageData.fmrdfInfo,
+              fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
+              mmtInfo: prevPageData.mmtInfo,
+              executiveSummary: prevPageData.executiveSummary,
+              processDocumentation: prevPageData.processDocumentation,
+              complianceToProjectLocationAndCoverageLimits:
+                prevPageData.complianceToProjectLocationAndCoverageLimits,
+              complianceToImpactManagementCommitments:
+                prevPageData.complianceToImpactManagementCommitments,
+              complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
+              savedAt: new Date().toISOString(),
+            };
+
+            const fileName = prevPageData.fileName || "Untitled";
+
+            // Save draft to AsyncStorage
+            const success = await saveDraft(fileName, draftData);
+
+            if (success) {
+              Alert.alert("Success", "Draft saved successfully");
+              // Navigate to Dashboard using CommonActions.reset
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [{ name: "Dashboard" }],
+                })
+              );
+            } else {
+              Alert.alert("Error", "Failed to save draft");
+            }
+          }}
         />
       </View>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.sectionHeaderContainer}>
           <View style={styles.sectionHeaderContent}>
             <View style={styles.sectionBadge}>
@@ -366,11 +582,11 @@ export default function WasteManagementScreen({ navigation }: any) {
             data={quarryPlantData}
             selectedQuarter={selectedQuarter}
             onUpdateData={updateQuarryPlantData}
-            onAddWaste={() => addWasteEntry('quarry')}
+            onAddWaste={() => addWasteEntry("quarry")}
             onUpdateWaste={(id, field, value) =>
-              updateWasteEntry('quarry', id, field, value)
+              updateWasteEntry("quarry", id, field, value)
             }
-            onRemoveWaste={(id) => removeWasteEntry('quarry', id)}
+            onRemoveWaste={(id) => removeWasteEntry("quarry", id)}
           />
         )}
 
@@ -383,11 +599,11 @@ export default function WasteManagementScreen({ navigation }: any) {
             data={plantData}
             selectedQuarter={selectedQuarter}
             onUpdateData={updatePlantData}
-            onAddWaste={() => addWasteEntry('plant')}
+            onAddWaste={() => addWasteEntry("plant")}
             onUpdateWaste={(id, field, value) =>
-              updateWasteEntry('plant', id, field, value)
+              updateWasteEntry("plant", id, field, value)
             }
-            onRemoveWaste={(id) => removeWasteEntry('plant', id)}
+            onRemoveWaste={(id) => removeWasteEntry("plant", id)}
           />
         )}
 
@@ -400,12 +616,24 @@ export default function WasteManagementScreen({ navigation }: any) {
             data={portPlantData}
             selectedQuarter={selectedQuarter}
             onUpdateData={updatePortPlantData}
-            onAddWaste={() => addWasteEntry('port')}
+            onAddWaste={() => addWasteEntry("port")}
             onUpdateWaste={(id, field, value) =>
-              updateWasteEntry('port', id, field, value)
+              updateWasteEntry("port", id, field, value)
             }
-            onRemoveWaste={(id) => removeWasteEntry('port', id)}
+            onRemoveWaste={(id) => removeWasteEntry("port", id)}
           />
+        )}
+
+        {__DEV__ && (
+          <TouchableOpacity
+            style={[
+              styles.saveNextButton,
+              { backgroundColor: "#ff8c00", marginTop: 12 },
+            ]}
+            onPress={fillTestData}
+          >
+            <Text style={styles.saveNextButtonText}>Fill Test Data</Text>
+          </TouchableOpacity>
         )}
 
         <TouchableOpacity

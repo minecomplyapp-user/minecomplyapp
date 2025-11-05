@@ -1,7 +1,7 @@
 // RecommendationsScreen.types.ts
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RouteProp } from "@react-navigation/native";
-import * as DocumentPicker from 'expo-document-picker';
+import * as DocumentPicker from "expo-document-picker";
 
 export type RecommendationItem = {
   recommendation: string;
@@ -14,7 +14,7 @@ export type SectionData = {
   items: RecommendationItem[];
 };
 
-export type SectionKey = 'plant' | 'quarry' | 'port';
+export type SectionKey = "plant" | "quarry" | "port";
 
 export type PickerItem = {
   label: string;
@@ -24,20 +24,25 @@ export type PickerItem = {
 export type RootStackParamList = {
   AttendanceDetail: {
     record: {
-      id: number;
+      id: string;
       title: string;
       date: string;
     };
   };
+  AttendanceList: {
+    fromRecommendations?: boolean;
+    [key: string]: any;
+  };
   Recommendations: any;
+  CMVRDocumentExport: any;
 };
 
 export type RecommendationsScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
-  'Recommendations'
+  "Recommendations"
 >;
 
 export type RecommendationsScreenRouteProp = RouteProp<
   RootStackParamList,
-  'Recommendations'
+  "Recommendations"
 >;
