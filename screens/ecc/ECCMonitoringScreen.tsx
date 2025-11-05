@@ -94,8 +94,9 @@ const handleGenerateAndDownload = async (
     }
 };
 
-
   const getMonitoringData = () => {
+    const permit_holders_with_conditions=permit_holders
+
   return {
     filename,
     generalInfo: {
@@ -128,6 +129,7 @@ const handleGenerateAndDownload = async (
       faxNo,
       emailAddress,
     },
+    permit_holders_with_conditions,
   conditions: permit_holders
       .map((holder) => holder.monitoringState.formatted)
       .filter(Boolean)
