@@ -30,9 +30,8 @@ import {
 import { theme } from "../../theme/theme";
 import { styles } from "./styles/dashboardScreen";
 import { useAuth } from "../../contexts/AuthContext";
-import { useFileName } from "../../contexts/FileNameContext";
-import { apiGet } from "../../lib/api";
-import { getAllDraftMetadata, DraftMetadata, getDraft } from "../../lib/drafts";
+import { Ionicons } from "@expo/vector-icons";
+import { CustomHeader } from "../../components/CustomHeader";
 
 interface Report {
   id: string;
@@ -212,6 +211,7 @@ export default function DashboardScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
+      <CustomHeader goBackTo="RoleSelection" showSave={false} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -263,7 +263,7 @@ export default function DashboardScreen({ navigation }: any) {
               icon={Copy}
               title="Duplicate Report"
               subtitle="Use a previous template"
-              onPress={() => console.log("Duplicate Report")}
+              onPress={() => navigation.navigate("DuplicateReport")}
             />
           </View>
         </View>
@@ -523,10 +523,12 @@ function CreateReportModal({ visible, onClose, navigation }: any) {
                 />
                 <ModalButton
                   icon={AlertTriangle}
-                  title="EPEP / AEPEP"
+                  title="EPEP"
                   onPress={() => {
-                    console.log("EPEP / AEPEP");
                     onClose();
+                    setTimeout(() => {
+                      navigation.navigate('EPEP');
+                    }, 120);
                   }}
                 />
               </View>

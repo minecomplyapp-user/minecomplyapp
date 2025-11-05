@@ -14,6 +14,9 @@ export const loadStored = async (): Promise<{ permitHolders?: PermitHolder[] } |
   }
 };
 
+
+
+
 export const saveStored = async (payload: { permitHolders?: PermitHolder[] }) => {
   try {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(payload));

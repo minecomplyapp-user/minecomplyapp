@@ -25,7 +25,7 @@ export const DEFAULTS: BaseCondition[] = [
       not: "Still in the process of securing the necessary requirements for ECC EIS category application for MPSA Contract.",
     },
     isDefault: true,
-    parentId: "1",
+    nested_to: "1",
   },
   {
     id: "1.2",
@@ -37,7 +37,7 @@ export const DEFAULTS: BaseCondition[] = [
       not: "Still in the process of completing and preparing the necessary reports for submission.",
     },
     isDefault: true,
-    parentId: "1",
+    nested_to: "1",
   },
   {
     id: "2",
@@ -118,7 +118,7 @@ export const DEFAULTS: BaseCondition[] = [
       not: "Still in the process of securing PTO, Discharge Permit, and WWDP requirements",
     },
     isDefault: true,
-    parentId: "7",
+    nested_to: "7",
   },
   {
     id: "7b",
@@ -130,7 +130,7 @@ export const DEFAULTS: BaseCondition[] = [
       not: "Still in the process of designating a PCO and securing accreditation",
     },
     isDefault: true,
-    parentId: "7",
+    nested_to: "7",
   },
   {
     id: "7c",
@@ -142,7 +142,7 @@ export const DEFAULTS: BaseCondition[] = [
       not: "Still in the process of securing registration as HW Generator",
     },
     isDefault: true,
-    parentId: "7",
+    nested_to: "7",
   },
   {
     id: "7d",
@@ -154,7 +154,7 @@ export const DEFAULTS: BaseCondition[] = [
       not: "Still in the process of preparing and submitting SMRs",
     },
     isDefault: true,
-    parentId: "7",
+    nested_to: "7",
   },
   {
     id: "7e",
@@ -167,7 +167,7 @@ export const DEFAULTS: BaseCondition[] = [
       not: "Still in the process of preparing and submitting ROLA",
     },
     isDefault: true,
-    parentId: "7",
+    nested_to: "7",
   },
   {
     id: "7f",
@@ -181,7 +181,7 @@ export const DEFAULTS: BaseCondition[] = [
       not: "Still in the process of securing PTT, HW-Manifest, and COT",
     },
     isDefault: true,
-    parentId: "7",
+    nested_to: "7",
   },
   {
     id: "8",
@@ -269,3 +269,34 @@ export const DEFAULTS: BaseCondition[] = [
     isDefault: true,
   },
 ];
+
+
+[{ "cond": 
+  { "descriptions": [Object], "id": "1", "isDefault": true, "title": "Condition 1: Secure all necessary Permits from concerned agencies" 
+
+  }, "displayLabel": "1" }, 
+  { "cond": 
+    { "descriptions": [Object],
+       "id": "1.1", 
+       "isDefault": true,
+        "nested_to": "1", 
+        "title": 
+        "Condition 1.1: That this Certificate shall cover the extraction and processing of 70,000 cu. m. sand, gravel and boulders annually and the installation of 2 units of sand and gravel classifiers with a production capacity of 80 cu. m./ hr; confined within an applied area of 19.9999 ha." }
+        , "displayLabel": "1.1" }, 
+        { "cond": { 
+          "descriptions": [Object], 
+          "id": "1.2", "isDefault": true,
+           "nested_to": "1", 
+           "title": "Condition 1.2: Submission of semi-annual Compliance Monitoring Report (CMR)" },
+            "displayLabel": "1.2" 
+          }, { 
+            "cond": { 
+              "descriptions": [
+                
+              ],
+               "id": "2",
+                "isDefault": true, 
+                "title": "Condition 2: Provision of adequate drainage system and soil erosion control measures" 
+              
+              }, "displayLabel": "2" 
+            }, { "cond": { "descriptions": [Object], "id": "3", "isDefault": true, "title": "Condition 3: Implementation of regular sanitary housekeeping practices, proper collection of solid and hazardous waste" }, "displayLabel": "3" }, { "cond": { "descriptions": [Object], "id": "4", "isDefault": true, "title": "Condition 4: Conduct of Tree Planting and submission of annual report (if applicable)" }, "displayLabel": "4" }, { "cond": { "descriptions": [Object], "id": "5", "isDefault": true, "title": "Condition 5: Secure Tree Cutting Permit" }, "displayLabel": "5" }, { "cond": { "descriptions": [Object], "id": "6", "isDefault": true, "title": "Condition 6: Conduct of Information, Education & Communication (IEC) Campaign and submission of annual report of compliance (if applicable)" }, "displayLabel": "6" }, { "cond": { "descriptions": [Object], "id": "7", "isDefault": true, "title": "Compliance with the provisions of RA 8749, RA 9275, RA 9003 and RA 6969" }, "displayLabel": "7" }, { "cond": { "descriptions": [Object], "id": "7a", "isDefault": true, "nested_to": "7", "title": "Condition 7a: Secure a PTO and Discharge Permit" }, "displayLabel": "7a" }, { "cond": { "descriptions": [Object], "id": "7b", "isDefault": true, "nested_to": "7", "title": "Condition 7b: Designate a PCO" }, "displayLabel": "7b" }, { "cond": { "descriptions": [Object], "id": "7c", "isDefault": true, "nested_to": "7", "title": "Condition 7c: Registration as a HW Generator" }, "displayLabel": "7c" }, { "cond": { "descriptions": [Object], "id": "7d", "isDefault": true, "nested_to": "7", "title": "Condition 7d: Submission of SMR (if applicable)" }, "displayLabel": "7d" }, { "cond": { "descriptions": [Object], "id": "7e", "isDefault": true, "nested_to": "7", "title": "Condition 7e: Submission of ROLA (if applicable)" }, "displayLabel": "7e" }, { "cond": { "descriptions": [Object], "id": "7f", "isDefault": true, "nested_to": "7", "title": "Condition 7f: Secure Permit to Transport (PTT) and submission of HW-Manifest and Certificate of Treatment (COT) (if applicable)" }, "displayLabel": "7f" }, { "cond": { "descriptions": [Object], "id": "8", "isDefault": true, "title": "Condition 8: Submission of report on the implemented mitigating measures and the corresponding cost of such activities" }, "displayLabel": "8" }, { "cond": { "descriptions": [Object], "id": "9", "isDefault": true, "title": "Condition 9: Conduct of Information, Education & Communication (IEC) Campaign and submission of annual report of compliance (if applicable)" }, "displayLabel": "9" }, { "cond": { "descriptions": [Object], "id": "10", "isDefault": true, "title": "Condition 10: Creation of Environmental Unit and designation of PCO" }, "displayLabel": "10" }, { "cond": { "descriptions": [Object], "id": "11", "isDefault": true, "title": "Condition 11: Submit abandonment plan in case of abandonment, 3 months prior abandonment" }, "displayLabel": "11" }, { "cond": { "descriptions": [Object], "id": "12", "isDefault": true, "title": "Condition 12: Project expansion and/or construction of additional structures, change in location shall be subject to a new EIA" }, "displayLabel": "12" }, { "cond": { "descriptions": [Object], "id": "13", "isDefault": true, "title": "Condition 13: Land clearing within the project description" }, "displayLabel": "13" }, { "cond": { "descriptions": [Object], "id": "14", "isDefault": true, "title": "Condition 14: Notify EMB in case of transfer of ownership within 15 days from the date of transfer" }, "displayLabel": "14" }]

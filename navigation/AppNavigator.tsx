@@ -10,6 +10,7 @@ import { FileNameProvider } from "../contexts/FileNameContext";
 import AuthScreen from "../screens/auth/AuthScreen";
 import RoleSelectionScreen from "../screens/role-selection/RoleSelectionScreen";
 import DashboardScreen from "../screens/dashboard/DashboardScreen";
+import DuplicateReportScreen from "../screens/dashboard/DuplicateReportScreen";
 import SubmissionsScreen from "../screens/SubmissionsScreen";
 import ProfileScreen from "../screens/profile/ProfileScreen";
 import EditProfileScreen from "../screens/profile/EditProfileScreen";
@@ -32,6 +33,8 @@ import ECCMonitoringScreen2 from "../screens/ecc/conditions";
 import CMVRDocumentExportScreen from "../screens/CMVRPAGE/CMVRDocumentExportScreen";
 import ExportReportScreen from "../screens/CMVRPAGE/ExportReportScreen";
 import CMVRDraftsScreen from "../screens/CMVRPAGE/CMVRDraftsScreen";
+import GuestDashboardScreen from "../screens/dashboard/GuestDashboardScreen";
+import EPEPScreen from "../screens/EPEP/epepScreen";
 
 const RootStack = createStackNavigator();
 
@@ -67,6 +70,11 @@ const AppNavigator = () => {
                 options={{ headerShown: false }}
               />
               <RootStack.Screen
+                name="DuplicateReport"
+                component={DuplicateReportScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen
                 name="AttendanceRecords"
                 component={AttendanceRecordScreen}
                 options={{ headerShown: false }}
@@ -84,6 +92,16 @@ const AppNavigator = () => {
               <RootStack.Screen
                 name="CMVRDrafts"
                 component={CMVRDraftsScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen
+                name="GuestDashboard"
+                component={GuestDashboardScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen
+                name="AttendanceDetail"
+                component={AttendanceDetailScreen}
                 options={{ headerShown: false }}
               />
               <RootStack.Screen name="Reports" component={ReportsScreen} />
@@ -105,16 +123,7 @@ const AppNavigator = () => {
                 name="ECCMonitoring"
                 component={ECCMonitoringScreen}
               />
-              <RootStack.Screen
-                name="ECCMonitoringScreen"
-                component={ECCMonitoringScreen}
-              />
-
-              {/* <RootStack.Screen
-                name="EIACompliance"
-                component={EIAComplianceScreen}
-                options={{ headerShown: false }}
-              /> */}
+              <RootStack.Screen name="EPEP" component={EPEPScreen} />
               <RootStack.Screen
                 name="EnvironmentalCompliance"
                 component={EnvironmentalComplianceScreen}

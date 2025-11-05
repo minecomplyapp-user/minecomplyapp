@@ -21,6 +21,7 @@ export default function AuthScreen({ navigation }: any) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [user, setUser] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
@@ -40,7 +41,11 @@ export default function AuthScreen({ navigation }: any) {
       const result = isLogin
         ? await signIn(email, password)
         : await signUp(email, password, firstName, lastName);
+      const { data, error } = result;
 
+      if (!error && data?.user) {
+        setUser(data.user); // Sets the user state if the operation was successful
+      }
       if (result.error) {
         // Check if it's a duplicate email error
         const errorMessage = result.error.message.toLowerCase();

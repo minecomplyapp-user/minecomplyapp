@@ -9,6 +9,7 @@ import {
   Platform,
   Alert,
 } from "react-native";
+
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../theme/theme";
@@ -16,12 +17,181 @@ import { CustomHeader } from "../../components/CustomHeader";
 import { ECCMonitoringSection } from "../ecc/components/monitoringSection";
 import { styles } from "../ecc/styles/eccStyles"; // reuse styles from both screens
 import { scale, verticalScale, moderateScale } from "../../utils/responsive";
+// import {clearAppStorage} from "conditions.tsx"
+import * as FileSystem from 'expo-file-system/legacy'; // Correct
+import * as Sharing from 'expo-sharing';
+import {useEccStore} from "../../store/eccStore.js"
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function ECCMonitoringScreen({ navigation }: any) {
+  const { user } = useAuth();
+
+  const {addReport,createAndDownloadReport}= useEccStore();
+// *** Make sure your import looks like this in your file: ***
+// import * as FileSystem from 'expo-file-system/legacy'; 
+// import * as Sharing from 'expo-sharing';
+
+const handleGenerateAndDownload = async (
+    reportData: any, 
+    // Accept an optional function to update the loading state
+    onLoadingChange: (isLoading: boolean) => void = () => {} 
+) => {
+    // 1. Initiate the report creation and download.
+    // Pass the loading callback down to the API function (createAndDownloadReport)
+    const result = await createAndDownloadReport(reportData, onLoadingChange);
+
+    if (result.success && result.fileBlob) {
+        const { fileBlob, filename } = result;
+
+        // **NOTE:** createAndDownloadReport has already set loading to false 
+        // when the Blob was received. We re-enable it for the heavy file-writing phase.
+        onLoadingChange(true); 
+
+        // 1. Convert the Blob (from fetch) to a Base64 string
+        const reader = new FileReader();
+        reader.readAsDataURL(fileBlob);
+        
+        reader.onloadend = async () => {
+            const base64data = (reader.result as string).split(',')[1];
+
+            // 2. Define the local URI path
+            const fileUri = FileSystem.documentDirectory + filename;
+
+            try {
+                // 3. Write the Base64 data to a local file
+                await FileSystem.writeAsStringAsync(fileUri, base64data, {
+                    encoding: 'base64', 
+                });
+                
+                // 4. Share the file
+                if (await Sharing.isAvailableAsync()) {
+                    await Sharing.shareAsync(fileUri, {
+                         mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    });
+                } else {
+                    alert(`File saved to ${fileUri}`);
+                }
+                
+                // Stop loading after success
+                onLoadingChange(false); 
+            } catch (e) {
+                console.error('File system error:', e);
+                alert('Failed to save or share the file.');
+                
+                // Stop loading after error
+                onLoadingChange(false);
+            }
+        };
+        reader.onerror = (e) => {
+            console.error('FileReader error:', e);
+            alert('File reading failed.');
+            onLoadingChange(false);
+        };
+
+    } else if (result.error) {
+        alert(`Error: ${result.error}`);
+        // Loading state is handled by createAndDownloadReport in this error path
+    }
+};
+
+  const getMonitoringData = () => {
+    const permit_holders_with_conditions=permit_holders
+
+  return {
+    filename,
+    generalInfo: {
+      companyName,
+      status,
+      date: date.toISOString(),
+    },
+    mmtInfo: {
+      contactPerson,
+      position: mmtPosition,
+      mailingAddress,
+      telNo,
+      faxNo,
+      emailAddress,
+    },
+    permit_holders, 
+    
+   topass: {
+    filename,
+     generalInfo: {
+      companyName,
+      status,
+      date: date.toISOString(),
+    },
+     mmtInfo: {
+      contactPerson,
+      position: mmtPosition,
+      mailingAddress,
+      telNo,
+      faxNo,
+      emailAddress,
+    },
+    permit_holders_with_conditions,
+  conditions: permit_holders
+      .map((holder) => holder.monitoringState.formatted)
+      .filter(Boolean)
+      .flatMap((formattedData) => formattedData.conditions || []),
+
+    permit_holders: permit_holders.map(
+      (holder) => `${holder.name || "Unnamed"}– (${holder.type || "Unknown"}Permit Holder)`
+    ),
+remarks_list: permit_holders.reduce((acc, holder, index) => {
+    // Determine the remarks format
+    const remarks = Array.isArray(holder.remarks)
+      ? holder.remarks
+      : holder.remarks
+      ? [holder.remarks]
+      : ["No remarks"];
+
+    // Assign the array of remarks to a key named after the index
+    acc[index.toString()] = remarks; 
+
+    // Return the accumulating object for the next iteration
+    return acc;
+}, {}), // <-- Start with an empty object {}
+    recommendations,
+  createdById:user?.email,
+
+  },
+    
+    recommendations,
+  };
+};
+
+
   // === General Information ===
+  //field for filename
+  const [filename, setFileName] = useState("");
+  //fields for general info
   const [date, setDate] = useState<Date>(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [companyName, setCompanyName] = useState<string>("");
+  const [permit_holders, setPermitHolders] = useState<any[]>([]);
   const [status, setStatus] = useState<"Active" | "Inactive" | null>(null);
+
+  //MMT fields
+
+  const [contactPerson, setContactPerson] = useState<string>("");
+  const [mmtPosition, setMmtPosition] = useState<string>(""); // Renamed from 'position' to avoid conflict if needed
+  const [mailingAddress, setMailingAddress] = useState<string>("");
+  const [telNo, setTelNo] = useState<string>("");
+  const [faxNo, setFaxNo] = useState<string>("");
+  const [emailAddress, setEmailAddress] = useState<string>("");
+
+
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+
+
+useEffect(() => {
+    // 1. Persist local state back to parent state
+ 
+     const data = getMonitoringData();
+  console.log(JSON.stringify(data, null, 2));
+  }, [contactPerson, mmtPosition, mailingAddress,telNo,faxNo,emailAddress]);
+
 
   const onChangeDate = (_event: any, selectedDate?: Date) => {
     const currentDate = selectedDate || date;
@@ -40,7 +210,6 @@ export default function ECCMonitoringScreen({ navigation }: any) {
   ];
 
   // === Permit Holders ===
-  const [permitHolders, setPermitHolders] = useState<any[]>([]);
   const [showPermitDatePicker, setShowPermitDatePicker] = useState<{
     id: string | null;
     show: boolean;
@@ -49,6 +218,7 @@ export default function ECCMonitoringScreen({ navigation }: any) {
   const addPermitHolder = (type: "ECC" | "ISAG") => {
     const id = `${type}-${Date.now()}`;
     const newHolder = {
+      
       id,
       type,
       name: "",
@@ -92,14 +262,13 @@ export default function ECCMonitoringScreen({ navigation }: any) {
   };
 
   
-  const [fileName, setFileName] = useState("");
   
   return (
     <SafeAreaView style={styles.safeContainer}>
       <CustomHeader
   showSave={true}
   showFileName={true}
-  fileName={fileName}
+  filename={filename}
   onChangeFileName={setFileName}
 />
       <ScrollView
@@ -120,7 +289,7 @@ export default function ECCMonitoringScreen({ navigation }: any) {
     <Text style={styles.label}>File Name</Text>
 <TextInput
   placeholder="Enter file name"
-  value={fileName}           // synced with header
+  value={filename}           // synced with header
   onChangeText={setFileName}
   style={styles.input}
 />
@@ -138,6 +307,8 @@ export default function ECCMonitoringScreen({ navigation }: any) {
                 placeholder="Enter company name"
                 placeholderTextColor="#C0C0C0"
                 style={styles.input}
+                value={companyName} 
+                onChangeText={setCompanyName}
               />
             </View>
             <View style={styles.inputContainer}>
@@ -224,45 +395,90 @@ export default function ECCMonitoringScreen({ navigation }: any) {
                   display="default"
                   onChange={onChangeDate}
                 />
-              )}
+              )
+              }
             </View>
           </View>
         </View>
 
         {/* === Multipartite Monitoring Team === */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Multipartite Monitoring Team</Text>
-          <View style={styles.card}>
-            {teamFields.map((label, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.inputContainer,
-                  index === teamFields.length - 1 && { marginBottom: 0 },
-                ]}
-              >
-                <Text style={styles.label}>{label}</Text>
-                <TextInput
-                  placeholder={`Enter ${label.toLowerCase()}`}
-                  placeholderTextColor="#C0C0C0"
-                  style={styles.input}
-                />
-                {label === "Email Address" && (
-                  <TouchableOpacity style={styles.autoPopulateButton}>
-                    <Ionicons
-                      name="sync"
-                      size={16}
-                      color={theme.colors.primaryDark}
-                    />
-                    <Text style={styles.autoPopulateText}>
-                      Auto-populate with your saved info
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
-          </View>
+        {/* <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Multipartite Monitoring Team</Text> */}
+         {/* === Multipartite Monitoring Team === */}
+<View style={styles.section}>
+  <Text style={styles.sectionTitle}>Multipartite Monitoring Team</Text>
+  <View style={styles.card}>
+    {teamFields.map((label, index) => {
+      // 1. Determine the current value and setter for the field
+      let value: string;
+      let setter: (text: string) => void;
+
+      switch (label) {
+        case "Contact Person":
+          value = contactPerson;
+          setter = setContactPerson;
+          break;
+        case "Position":
+          value = mmtPosition;
+          setter = setMmtPosition;
+          break;
+        case "Mailing Address":
+          value = mailingAddress;
+          setter = setMailingAddress;
+          break;
+        case "Telephone No.":
+          value = telNo;
+          setter = setTelNo;
+          break;
+        case "Fax No.":
+          value = faxNo;
+          setter = setFaxNo;
+          break;
+        case "Email Address":
+          value = emailAddress;
+          setter = setEmailAddress;
+          break;
+        default:
+          // Fallback to ensure 'value' and 'setter' are always defined
+          value = "";
+          setter = () => {}; 
+      }
+
+      return (
+        <View
+          key={index}
+          style={[
+            styles.inputContainer,
+            index === teamFields.length - 1 && { marginBottom: 0 },
+          ]}
+        >
+          <Text style={styles.label}>{label}</Text>
+          <TextInput
+            placeholder={`Enter ${label.toLowerCase()}`}
+            placeholderTextColor="#C0C0C0"
+            style={styles.input}
+            // 👇 STATE BINDING: Use the determined value and setter
+            value={value}
+            onChangeText={setter}
+          />
+          {label === "Email Address" && (
+            <TouchableOpacity style={styles.autoPopulateButton}>
+              <Ionicons
+                name="sync"
+                size={16}
+                color={theme.colors.primaryDark}
+              />
+              <Text style={styles.autoPopulateText}>
+                Auto-populate with your saved info
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
+      );
+    })}
+  </View>
+</View>
+        {/* </View> */}
 
         {/* === Permit Holders === */}
         <View style={styles.section}>
@@ -298,7 +514,7 @@ export default function ECCMonitoringScreen({ navigation }: any) {
             </View>
           </View>
 
-          {permitHolders.map((holder, idx) => {
+          {permit_holders.map((holder, idx) => {
             const issuanceDateDisplay = holder.issuanceDate
               ? new Date(holder.issuanceDate).toLocaleDateString()
               : null;
@@ -420,16 +636,34 @@ export default function ECCMonitoringScreen({ navigation }: any) {
                 </View>
 
                 {/* Monitoring Section */}
-                <ECCMonitoringSection
-                  initialState={holder.monitoringState}
-                  onChange={(s) =>
-                    setPermitHolders((p) =>
-                      p.map((h) =>
-                        h.id === holder.id ? { ...h, monitoringState: s } : h
-                      )
-                    )
-                  }
-                />
+                    <ECCMonitoringSection
+                      initialState={holder.monitoringState}
+                      onChange={(s) =>
+                        setPermitHolders((p) =>
+                          p.map((h, index) => {
+                            if (h.id === holder.id) {
+                              // ensure all conditions inside this holder get the same section number
+                              const section = index + 1;
+                              return {
+                                ...h,
+                                monitoringState: {
+                                  ...s,
+                                  formatted: {
+                                    ...s.formatted,
+                                    conditions: s.formatted?.conditions?.map((cond) => ({
+                                      ...cond,
+                                      section,
+                                    })) || [],
+                                  },
+                                },
+                              };
+                            }
+                            return h;
+                          })
+                        )
+                      }
+                    />
+
 
                 {/* Remarks */}
                 <View>
@@ -536,10 +770,10 @@ export default function ECCMonitoringScreen({ navigation }: any) {
           {showPermitDatePicker.show && Platform.OS === "android" && (
             <DateTimePicker
               value={
-                permitHolders.find((h) => h.id === showPermitDatePicker.id)
+                permit_holders.find((h) => h.id === showPermitDatePicker.id)
                   ?.issuanceDate
                   ? new Date(
-                      permitHolders.find(
+                      permit_holders.find(
                         (h) => h.id === showPermitDatePicker.id
                       )!.issuanceDate
                     )
@@ -636,7 +870,9 @@ export default function ECCMonitoringScreen({ navigation }: any) {
         </View>
 
         {/* === Generate ECC Compliance Monitoring Report Button === */}
-        <TouchableOpacity style={styles.saveButton}>
+        <TouchableOpacity style={styles.saveButton}
+        onPress={() => handleGenerateAndDownload(getMonitoringData().topass)}  // ✅ correct
+>
           <Text style={styles.saveButtonText}>Generate ECC Report</Text>
           <Ionicons
             name="arrow-forward"

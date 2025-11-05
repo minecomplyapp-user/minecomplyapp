@@ -32,7 +32,7 @@ type BaseCondition = {
   title: string;
   descriptions: Record<ChoiceKey, string>;
   isDefault?: boolean; // default conditions
-  parentId?: CondID | null; // for subconditions like 7a -> parentId "7"
+  nested_to?: CondID | null; // for subconditions like 7a -> nested_to "7"
 };
 
 type StoredState = {
@@ -68,7 +68,7 @@ const DEFAULTS: BaseCondition[] = [
       not: "Still in the process of securing the necessary requirements for ECC EIS category application for MPSA Contract.",
     },
     isDefault: true,
-    parentId: "1",
+    nested_to: "1",
   },
   {
     id: "1.2",
@@ -80,7 +80,7 @@ const DEFAULTS: BaseCondition[] = [
       not: "Still in the process of completing and preparing the necessary reports for submission.",
     },
     isDefault: true,
-    parentId: "1",
+    nested_to: "1",
   },
   {
     id: "2",
@@ -144,7 +144,7 @@ const DEFAULTS: BaseCondition[] = [
     isDefault: true,
   },
 
-  // Condition 7 (parent) with subconditions 7a..7f (each subcondition is also a BaseCondition with parentId "7")
+  // Condition 7 (parent) with subconditions 7a..7f (each subcondition is also a BaseCondition with nested_to "7")
   {
     id: "7",
     title:
@@ -163,7 +163,7 @@ const DEFAULTS: BaseCondition[] = [
       not: "Still in the process of securing PTO, Discharge Permit, and WWDP requirements",
     },
     isDefault: true,
-    parentId: "7",
+    nested_to: "7",
   },
   {
     id: "7b",
@@ -175,7 +175,7 @@ const DEFAULTS: BaseCondition[] = [
       not: "Still in the process of designating a PCO and securing accreditation",
     },
     isDefault: true,
-    parentId: "7",
+    nested_to: "7",
   },
   {
     id: "7c",
@@ -187,7 +187,7 @@ const DEFAULTS: BaseCondition[] = [
       not: "Still in the process of securing registration as HW Generator",
     },
     isDefault: true,
-    parentId: "7",
+    nested_to: "7",
   },
   {
     id: "7d",
@@ -199,7 +199,7 @@ const DEFAULTS: BaseCondition[] = [
       not: "Still in the process of preparing and submitting SMRs",
     },
     isDefault: true,
-    parentId: "7",
+    nested_to: "7",
   },
   {
     id: "7e",
@@ -212,7 +212,7 @@ const DEFAULTS: BaseCondition[] = [
       not: "Still in the process of preparing and submitting ROLA",
     },
     isDefault: true,
-    parentId: "7",
+    nested_to: "7",
   },
   {
     id: "7f",
@@ -226,7 +226,7 @@ const DEFAULTS: BaseCondition[] = [
       not: "Still in the process of securing PTT, HW-Manifest, and COT",
     },
     isDefault: true,
-    parentId: "7",
+    nested_to: "7",
   },
 
   {
@@ -388,6 +388,8 @@ export default function ECCMonitoringScreen2() {
       if (!e) return { ...d };
       return {
         ...d,
+        nested_to: d.nested_to,
+      
         title: (e.title as string) ?? d.title,
         descriptions: (e.descriptions as any) ?? d.descriptions,
       };
@@ -441,6 +443,21 @@ export default function ECCMonitoringScreen2() {
     setEditing(JSON.parse(JSON.stringify(cond)));
     setModalVisible(true);
   };
+  const clearAppStorage = async () => {
+  try {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+    console.log("AsyncStorage data cleared for:", STORAGE_KEY);
+    Alert.alert("Data Wiped", "App storage cleared. Restart your app to load fresh DEFAULTS.");
+    
+    // Optional: Reset state immediately to reflect changes without a full restart
+    setEdits({});
+    setCustoms([]);
+    setSelections({});
+  } catch (e) {
+    console.error("Failed to clear storage:", e);
+  }
+};
+clearAppStorage();
 
   const saveModal = async () => {
     if (!editing) return;
@@ -471,7 +488,7 @@ export default function ECCMonitoringScreen2() {
   // delete condition: defaults -> transient remove; custom -> permanent remove
   const deleteCondition = (cond: BaseCondition) => {
     // Only allow deletion of sub-conditions of Condition 7
-    if (cond.parentId === "7") {
+    if (cond.nested_to === "7") {
       Alert.alert(
         "Delete Condition",
         "Delete this sub-condition permanently?",
@@ -492,7 +509,7 @@ export default function ECCMonitoringScreen2() {
               // Check if there are any remaining sub-conditions
               const remainingChildren = currentList.filter(
                 (c) =>
-                  c.parentId === "7" &&
+                  c.nested_to === "7" &&
                   c.id !== cond.id &&
                   !removedDefaults.includes(c.id)
               );
@@ -549,8 +566,8 @@ export default function ECCMonitoringScreen2() {
       if (!found) continue;
       items.push({ cond: found, displayLabel: String(counter) });
       counter++;
-      // if this default has children (IDs with parentId === d.id), they appear immediately after but numbered according to their explicit IDs like 1.1,7a etc.
-      // In our model, those children are separate entries in DEFAULTS (we set parentId on them), and they will be iterated next naturally
+      // if this default has children (IDs with nested_to === d.id), they appear immediately after but numbered according to their explicit IDs like 1.1,7a etc.
+      // In our model, those children are separate entries in DEFAULTS (we set nested_to on them), and they will be iterated next naturally
       // So the numbering we present follows the item's explicit ID labeling — user requested exact numbering, so we will show original ID labels for children.
       // To keep things consistent with "Condition 1.1", we'll render parent counter + ".1" for the child if child's id includes a dot or letter (we'll show child's explicit id).
       // For simplicity, displayLabel for a child will be its explicit id (e.g. "1.1" or "7a").
@@ -569,7 +586,7 @@ export default function ECCMonitoringScreen2() {
     for (const c of currentList) {
       // For items that are defaults and whose id contains '.' or letter (like 1.1,7a) we will use their id as label.
       // For top-level items with numeric ids we use idx numeric label.
-      const isChild = !!c.parentId;
+      const isChild = !!c.nested_to;
       const label = isChild ? c.id : String(idx);
       finalItems.push({ cond: c, displayLabel: label });
       if (!isChild) idx++;
@@ -611,9 +628,9 @@ export default function ECCMonitoringScreen2() {
                   </Text>
                 </View>
 
-                {/* Render items in displayItems order. If item has parentId (child), we indent it. */}
+                {/* Render items in displayItems order. If item has nested_to (child), we indent it. */}
                 {displayItems.map(({ cond, displayLabel }) => {
-                  const isChild = !!cond.parentId;
+                  const isChild = !!cond.nested_to;
 
                   // Check if this is Condition 7 (title-only)
                   const isTitleOnly = cond.id === "7";

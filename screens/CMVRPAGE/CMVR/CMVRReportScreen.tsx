@@ -220,7 +220,7 @@ const transformToBackendDTO = (
   };
 };
 
-const CMVRReportScreen = () => {
+const CMVRReportScreen: React.FC = () => {
   const navigation = useNavigation<CMVRReportScreenNavigationProp>();
   const route = useRoute<CMVRReportScreenRouteProp>();
   const routeParams = route.params || {};
