@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput } from 'react-native';
-import { RadioButton } from './RadioButton';
+import { Checkbox } from './Checkbox';
 import { MitigatingMeasure, MitigatingMeasureFormProps } from '../types/MitigatingMeasureForm.types';
 import { styles } from '../styles/MitigatingMeasureForm.styles';
 
@@ -49,14 +49,14 @@ export const MitigatingMeasureForm: React.FC<MitigatingMeasureFormProps> = ({
       <View style={[styles.effectiveRow, disabled && styles.effectiveRowDisabled]}>
         <Text style={[styles.effectiveLabel, disabled && styles.textDisabled]}>Is it Effective?</Text>
         <View style={styles.radioGroup}>
-          <RadioButton
-            selected={measure.isEffective === 'yes'}
+          <Checkbox
+            checked={measure.isEffective === 'yes'}
             onPress={() => !disabled && onUpdate('isEffective', 'yes')}
             label="Yes"
             disabled={disabled}
           />
-          <RadioButton
-            selected={measure.isEffective === 'no'}
+          <Checkbox
+            checked={measure.isEffective === 'no'}
             onPress={() => !disabled && onUpdate('isEffective', 'no')}
             label="No"
             disabled={disabled}

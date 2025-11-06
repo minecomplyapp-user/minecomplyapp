@@ -1,5 +1,5 @@
-export interface RadioButtonProps {
-  selected: boolean;
+export interface CheckboxProps {
+  checked: boolean;
   onPress: () => void;
   label?: string;
   disabled?: boolean;
