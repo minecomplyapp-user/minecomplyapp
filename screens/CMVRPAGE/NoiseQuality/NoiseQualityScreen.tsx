@@ -141,6 +141,84 @@ export default function NoiseQualityScreen({ navigation, route }: any) {
     }
   };
 
+  const handleStay = () => {
+    console.log("User chose to stay");
+  };
+
+  const handleSaveToDraft = async () => {
+    try {
+      const prevPageData: any = route.params || {};
+
+      const noiseQualityImpactAssessment = {
+        hasInternalNoise,
+        uploadedFiles,
+        parameters,
+        remarks,
+        dateTime,
+        weatherWind,
+        explanation,
+        explanationNA,
+        quarters,
+      };
+
+      const draftData = {
+        ...prevPageData.generalInfo,
+        ...prevPageData.eccInfo,
+        ...prevPageData.eccAdditionalForms,
+        ...prevPageData.isagInfo,
+        ...prevPageData.isagAdditionalForms,
+        ...prevPageData.epepInfo,
+        ...prevPageData.epepAdditionalForms,
+        ...prevPageData.rcfInfo,
+        ...prevPageData.rcfAdditionalForms,
+        ...prevPageData.mtfInfo,
+        ...prevPageData.mtfAdditionalForms,
+        ...prevPageData.fmrdfInfo,
+        ...prevPageData.fmrdfAdditionalForms,
+        ...prevPageData.mmtInfo,
+        fileName: prevPageData.fileName || "Untitled",
+        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
+        processDocumentationOfActivitiesUndertaken:
+          prevPageData.processDocumentationOfActivitiesUndertaken,
+        complianceToProjectLocationAndCoverageLimits:
+          prevPageData.complianceToProjectLocationAndCoverageLimits,
+        complianceToImpactManagementCommitments:
+          prevPageData.complianceToImpactManagementCommitments,
+        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
+        waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
+        noiseQualityImpactAssessment,
+        savedAt: new Date().toISOString(),
+      };
+
+      const fileName = prevPageData.fileName || "Untitled";
+      const success = await saveDraft(fileName, draftData);
+
+      if (success) {
+        Alert.alert("Success", "Draft saved successfully");
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: "Dashboard" }],
+          })
+        );
+      } else {
+        Alert.alert("Error", "Failed to save draft. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      Alert.alert("Error", "Failed to save draft. Please try again.");
+    }
+  };
+
+  const handleDiscard = () => {
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: "Dashboard" }],
+      })
+    );
+  };
+
   const addParameter = () => {
     const newId = `param-${Date.now()}`;
     setParameters([
@@ -314,6 +392,10 @@ export default function NoiseQualityScreen({ navigation, route }: any) {
           fileName="Noise Quality Assessment"
           onBack={() => navigation.goBack()}
           onSave={handleSave}
+          onStay={handleStay}
+          onSaveToDraft={handleSaveToDraft}
+          onDiscard={handleDiscard}
+          allowEdit={true}
         />
       </View>
       <ScrollView

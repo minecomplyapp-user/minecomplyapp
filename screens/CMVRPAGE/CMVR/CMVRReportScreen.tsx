@@ -209,9 +209,9 @@ const CMVRReportScreen: React.FC = () => {
   const routeFileName =
     routeParams.fileName || draftData?.fileName || undefined;
   const { fileName, setFileName } = useFileName();
-  console.log("Initial fileName:", fileName); 
+  console.log("Initial fileName:", fileName);
 
-useEffect(() => {
+  useEffect(() => {
     if (routeFileName) {
       setFileName(routeFileName);
     }
@@ -253,9 +253,9 @@ useEffect(() => {
     dateOfIssuance: draftData?.eccInfo?.dateOfIssuance || "",
   });
 
-  const [eccAdditionalForms, setEccAdditionalForms] = useState<ECCAdditionalForm[]>(
-    draftData?.eccAdditionalForms || []
-  );
+  const [eccAdditionalForms, setEccAdditionalForms] = useState<
+    ECCAdditionalForm[]
+  >(draftData?.eccAdditionalForms || []);
 
   const [isagInfo, setIsagInfo] = useState<ISAGInfo>({
     isNA: draftData?.isagInfo?.isNA ?? false,
@@ -274,9 +274,9 @@ useEffect(() => {
     proponentEmail: draftData?.isagInfo?.proponentEmail || "",
   });
 
-  const [isagAdditionalForms, setIsagAdditionalForms] = useState<ISAGAdditionalForm[]>(
-    draftData?.isagAdditionalForms || []
-  );
+  const [isagAdditionalForms, setIsagAdditionalForms] = useState<
+    ISAGAdditionalForm[]
+  >(draftData?.isagAdditionalForms || []);
 
   const [epepInfo, setEpepInfo] = useState<EPEPInfo>({
     isNA: draftData?.epepInfo?.isNA ?? false,
@@ -554,6 +554,70 @@ useEffect(() => {
     }
   };
 
+  const handleStay = () => {
+    // Do nothing, just close the modal
+    console.log("User chose to stay");
+  };
+
+  const handleSaveToDraft = async () => {
+    if (isSaving) {
+      console.log("Save already in progress...");
+      return;
+    }
+    try {
+      setIsSaving(true);
+      const draftData = {
+        generalInfo,
+        eccInfo,
+        eccAdditionalForms,
+        isagInfo,
+        isagAdditionalForms,
+        epepInfo,
+        epepAdditionalForms,
+        rcfInfo,
+        rcfAdditionalForms,
+        mtfInfo,
+        mtfAdditionalForms,
+        fmrdfInfo,
+        fmrdfAdditionalForms,
+        mmtInfo,
+        fileName,
+        savedAt: new Date().toISOString(),
+      };
+      const success = await saveDraft(fileName || "Untitled", draftData);
+      if (success) {
+        setHasUnsavedChanges(false);
+        Alert.alert("Success", "Draft saved successfully");
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: "Dashboard" }],
+          })
+        );
+      } else {
+        throw new Error("Failed to save draft");
+      }
+    } catch (error: any) {
+      console.error("Error saving draft:", error);
+      Alert.alert("Error", "Failed to save draft. Please try again.", [
+        { text: "OK" },
+      ]);
+      throw error;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDiscard = () => {
+    setHasUnsavedChanges(false);
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: "Dashboard" }],
+      })
+    );
+  };
+
   const handleSaveAndContinue = async () => {
     if (!fileName || fileName.trim() === "") {
       Alert.alert(
@@ -594,14 +658,12 @@ useEffect(() => {
   };
 
   const handleBack = () => {
-    if (hasUnsavedChanges) {
-      setShowBackDialog(true);
-    } else {
-      navigation.goBack();
-    }
+    // Always show the dialog to confirm discard or stay
+    setShowBackDialog(true);
   };
 
   const confirmBack = () => {
+    // Discard: Navigate back without saving to drafts
     setShowBackDialog(false);
     setHasUnsavedChanges(false);
     navigation.goBack();
@@ -616,7 +678,14 @@ useEffect(() => {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <CMSHeader onBack={handleBack} onSave={handleSave} allowEdit={true} />
+        <CMSHeader
+          onBack={handleBack}
+          onSave={handleSave}
+          onStay={handleStay}
+          onSaveToDraft={handleSaveToDraft}
+          onDiscard={handleDiscard}
+          allowEdit={true}
+        />
       </View>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -690,8 +759,8 @@ useEffect(() => {
       </ScrollView>
       <ConfirmationDialog
         visible={showBackDialog}
-        title="Unsaved Changes"
-        message="You have unsaved changes. Are you sure you want to go back? All unsaved data will be lost."
+        title="Go Back"
+        message="Are you sure you want to go back? Any unsaved data will be lost."
         confirmText="Discard"
         cancelText="Stay"
         onConfirm={confirmBack}

@@ -127,6 +127,78 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     }
   };
 
+  const handleStay = () => {
+    console.log("User chose to stay");
+  };
+
+  const handleSaveToDraft = async () => {
+    try {
+      const prevPageData: any = route.params || {};
+
+      const waterQualityImpactAssessment = {
+        selectedLocations,
+        data,
+        parameters,
+        ports,
+      };
+
+      const draftData = {
+        ...prevPageData.generalInfo,
+        ...prevPageData.eccInfo,
+        ...prevPageData.eccAdditionalForms,
+        ...prevPageData.isagInfo,
+        ...prevPageData.isagAdditionalForms,
+        ...prevPageData.epepInfo,
+        ...prevPageData.epepAdditionalForms,
+        ...prevPageData.rcfInfo,
+        ...prevPageData.rcfAdditionalForms,
+        ...prevPageData.mtfInfo,
+        ...prevPageData.mtfAdditionalForms,
+        ...prevPageData.fmrdfInfo,
+        ...prevPageData.fmrdfAdditionalForms,
+        ...prevPageData.mmtInfo,
+        fileName: prevPageData.fileName || "Untitled",
+        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
+        processDocumentationOfActivitiesUndertaken:
+          prevPageData.processDocumentationOfActivitiesUndertaken,
+        complianceToProjectLocationAndCoverageLimits:
+          prevPageData.complianceToProjectLocationAndCoverageLimits,
+        complianceToImpactManagementCommitments:
+          prevPageData.complianceToImpactManagementCommitments,
+        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
+        waterQualityImpactAssessment,
+        savedAt: new Date().toISOString(),
+      };
+
+      const fileName = prevPageData.fileName || "Untitled";
+      const success = await saveDraft(fileName, draftData);
+
+      if (success) {
+        Alert.alert("Success", "Draft saved successfully");
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: "Dashboard" }],
+          })
+        );
+      } else {
+        Alert.alert("Error", "Failed to save draft. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      Alert.alert("Error", "Failed to save draft. Please try again.");
+    }
+  };
+
+  const handleDiscard = () => {
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: "Dashboard" }],
+      })
+    );
+  };
+
   const handleLocationToggle = (location: keyof LocationState) => {
     setSelectedLocations((prev) => ({
       ...prev,
@@ -511,7 +583,13 @@ export default function WaterQualityScreen({ navigation, route }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <CMSHeader onBack={() => navigation.goBack()} onSave={handleSave} />
+      <CMSHeader
+        onBack={() => navigation.goBack()}
+        onSave={handleSave}
+        onStay={handleStay}
+        onSaveToDraft={handleSaveToDraft}
+        onDiscard={handleDiscard}
+      />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}

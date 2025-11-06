@@ -224,6 +224,72 @@ const CMVRPage2Screen = () => {
     }
   };
 
+  const handleStay = () => {
+    // Do nothing, just close the modal
+    console.log("User chose to stay");
+  };
+
+  const handleSaveToDraft = async () => {
+    try {
+      // Get all Page 1 data from route params
+      const page1Data: any = route.params || {};
+
+      // Combine all data from Page 1 and Page 2
+      const draftData = {
+        // Page 1 data
+        generalInfo: page1Data.generalInfo,
+        eccInfo: page1Data.eccInfo,
+        eccAdditionalForms: page1Data.eccAdditionalForms,
+        isagInfo: page1Data.isagInfo,
+        isagAdditionalForms: page1Data.isagAdditionalForms,
+        epepInfo: page1Data.epepInfo,
+        epepAdditionalForms: page1Data.epepAdditionalForms,
+        rcfInfo: page1Data.rcfInfo,
+        rcfAdditionalForms: page1Data.rcfAdditionalForms,
+        mtfInfo: page1Data.mtfInfo,
+        mtfAdditionalForms: page1Data.mtfAdditionalForms,
+        fmrdfInfo: page1Data.fmrdfInfo,
+        fmrdfAdditionalForms: page1Data.fmrdfAdditionalForms,
+        mmtInfo: page1Data.mmtInfo,
+        fileName: fileName,
+        // Page 2 data (use same keys as navigation)
+        executiveSummaryOfCompliance: executiveSummary,
+        processDocumentationOfActivitiesUndertaken: processDoc,
+        eccMmtAdditional,
+        epepMmtAdditional,
+        ocularMmtAdditional,
+        savedAt: new Date().toISOString(),
+      };
+
+      const success = await saveDraft(fileName || "Untitled", draftData);
+
+      if (success) {
+        Alert.alert("Success", "Draft saved successfully");
+        // Navigate to Dashboard using reset
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: "Dashboard" }],
+          })
+        );
+      } else {
+        Alert.alert("Error", "Failed to save draft. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      Alert.alert("Error", "Failed to save draft. Please try again.");
+    }
+  };
+
+  const handleDiscard = () => {
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: "Dashboard" }],
+      })
+    );
+  };
+
   const handleSaveAndNext = () => {
     // Build Page 2 payloads
     const executiveSummaryOfCompliance = {
@@ -338,6 +404,9 @@ const CMVRPage2Screen = () => {
           fileName={fileName}
           onBack={() => navigation.goBack()}
           onSave={handleSave}
+          onStay={handleStay}
+          onSaveToDraft={handleSaveToDraft}
+          onDiscard={handleDiscard}
         />
       </View>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>

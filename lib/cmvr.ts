@@ -1,7 +1,5 @@
 import { apiGet, apiPatch, apiPost, getApiBaseUrl, getJwt } from "./api";
-// Use legacy API to keep downloadAsync until we migrate to the new File/Directory API
-import * as FileSystem from "expo-file-system/legacy";
-import * as Sharing from "expo-sharing";
+import { Linking } from "react-native";
 import type { CreateCMVRDto } from "../screens/CMVRPAGE/types/CMVRReportScreen.types";
 
 /**
@@ -84,9 +82,10 @@ export async function generateCMVRGeneralInfoPdf(id: string): Promise<Blob> {
 }
 
 /**
- * Download and (optionally) share the generated DOCX for a CMVR report by ID.
- * Uses GET /api/cmvr/:id/docx and saves to the device Documents directory.
- * Returns the local file URI.
+ * Download the generated DOCX for a CMVR report by ID.
+ * Opens the download URL in the device's browser so the file downloads to the Downloads folder.
+ * @param id - CMVR report ID
+ * @param fileName - Base file name (not used, included for API compatibility)
  */
 export async function generateCMVRDocx(
   id: string,
@@ -94,36 +93,24 @@ export async function generateCMVRDocx(
 ): Promise<string> {
   const baseUrl = getApiBaseUrl();
   const token = await getJwt();
-  const safeName = `${fileName.replace(/[^a-zA-Z0-9-_\.]/g, "_")}.docx`;
-  const downloadDir =
-    (FileSystem as any).documentDirectory ||
-    (FileSystem as any).cacheDirectory ||
-    "";
-  const targetPath = `${downloadDir}${safeName}`;
+  
+  // Construct the download URL with the JWT token as a query parameter
+  // This allows the browser to download without needing Authorization header
+  const downloadUrl = `${baseUrl}/api/cmvr/${id}/docx?token=${encodeURIComponent(token)}`;
 
   try {
-    const result = await FileSystem.downloadAsync(
-      `${baseUrl}/api/cmvr/${id}/docx`,
-      targetPath,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    // Try to trigger native share sheet if available
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(result.uri, {
-        dialogTitle: `Share ${safeName}`,
-        mimeType:
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      });
+    const supported = await Linking.canOpenURL(downloadUrl);
+    if (!supported) {
+      throw new Error("Unable to open download URL in browser");
     }
-
-    return result.uri;
+    
+    // This will open the device's browser and trigger the file download
+    // The file will be saved to the browser's Downloads folder
+    await Linking.openURL(downloadUrl);
+    
+    return downloadUrl;
   } catch (error) {
-    console.error("Error generating CMVR DOCX:", error);
+    console.error("Error opening download URL:", error);
     throw error;
   }
 }

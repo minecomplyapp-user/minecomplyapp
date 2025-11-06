@@ -16,6 +16,9 @@ import { useFileName } from "../contexts/FileNameContext";
 interface CMSHeaderProps {
   onBack?: () => void;
   onSave?: () => void;
+  onStay?: () => void; // New callback for staying on current page
+  onSaveToDraft?: () => Promise<void>; // New callback for saving to draft
+  onDiscard?: () => void; // New callback for discarding changes
   fileName?: string;
   onEditFileName?: () => void;
   allowEdit?: boolean; // New prop to control if editing is allowed
@@ -24,12 +27,16 @@ interface CMSHeaderProps {
 export const CMSHeader: React.FC<CMSHeaderProps> = ({
   onBack,
   onSave,
+  onStay,
+  onSaveToDraft,
+  onDiscard,
   fileName: fileNameProp,
   onEditFileName,
   allowEdit = false, // Default to false (read-only)
 }) => {
   const { fileName: contextFileName, setFileName, isLoaded } = useFileName();
   const [modalVisible, setModalVisible] = useState(false);
+  const [saveOptionsVisible, setSaveOptionsVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const displayFileName = fileNameProp || contextFileName;
@@ -61,8 +68,43 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({
 
   const handleHeaderSave = () => {
     console.log("Header Save clicked");
-    if (onSave) {
+    // Show save options modal instead of directly calling onSave
+    if (onSaveToDraft || onStay || onDiscard) {
+      setSaveOptionsVisible(true);
+    } else if (onSave) {
+      // Fallback to old behavior if new callbacks not provided
       onSave();
+    }
+  };
+
+  const handleStay = () => {
+    console.log("Stay clicked");
+    setSaveOptionsVisible(false);
+    if (onStay) {
+      onStay();
+    }
+  };
+
+  const handleSaveToDraft = async () => {
+    console.log("Save to Draft clicked");
+    if (onSaveToDraft) {
+      setIsSaving(true);
+      try {
+        await onSaveToDraft();
+        setSaveOptionsVisible(false);
+      } catch (error) {
+        console.error("Error saving to draft:", error);
+      } finally {
+        setIsSaving(false);
+      }
+    }
+  };
+
+  const handleDiscard = () => {
+    console.log("Discard clicked");
+    setSaveOptionsVisible(false);
+    if (onDiscard) {
+      onDiscard();
     }
   };
 
@@ -75,7 +117,7 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({
   const handleOpenModal = () => {
     // Only open modal if editing is allowed
     if (!allowEdit) return;
-    
+
     console.log("Opening modal with fileName:", displayFileName);
     setEditableFileName(displayFileName);
     setModalVisible(true);
@@ -119,7 +161,7 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({
 
         {/* Save Button */}
         <TouchableOpacity onPress={handleHeaderSave} style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save & Exit</Text>
+          <Text style={styles.saveButtonText}>Save</Text>
         </TouchableOpacity>
       </View>
 
@@ -168,6 +210,67 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({
           </View>
         </Modal>
       )}
+
+      {/* Save Options Modal */}
+      <Modal
+        transparent
+        animationType="fade"
+        visible={saveOptionsVisible}
+        onRequestClose={() => setSaveOptionsVisible(false)}
+      >
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Save Options</Text>
+            <Text style={styles.modalDescription}>
+              What would you like to do with your changes?
+            </Text>
+
+            <TouchableOpacity
+              style={[styles.optionButton, styles.stayButton]}
+              onPress={handleStay}
+              disabled={isSaving}
+            >
+              <Ionicons name="arrow-back" size={20} color="#02217C" />
+              <Text style={[styles.optionButtonText, styles.stayButtonText]}>
+                Stay
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.optionButton, styles.saveDraftButton]}
+              onPress={handleSaveToDraft}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <>
+                  <Ionicons name="save-outline" size={20} color="white" />
+                  <Text
+                    style={[
+                      styles.optionButtonText,
+                      styles.saveDraftButtonText,
+                    ]}
+                  >
+                    Save to Draft
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.optionButton, styles.discardButton]}
+              onPress={handleDiscard}
+              disabled={isSaving}
+            >
+              <Ionicons name="trash-outline" size={20} color="#EF4444" />
+              <Text style={[styles.optionButtonText, styles.discardButtonText]}>
+                Discard
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -263,5 +366,47 @@ const styles = StyleSheet.create({
   modalButtonText: {
     fontSize: 16,
     fontWeight: "500",
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: "#64748B",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  optionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginBottom: 12,
+    gap: 10,
+  },
+  stayButton: {
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+  },
+  saveDraftButton: {
+    backgroundColor: "#02217C",
+  },
+  discardButton: {
+    backgroundColor: "#FEE2E2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
+  optionButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  stayButtonText: {
+    color: "#02217C",
+  },
+  saveDraftButtonText: {
+    color: "white",
+  },
+  discardButtonText: {
+    color: "#EF4444",
   },
 });

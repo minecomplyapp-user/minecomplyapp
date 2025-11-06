@@ -336,6 +336,147 @@ export default function WasteManagementScreen({ navigation, route }: any) {
     setPortPlantData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleSave = async () => {
+    try {
+      const prevPageData: any = route.params || {};
+
+      const complianceWithGoodPracticeInSolidAndHazardousWasteManagement = {
+        quarryData,
+        plantSimpleData,
+        selectedQuarter,
+        quarryPlantData,
+        plantData,
+        portData,
+        portPlantData,
+      };
+
+      const draftData = {
+        ...prevPageData.generalInfo,
+        ...prevPageData.eccInfo,
+        ...prevPageData.eccAdditionalForms,
+        ...prevPageData.isagInfo,
+        ...prevPageData.isagAdditionalForms,
+        ...prevPageData.epepInfo,
+        ...prevPageData.epepAdditionalForms,
+        ...prevPageData.rcfInfo,
+        ...prevPageData.rcfAdditionalForms,
+        ...prevPageData.mtfInfo,
+        ...prevPageData.mtfAdditionalForms,
+        ...prevPageData.fmrdfInfo,
+        ...prevPageData.fmrdfAdditionalForms,
+        ...prevPageData.mmtInfo,
+        fileName: prevPageData.fileName || "Untitled",
+        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
+        processDocumentationOfActivitiesUndertaken:
+          prevPageData.processDocumentationOfActivitiesUndertaken,
+        complianceToProjectLocationAndCoverageLimits:
+          prevPageData.complianceToProjectLocationAndCoverageLimits,
+        complianceToImpactManagementCommitments:
+          prevPageData.complianceToImpactManagementCommitments,
+        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
+        waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
+        noiseQualityImpactAssessment: prevPageData.noiseQualityImpactAssessment,
+        complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
+        savedAt: new Date().toISOString(),
+      };
+
+      const fileName = prevPageData.fileName || "Untitled";
+      const success = await saveDraft(fileName, draftData);
+
+      if (success) {
+        Alert.alert("Success", "Draft saved successfully");
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: "Dashboard" }],
+          })
+        );
+      } else {
+        Alert.alert("Error", "Failed to save draft. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      Alert.alert("Error", "Failed to save draft. Please try again.");
+    }
+  };
+
+  const handleStay = () => {
+    console.log("User chose to stay");
+  };
+
+  const handleSaveToDraft = async () => {
+    try {
+      const prevPageData: any = route.params || {};
+
+      const complianceWithGoodPracticeInSolidAndHazardousWasteManagement = {
+        quarryData,
+        plantSimpleData,
+        selectedQuarter,
+        quarryPlantData,
+        plantData,
+        portData,
+        portPlantData,
+      };
+
+      const draftData = {
+        ...prevPageData.generalInfo,
+        ...prevPageData.eccInfo,
+        ...prevPageData.eccAdditionalForms,
+        ...prevPageData.isagInfo,
+        ...prevPageData.isagAdditionalForms,
+        ...prevPageData.epepInfo,
+        ...prevPageData.epepAdditionalForms,
+        ...prevPageData.rcfInfo,
+        ...prevPageData.rcfAdditionalForms,
+        ...prevPageData.mtfInfo,
+        ...prevPageData.mtfAdditionalForms,
+        ...prevPageData.fmrdfInfo,
+        ...prevPageData.fmrdfAdditionalForms,
+        ...prevPageData.mmtInfo,
+        fileName: prevPageData.fileName || "Untitled",
+        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
+        processDocumentationOfActivitiesUndertaken:
+          prevPageData.processDocumentationOfActivitiesUndertaken,
+        complianceToProjectLocationAndCoverageLimits:
+          prevPageData.complianceToProjectLocationAndCoverageLimits,
+        complianceToImpactManagementCommitments:
+          prevPageData.complianceToImpactManagementCommitments,
+        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
+        waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
+        noiseQualityImpactAssessment: prevPageData.noiseQualityImpactAssessment,
+        complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
+        savedAt: new Date().toISOString(),
+      };
+
+      const fileName = prevPageData.fileName || "Untitled";
+      const success = await saveDraft(fileName, draftData);
+
+      if (success) {
+        Alert.alert("Success", "Draft saved successfully");
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: "Dashboard" }],
+          })
+        );
+      } else {
+        Alert.alert("Error", "Failed to save draft. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      Alert.alert("Error", "Failed to save draft. Please try again.");
+    }
+  };
+
+  const handleDiscard = () => {
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: "Dashboard" }],
+      })
+    );
+  };
+
   const handleSaveAndNext = () => {
     console.log("Saving Waste Management data...");
     console.log("Selected Quarter:", selectedQuarter);
@@ -481,64 +622,11 @@ export default function WasteManagementScreen({ navigation, route }: any) {
       <View style={styles.headerContainer}>
         <CMSHeader
           onBack={() => navigation.goBack()}
-          onSave={async () => {
-            // Collect all previous page data from route.params
-            const prevPageData: any = route.params || {};
-
-            // Prepare waste management data
-            const complianceWithGoodPracticeInSolidAndHazardousWasteManagement =
-              {
-                quarryData,
-                plantSimpleData,
-                selectedQuarter,
-                quarryPlantData,
-                portData,
-              };
-
-            // Combine all data from previous pages + current page
-            const draftData = {
-              generalInfo: prevPageData.generalInfo,
-              eccInfo: prevPageData.eccInfo,
-              eccAdditionalForms: prevPageData.eccAdditionalForms,
-              isagInfo: prevPageData.isagInfo,
-              isagAdditionalForms: prevPageData.isagAdditionalForms,
-              epepInfo: prevPageData.epepInfo,
-              epepAdditionalForms: prevPageData.epepAdditionalForms,
-              rcfInfo: prevPageData.rcfInfo,
-              rcfAdditionalForms: prevPageData.rcfAdditionalForms,
-              mtfInfo: prevPageData.mtfInfo,
-              mtfAdditionalForms: prevPageData.mtfAdditionalForms,
-              fmrdfInfo: prevPageData.fmrdfInfo,
-              fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
-              mmtInfo: prevPageData.mmtInfo,
-              executiveSummary: prevPageData.executiveSummary,
-              processDocumentation: prevPageData.processDocumentation,
-              complianceToProjectLocationAndCoverageLimits:
-                prevPageData.complianceToProjectLocationAndCoverageLimits,
-              complianceToImpactManagementCommitments:
-                prevPageData.complianceToImpactManagementCommitments,
-              complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
-              savedAt: new Date().toISOString(),
-            };
-
-            const fileName = prevPageData.fileName || "Untitled";
-
-            // Save draft to AsyncStorage
-            const success = await saveDraft(fileName, draftData);
-
-            if (success) {
-              Alert.alert("Success", "Draft saved successfully");
-              // Navigate to Dashboard using CommonActions.reset
-              navigation.dispatch(
-                CommonActions.reset({
-                  index: 0,
-                  routes: [{ name: "Dashboard" }],
-                })
-              );
-            } else {
-              Alert.alert("Error", "Failed to save draft");
-            }
-          }}
+          onSave={handleSave}
+          onStay={handleStay}
+          onSaveToDraft={handleSaveToDraft}
+          onDiscard={handleDiscard}
+          allowEdit={true}
         />
       </View>
       <ScrollView

@@ -1239,6 +1239,7 @@ const CMVRDocumentExportScreen = () => {
   );
   const [isGenerating, setIsGenerating] = useState(false);
   const [documentGenerated, setDocumentGenerated] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   // Only DOCX supported for generation
   const selectedFormat: "docx" = "docx";
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1375,8 +1376,100 @@ const CMVRDocumentExportScreen = () => {
     let isActive = true;
 
     const hydrateDraft = async () => {
+      let routeUpdate = routeDraftUpdate;
+
+      // If we have a reportId but no data in route params, fetch from API
+      if (routeReportId && Object.keys(routeDraftUpdate).length === 0) {
+        try {
+          console.log("Fetching CMVR report from API:", routeReportId);
+          const { getCMVRReportById } = await import("../../lib/cmvr");
+          const reportData = await getCMVRReportById(routeReportId);
+
+          if (reportData && isActive) {
+            // Transform backend data to match draft structure
+            const location =
+              typeof reportData.location === "string"
+                ? {
+                    region: "",
+                    province: "",
+                    municipality: "",
+                    barangay: reportData.location,
+                  }
+                : reportData.location || {};
+
+            routeUpdate = {
+              generalInfo: {
+                companyName: reportData.companyName || "",
+                projectName:
+                  reportData.projectCurrentName ||
+                  reportData.projectNameInEcc ||
+                  "",
+                quarter: reportData.quarter || "",
+                year: reportData.year?.toString() || "",
+                dateOfCompliance:
+                  reportData.dateOfComplianceMonitoringAndValidation || "",
+                monitoringPeriod: reportData.monitoringPeriodCovered || "",
+                dateOfCMRSubmission: reportData.dateOfCmrSubmission || "",
+                region: location.region || "",
+                province: location.province || "",
+                municipality: location.municipality || "",
+                barangay: location.barangay || "",
+              },
+              eccInfo: reportData.ecc?.[0] || { isNA: true },
+              eccAdditionalForms: reportData.ecc?.slice(1) || [],
+              isagInfo: {
+                ...(reportData.isagMpp?.[0] || { isNA: true }),
+                currentName: reportData.projectCurrentName || "",
+                nameInECC: reportData.projectNameInEcc || "",
+                projectStatus: reportData.projectStatus || "",
+                proponentName:
+                  reportData.proponent?.contactPersonAndPosition || "",
+                proponentContact:
+                  reportData.proponent?.contactPersonAndPosition || "",
+                proponentAddress: reportData.proponent?.mailingAddress || "",
+                proponentPhone: reportData.proponent?.telephoneFax || "",
+                proponentEmail: reportData.proponent?.emailAddress || "",
+              },
+              isagAdditionalForms: reportData.isagMpp?.slice(1) || [],
+              epepInfo: reportData.epep?.[0] || { isNA: true },
+              epepAdditionalForms: reportData.epep?.slice(1) || [],
+              rcfInfo: reportData.rehabilitationCashFund?.[0] || { isNA: true },
+              rcfAdditionalForms:
+                reportData.rehabilitationCashFund?.slice(1) || [],
+              mtfInfo: reportData.monitoringTrustFundUnified?.[0] || {
+                isNA: true,
+              },
+              mtfAdditionalForms:
+                reportData.monitoringTrustFundUnified?.slice(1) || [],
+              fmrdfInfo: reportData
+                .finalMineRehabilitationAndDecommissioningFund?.[0] || {
+                isNA: true,
+              },
+              fmrdfAdditionalForms:
+                reportData.finalMineRehabilitationAndDecommissioningFund?.slice(
+                  1
+                ) || [],
+              mmtInfo: {
+                contactPerson: reportData.mmt?.contactPersonAndPosition || "",
+                mailingAddress: reportData.mmt?.mailingAddress || "",
+                phoneNumber: reportData.mmt?.telephoneFax || "",
+                emailAddress: reportData.mmt?.emailAddress || "",
+              },
+              executiveSummaryOfCompliance:
+                reportData.executiveSummaryOfCompliance,
+              processDocumentationOfActivitiesUndertaken:
+                reportData.processDocumentationOfActivitiesUndertaken,
+              ...reportData.complianceMonitoringReport,
+            };
+            console.log("Successfully loaded report data from API");
+          }
+        } catch (error) {
+          console.error("Error fetching CMVR report:", error);
+        }
+      }
+
       const stored = await loadStoredDraft();
-      const merged = mergeDraftData(stored, routeDraftUpdate, resolvedFileName);
+      const merged = mergeDraftData(stored, routeUpdate, resolvedFileName);
       if (!isActive) {
         return;
       }
@@ -1397,7 +1490,13 @@ const CMVRDocumentExportScreen = () => {
     return () => {
       isActive = false;
     };
-  }, [loadStoredDraft, routeDraftUpdate, resolvedFileName, persistSnapshot]);
+  }, [
+    loadStoredDraft,
+    routeDraftUpdate,
+    resolvedFileName,
+    persistSnapshot,
+    routeReportId,
+  ]);
 
   const saveDraftToLocal = useCallback(async (): Promise<DraftSnapshot> => {
     if (!draftSnapshot) {
@@ -1648,6 +1747,100 @@ const CMVRDocumentExportScreen = () => {
     ([] as FundAdditionalForm[]);
   const mmtInfo = draftSnapshot?.mmtInfo ?? routeMmtInfo ?? defaultMmtInfo;
 
+  const executiveSummary =
+    draftSnapshot?.executiveSummaryOfCompliance ??
+    routeExecutiveSummaryOfCompliance;
+  const processDocumentation =
+    draftSnapshot?.processDocumentationOfActivitiesUndertaken ??
+    routeProcessDocumentationOfActivitiesUndertaken;
+  const complianceProjectLocation =
+    draftSnapshot?.complianceToProjectLocationAndCoverageLimits ??
+    routeComplianceToProjectLocationAndCoverageLimits;
+  const complianceImpactCommitments =
+    draftSnapshot?.complianceToImpactManagementCommitments ??
+    routeComplianceToImpactManagementCommitments;
+  const airQualityAssessment =
+    draftSnapshot?.airQualityImpactAssessment ??
+    routeAirQualityImpactAssessment;
+  const waterQualityAssessment =
+    draftSnapshot?.waterQualityImpactAssessment ??
+    routeWaterQualityImpactAssessment;
+  const noiseQualityAssessment =
+    draftSnapshot?.noiseQualityImpactAssessment ??
+    routeNoiseQualityImpactAssessment;
+  const wasteManagementData =
+    draftSnapshot?.complianceWithGoodPracticeInSolidAndHazardousWasteManagement ??
+    routeComplianceWithGoodPracticeInSolidAndHazardousWasteManagement;
+  const chemicalSafetyData =
+    draftSnapshot?.complianceWithGoodPracticeInChemicalSafetyManagement ??
+    routeComplianceWithGoodPracticeInChemicalSafetyManagement;
+  const complaintsData =
+    draftSnapshot?.complaintsVerificationAndManagement ??
+    routeComplaintsVerificationAndManagement;
+  const recommendationsData =
+    draftSnapshot?.recommendationsData ?? routeRecommendationsData;
+  const recommendationPrev =
+    draftSnapshot?.recommendationFromPrevQuarter ??
+    routeRecommendationFromPrevQuarter;
+  const recommendationNext =
+    draftSnapshot?.recommendationForNextQuarter ??
+    routeRecommendationForNextQuarter;
+  const attendanceUrl = draftSnapshot?.attendanceUrl ?? routeAttendanceUrl;
+  const documentation = draftSnapshot?.documentation ?? routeDocumentation;
+
+  const baseNavParams = {
+    fileName,
+    generalInfo,
+    eccInfo,
+    eccAdditionalForms,
+    isagInfo,
+    isagAdditionalForms,
+    epepInfo,
+    epepAdditionalForms,
+    rcfInfo,
+    rcfAdditionalForms,
+    mtfInfo,
+    mtfAdditionalForms,
+    fmrdfInfo,
+    fmrdfAdditionalForms,
+    mmtInfo,
+  };
+
+  const draftPayload = {
+    ...(draftSnapshot ?? {}),
+    fileName,
+    generalInfo,
+    eccInfo,
+    eccAdditionalForms,
+    isagInfo,
+    isagAdditionalForms,
+    epepInfo,
+    epepAdditionalForms,
+    rcfInfo,
+    rcfAdditionalForms,
+    mtfInfo,
+    mtfAdditionalForms,
+    fmrdfInfo,
+    fmrdfAdditionalForms,
+    mmtInfo,
+    executiveSummaryOfCompliance: executiveSummary,
+    processDocumentationOfActivitiesUndertaken: processDocumentation,
+    complianceToProjectLocationAndCoverageLimits: complianceProjectLocation,
+    complianceToImpactManagementCommitments: complianceImpactCommitments,
+    airQualityImpactAssessment: airQualityAssessment,
+    waterQualityImpactAssessment: waterQualityAssessment,
+    noiseQualityImpactAssessment: noiseQualityAssessment,
+    complianceWithGoodPracticeInSolidAndHazardousWasteManagement:
+      wasteManagementData,
+    complianceWithGoodPracticeInChemicalSafetyManagement: chemicalSafetyData,
+    complaintsVerificationAndManagement: complaintsData,
+    recommendationsData,
+    recommendationFromPrevQuarter: recommendationPrev,
+    recommendationForNextQuarter: recommendationNext,
+    attendanceUrl,
+    documentation,
+  } as DraftSnapshot;
+
   const handleGenerateDocument = async () => {
     if (!hasSubmitted || !submittedReportId) {
       Alert.alert(
@@ -1659,8 +1852,12 @@ const CMVRDocumentExportScreen = () => {
     }
     setIsGenerating(true);
     try {
-      const uri = await generateCMVRDocx(submittedReportId, fileName);
-      console.log("DOCX saved to:", uri);
+      await generateCMVRDocx(submittedReportId, fileName);
+      Alert.alert(
+        "Download Started",
+        "Your browser will open to download the DOCX file.",
+        [{ text: "OK" }]
+      );
       setDocumentGenerated(true);
     } catch (err: any) {
       console.error("Generate DOCX failed:", err);
@@ -1678,8 +1875,43 @@ const CMVRDocumentExportScreen = () => {
     console.log("Opening DOCX preview...");
   };
 
-  const handleDownload = () => {
-    console.log("Downloading DOCX file...");
+  const handleDownload = async () => {
+    if (!documentGenerated) {
+      Alert.alert(
+        "Generate Required",
+        "Please generate the document before attempting to download it.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    if (!submittedReportId) {
+      Alert.alert(
+        "Missing Report",
+        "The report identifier is not available. Please resubmit and try again.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    setIsDownloading(true);
+    try {
+      await generateCMVRDocx(submittedReportId, fileName);
+      Alert.alert(
+        "Download Started",
+        "Your browser will open to download the file.",
+        [{ text: "OK" }]
+      );
+    } catch (err: any) {
+      console.error("Download DOCX failed:", err);
+      Alert.alert(
+        "Download Failed",
+        err?.message || "Unable to download the document. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const getDisplayValue = (
@@ -1692,127 +1924,60 @@ const CMVRDocumentExportScreen = () => {
   // Navigation handlers for summary cards
   const navigateToGeneralInfo = () => {
     navigation.navigate("CMVRReport", {
-      fileName,
-      generalInfo,
-      eccInfo,
-      eccAdditionalForms,
-      isagInfo,
-      isagAdditionalForms,
-      epepInfo,
-      epepAdditionalForms,
-      rcfInfo,
-      rcfAdditionalForms,
-      mtfInfo,
-      mtfAdditionalForms,
-      fmrdfInfo,
-      fmrdfAdditionalForms,
-      mmtInfo,
-      draftData: draftSnapshot,
+      ...baseNavParams,
+      draftData: draftPayload,
+      recommendationsData,
+      recommendationFromPrevQuarter: recommendationPrev,
+      recommendationForNextQuarter: recommendationNext,
     } as any);
   };
 
   const navigateToPage2 = () => {
     navigation.navigate("CMVRPage2", {
-      fileName,
-      generalInfo,
-      eccInfo,
-      eccAdditionalForms,
-      isagInfo,
-      isagAdditionalForms,
-      epepInfo,
-      epepAdditionalForms,
-      rcfInfo,
-      rcfAdditionalForms,
-      mtfInfo,
-      mtfAdditionalForms,
-      fmrdfInfo,
-      fmrdfAdditionalForms,
-      mmtInfo,
-      draftData: draftSnapshot,
+      ...baseNavParams,
+      executiveSummaryOfCompliance: executiveSummary,
+      processDocumentationOfActivitiesUndertaken: processDocumentation,
+      complianceToProjectLocationAndCoverageLimits: complianceProjectLocation,
+      complianceToImpactManagementCommitments: complianceImpactCommitments,
+      airQualityImpactAssessment: airQualityAssessment,
+      draftData: draftPayload,
     } as any);
   };
 
   const navigateToWaterQuality = () => {
     navigation.navigate("WaterQuality", {
-      fileName,
-      generalInfo,
-      eccInfo,
-      eccAdditionalForms,
-      isagInfo,
-      isagAdditionalForms,
-      epepInfo,
-      epepAdditionalForms,
-      rcfInfo,
-      rcfAdditionalForms,
-      mtfInfo,
-      mtfAdditionalForms,
-      fmrdfInfo,
-      fmrdfAdditionalForms,
-      mmtInfo,
-      draftData: draftSnapshot,
+      ...baseNavParams,
+      waterQualityImpactAssessment: waterQualityAssessment,
+      airQualityImpactAssessment: airQualityAssessment,
+      draftData: draftPayload,
     } as any);
   };
 
   const navigateToNoiseQuality = () => {
     navigation.navigate("NoiseQuality", {
-      fileName,
-      generalInfo,
-      eccInfo,
-      eccAdditionalForms,
-      isagInfo,
-      isagAdditionalForms,
-      epepInfo,
-      epepAdditionalForms,
-      rcfInfo,
-      rcfAdditionalForms,
-      mtfInfo,
-      mtfAdditionalForms,
-      fmrdfInfo,
-      fmrdfAdditionalForms,
-      mmtInfo,
-      draftData: draftSnapshot,
+      ...baseNavParams,
+      waterQualityImpactAssessment: waterQualityAssessment,
+      noiseQualityImpactAssessment: noiseQualityAssessment,
+      draftData: draftPayload,
     } as any);
   };
 
   const navigateToWasteManagement = () => {
     navigation.navigate("WasteManagement", {
-      fileName,
-      generalInfo,
-      eccInfo,
-      eccAdditionalForms,
-      isagInfo,
-      isagAdditionalForms,
-      epepInfo,
-      epepAdditionalForms,
-      rcfInfo,
-      rcfAdditionalForms,
-      mtfInfo,
-      mtfAdditionalForms,
-      fmrdfInfo,
-      fmrdfAdditionalForms,
-      mmtInfo,
-      draftData: draftSnapshot,
+      ...baseNavParams,
+      complianceWithGoodPracticeInSolidAndHazardousWasteManagement:
+        wasteManagementData,
+      draftData: draftPayload,
     } as any);
   };
 
   const navigateToChemicalSafety = () => {
     navigation.navigate("ChemicalSafety", {
-      fileName,
-      generalInfo,
-      eccInfo,
-      eccAdditionalForms,
-      isagInfo,
-      isagAdditionalForms,
-      epepInfo,
-      epepAdditionalForms,
-      rcfInfo,
-      rcfAdditionalForms,
-      mtfInfo,
-      mtfAdditionalForms,
-      fmrdfInfo,
-      fmrdfAdditionalForms,
-      mmtInfo,
-      draftData: draftSnapshot,
+      ...baseNavParams,
+      complianceWithGoodPracticeInChemicalSafetyManagement: chemicalSafetyData,
+      complaintsVerificationAndManagement: complaintsData,
+      recommendationsData,
+      draftData: draftPayload,
     } as any);
   };
 
@@ -1984,6 +2149,56 @@ const CMVRDocumentExportScreen = () => {
             }
             onPress={navigateToGeneralInfo}
           />
+
+          <SummaryItem
+            icon="🧾"
+            title="Executive Summary"
+            value={executiveSummary ? "Available" : "Not provided"}
+            onPress={navigateToPage2}
+          />
+
+          <SummaryItem
+            icon="🗂️"
+            title="Process Documentation"
+            value={
+              processDocumentation?.dateConducted
+                ? getDisplayValue(processDocumentation.dateConducted)
+                : "Not provided"
+            }
+            onPress={navigateToPage2}
+          />
+
+          <SummaryItem
+            icon="💧"
+            title="Water Quality Assessment"
+            value={waterQualityAssessment ? "Available" : "Not provided"}
+            onPress={navigateToWaterQuality}
+          />
+
+          <SummaryItem
+            icon="🔊"
+            title="Noise Quality Assessment"
+            value={noiseQualityAssessment ? "Available" : "Not provided"}
+            onPress={navigateToNoiseQuality}
+          />
+
+          <SummaryItem
+            icon="♻️"
+            title="Waste Management"
+            value={wasteManagementData ? "Available" : "Not provided"}
+            onPress={navigateToWasteManagement}
+          />
+
+          <SummaryItem
+            icon="🧪"
+            title="Chemical Safety & Complaints"
+            value={
+              chemicalSafetyData || complaintsData
+                ? "Available"
+                : "Not provided"
+            }
+            onPress={navigateToChemicalSafety}
+          />
         </View>
 
         {documentGenerated && (
@@ -2142,11 +2357,24 @@ const CMVRDocumentExportScreen = () => {
                 <Text style={styles.previewButtonText}>Preview</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.downloadButton}
+                style={[
+                  styles.downloadButton,
+                  isDownloading && styles.buttonDisabled,
+                ]}
                 onPress={handleDownload}
+                disabled={isDownloading}
               >
-                <Ionicons name="download" size={20} color="white" />
-                <Text style={styles.downloadButtonText}>Download</Text>
+                {isDownloading ? (
+                  <>
+                    <ActivityIndicator size="small" color="white" />
+                    <Text style={styles.downloadButtonText}>Preparing...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Ionicons name="download" size={20} color="white" />
+                    <Text style={styles.downloadButtonText}>Download</Text>
+                  </>
+                )}
               </TouchableOpacity>
             </View>
           )}

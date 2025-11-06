@@ -221,6 +221,79 @@ export default function ChemicalSafetyScreen({ navigation, route }: any) {
     }
   };
 
+  const handleStay = () => {
+    console.log("User chose to stay");
+  };
+
+  const handleSaveToDraft = async () => {
+    console.log("Saving Chemical Safety data...");
+
+    // Collect all previous page data from route.params
+    const prevPageData: any = route.params || {};
+
+    // Prepare chemical safety data
+    const complianceWithGoodPracticeInChemicalSafetyManagement = {
+      chemicalSafety,
+      healthSafetyChecked,
+      socialDevChecked,
+    };
+    const complaintsVerificationAndManagement = complaints;
+
+    // Combine all data from previous pages + current page
+    const draftData = {
+      generalInfo: prevPageData.generalInfo,
+      eccInfo: prevPageData.eccInfo,
+      eccAdditionalForms: prevPageData.eccAdditionalForms,
+      isagInfo: prevPageData.isagInfo,
+      isagAdditionalForms: prevPageData.isagAdditionalForms,
+      epepInfo: prevPageData.epepInfo,
+      epepAdditionalForms: prevPageData.epepAdditionalForms,
+      rcfInfo: prevPageData.rcfInfo,
+      rcfAdditionalForms: prevPageData.rcfAdditionalForms,
+      mtfInfo: prevPageData.mtfInfo,
+      mtfAdditionalForms: prevPageData.mtfAdditionalForms,
+      fmrdfInfo: prevPageData.fmrdfInfo,
+      fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
+      mmtInfo: prevPageData.mmtInfo,
+      executiveSummary: prevPageData.executiveSummary,
+      processDocumentation: prevPageData.processDocumentation,
+      complianceToProjectLocationAndCoverageLimits:
+        prevPageData.complianceToProjectLocationAndCoverageLimits,
+      eiaCompliance: prevPageData.eiaCompliance,
+      wasteManagement: prevPageData.wasteManagement,
+      complianceWithGoodPracticeInChemicalSafetyManagement,
+      complaintsVerificationAndManagement,
+      savedAt: new Date().toISOString(),
+    };
+
+    const fileName = prevPageData.fileName || "Untitled";
+
+    // Save draft to AsyncStorage
+    const success = await saveDraft(fileName, draftData);
+
+    if (success) {
+      Alert.alert("Success", "Draft saved successfully");
+      // Navigate to Dashboard using CommonActions.reset
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
+    } else {
+      Alert.alert("Error", "Failed to save draft");
+    }
+  };
+
+  const handleDiscard = () => {
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: "Dashboard" }],
+      })
+    );
+  };
+
   const fillTestData = () => {
     setChemicalSafety({
       isNA: false,
@@ -305,6 +378,10 @@ export default function ChemicalSafetyScreen({ navigation, route }: any) {
         fileName="Chemical Safety"
         onBack={() => navigation.goBack()}
         onSave={handleSave}
+        onStay={handleStay}
+        onSaveToDraft={handleSaveToDraft}
+        onDiscard={handleDiscard}
+        allowEdit={true}
       />
       <ScrollView
         style={styles.scrollView}

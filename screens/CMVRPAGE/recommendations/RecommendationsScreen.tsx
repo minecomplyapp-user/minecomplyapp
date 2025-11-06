@@ -472,6 +472,53 @@ const RecommendationsScreen: React.FC = () => {
     });
   };
 
+  const handleStay = () => {
+    console.log("User chose to stay");
+  };
+
+  const handleSaveToDraft = async () => {
+    const { saveDraft } = await import("../../../lib/drafts");
+    const { CommonActions } = await import("@react-navigation/native");
+
+    const recommendationsData = {
+      currentRecommendations: currentSections,
+      previousRecommendations: previousSections,
+      prevQuarter,
+      prevYear,
+    };
+
+    const draftData = {
+      ...allPreviousParams,
+      recommendationsData,
+      savedAt: new Date().toISOString(),
+    };
+
+    const fileName = allPreviousParams.fileName || "Untitled";
+    const success = await saveDraft(fileName, draftData);
+
+    if (success) {
+      Alert.alert("Success", "Draft saved successfully");
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
+    } else {
+      Alert.alert("Error", "Failed to save draft");
+    }
+  };
+
+  const handleDiscard = async () => {
+    const { CommonActions } = await import("@react-navigation/native");
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: "Dashboard" }],
+      })
+    );
+  };
+
   const handleBack = () => navigation.goBack();
 
   let nextQuarterStr = "2nd";
@@ -496,7 +543,15 @@ const RecommendationsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <CMSHeader fileName="File_Name" onBack={handleBack} onSave={handleSave} />
+      <CMSHeader
+        fileName="File_Name"
+        onBack={handleBack}
+        onSave={handleSave}
+        onStay={handleStay}
+        onSaveToDraft={handleSaveToDraft}
+        onDiscard={handleDiscard}
+        allowEdit={true}
+      />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}

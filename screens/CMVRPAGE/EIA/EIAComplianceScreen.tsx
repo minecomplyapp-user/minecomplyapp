@@ -160,6 +160,78 @@ const EIAComplianceScreen: React.FC<{
     }
   };
 
+  const handleStay = () => {
+    console.log("User chose to stay");
+  };
+
+  const handleSaveToDraft = async () => {
+    console.log("Saving EIA Compliance data...");
+
+    // Collect all previous page data from route.params
+    const prevPageData: any = route.params || {};
+
+    // Prepare EIA compliance data
+    const complianceToImpactManagementCommitments = {
+      preConstruction,
+      construction,
+      quarryOperation,
+      plantOperation,
+      portOperation,
+      overallCompliance,
+    };
+
+    // Combine all data from previous pages + current page
+    const draftData = {
+      generalInfo: prevPageData.generalInfo,
+      eccInfo: prevPageData.eccInfo,
+      eccAdditionalForms: prevPageData.eccAdditionalForms,
+      isagInfo: prevPageData.isagInfo,
+      isagAdditionalForms: prevPageData.isagAdditionalForms,
+      epepInfo: prevPageData.epepInfo,
+      epepAdditionalForms: prevPageData.epepAdditionalForms,
+      rcfInfo: prevPageData.rcfInfo,
+      rcfAdditionalForms: prevPageData.rcfAdditionalForms,
+      mtfInfo: prevPageData.mtfInfo,
+      mtfAdditionalForms: prevPageData.mtfAdditionalForms,
+      fmrdfInfo: prevPageData.fmrdfInfo,
+      fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
+      mmtInfo: prevPageData.mmtInfo,
+      executiveSummary: prevPageData.executiveSummary,
+      processDocumentation: prevPageData.processDocumentation,
+      complianceToProjectLocationAndCoverageLimits:
+        prevPageData.complianceToProjectLocationAndCoverageLimits,
+      complianceToImpactManagementCommitments,
+      savedAt: new Date().toISOString(),
+    };
+
+    const fileName = prevPageData.fileName || "Untitled";
+
+    // Save draft to AsyncStorage
+    const success = await saveDraft(fileName, draftData);
+
+    if (success) {
+      Alert.alert("Success", "Draft saved successfully");
+      // Navigate to Dashboard using CommonActions.reset
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
+    } else {
+      Alert.alert("Error", "Failed to save draft");
+    }
+  };
+
+  const handleDiscard = () => {
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: "Dashboard" }],
+      })
+    );
+  };
+
   const fillTestData = () => {
     setPreConstruction("yes");
     setConstruction("yes");
@@ -388,7 +460,14 @@ const EIAComplianceScreen: React.FC<{
       style={styles.container}
     >
       <View style={styles.headerContainer}>
-        <CMSHeader onBack={() => navigation.goBack()} onSave={handleSave} />
+        <CMSHeader
+          onBack={() => navigation.goBack()}
+          onSave={handleSave}
+          onStay={handleStay}
+          onSaveToDraft={handleSaveToDraft}
+          onDiscard={handleDiscard}
+          allowEdit={true}
+        />
       </View>
       <ScrollView
         style={styles.scrollView}
