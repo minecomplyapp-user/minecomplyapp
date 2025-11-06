@@ -584,7 +584,6 @@ const transformProcessDocumentationForPayload = (raw: any) => {
           raw?.ocularMmtMembers,
           raw?.ocularMmtAdditional
         ),
-        na: !!raw?.ocularNA,
       },
       siteValidationConfirmatorySampling: {
         mmtMembersInvolved: parseMembers(raw?.samplingMmtMembers),
@@ -912,16 +911,28 @@ const transformChemicalSafetyForPayload = (raw: any) => {
   if (!raw) return undefined;
   const cs = raw.chemicalSafety || {};
   const yn = (v: any) => String(v).toUpperCase() === "YES";
+
+  // Backend expects an object with a `chemicalSafety` nested object plus
+  // boolean flags for healthSafetyChecked and socialDevChecked
   return {
-    riskManagement:
-      cs.riskManagement != null ? yn(cs.riskManagement) : undefined,
-    training: cs.training != null ? yn(cs.training) : undefined,
-    handling: cs.handling != null ? yn(cs.handling) : undefined,
-    emergencyPreparedness:
-      cs.emergencyPreparedness != null
-        ? yn(cs.emergencyPreparedness)
-        : undefined,
-    remarks: cs.remarks ?? undefined,
+    chemicalSafety: {
+      isNA: cs.isNA ?? undefined,
+      riskManagement:
+        cs.riskManagement != null
+          ? (yn(cs.riskManagement) as boolean)
+          : undefined,
+      training: cs.training != null ? (yn(cs.training) as boolean) : undefined,
+      handling: cs.handling != null ? (yn(cs.handling) as boolean) : undefined,
+      emergencyPreparedness:
+        cs.emergencyPreparedness != null
+          ? (yn(cs.emergencyPreparedness) as boolean)
+          : undefined,
+      remarks: cs.remarks ?? undefined,
+      chemicalCategory: cs.chemicalCategory ?? undefined,
+      othersSpecify: cs.othersSpecify ?? undefined,
+    },
+    healthSafetyChecked: !!raw.healthSafetyChecked,
+    socialDevChecked: !!raw.socialDevChecked,
   };
 };
 
@@ -931,16 +942,17 @@ const transformComplaintsForPayload = (raw: any) => {
   const cleaned = raw
     .filter((c) => !c?.isNA)
     .map((c) => ({
+      // Backend expects these exact property names
       dateFiled: String(c?.dateFiled ?? ""),
-      denr: c?.filedLocation === "DENR" || false,
-      company: c?.filedLocation === "Company" || false,
-      mmt: c?.filedLocation === "MMT" || false,
-      otherSpecify:
+      filedLocation: String(c?.filedLocation ?? ""),
+      othersSpecify:
         c?.filedLocation === "Others"
           ? String(c?.othersSpecify ?? "")
           : undefined,
-      natureOfComplaint: String(c?.nature ?? ""),
-      resulotionMade: String(c?.resolutions ?? ""),
+      nature: String(c?.nature ?? ""),
+      resolutions: String(c?.resolutions ?? ""),
+      id: c?.id ?? undefined,
+      isNA: c?.isNA ?? undefined,
     }));
   return cleaned.length ? cleaned : undefined;
 };
@@ -950,34 +962,44 @@ const buildCreateCMVRPayload = (
   options: { recommendationsData?: RecommendationsData } = {},
   userId?: string
 ): CreateCMVRDto => {
-  const generalInfo = snapshot.generalInfo ?? defaultGeneralInfo;
+  // Normalize snapshot to accept either:
+  //  - top-level section fields (complianceToProjectLocationAndCoverageLimits, airQualityImpactAssessment, etc.)
+  //  - or a nested `complianceMonitoringReport` object containing those sections
+  const norm: DraftSnapshot = snapshot.complianceMonitoringReport
+    ? ({
+        ...snapshot,
+        ...(snapshot.complianceMonitoringReport as any),
+      } as DraftSnapshot)
+    : snapshot;
+
+  const generalInfo = norm.generalInfo ?? defaultGeneralInfo;
   const eccEntries = buildEccEntries(
-    snapshot.eccInfo ?? defaultEccInfo,
-    snapshot.eccAdditionalForms ?? []
+    norm.eccInfo ?? defaultEccInfo,
+    norm.eccAdditionalForms ?? []
   );
   const isagEntries = buildIsagEntries(
-    snapshot.isagInfo ?? defaultIsagInfo,
-    snapshot.isagAdditionalForms ?? []
+    norm.isagInfo ?? defaultIsagInfo,
+    norm.isagAdditionalForms ?? []
   );
   const epepEntries = buildEpepEntries(
-    snapshot.epepInfo ?? defaultEpepInfo,
-    snapshot.epepAdditionalForms ?? []
+    norm.epepInfo ?? defaultEpepInfo,
+    norm.epepAdditionalForms ?? []
   );
   const rcfEntries = buildFundEntries(
-    snapshot.rcfInfo ?? defaultFundInfo,
-    snapshot.rcfAdditionalForms ?? []
+    norm.rcfInfo ?? defaultFundInfo,
+    norm.rcfAdditionalForms ?? []
   );
   const mtfEntries = buildFundEntries(
-    snapshot.mtfInfo ?? defaultFundInfo,
-    snapshot.mtfAdditionalForms ?? []
+    norm.mtfInfo ?? defaultFundInfo,
+    norm.mtfAdditionalForms ?? []
   );
   const fmrdfEntries = buildFundEntries(
-    snapshot.fmrdfInfo ?? defaultFundInfo,
-    snapshot.fmrdfAdditionalForms ?? []
+    norm.fmrdfInfo ?? defaultFundInfo,
+    norm.fmrdfAdditionalForms ?? []
   );
 
-  const proponentInfo = snapshot.isagInfo ?? defaultIsagInfo;
-  const mmtInfo = snapshot.mmtInfo ?? defaultMmtInfo;
+  const proponentInfo = norm.isagInfo ?? defaultIsagInfo;
+  const mmtInfo = norm.mmtInfo ?? defaultMmtInfo;
 
   const payload: CreateCMVRDto = {
     companyName: sanitizeString(generalInfo.companyName) || "Untitled Company",
@@ -1013,7 +1035,7 @@ const buildCreateCMVRPayload = (
       telephoneFax: sanitizeString(mmtInfo.phoneNumber),
       emailAddress: sanitizeString(mmtInfo.emailAddress),
     },
-    epepFmrdpStatus: (snapshot.epepInfo?.isNA ?? false) ? "N/A" : "Approved",
+    epepFmrdpStatus: (norm.epepInfo?.isNA ?? false) ? "N/A" : "Approved",
     epep: epepEntries,
     rehabilitationCashFund: rcfEntries,
     monitoringTrustFundUnified: mtfEntries,
@@ -1025,16 +1047,16 @@ const buildCreateCMVRPayload = (
   }
 
   // Add Page 2 data (Executive Summary & Process Documentation)
-  if (snapshot.executiveSummaryOfCompliance) {
+  if (norm.executiveSummaryOfCompliance) {
     payload.executiveSummaryOfCompliance = transformExecutiveSummaryForPayload(
-      snapshot.executiveSummaryOfCompliance
+      norm.executiveSummaryOfCompliance
     );
   }
 
-  if (snapshot.processDocumentationOfActivitiesUndertaken) {
+  if (norm.processDocumentationOfActivitiesUndertaken) {
     payload.processDocumentationOfActivitiesUndertaken =
       transformProcessDocumentationForPayload(
-        snapshot.processDocumentationOfActivitiesUndertaken
+        norm.processDocumentationOfActivitiesUndertaken
       );
   }
 
@@ -1048,70 +1070,68 @@ const buildCreateCMVRPayload = (
   let hasAir = false;
   let hasWater = false;
 
-  if (snapshot.complianceToProjectLocationAndCoverageLimits) {
+  if (norm.complianceToProjectLocationAndCoverageLimits) {
     complianceMonitoringReport.complianceToProjectLocationAndCoverageLimits =
       transformProjectLocationCoverageForPayload(
-        snapshot.complianceToProjectLocationAndCoverageLimits
+        norm.complianceToProjectLocationAndCoverageLimits
       );
     hasComplianceData = true;
     hasPLCL = true;
   }
 
-  if (snapshot.complianceToImpactManagementCommitments) {
+  if (norm.complianceToImpactManagementCommitments) {
     complianceMonitoringReport.complianceToImpactManagementCommitments =
       transformImpactCommitmentsForPayload(
-        snapshot.complianceToImpactManagementCommitments
+        norm.complianceToImpactManagementCommitments
       );
     hasComplianceData = true;
     hasImpact = true;
   }
 
-  if (snapshot.airQualityImpactAssessment) {
+  if (norm.airQualityImpactAssessment) {
     complianceMonitoringReport.airQualityImpactAssessment =
-      transformAirQualityForPayload(snapshot.airQualityImpactAssessment);
+      transformAirQualityForPayload(norm.airQualityImpactAssessment);
     hasComplianceData = true;
     hasAir = true;
   }
 
-  if (snapshot.waterQualityImpactAssessment) {
+  if (norm.waterQualityImpactAssessment) {
     complianceMonitoringReport.waterQualityImpactAssessment =
-      transformWaterQualityForPayload(snapshot.waterQualityImpactAssessment);
+      transformWaterQualityForPayload(norm.waterQualityImpactAssessment);
     hasComplianceData = true;
     hasWater = true;
   }
 
-  if (snapshot.noiseQualityImpactAssessment) {
+  if (norm.noiseQualityImpactAssessment) {
     complianceMonitoringReport.noiseQualityImpactAssessment =
-      transformNoiseQualityForPayload(snapshot.noiseQualityImpactAssessment);
+      transformNoiseQualityForPayload(norm.noiseQualityImpactAssessment);
     hasComplianceData = true;
   }
 
-  if (snapshot.complianceWithGoodPracticeInSolidAndHazardousWasteManagement) {
+  if (norm.complianceWithGoodPracticeInSolidAndHazardousWasteManagement) {
     complianceMonitoringReport.complianceWithGoodPracticeInSolidAndHazardousWasteManagement =
       transformWasteManagementForPayload(
-        snapshot.complianceWithGoodPracticeInSolidAndHazardousWasteManagement
+        norm.complianceWithGoodPracticeInSolidAndHazardousWasteManagement
       );
     hasComplianceData = true;
   }
 
-  if (snapshot.complianceWithGoodPracticeInChemicalSafetyManagement) {
+  if (norm.complianceWithGoodPracticeInChemicalSafetyManagement) {
     complianceMonitoringReport.complianceWithGoodPracticeInChemicalSafetyManagement =
       transformChemicalSafetyForPayload(
-        snapshot.complianceWithGoodPracticeInChemicalSafetyManagement
+        norm.complianceWithGoodPracticeInChemicalSafetyManagement
       );
     hasComplianceData = true;
   }
 
-  if (snapshot.complaintsVerificationAndManagement) {
+  if (norm.complaintsVerificationAndManagement) {
     complianceMonitoringReport.complaintsVerificationAndManagement =
-      transformComplaintsForPayload(
-        snapshot.complaintsVerificationAndManagement
-      );
+      transformComplaintsForPayload(norm.complaintsVerificationAndManagement);
     hasComplianceData = true;
   }
 
   if (
-    snapshot.recommendationFromPrevQuarter ||
+    norm.recommendationFromPrevQuarter ||
     options.recommendationsData?.previousRecommendations
   ) {
     const transformedPrevRecommendations = transformRecommendationsForPayload(
@@ -1120,12 +1140,12 @@ const buildCreateCMVRPayload = (
       options.recommendationsData?.prevYear
     );
     complianceMonitoringReport.recommendationFromPrevQuarter =
-      snapshot.recommendationFromPrevQuarter || transformedPrevRecommendations;
+      norm.recommendationFromPrevQuarter || transformedPrevRecommendations;
     hasComplianceData = true;
   }
 
   if (
-    snapshot.recommendationForNextQuarter ||
+    norm.recommendationForNextQuarter ||
     options.recommendationsData?.currentRecommendations
   ) {
     const transformedRecommendations = transformRecommendationsForPayload(
@@ -1134,7 +1154,7 @@ const buildCreateCMVRPayload = (
       generalInfo.year
     );
     complianceMonitoringReport.recommendationForNextQuarter =
-      snapshot.recommendationForNextQuarter || transformedRecommendations;
+      norm.recommendationForNextQuarter || transformedRecommendations;
     hasComplianceData = true;
   }
 
@@ -1466,6 +1486,10 @@ const CMVRDocumentExportScreen = () => {
         "CMVR_Report";
 
       await updateCMVRReport(submittedReportId, payload, fileNameForUpdate);
+
+      // Delete the draft from AsyncStorage after successful update
+      await AsyncStorage.removeItem(DRAFT_KEY);
+
       Alert.alert("Updated", "Your CMVR report has been updated.");
     } catch (e: any) {
       console.error("Update CMVR report failed:", e);
@@ -1665,6 +1689,133 @@ const CMVRDocumentExportScreen = () => {
     return value && value.trim() !== "" ? value : fallback;
   };
 
+  // Navigation handlers for summary cards
+  const navigateToGeneralInfo = () => {
+    navigation.navigate("CMVRReport", {
+      fileName,
+      generalInfo,
+      eccInfo,
+      eccAdditionalForms,
+      isagInfo,
+      isagAdditionalForms,
+      epepInfo,
+      epepAdditionalForms,
+      rcfInfo,
+      rcfAdditionalForms,
+      mtfInfo,
+      mtfAdditionalForms,
+      fmrdfInfo,
+      fmrdfAdditionalForms,
+      mmtInfo,
+      draftData: draftSnapshot,
+    } as any);
+  };
+
+  const navigateToPage2 = () => {
+    navigation.navigate("CMVRPage2", {
+      fileName,
+      generalInfo,
+      eccInfo,
+      eccAdditionalForms,
+      isagInfo,
+      isagAdditionalForms,
+      epepInfo,
+      epepAdditionalForms,
+      rcfInfo,
+      rcfAdditionalForms,
+      mtfInfo,
+      mtfAdditionalForms,
+      fmrdfInfo,
+      fmrdfAdditionalForms,
+      mmtInfo,
+      draftData: draftSnapshot,
+    } as any);
+  };
+
+  const navigateToWaterQuality = () => {
+    navigation.navigate("WaterQuality", {
+      fileName,
+      generalInfo,
+      eccInfo,
+      eccAdditionalForms,
+      isagInfo,
+      isagAdditionalForms,
+      epepInfo,
+      epepAdditionalForms,
+      rcfInfo,
+      rcfAdditionalForms,
+      mtfInfo,
+      mtfAdditionalForms,
+      fmrdfInfo,
+      fmrdfAdditionalForms,
+      mmtInfo,
+      draftData: draftSnapshot,
+    } as any);
+  };
+
+  const navigateToNoiseQuality = () => {
+    navigation.navigate("NoiseQuality", {
+      fileName,
+      generalInfo,
+      eccInfo,
+      eccAdditionalForms,
+      isagInfo,
+      isagAdditionalForms,
+      epepInfo,
+      epepAdditionalForms,
+      rcfInfo,
+      rcfAdditionalForms,
+      mtfInfo,
+      mtfAdditionalForms,
+      fmrdfInfo,
+      fmrdfAdditionalForms,
+      mmtInfo,
+      draftData: draftSnapshot,
+    } as any);
+  };
+
+  const navigateToWasteManagement = () => {
+    navigation.navigate("WasteManagement", {
+      fileName,
+      generalInfo,
+      eccInfo,
+      eccAdditionalForms,
+      isagInfo,
+      isagAdditionalForms,
+      epepInfo,
+      epepAdditionalForms,
+      rcfInfo,
+      rcfAdditionalForms,
+      mtfInfo,
+      mtfAdditionalForms,
+      fmrdfInfo,
+      fmrdfAdditionalForms,
+      mmtInfo,
+      draftData: draftSnapshot,
+    } as any);
+  };
+
+  const navigateToChemicalSafety = () => {
+    navigation.navigate("ChemicalSafety", {
+      fileName,
+      generalInfo,
+      eccInfo,
+      eccAdditionalForms,
+      isagInfo,
+      isagAdditionalForms,
+      epepInfo,
+      epepAdditionalForms,
+      rcfInfo,
+      rcfAdditionalForms,
+      mtfInfo,
+      mtfAdditionalForms,
+      fmrdfInfo,
+      fmrdfAdditionalForms,
+      mmtInfo,
+      draftData: draftSnapshot,
+    } as any);
+  };
+
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: false,
@@ -1724,6 +1875,7 @@ const CMVRDocumentExportScreen = () => {
             icon="📋"
             title="General Information"
             value={`${getDisplayValue(generalInfo?.companyName)} - ${getDisplayValue(isagInfo?.currentName || generalInfo?.projectName)}`}
+            onPress={navigateToGeneralInfo}
           />
 
           <SummaryItem
@@ -1739,6 +1891,7 @@ const CMVRDocumentExportScreen = () => {
                 ? `+${eccAdditionalForms.length} additional`
                 : undefined
             }
+            onPress={navigateToGeneralInfo}
           />
 
           <SummaryItem
@@ -1754,6 +1907,7 @@ const CMVRDocumentExportScreen = () => {
                 ? `+${isagAdditionalForms.length} additional`
                 : undefined
             }
+            onPress={navigateToGeneralInfo}
           />
 
           <SummaryItem
@@ -1769,6 +1923,7 @@ const CMVRDocumentExportScreen = () => {
                 ? `+${epepAdditionalForms.length} additional`
                 : undefined
             }
+            onPress={navigateToGeneralInfo}
           />
 
           <SummaryItem
@@ -1784,6 +1939,7 @@ const CMVRDocumentExportScreen = () => {
                 ? `+${rcfAdditionalForms.length} additional`
                 : undefined
             }
+            onPress={navigateToGeneralInfo}
           />
 
           <SummaryItem
@@ -1799,6 +1955,7 @@ const CMVRDocumentExportScreen = () => {
                 ? `+${mtfAdditionalForms.length} additional`
                 : undefined
             }
+            onPress={navigateToGeneralInfo}
           />
 
           <SummaryItem
@@ -1814,6 +1971,7 @@ const CMVRDocumentExportScreen = () => {
                 ? `+${fmrdfAdditionalForms.length} additional`
                 : undefined
             }
+            onPress={navigateToGeneralInfo}
           />
 
           <SummaryItem
@@ -1824,6 +1982,7 @@ const CMVRDocumentExportScreen = () => {
                 ? getDisplayValue(mmtInfo.contactPerson)
                 : "Not provided"
             }
+            onPress={navigateToGeneralInfo}
           />
         </View>
 
@@ -2028,23 +2187,44 @@ const SummaryItem = ({
   title,
   value,
   additional,
+  onPress,
 }: {
   icon: string;
   title: string;
   value: string;
   additional?: string;
-}) => (
-  <View style={styles.summaryItem}>
-    <Text style={styles.summaryIcon}>{icon}</Text>
-    <View style={styles.summaryTextContainer}>
-      <Text style={styles.summaryItemTitle}>{title}</Text>
-      <Text style={styles.summaryItemValue} numberOfLines={1}>
-        {value}
-      </Text>
-      {additional && <Text style={styles.summaryAdditional}>{additional}</Text>}
-    </View>
-  </View>
-);
+  onPress?: () => void;
+}) => {
+  const content = (
+    <>
+      <Text style={styles.summaryIcon}>{icon}</Text>
+      <View style={styles.summaryTextContainer}>
+        <Text style={styles.summaryItemTitle}>{title}</Text>
+        <Text style={styles.summaryItemValue} numberOfLines={1}>
+          {value}
+        </Text>
+        {additional && (
+          <Text style={styles.summaryAdditional}>{additional}</Text>
+        )}
+      </View>
+      {onPress && <Ionicons name="chevron-forward" size={20} color="#94A3B8" />}
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity
+        style={styles.summaryItem}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return <View style={styles.summaryItem}>{content}</View>;
+};
 
 const styles = StyleSheet.create({
   container: {

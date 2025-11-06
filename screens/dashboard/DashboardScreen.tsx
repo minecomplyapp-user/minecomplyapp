@@ -621,7 +621,8 @@ function DraftCard({ draft, navigation }: any) {
             draft.projectName ||
             draft.title;
           await setFileName(resolvedFileName);
-          navigation.navigate("CMVRReport", {
+          // Navigate directly to the last page (Export screen) with draft data
+          navigation.navigate("CMVRDocumentExport", {
             submissionId: null,
             projectId: null,
             projectName:
@@ -630,7 +631,8 @@ function DraftCard({ draft, navigation }: any) {
               draft.projectName ||
               "",
             fileName: resolvedFileName,
-            draftData,
+            // Spread all draft data as route params so the export screen can hydrate
+            ...draftData,
           });
         }
       } catch (error) {
