@@ -93,7 +93,7 @@ export async function generateCMVRDocx(
 ): Promise<string> {
   const baseUrl = getApiBaseUrl();
   const token = await getJwt();
-  
+
   // Construct the download URL with the JWT token as a query parameter
   // This allows the browser to download without needing Authorization header
   const downloadUrl = `${baseUrl}/api/cmvr/${id}/docx?token=${encodeURIComponent(token)}`;
@@ -103,11 +103,11 @@ export async function generateCMVRDocx(
     if (!supported) {
       throw new Error("Unable to open download URL in browser");
     }
-    
+
     // This will open the device's browser and trigger the file download
     // The file will be saved to the browser's Downloads folder
     await Linking.openURL(downloadUrl);
-    
+
     return downloadUrl;
   } catch (error) {
     console.error("Error opening download URL:", error);

@@ -959,7 +959,10 @@ const transformComplaintsForPayload = (raw: any) => {
 
 const buildCreateCMVRPayload = (
   snapshot: DraftSnapshot,
-  options: { recommendationsData?: RecommendationsData } = {},
+  options: {
+    recommendationsData?: RecommendationsData;
+    attendanceId?: string;
+  } = {},
   userId?: string
 ): CreateCMVRDto => {
   // Normalize snapshot to accept either:
@@ -1163,6 +1166,11 @@ const buildCreateCMVRPayload = (
     payload.complianceMonitoringReport = complianceMonitoringReport;
   }
 
+  // Add attendanceId if provided
+  if (options.attendanceId) {
+    payload.attendanceId = options.attendanceId;
+  }
+
   return payload;
 };
 
@@ -1221,6 +1229,8 @@ const CMVRDocumentExportScreen = () => {
     recommendationFromPrevQuarter: routeRecommendationFromPrevQuarter,
     recommendationForNextQuarter: routeRecommendationForNextQuarter,
     attendanceUrl: routeAttendanceUrl,
+    selectedAttendanceId: routeSelectedAttendanceId,
+    selectedAttendanceTitle: routeSelectedAttendanceTitle,
     documentation: routeDocumentation,
   } = routeParams;
 
@@ -1574,7 +1584,10 @@ const CMVRDocumentExportScreen = () => {
       );
       const payload = buildCreateCMVRPayload(
         snapshotForSubmission,
-        { recommendationsData: snapshotForSubmission.recommendationsData },
+        {
+          recommendationsData: snapshotForSubmission.recommendationsData,
+          attendanceId: routeSelectedAttendanceId,
+        },
         user?.id
       );
 
@@ -1673,7 +1686,10 @@ const CMVRDocumentExportScreen = () => {
 
       const payload = buildCreateCMVRPayload(
         snapshotForSubmission,
-        { recommendationsData: snapshotForSubmission.recommendationsData },
+        {
+          recommendationsData: snapshotForSubmission.recommendationsData,
+          attendanceId: routeSelectedAttendanceId,
+        },
         user?.id
       );
 
@@ -1981,6 +1997,29 @@ const CMVRDocumentExportScreen = () => {
     } as any);
   };
 
+  const navigateToAttendanceSelection = () => {
+    navigation.navigate("AttendanceList", {
+      fromRecommendations: true,
+      ...baseNavParams,
+      executiveSummaryOfCompliance: executiveSummary,
+      processDocumentationOfActivitiesUndertaken: processDocumentation,
+      complianceToProjectLocationAndCoverageLimits: complianceProjectLocation,
+      complianceToImpactManagementCommitments: complianceImpactCommitments,
+      airQualityImpactAssessment: airQualityAssessment,
+      waterQualityImpactAssessment: waterQualityAssessment,
+      noiseQualityImpactAssessment: noiseQualityAssessment,
+      complianceWithGoodPracticeInSolidAndHazardousWasteManagement:
+        wasteManagementData,
+      complianceWithGoodPracticeInChemicalSafetyManagement: chemicalSafetyData,
+      complaintsVerificationAndManagement: complaintsData,
+      recommendationsData,
+      recommendationFromPrevQuarter: recommendationPrev,
+      recommendationForNextQuarter: recommendationNext,
+      attendanceUrl,
+      documentation,
+    } as any);
+  };
+
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: false,
@@ -2198,6 +2237,17 @@ const CMVRDocumentExportScreen = () => {
                 : "Not provided"
             }
             onPress={navigateToChemicalSafety}
+          />
+
+          <SummaryItem
+            icon="📋"
+            title="Attendance Record"
+            value={
+              routeSelectedAttendanceTitle
+                ? routeSelectedAttendanceTitle
+                : "Not selected"
+            }
+            onPress={navigateToAttendanceSelection}
           />
         </View>
 

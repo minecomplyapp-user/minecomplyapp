@@ -162,4 +162,5 @@ export type CreateCMVRDto = {
   processDocumentationOfActivitiesUndertaken?: any;
   complianceMonitoringReport?: any;
   createdById?: string;
+  attendanceId?: string;
 };
