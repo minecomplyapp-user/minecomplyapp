@@ -35,6 +35,7 @@ import { getAllDraftMetadata, getDraft } from "../../lib/drafts";
 import { apiGet } from "../../lib/api";
 import { Ionicons } from "@expo/vector-icons";
 import { CustomHeader } from "../../components/CustomHeader";
+import {useEccStore} from "../../store/eccStore"
 
 interface Report {
   id: string;
@@ -56,6 +57,8 @@ interface AttendanceRecord {
 }
 
 export default function DashboardScreen({ navigation }: any) {
+    const {getAllReports} = useEccStore();
+  
   const { user } = useAuth();
   const [reports, setReports] = useState<Report[]>([]);
   const [drafts, setDrafts] = useState<Report[]>([]);
@@ -266,8 +269,16 @@ export default function DashboardScreen({ navigation }: any) {
               icon={Copy}
               title="Duplicate Report"
               subtitle="Use a previous template"
-              onPress={() => navigation.navigate("DuplicateReport")}
+             onPress={async () => { // <--- Make the callback function ASYNC
+                  // 1. Await the report fetch to ensure the store is updated
+                  await getAllReports(); // <--- Use AWAIT
+                  
+                  // 2. Navigate after data is guaranteed to be in the store
+                  navigation.navigate("DuplicateReport");
+              }}
             />
+
+            
           </View>
         </View>
 
@@ -440,6 +451,8 @@ export default function DashboardScreen({ navigation }: any) {
 }
 
 function CreateReportModal({ visible, onClose, navigation }: any) {
+    const { selectedReport, isLoading, clearSelectedReport } = useEccStore(state => state);
+
   const [scaleAnim] = useState(new Animated.Value(0.95));
   const { setFileName } = useFileName();
 
@@ -515,6 +528,7 @@ function CreateReportModal({ visible, onClose, navigation }: any) {
                   onPress={() => {
                     onClose();
                     setTimeout(() => {
+                      clearSelectedReport();
                       navigation.navigate("ECCMonitoring");
                     }, 120);
                   }}

@@ -35,9 +35,11 @@ const colorFor = (k: ChoiceKey) =>
 export const ECCMonitoringSection = ({
   initialState,
   onChange,
+  toDisplay,
 }: {
   initialState: StoredState;
   onChange: (s: StoredState) => void;
+  toDisplay: BaseCondition[];
 }) => {
 
   const [edits, setEdits] = useState<Record<CondID, Partial<BaseCondition>>>(
@@ -98,7 +100,9 @@ const toConditionOutput = () => {
 
   const currentList = useMemo(() => {
     // Apply edits over DEFAULTS 
-    const list: BaseCondition[] = DEFAULTS.map((d) => {
+    const toMap = Array.isArray(toDisplay) ? toDisplay : DEFAULTS;
+
+    const list: BaseCondition[] =toMap.map((d) => {
       const e = edits[d.id];
       if (!e) return { ...d };
       return {

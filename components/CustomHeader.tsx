@@ -17,9 +17,9 @@ interface CustomHeaderProps {
   onSave?: () => void;
   saveDisabled?: boolean;
   showSave?: boolean;
-  showFileName?: boolean; // new
-  fileName?: string; // current filename
-  onChangeFileName?: (name: string) => void; // callback when changed
+  showFileName?: boolean;
+  fileName?: string;
+  onChangeFileName?: (name: string) => void;
   goBackTo?: string;
 }
 
@@ -36,13 +36,13 @@ export const CustomHeader: React.FC<CustomHeaderProps> = ({
   const [modalVisible, setModalVisible] = useState(false);
   const [tempFileName, setTempFileName] = useState(fileName);
 
-const handleBack = () => {
-  if (goBackTo) {
-    navigation.navigate(goBackTo as never); 
-  } else if (navigation.canGoBack()) {
-    navigation.goBack();
-  }
-};
+  const handleBack = () => {
+    if (goBackTo) {
+      navigation.navigate(goBackTo as never); 
+    } else if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  };
 
   const handleSaveFileName = () => {
     onChangeFileName?.(tempFileName);
@@ -134,6 +134,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
     borderBottomColor: "#e5e5e5",
+    paddingTop: Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 0,
   },
   header: {
     flexDirection: "row",
@@ -165,7 +166,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: theme.colors.primaryDark,
   },
-  /* Modal styles reused from your ECC styles */
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",

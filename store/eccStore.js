@@ -5,9 +5,13 @@ const ECC_STORAGE_KEY = '@ecc_data_array';
 export const useEccStore = create((set) => ({
     // ... (initial state)
     
-    reports: [], 
+    reports: null, 
     isLoading: false,
     selectedReport: null,
+    clearSelectedReport:async () => {
+    // Assuming 'selectedReport' is a state field you want to clear
+    set({ selectedReport: null }); 
+},
   saveEcc :async (newEccObject) => {
     try {
         // 1. GENERATE THE ID AND ADD IT TO THE NEW OBJECT
@@ -137,23 +141,65 @@ updateEcc : async (id, updatedEccObject) => {
             return { success: false, error: error.message };
         }
     },
-    getReportById: async (id) => {
-        set({ isLoading: true, selectedReport: null });
-        try {
-            const endpoint = `${BASE_URL}/ecc/getEccReportById/${id}`; // e hardcode lang sa ang id ari kay wako sure if multiple project bani
-            const report = await apiRequest(endpoint, 'GET'); 
-            const selectedReport = report;
-            return { success: true, report: report };
+getReportById: async (id) => {
+  set({ isLoading: true, selectedReport: null });
+  try {
+    const endpoint = `${BASE_URL}/ecc/getEccReportById/${id}`;
+    
+    const response = await fetch(endpoint, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
-        } catch (error) {
-            set({ isLoading: false });
-            console.error(`Error fetching report ${id}:`, error.message);
-            return { success: false, error: error.message };
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const report = await response.json();
+    set({ selectedReport: report, isLoading: false });
+
+    console.log("the reportwrtsD",report)
+
+    return { success: true, report };
+  } catch (error) {
+    set({ isLoading: false });
+    console.error(`Error fetching report ${id}:`, error);
+    return { success: false, error: error.message };
+  }
+},
+
+  getAllReports: async () => {
+    // 1. Start Loading
+    set({ isLoading: true, error: null }); 
+
+    try {
+        // 2. Fetch Data from the API endpoint
+        // You'll need to replace 'YOUR_API_BASE_URL' and use a fetch or axios call.
+        const response = await fetch(`${BASE_URL}/ecc/getAllEccReports`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch ECC reports.');
         }
-    },
-    getAllReports: async () => {
-        set({ isLoading: true });   
-    },
+
+        const data = await response.json();
+
+        // 3. Update State with the fetched data
+        set({
+            reports: data, // Assuming the API returns an array of reports
+            isLoading: false,
+        });
+
+    } catch (error) {
+        // 4. Handle Errors
+        console.error('Error fetching reports:', error);
+        set({
+            error: error.message || 'An unknown error occurred',
+            isLoading: false,
+        });
+    }
+},
     updateCondition: async (conditionId, data) => {
         set({ isLoading: true });
         try {
