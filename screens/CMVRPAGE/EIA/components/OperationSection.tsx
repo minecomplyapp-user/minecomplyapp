@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Plus, Trash2 } from 'lucide-react-native';
-import { RadioButton } from './RadioButton';
+import { Checkbox } from './Checkbox';
 import { MitigatingMeasureForm } from '../components/MitigatingMeasureForm';
 import { OperationSectionProps } from '../types/OperationSection.types';
 import { styles } from '../styles/OperationSection.styles';
@@ -20,7 +20,7 @@ export const OperationSectionComponent: React.FC<OperationSectionProps> = ({
           <Text style={styles.titleText}>{section.title}</Text>
         </View>
         <View style={styles.naContainer}>
-          <RadioButton selected={section.isNA} onPress={onNAToggle} />
+          <Checkbox checked={section.isNA} onPress={onNAToggle} />
           <Text style={styles.naText}>N/A</Text>
         </View>
       </View>

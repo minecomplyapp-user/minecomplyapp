@@ -8,12 +8,15 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  Dimensions,
 } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../contexts/AuthContext";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import { useFileName } from "../../contexts/FileNameContext";
 import {
   createCMVRReport,
@@ -32,6 +35,10 @@ import type {
   MMTInfo,
   CreateCMVRDto,
 } from "./types/CMVRReportScreen.types";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const isTablet = SCREEN_WIDTH >= 768;
+const isSmallPhone = SCREEN_WIDTH < 375;
 
 type RecommendationItemShape = {
   recommendation?: string;
@@ -55,7 +62,7 @@ type EpepAdditionalForm = Omit<EPEPInfo, "isNA">;
 type FundAdditionalForm = Omit<RCFInfo, "isNA">;
 
 type CMVRDocumentExportParams = {
-  cmvrReportId?: string; // if provided, enables Generate/Delete immediately
+  cmvrReportId?: string;
   generalInfo?: GeneralInfo;
   eccInfo?: ECCInfo;
   eccAdditionalForms?: ECCAdditionalForm[];
@@ -74,10 +81,8 @@ type CMVRDocumentExportParams = {
   recommendationsData?: RecommendationsData;
   selectedAttendanceId?: string;
   selectedAttendanceTitle?: string;
-  // Page 2 data (Executive Summary & Process Documentation)
   executiveSummaryOfCompliance?: any;
   processDocumentationOfActivitiesUndertaken?: any;
-  // Compliance Monitoring Report sections
   complianceToProjectLocationAndCoverageLimits?: any;
   complianceToImpactManagementCommitments?: any;
   airQualityImpactAssessment?: any;
@@ -114,10 +119,8 @@ type DraftSnapshot = {
   fileName: string;
   savedAt?: string;
   recommendationsData?: RecommendationsData;
-  // Page 2 data (Executive Summary & Process Documentation)
   executiveSummaryOfCompliance?: any;
   processDocumentationOfActivitiesUndertaken?: any;
-  // Compliance Monitoring Report sections
   complianceToProjectLocationAndCoverageLimits?: any;
   complianceToImpactManagementCommitments?: any;
   airQualityImpactAssessment?: any;
@@ -204,15 +207,9 @@ const buildLocationString = (info: GeneralInfo) =>
 const buildCoordinatesString = (info: ISAGInfo) => {
   const x = sanitizeString(info.gpsX);
   const y = sanitizeString(info.gpsY);
-  if (!x && !y) {
-    return "";
-  }
-  if (x && y) {
-    return `X: ${x}, Y: ${y}`;
-  }
-  if (x) {
-    return `X: ${x}`;
-  }
+  if (!x && !y) return "";
+  if (x && y) return `X: ${x}, Y: ${y}`;
+  if (x) return `X: ${x}`;
   return `Y: ${y}`;
 };
 
@@ -222,12 +219,10 @@ const buildEccEntries = (info: ECCInfo, additional: ECCAdditionalForm[]) => {
     eccNumber: string;
     dateOfIssuance: string;
   }> = [];
-
   if (!info.isNA) {
     const hasMainData = [info.permitHolder, info.eccNumber, info.dateOfIssuance]
       .map(sanitizeString)
       .some((value) => value.length > 0);
-
     if (hasMainData) {
       entries.push({
         permitHolderName: sanitizeString(info.permitHolder),
@@ -236,7 +231,6 @@ const buildEccEntries = (info: ECCInfo, additional: ECCAdditionalForm[]) => {
       });
     }
   }
-
   additional.forEach((form) => {
     entries.push({
       permitHolderName: sanitizeString(form.permitHolder),
@@ -244,7 +238,6 @@ const buildEccEntries = (info: ECCInfo, additional: ECCAdditionalForm[]) => {
       dateOfIssuance: sanitizeString(form.dateOfIssuance),
     });
   });
-
   return entries;
 };
 
@@ -254,7 +247,6 @@ const buildIsagEntries = (info: ISAGInfo, additional: ISAGAdditionalForm[]) => {
     isagPermitNumber: string;
     dateOfIssuance: string;
   }> = [];
-
   if (!info.isNA) {
     const hasMainData = [
       info.permitHolder,
@@ -263,7 +255,6 @@ const buildIsagEntries = (info: ISAGInfo, additional: ISAGAdditionalForm[]) => {
     ]
       .map(sanitizeString)
       .some((value) => value.length > 0);
-
     if (hasMainData) {
       entries.push({
         permitHolderName: sanitizeString(info.permitHolder),
@@ -272,7 +263,6 @@ const buildIsagEntries = (info: ISAGInfo, additional: ISAGAdditionalForm[]) => {
       });
     }
   }
-
   additional.forEach((form) => {
     entries.push({
       permitHolderName: sanitizeString(form.permitHolder),
@@ -280,7 +270,6 @@ const buildIsagEntries = (info: ISAGInfo, additional: ISAGAdditionalForm[]) => {
       dateOfIssuance: sanitizeString(form.dateOfIssuance),
     });
   });
-
   return entries;
 };
 
@@ -290,7 +279,6 @@ const buildEpepEntries = (info: EPEPInfo, additional: EpepAdditionalForm[]) => {
     epepNumber: string;
     dateOfApproval: string;
   }> = [];
-
   if (!info.isNA) {
     const hasMainData = [
       info.permitHolder,
@@ -299,7 +287,6 @@ const buildEpepEntries = (info: EPEPInfo, additional: EpepAdditionalForm[]) => {
     ]
       .map(sanitizeString)
       .some((value) => value.length > 0);
-
     if (hasMainData) {
       entries.push({
         permitHolderName: sanitizeString(info.permitHolder),
@@ -308,7 +295,6 @@ const buildEpepEntries = (info: EPEPInfo, additional: EpepAdditionalForm[]) => {
       });
     }
   }
-
   additional.forEach((form) => {
     entries.push({
       permitHolderName: sanitizeString(form.permitHolder),
@@ -316,7 +302,6 @@ const buildEpepEntries = (info: EPEPInfo, additional: EpepAdditionalForm[]) => {
       dateOfApproval: sanitizeString(form.dateOfApproval),
     });
   });
-
   return entries;
 };
 
@@ -327,7 +312,6 @@ const buildFundEntries = (info: RCFInfo, additional: FundAdditionalForm[]) => {
     amountDeposited: string;
     dateUpdated: string;
   }> = [];
-
   if (!info.isNA) {
     const hasMainData = [
       info.permitHolder,
@@ -337,7 +321,6 @@ const buildFundEntries = (info: RCFInfo, additional: FundAdditionalForm[]) => {
     ]
       .map(sanitizeString)
       .some((value) => value.length > 0);
-
     if (hasMainData) {
       entries.push({
         permitHolderName: sanitizeString(info.permitHolder),
@@ -347,7 +330,6 @@ const buildFundEntries = (info: RCFInfo, additional: FundAdditionalForm[]) => {
       });
     }
   }
-
   additional.forEach((form) => {
     entries.push({
       permitHolderName: sanitizeString(form.permitHolder),
@@ -356,7 +338,6 @@ const buildFundEntries = (info: RCFInfo, additional: FundAdditionalForm[]) => {
       dateUpdated: sanitizeString(form.dateUpdated),
     });
   });
-
   return entries;
 };
 
@@ -385,7 +366,6 @@ const mergeDraftData = (
         fileName,
         savedAt: new Date().toISOString(),
       };
-
   const assign = <K extends keyof DraftSnapshot>(key: K) => {
     if (Object.prototype.hasOwnProperty.call(updates, key)) {
       const value = updates[key];
@@ -394,7 +374,6 @@ const mergeDraftData = (
       }
     }
   };
-
   assign("generalInfo");
   assign("eccInfo");
   assign("eccAdditionalForms");
@@ -410,12 +389,8 @@ const mergeDraftData = (
   assign("fmrdfAdditionalForms");
   assign("mmtInfo");
   assign("recommendationsData");
-
-  // Include Page 2 data (Executive Summary & Process Documentation)
   assign("executiveSummaryOfCompliance");
   assign("processDocumentationOfActivitiesUndertaken");
-
-  // Include Compliance Monitoring Report sections
   assign("complianceToProjectLocationAndCoverageLimits");
   assign("complianceToImpactManagementCommitments");
   assign("airQualityImpactAssessment");
@@ -428,10 +403,8 @@ const mergeDraftData = (
   assign("recommendationForNextQuarter");
   assign("attendanceUrl");
   assign("documentation");
-
   base.fileName = fileName;
   base.savedAt = new Date().toISOString();
-
   return base;
 };
 
@@ -446,45 +419,33 @@ const transformRecommendationsForPayload = (
   year?: string
 ) => {
   if (!currentRecommendations) return undefined;
-
   const transformed: any = {};
-
-  // Add quarter and year at the top level
   if (quarter) {
-    // Convert quarter string (e.g., "1st", "2nd", "3rd", "4th") to number
     const quarterMatch = quarter.match(/(\d+)/);
     if (quarterMatch) {
       transformed.quarter = parseInt(quarterMatch[1], 10);
     }
   }
-
   if (year) {
     const yearNum = parseInt(year, 10);
     if (!isNaN(yearNum)) {
       transformed.year = yearNum;
     }
   }
-
-  // Transform each section (plant, quarry, port) from {isNA, items} to just items array
   Object.keys(currentRecommendations).forEach((key) => {
     const section = currentRecommendations[key];
     if (section && !section.isNA && section.items && section.items.length > 0) {
       transformed[key] = section.items;
     }
   });
-
-  // Only return the object if it has at least one section with data (besides quarter/year)
   const hasData = Object.keys(transformed).some(
     (key) => key !== "quarter" && key !== "year"
   );
   return hasData ? transformed : undefined;
 };
 
-// Map Page 2: Executive Summary to backend DTO shape
 const transformExecutiveSummaryForPayload = (raw: any) => {
   if (!raw) return undefined;
-
-  // sdmp string to booleans
   const sdmp = (raw.sdmpCompliance || "").toString().trim().toLowerCase();
   const sdmpComplied =
     sdmp === "complied" ||
@@ -493,7 +454,6 @@ const transformExecutiveSummaryForPayload = (raw: any) => {
     raw.sdmpCompliance === true;
   const sdmpNotComplied =
     sdmp === "not complied" || sdmp === "no" || sdmp === "n";
-
   const accountability = (raw.accountability || "")
     .toString()
     .trim()
@@ -504,9 +464,7 @@ const transformExecutiveSummaryForPayload = (raw: any) => {
     raw.accountability === true;
   const accNotComplied =
     accountability === "not complied" || accountability === "no";
-
   const cm = raw.complaintsManagement || {};
-
   return {
     complianceWithEpepCommitments: {
       safety: !!raw?.epepCompliance?.safety,
@@ -540,10 +498,8 @@ const transformExecutiveSummaryForPayload = (raw: any) => {
   };
 };
 
-// Map Page 2: Process Documentation to backend DTO shape
 const transformProcessDocumentationForPayload = (raw: any) => {
   if (!raw) return undefined;
-
   const parseMembers = (text?: string, extras?: string[]) => {
     const base = (text || "")
       .split(/[,\n]/)
@@ -552,16 +508,13 @@ const transformProcessDocumentationForPayload = (raw: any) => {
     const extra = (extras || []).map((s) => (s || "").trim()).filter(Boolean);
     return [...base, ...extra];
   };
-
   const sva = (raw.siteValidationApplicable || "")
     .toString()
     .trim()
     .toLowerCase();
   const applicable =
     sva === "yes" || sva === "y" || raw.siteValidationApplicable === true;
-  const none =
-    sva === "no" || sva === "none" || raw.siteValidationApplicable === false;
-
+  const none = sva === "no" || sva === "none" || raw.siteValidationApplicable === false;
   return {
     dateConducted: raw?.dateConducted ?? "",
     mergedMethodologyOrOtherRemarks: raw?.methodologyRemarks ?? "",
@@ -596,19 +549,16 @@ const transformProcessDocumentationForPayload = (raw: any) => {
   };
 };
 
-// Helper to coerce strings like "50 mg/L" or "6.0 - 9.0" to a number (first number found)
 const parseFirstNumber = (val?: string): number => {
   if (!val) return 0;
   const m = String(val).match(/-?\d*\.?\d+/);
   return m ? parseFloat(m[0]) : 0;
 };
 
-// CMR 1: Compliance to Project Location and Coverage Limits
 const transformProjectLocationCoverageForPayload = (raw: any) => {
   if (!raw) return undefined;
   const formData = raw.formData || {};
   const other = raw.otherComponents || [];
-
   const parameters = Object.values(formData).map((f: any) => {
     const specObj: any = {};
     if (f?.specification) specObj.main = String(f.specification);
@@ -625,7 +575,6 @@ const transformProjectLocationCoverageForPayload = (raw: any) => {
       withinSpecs: Boolean(f?.withinSpecs),
     };
   });
-
   const otherComponents = other.map((item: any, idx: number) => ({
     name: String(
       item?.name ?? item?.specification ?? `Other Component ${idx + 1}`
@@ -634,19 +583,17 @@ const transformProjectLocationCoverageForPayload = (raw: any) => {
     remarks: String(item?.remarks ?? ""),
     withinSpecs: Boolean(item?.withinSpecs),
   }));
-
   return { parameters, otherComponents };
 };
 
-// CMR 2: Compliance to Impact Management Commitments in EIA & EPEP
 const transformImpactCommitmentsForPayload = (raw: any) => {
   if (!raw) return undefined;
   const toBool = (v: any) =>
     String(v).toLowerCase() === "yes"
       ? true
       : String(v).toLowerCase() === "no"
-        ? false
-        : !!v;
+      ? false
+      : !!v;
   const mapMeasures = (section: any) => {
     const measures = Array.isArray(section?.measures) ? section.measures : [];
     return {
@@ -659,7 +606,6 @@ const transformImpactCommitmentsForPayload = (raw: any) => {
       })),
     };
   };
-
   const constructionInfo = [
     {
       areaName: "Pre-Construction",
@@ -684,13 +630,11 @@ const transformImpactCommitmentsForPayload = (raw: any) => {
       ],
     },
   ];
-
   const implementationOfEnvironmentalImpactControlStrategies = [
     mapMeasures(raw?.quarryOperation),
     mapMeasures(raw?.plantOperation),
     mapMeasures(raw?.portOperation),
   ];
-
   return {
     constructionInfo,
     implementationOfEnvironmentalImpactControlStrategies,
@@ -698,14 +642,11 @@ const transformImpactCommitmentsForPayload = (raw: any) => {
   };
 };
 
-// CMR 3: Air Quality Impact Assessment
 const transformAirQualityForPayload = (raw: any) => {
   if (!raw) return undefined;
   const sel = raw.selectedLocations || {};
   const d = raw.data || {};
   const combineParams = () => {
-    // To satisfy backend validation (which currently forbids non-decorated fields),
-    // only send allowed keys: name and remarks.
     const main = [
       {
         name: String(d?.parameter ?? ""),
@@ -720,7 +661,6 @@ const transformAirQualityForPayload = (raw: any) => {
       : [];
     return [...main, ...extras].filter((x) => x.name);
   };
-
   return {
     quarry: sel.quarry ? String(d?.quarry ?? "") : String(d?.quarry ?? ""),
     quarryPlant: sel.quarryPlant ? String(d?.quarryPlant ?? "") : undefined,
@@ -734,14 +674,12 @@ const transformAirQualityForPayload = (raw: any) => {
   };
 };
 
-// CMR 4: Water Quality Impact Assessment
 const transformWaterQualityForPayload = (raw: any) => {
   if (!raw) return undefined;
   const sel = raw.selectedLocations || {};
   const d = raw.data || {};
   const params = Array.isArray(raw.parameters) ? raw.parameters : [];
   const ports = Array.isArray(raw.ports) ? raw.ports : [];
-
   const makeParam = (p: any) => ({
     name: String(p?.parameter ?? ""),
     result: {
@@ -767,11 +705,8 @@ const transformWaterQualityForPayload = (raw: any) => {
     },
     remark: String(p?.remarks ?? d?.remarks ?? ""),
   });
-
   const mainParam = makeParam(d);
   const extraParams = params.map(makeParam);
-
-  // Ports (map to parametersTable2)
   const portParams: any[] = [];
   ports.forEach((port: any) => {
     const base = makeParam(port);
@@ -785,7 +720,6 @@ const transformWaterQualityForPayload = (raw: any) => {
       });
     }
   });
-
   return {
     quarry: sel.quarry
       ? String(d?.quarryInput ?? "")
@@ -806,7 +740,6 @@ const transformWaterQualityForPayload = (raw: any) => {
   };
 };
 
-// CMR 5: Noise Quality Impact Assessment
 const transformNoiseQualityForPayload = (raw: any) => {
   if (!raw) return undefined;
   const list = Array.isArray(raw.parameters) ? raw.parameters : [];
@@ -828,7 +761,6 @@ const transformNoiseQualityForPayload = (raw: any) => {
       denrStandard: String(p?.limit ?? ""),
     },
   }));
-
   const toQuarter = (label: string, content: string) =>
     content
       ? {
@@ -836,7 +768,6 @@ const transformNoiseQualityForPayload = (raw: any) => {
           assessment: String(content),
         }
       : undefined;
-
   const overallAssessment: any = {};
   if (raw?.quarters?.first)
     overallAssessment.firstQuarter = toQuarter("1st", raw.quarters.first);
@@ -846,7 +777,6 @@ const transformNoiseQualityForPayload = (raw: any) => {
     overallAssessment.thirdQuarter = toQuarter("3rd", raw.quarters.third);
   if (raw?.quarters?.fourth)
     overallAssessment.fourthQuarter = toQuarter("4th", raw.quarters.fourth);
-
   return {
     parameters: parameters.length ? parameters : undefined,
     samplingDate: String(raw?.dateTime ?? ""),
@@ -858,10 +788,8 @@ const transformNoiseQualityForPayload = (raw: any) => {
   };
 };
 
-// CMR 6: Waste Management
 const transformWasteManagementForPayload = (raw: any) => {
   if (!raw) return undefined;
-
   const mapPlantPortSection = (sec: any): any[] => {
     if (!sec) return [];
     const items = Array.isArray(sec?.eccEpepCommitments)
@@ -883,37 +811,29 @@ const transformWasteManagementForPayload = (raw: any) => {
       total: undefined,
     }));
   };
-
   const quarry = raw?.quarryData?.N_A
     ? "N/A"
     : raw?.quarryData?.noSignificantImpact && !raw?.quarryData?.generateTable
-      ? "No significant impact"
-      : mapPlantPortSection(raw?.quarryPlantData);
-
+    ? "No significant impact"
+    : mapPlantPortSection(raw?.quarryPlantData);
   const plant = raw?.plantSimpleData?.N_A
     ? "N/A"
     : raw?.plantSimpleData?.noSignificantImpact &&
-        !raw?.plantSimpleData?.generateTable
-      ? "No significant impact"
-      : mapPlantPortSection(raw?.plantData);
-
+      !raw?.plantSimpleData?.generateTable
+    ? "No significant impact"
+    : mapPlantPortSection(raw?.plantData);
   const port = raw?.portData?.N_A
     ? "N/A"
     : raw?.portData?.noSignificantImpact && !raw?.portData?.generateTable
-      ? "No significant impact"
-      : mapPlantPortSection(raw?.portPlantData);
-
+    ? "No significant impact"
+    : mapPlantPortSection(raw?.portPlantData);
   return { quarry, plant, port };
 };
 
-// CMR 7: Chemical Safety Management
 const transformChemicalSafetyForPayload = (raw: any) => {
   if (!raw) return undefined;
   const cs = raw.chemicalSafety || {};
   const yn = (v: any) => String(v).toUpperCase() === "YES";
-
-  // Backend expects an object with a `chemicalSafety` nested object plus
-  // boolean flags for healthSafetyChecked and socialDevChecked
   return {
     chemicalSafety: {
       isNA: cs.isNA ?? undefined,
@@ -936,13 +856,11 @@ const transformChemicalSafetyForPayload = (raw: any) => {
   };
 };
 
-// CMR 8: Complaints Verification and Management
 const transformComplaintsForPayload = (raw: any) => {
   if (!Array.isArray(raw)) return undefined;
   const cleaned = raw
     .filter((c) => !c?.isNA)
     .map((c) => ({
-      // Backend expects these exact property names
       dateFiled: String(c?.dateFiled ?? ""),
       filedLocation: String(c?.filedLocation ?? ""),
       othersSpecify:
@@ -965,16 +883,12 @@ const buildCreateCMVRPayload = (
   } = {},
   userId?: string
 ): CreateCMVRDto => {
-  // Normalize snapshot to accept either:
-  //  - top-level section fields (complianceToProjectLocationAndCoverageLimits, airQualityImpactAssessment, etc.)
-  //  - or a nested `complianceMonitoringReport` object containing those sections
   const norm: DraftSnapshot = snapshot.complianceMonitoringReport
     ? ({
         ...snapshot,
         ...(snapshot.complianceMonitoringReport as any),
       } as DraftSnapshot)
     : snapshot;
-
   const generalInfo = norm.generalInfo ?? defaultGeneralInfo;
   const eccEntries = buildEccEntries(
     norm.eccInfo ?? defaultEccInfo,
@@ -1000,10 +914,8 @@ const buildCreateCMVRPayload = (
     norm.fmrdfInfo ?? defaultFundInfo,
     norm.fmrdfAdditionalForms ?? []
   );
-
   const proponentInfo = norm.isagInfo ?? defaultIsagInfo;
   const mmtInfo = norm.mmtInfo ?? defaultMmtInfo;
-
   const payload: CreateCMVRDto = {
     companyName: sanitizeString(generalInfo.companyName) || "Untitled Company",
     location: buildLocationString(generalInfo),
@@ -1044,35 +956,26 @@ const buildCreateCMVRPayload = (
     monitoringTrustFundUnified: mtfEntries,
     finalMineRehabilitationAndDecommissioningFund: fmrdfEntries,
   };
-
   if (userId) {
     payload.createdById = userId;
   }
-
-  // Add Page 2 data (Executive Summary & Process Documentation)
   if (norm.executiveSummaryOfCompliance) {
     payload.executiveSummaryOfCompliance = transformExecutiveSummaryForPayload(
       norm.executiveSummaryOfCompliance
     );
   }
-
   if (norm.processDocumentationOfActivitiesUndertaken) {
     payload.processDocumentationOfActivitiesUndertaken =
       transformProcessDocumentationForPayload(
         norm.processDocumentationOfActivitiesUndertaken
       );
   }
-
-  // Build Compliance Monitoring Report from all the collected sections
   const complianceMonitoringReport: any = {};
   let hasComplianceData = false;
-
-  // Track presence of required sections for ComplianceMonitoringReportDto
   let hasPLCL = false;
   let hasImpact = false;
   let hasAir = false;
   let hasWater = false;
-
   if (norm.complianceToProjectLocationAndCoverageLimits) {
     complianceMonitoringReport.complianceToProjectLocationAndCoverageLimits =
       transformProjectLocationCoverageForPayload(
@@ -1081,7 +984,6 @@ const buildCreateCMVRPayload = (
     hasComplianceData = true;
     hasPLCL = true;
   }
-
   if (norm.complianceToImpactManagementCommitments) {
     complianceMonitoringReport.complianceToImpactManagementCommitments =
       transformImpactCommitmentsForPayload(
@@ -1090,27 +992,23 @@ const buildCreateCMVRPayload = (
     hasComplianceData = true;
     hasImpact = true;
   }
-
   if (norm.airQualityImpactAssessment) {
     complianceMonitoringReport.airQualityImpactAssessment =
       transformAirQualityForPayload(norm.airQualityImpactAssessment);
     hasComplianceData = true;
     hasAir = true;
   }
-
   if (norm.waterQualityImpactAssessment) {
     complianceMonitoringReport.waterQualityImpactAssessment =
       transformWaterQualityForPayload(norm.waterQualityImpactAssessment);
     hasComplianceData = true;
     hasWater = true;
   }
-
   if (norm.noiseQualityImpactAssessment) {
     complianceMonitoringReport.noiseQualityImpactAssessment =
       transformNoiseQualityForPayload(norm.noiseQualityImpactAssessment);
     hasComplianceData = true;
   }
-
   if (norm.complianceWithGoodPracticeInSolidAndHazardousWasteManagement) {
     complianceMonitoringReport.complianceWithGoodPracticeInSolidAndHazardousWasteManagement =
       transformWasteManagementForPayload(
@@ -1118,7 +1016,6 @@ const buildCreateCMVRPayload = (
       );
     hasComplianceData = true;
   }
-
   if (norm.complianceWithGoodPracticeInChemicalSafetyManagement) {
     complianceMonitoringReport.complianceWithGoodPracticeInChemicalSafetyManagement =
       transformChemicalSafetyForPayload(
@@ -1126,13 +1023,11 @@ const buildCreateCMVRPayload = (
       );
     hasComplianceData = true;
   }
-
   if (norm.complaintsVerificationAndManagement) {
     complianceMonitoringReport.complaintsVerificationAndManagement =
       transformComplaintsForPayload(norm.complaintsVerificationAndManagement);
     hasComplianceData = true;
   }
-
   if (
     norm.recommendationFromPrevQuarter ||
     options.recommendationsData?.previousRecommendations
@@ -1146,7 +1041,6 @@ const buildCreateCMVRPayload = (
       norm.recommendationFromPrevQuarter || transformedPrevRecommendations;
     hasComplianceData = true;
   }
-
   if (
     norm.recommendationForNextQuarter ||
     options.recommendationsData?.currentRecommendations
@@ -1160,17 +1054,12 @@ const buildCreateCMVRPayload = (
       norm.recommendationForNextQuarter || transformedRecommendations;
     hasComplianceData = true;
   }
-
-  // Only add complianceMonitoringReport if ALL required sections are present
   if (hasComplianceData && hasPLCL && hasImpact && hasAir && hasWater) {
     payload.complianceMonitoringReport = complianceMonitoringReport;
   }
-
-  // Add attendanceId if provided
   if (options.attendanceId) {
     payload.attendanceId = options.attendanceId;
   }
-
   return payload;
 };
 
@@ -1189,7 +1078,6 @@ const CMVRDocumentExportScreen = () => {
   const route = useRoute<CMVRDocumentExportScreenRouteProp>();
   const { user } = useAuth();
   const { fileName: contextFileName } = useFileName();
-
   const routeParams = route.params ?? {};
   const {
     cmvrReportId: routeReportId,
@@ -1209,7 +1097,6 @@ const CMVRDocumentExportScreen = () => {
     mmtInfo: routeMmtInfo,
     recommendationsData: routeRecommendationsData,
     fileName: routeFileName,
-    // Page 2+ data
     executiveSummaryOfCompliance: routeExecutiveSummaryOfCompliance,
     processDocumentationOfActivitiesUndertaken:
       routeProcessDocumentationOfActivitiesUndertaken,
@@ -1250,12 +1137,10 @@ const CMVRDocumentExportScreen = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [documentGenerated, setDocumentGenerated] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  // Only DOCX supported for generation
   const selectedFormat: "docx" = "docx";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
-  // Track successful submission so we can enable generation only after DB submit
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [submittedReportId, setSubmittedReportId] = useState<string | null>(
     null
@@ -1263,19 +1148,18 @@ const CMVRDocumentExportScreen = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const loadStoredDraft =
-    useCallback(async (): Promise<DraftSnapshot | null> => {
-      try {
-        const raw = await AsyncStorage.getItem(DRAFT_KEY);
-        if (!raw) {
-          return null;
-        }
-        return JSON.parse(raw) as DraftSnapshot;
-      } catch (error) {
-        console.error("Failed to load CMVR draft:", error);
+  const loadStoredDraft = useCallback(async (): Promise<DraftSnapshot | null> => {
+    try {
+      const raw = await AsyncStorage.getItem(DRAFT_KEY);
+      if (!raw) {
         return null;
       }
-    }, [DRAFT_KEY]);
+      return JSON.parse(raw) as DraftSnapshot;
+    } catch (error) {
+      console.error("Failed to load CMVR draft:", error);
+      return null;
+    }
+  }, [DRAFT_KEY]);
 
   const persistSnapshot = useCallback(
     async (snapshot: DraftSnapshot) => {
@@ -1309,8 +1193,6 @@ const CMVRDocumentExportScreen = () => {
     if (routeMmtInfo) update.mmtInfo = routeMmtInfo;
     if (routeRecommendationsData !== undefined)
       update.recommendationsData = routeRecommendationsData;
-
-    // Page 2+ data
     if (routeExecutiveSummaryOfCompliance !== undefined)
       update.executiveSummaryOfCompliance = routeExecutiveSummaryOfCompliance;
     if (routeProcessDocumentationOfActivitiesUndertaken !== undefined)
@@ -1348,7 +1230,6 @@ const CMVRDocumentExportScreen = () => {
       update.attendanceUrl = routeAttendanceUrl;
     if (routeDocumentation !== undefined)
       update.documentation = routeDocumentation;
-
     return update;
   }, [
     routeGeneralInfo,
@@ -1384,19 +1265,14 @@ const CMVRDocumentExportScreen = () => {
 
   useEffect(() => {
     let isActive = true;
-
     const hydrateDraft = async () => {
       let routeUpdate = routeDraftUpdate;
-
-      // If we have a reportId but no data in route params, fetch from API
       if (routeReportId && Object.keys(routeDraftUpdate).length === 0) {
         try {
           console.log("Fetching CMVR report from API:", routeReportId);
           const { getCMVRReportById } = await import("../../lib/cmvr");
           const reportData = await getCMVRReportById(routeReportId);
-
           if (reportData && isActive) {
-            // Transform backend data to match draft structure
             const location =
               typeof reportData.location === "string"
                 ? {
@@ -1406,7 +1282,6 @@ const CMVRDocumentExportScreen = () => {
                     barangay: reportData.location,
                   }
                 : reportData.location || {};
-
             routeUpdate = {
               generalInfo: {
                 companyName: reportData.companyName || "",
@@ -1477,7 +1352,6 @@ const CMVRDocumentExportScreen = () => {
           console.error("Error fetching CMVR report:", error);
         }
       }
-
       const stored = await loadStoredDraft();
       const merged = mergeDraftData(stored, routeUpdate, resolvedFileName);
       if (!isActive) {
@@ -1485,18 +1359,14 @@ const CMVRDocumentExportScreen = () => {
       }
       setDraftSnapshot(merged);
       await persistSnapshot(merged);
-
-      // If navigation provided a report id, mark as submitted
       if (routeReportId && isActive) {
         setSubmittedReportId(routeReportId);
         setHasSubmitted(true);
       }
     };
-
     hydrateDraft().catch((error) => {
       console.error("Failed to prepare CMVR draft snapshot:", error);
     });
-
     return () => {
       isActive = false;
     };
@@ -1512,27 +1382,24 @@ const CMVRDocumentExportScreen = () => {
     if (!draftSnapshot) {
       throw new Error("No CMVR data available to save.");
     }
-
     const snapshotToPersist: DraftSnapshot = {
       ...draftSnapshot,
       fileName: resolvedFileName,
       savedAt: new Date().toISOString(),
     };
-
     setDraftSnapshot(snapshotToPersist);
     await persistSnapshot(snapshotToPersist);
     return snapshotToPersist;
   }, [draftSnapshot, persistSnapshot, resolvedFileName]);
+
   const handleExit = async () => {
     try {
       if (!hasSubmitted) {
-        // Save current snapshot silently as draft before exiting
         await saveDraftToLocal();
       }
     } catch (e) {
       console.warn("Failed to save draft on exit:", e);
     } finally {
-      // Always navigate back to Dashboard as requested
       navigation.navigate("Dashboard" as never);
     }
   };
@@ -1590,18 +1457,12 @@ const CMVRDocumentExportScreen = () => {
         },
         user?.id
       );
-
-      // Extract fileName separately (not in payload)
       const fileNameForUpdate =
         sanitizeString(snapshotForSubmission.fileName) ||
         sanitizeString(snapshotForSubmission.generalInfo?.projectName) ||
         "CMVR_Report";
-
       await updateCMVRReport(submittedReportId, payload, fileNameForUpdate);
-
-      // Delete the draft from AsyncStorage after successful update
       await AsyncStorage.removeItem(DRAFT_KEY);
-
       Alert.alert("Updated", "Your CMVR report has been updated.");
     } catch (e: any) {
       console.error("Update CMVR report failed:", e);
@@ -1620,7 +1481,6 @@ const CMVRDocumentExportScreen = () => {
       );
       return;
     }
-
     setIsSavingDraft(true);
     try {
       await saveDraftToLocal();
@@ -1648,19 +1508,15 @@ const CMVRDocumentExportScreen = () => {
       );
       return;
     }
-
     setIsSubmitting(true);
     setSubmitError(null);
-
     try {
       const snapshotForSubmission = mergeDraftData(
         draftSnapshot,
         routeDraftUpdate,
         resolvedFileName
       );
-
       setDraftSnapshot(snapshotForSubmission);
-
       console.log("=== DEBUG: Snapshot for submission ===");
       console.log(
         "Has executiveSummaryOfCompliance:",
@@ -1683,7 +1539,6 @@ const CMVRDocumentExportScreen = () => {
         !!snapshotForSubmission.noiseQualityImpactAssessment
       );
       console.log("Full snapshot keys:", Object.keys(snapshotForSubmission));
-
       const payload = buildCreateCMVRPayload(
         snapshotForSubmission,
         {
@@ -1692,24 +1547,17 @@ const CMVRDocumentExportScreen = () => {
         },
         user?.id
       );
-
       console.log("=== DEBUG: Payload being sent ===");
       console.log(JSON.stringify(payload, null, 2));
-
-      // Extract fileName separately (not in payload)
       const fileNameForSubmission =
         sanitizeString(snapshotForSubmission.fileName) ||
         sanitizeString(snapshotForSubmission.generalInfo?.projectName) ||
         "CMVR_Report";
-
       const created = await createCMVRReport(payload, fileNameForSubmission);
-      // Try to capture the created report id if returned by API
       const newId = created?.id || created?.data?.id || null;
       setSubmittedReportId(newId);
       setHasSubmitted(true);
-
       await AsyncStorage.removeItem(DRAFT_KEY);
-
       Alert.alert(
         "Submitted",
         "Your CMVR report has been saved to the database. You can now generate a document.",
@@ -1720,7 +1568,6 @@ const CMVRDocumentExportScreen = () => {
       const errorMessage =
         error?.message || "Failed to submit CMVR report. Please try again.";
       setSubmitError(errorMessage);
-
       Alert.alert("Submission Failed", errorMessage, [{ text: "OK" }]);
     } finally {
       setIsSubmitting(false);
@@ -1762,7 +1609,6 @@ const CMVRDocumentExportScreen = () => {
     routeFmrdfAdditionalForms ??
     ([] as FundAdditionalForm[]);
   const mmtInfo = draftSnapshot?.mmtInfo ?? routeMmtInfo ?? defaultMmtInfo;
-
   const executiveSummary =
     draftSnapshot?.executiveSummaryOfCompliance ??
     routeExecutiveSummaryOfCompliance;
@@ -1900,7 +1746,6 @@ const CMVRDocumentExportScreen = () => {
       );
       return;
     }
-
     if (!submittedReportId) {
       Alert.alert(
         "Missing Report",
@@ -1909,7 +1754,6 @@ const CMVRDocumentExportScreen = () => {
       );
       return;
     }
-
     setIsDownloading(true);
     try {
       await generateCMVRDocx(submittedReportId, fileName);
@@ -1937,7 +1781,6 @@ const CMVRDocumentExportScreen = () => {
     return value && value.trim() !== "" ? value : fallback;
   };
 
-  // Navigation handlers for summary cards
   const navigateToGeneralInfo = () => {
     navigation.navigate("CMVRReport", {
       ...baseNavParams,
@@ -2027,24 +1870,26 @@ const CMVRDocumentExportScreen = () => {
   }, [navigation]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="close" size={24} color="#1E293B" />
-        </TouchableOpacity>
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.headerTitle}>CMVR Report Export</Text>
-          <Text style={styles.headerSubtitle}>
-            Generate and download your report
-          </Text>
-        </View>
-        <TouchableOpacity onPress={handleExit}>
-          <Text style={styles.exitText}>Exit</Text>
-        </TouchableOpacity>
+<View style={styles.container}>
+  <SafeAreaView style={{ flex: 0, backgroundColor: "white" }}>
+    <View style={styles.header}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+      >
+        <Ionicons name="close" size={24} color="#1E293B" />
+      </TouchableOpacity>
+      <View style={styles.headerTextContainer}>
+        <Text style={styles.headerTitle}>CMVR Report Export</Text>
+        <Text style={styles.headerSubtitle}>
+          Generate and download your report
+        </Text>
       </View>
+      <TouchableOpacity onPress={handleExit}>
+        <Text style={styles.exitText}>Exit</Text>
+      </TouchableOpacity>
+    </View>
+  </SafeAreaView>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -2069,19 +1914,14 @@ const CMVRDocumentExportScreen = () => {
             </View>
           </View>
         </View>
-
-        {/* Format selection removed; only DOCX is generated */}
-
         <View style={styles.summarySection}>
           <Text style={styles.summaryTitle}>Document Contents Summary</Text>
-
           <SummaryItem
             icon="📋"
             title="General Information"
             value={`${getDisplayValue(generalInfo?.companyName)} - ${getDisplayValue(isagInfo?.currentName || generalInfo?.projectName)}`}
             onPress={navigateToGeneralInfo}
           />
-
           <SummaryItem
             icon="🛡️"
             title="ECC Information"
@@ -2097,7 +1937,6 @@ const CMVRDocumentExportScreen = () => {
             }
             onPress={navigateToGeneralInfo}
           />
-
           <SummaryItem
             icon="📄"
             title="ISAG/MPP Information"
@@ -2113,7 +1952,6 @@ const CMVRDocumentExportScreen = () => {
             }
             onPress={navigateToGeneralInfo}
           />
-
           <SummaryItem
             icon="🌿"
             title="EPEP Information"
@@ -2129,7 +1967,6 @@ const CMVRDocumentExportScreen = () => {
             }
             onPress={navigateToGeneralInfo}
           />
-
           <SummaryItem
             icon="💰"
             title="RCF Status"
@@ -2145,7 +1982,6 @@ const CMVRDocumentExportScreen = () => {
             }
             onPress={navigateToGeneralInfo}
           />
-
           <SummaryItem
             icon="🛡️"
             title="MTF Status"
@@ -2161,7 +1997,6 @@ const CMVRDocumentExportScreen = () => {
             }
             onPress={navigateToGeneralInfo}
           />
-
           <SummaryItem
             icon="🌱"
             title="FMRDF Status"
@@ -2177,7 +2012,6 @@ const CMVRDocumentExportScreen = () => {
             }
             onPress={navigateToGeneralInfo}
           />
-
           <SummaryItem
             icon="👥"
             title="Monitoring Team"
@@ -2188,14 +2022,12 @@ const CMVRDocumentExportScreen = () => {
             }
             onPress={navigateToGeneralInfo}
           />
-
           <SummaryItem
             icon="🧾"
             title="Executive Summary"
             value={executiveSummary ? "Available" : "Not provided"}
             onPress={navigateToPage2}
           />
-
           <SummaryItem
             icon="🗂️"
             title="Process Documentation"
@@ -2206,28 +2038,24 @@ const CMVRDocumentExportScreen = () => {
             }
             onPress={navigateToPage2}
           />
-
           <SummaryItem
             icon="💧"
             title="Water Quality Assessment"
             value={waterQualityAssessment ? "Available" : "Not provided"}
             onPress={navigateToWaterQuality}
           />
-
           <SummaryItem
             icon="🔊"
             title="Noise Quality Assessment"
             value={noiseQualityAssessment ? "Available" : "Not provided"}
             onPress={navigateToNoiseQuality}
           />
-
           <SummaryItem
             icon="♻️"
             title="Waste Management"
             value={wasteManagementData ? "Available" : "Not provided"}
             onPress={navigateToWasteManagement}
           />
-
           <SummaryItem
             icon="🧪"
             title="Chemical Safety & Complaints"
@@ -2238,7 +2066,6 @@ const CMVRDocumentExportScreen = () => {
             }
             onPress={navigateToChemicalSafety}
           />
-
           <SummaryItem
             icon="📋"
             title="Attendance Record"
@@ -2320,7 +2147,6 @@ const CMVRDocumentExportScreen = () => {
                         )}
                       </TouchableOpacity>
                     )}
-
                     <Ionicons name="document-text" size={20} color="white" />
                     <Text style={styles.generateButtonText}>
                       Generate Docx
@@ -2329,7 +2155,6 @@ const CMVRDocumentExportScreen = () => {
                   </>
                 )}
               </TouchableOpacity>
-
               {hasSubmitted && submittedReportId ? (
                 <TouchableOpacity
                   style={[
@@ -2352,7 +2177,6 @@ const CMVRDocumentExportScreen = () => {
                   )}
                 </TouchableOpacity>
               ) : null}
-
               {hasSubmitted && submittedReportId ? (
                 <TouchableOpacity
                   style={[
@@ -2377,9 +2201,6 @@ const CMVRDocumentExportScreen = () => {
                   )}
                 </TouchableOpacity>
               ) : null}
-
-              {/* Removed Save Draft Locally button as requested */}
-
               {!hasSubmitted && (
                 <View style={styles.infoBannerContainer}>
                   <Ionicons name="lock-closed" size={18} color="#1E40AF" />
@@ -2389,7 +2210,6 @@ const CMVRDocumentExportScreen = () => {
                   </Text>
                 </View>
               )}
-
               {submitError && (
                 <View style={styles.errorContainer}>
                   <Ionicons name="alert-circle" size={20} color="#DC2626" />
@@ -2488,7 +2308,6 @@ const SummaryItem = ({
       {onPress && <Ionicons name="chevron-forward" size={20} color="#94A3B8" />}
     </>
   );
-
   if (onPress) {
     return (
       <TouchableOpacity
@@ -2500,135 +2319,141 @@ const SummaryItem = ({
       </TouchableOpacity>
     );
   }
-
   return <View style={styles.summaryItem}>{content}</View>;
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "#F8FAFC",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === "ios" ? 50 : 24,
-    paddingBottom: 20,
-    backgroundColor: "white",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
+ header: {
+  flexDirection: "row",
+  alignItems: "center",
+  paddingHorizontal: isTablet ? 32 : 20,
+  paddingTop: Platform.OS === "ios" ? 40 : 20, // Reduced paddingTop for both platforms
+  paddingBottom: isTablet ? 24 : 20,
+  backgroundColor: "white",
+  borderBottomWidth: 1,
+  borderBottomColor: "#E2E8F0",
+  ...Platform.select({
+    ios: {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+    },
+    android: {
+      elevation: 2,
+    },
+  }),
+},
+
   backButton: {
-    padding: 8,
-    marginRight: 16,
-    borderRadius: 8,
+    padding: isTablet ? 12 : 8,
+    marginRight: isTablet ? 20 : 16,
+    borderRadius: 10,
+    backgroundColor: "#F1F5F9",
   },
   exitText: {
     color: "#1E40AF",
-    fontSize: 16,
+    fontSize: isTablet ? 18 : 16,
     fontWeight: "700",
   },
   headerTextContainer: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: isTablet ? 28 : isSmallPhone ? 20 : 22,
     fontWeight: "700",
     color: "#0F172A",
     letterSpacing: -0.5,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: isTablet ? 16 : 14,
     color: "#64748B",
     marginTop: 4,
-    lineHeight: 20,
+    lineHeight: isTablet ? 24 : 20,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: isTablet ? 32 : 20,
+    paddingBottom: isTablet ? 60 : 40,
+    maxWidth: isTablet ? 1024 : undefined,
+    alignSelf: isTablet ? "center" : undefined,
+    width: isTablet ? "100%" : undefined,
   },
   previewCard: {
     backgroundColor: "white",
-    borderRadius: 20,
+    borderRadius: isTablet ? 24 : 20,
     shadowColor: "#02217C",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
     elevation: 6,
-    marginBottom: 24,
+    marginBottom: isTablet ? 32 : 24,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
   cardHeader: {
     backgroundColor: "#02217C",
-    padding: 24,
+    padding: isTablet ? 32 : 24,
     flexDirection: "row",
     alignItems: "center",
   },
   iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
+    width: isTablet ? 80 : 64,
+    height: isTablet ? 80 : 64,
+    borderRadius: isTablet ? 20 : 16,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: isTablet ? 24 : 16,
   },
   cardHeaderText: {
     flex: 1,
   },
   cardTitle: {
-    fontSize: 20,
+    fontSize: isTablet ? 24 : isSmallPhone ? 18 : 20,
     fontWeight: "700",
     color: "white",
-    marginBottom: 6,
+    marginBottom: isTablet ? 8 : 6,
     letterSpacing: -0.3,
   },
   cardSubtitle: {
-    fontSize: 14,
+    fontSize: isTablet ? 16 : 14,
     color: "rgba(255, 255, 255, 0.95)",
-    lineHeight: 20,
+    lineHeight: isTablet ? 24 : 20,
   },
   formatSection: {
-    padding: 24,
+    padding: isTablet ? 32 : 24,
     backgroundColor: "white",
     borderBottomWidth: 1,
     borderBottomColor: "#F1F5F9",
   },
   sectionLabel: {
-    fontSize: 15,
+    fontSize: isTablet ? 18 : 15,
     fontWeight: "700",
     color: "#0F172A",
-    marginBottom: 16,
+    marginBottom: isTablet ? 20 : 16,
     letterSpacing: -0.2,
   },
   formatButtons: {
-    gap: 16,
+    gap: isTablet ? 20 : 16,
+    flexDirection: isTablet ? "row" : "column",
   },
   formatButton: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 20,
-    borderRadius: 16,
+    padding: isTablet ? 24 : 20,
+    borderRadius: isTablet ? 20 : 16,
     borderWidth: 2,
     borderColor: "#E2E8F0",
     backgroundColor: "white",
+    flex: isTablet ? 1 : undefined,
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -2657,111 +2482,126 @@ const styles = StyleSheet.create({
     }),
   },
   formatIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: isTablet ? 56 : 48,
+    height: isTablet ? 56 : 48,
+    borderRadius: isTablet ? 14 : 12,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: isTablet ? 20 : 16,
   },
   formatTextContainer: {
     flex: 1,
   },
   formatTitle: {
-    fontSize: 16,
+    fontSize: isTablet ? 18 : 16,
     fontWeight: "700",
     color: "#0F172A",
     marginBottom: 4,
     letterSpacing: -0.2,
   },
   formatDescription: {
-    fontSize: 14,
+    fontSize: isTablet ? 16 : 14,
     color: "#64748B",
-    lineHeight: 20,
+    lineHeight: isTablet ? 24 : 20,
   },
   summarySection: {
-    padding: 24,
+    padding: isTablet ? 32 : 24,
     backgroundColor: "white",
+    borderRadius: isTablet ? 24 : 20,
+    marginBottom: isTablet ? 32 : 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   summaryTitle: {
-    fontSize: 18,
+    fontSize: isTablet ? 22 : 18,
     fontWeight: "700",
     color: "#0F172A",
-    marginBottom: 20,
+    marginBottom: isTablet ? 24 : 20,
     letterSpacing: -0.3,
   },
   summaryItem: {
     flexDirection: "row",
     alignItems: "flex-start",
     backgroundColor: "#F8FAFC",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 14,
+    borderRadius: isTablet ? 16 : 14,
+    padding: isTablet ? 20 : 16,
+    marginBottom: isTablet ? 16 : 14,
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
   summaryIcon: {
-    fontSize: 28,
-    marginRight: 16,
+    fontSize: isTablet ? 36 : 28,
+    marginRight: isTablet ? 20 : 16,
     marginTop: 2,
   },
   summaryTextContainer: {
     flex: 1,
   },
   summaryItemTitle: {
-    fontSize: 14,
+    fontSize: isTablet ? 16 : 14,
     fontWeight: "700",
     color: "#475569",
-    marginBottom: 4,
+    marginBottom: isTablet ? 6 : 4,
     letterSpacing: -0.1,
   },
   summaryItemValue: {
-    fontSize: 15,
+    fontSize: isTablet ? 17 : 15,
     color: "#0F172A",
-    lineHeight: 22,
+    lineHeight: isTablet ? 26 : 22,
   },
   summaryAdditional: {
-    fontSize: 12,
+    fontSize: isTablet ? 14 : 12,
     color: "#02217C",
-    marginTop: 6,
+    marginTop: isTablet ? 8 : 6,
     fontWeight: "600",
   },
   generatedSection: {
-    padding: 24,
+    padding: isTablet ? 32 : 24,
     backgroundColor: "white",
+    borderRadius: isTablet ? 24 : 20,
+    marginBottom: isTablet ? 32 : 24,
   },
   generatedCard: {
     backgroundColor: "#F0FDF4",
-    borderRadius: 20,
-    padding: 28,
+    borderRadius: isTablet ? 24 : 20,
+    padding: isTablet ? 36 : 28,
     alignItems: "center",
     borderWidth: 2,
     borderStyle: "dashed",
     borderColor: "#86EFAC",
   },
   generatedIconContainer: {
-    marginBottom: 16,
+    marginBottom: isTablet ? 20 : 16,
   },
   generatedTitle: {
-    fontSize: 20,
+    fontSize: isTablet ? 24 : 20,
     fontWeight: "700",
     color: "#0F172A",
-    marginBottom: 6,
+    marginBottom: isTablet ? 8 : 6,
     letterSpacing: -0.3,
   },
   generatedSubtitle: {
-    fontSize: 15,
+    fontSize: isTablet ? 17 : 15,
     color: "#059669",
     marginBottom: 4,
     fontWeight: "600",
   },
   generatedDate: {
-    fontSize: 13,
+    fontSize: isTablet ? 15 : 13,
     color: "#64748B",
     marginTop: 4,
   },
   actionSection: {
-    marginBottom: 20,
+    marginBottom: isTablet ? 32 : 20,
     paddingHorizontal: 4,
   },
   generateButton: {
@@ -2769,24 +2609,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 18,
-    borderRadius: 16,
-    gap: 12,
+    paddingVertical: isTablet ? 22 : 18,
+    borderRadius: isTablet ? 20 : 16,
+    gap: isTablet ? 16 : 12,
     shadowColor: "#1E40AF",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 6,
-    marginBottom: 14,
+    marginBottom: isTablet ? 16 : 14,
   },
   submitButton: {
     backgroundColor: "#10B981",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 18,
-    borderRadius: 16,
-    gap: 12,
+    paddingVertical: isTablet ? 22 : 18,
+    borderRadius: isTablet ? 20 : 16,
+    gap: isTablet ? 16 : 12,
     shadowColor: "#10B981",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
@@ -2795,7 +2635,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: "white",
-    fontSize: 17,
+    fontSize: isTablet ? 19 : 17,
     fontWeight: "700",
     letterSpacing: 0.3,
   },
@@ -2804,19 +2644,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 18,
-    borderRadius: 16,
-    gap: 12,
+    paddingVertical: isTablet ? 22 : 18,
+    borderRadius: isTablet ? 20 : 16,
+    gap: isTablet ? 16 : 12,
     shadowColor: "#0EA5E9",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 12,
     elevation: 6,
-    marginTop: 6,
+    marginTop: isTablet ? 8 : 6,
   },
   updateButtonText: {
     color: "white",
-    fontSize: 17,
+    fontSize: isTablet ? 19 : 17,
     fontWeight: "700",
     letterSpacing: 0.3,
   },
@@ -2825,19 +2665,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 18,
-    borderRadius: 16,
-    gap: 12,
+    paddingVertical: isTablet ? 22 : 18,
+    borderRadius: isTablet ? 20 : 16,
+    gap: isTablet ? 16 : 12,
     shadowColor: "#DC2626",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 12,
     elevation: 6,
-    marginTop: 6,
+    marginTop: isTablet ? 8 : 6,
   },
   deleteButtonText: {
     color: "white",
-    fontSize: 17,
+    fontSize: isTablet ? 19 : 17,
     fontWeight: "700",
     letterSpacing: 0.3,
   },
@@ -2846,56 +2686,56 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 18,
-    borderRadius: 16,
-    gap: 12,
+    paddingVertical: isTablet ? 22 : 18,
+    borderRadius: isTablet ? 20 : 16,
+    gap: isTablet ? 16 : 12,
     shadowColor: "#F59E0B",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 6,
-    marginTop: 14,
+    marginTop: isTablet ? 16 : 14,
   },
   draftButtonText: {
     color: "white",
-    fontSize: 17,
+    fontSize: isTablet ? 19 : 17,
     fontWeight: "700",
     letterSpacing: 0.3,
   },
   errorContainer: {
-    marginTop: 16,
+    marginTop: isTablet ? 20 : 16,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FEE2E2",
-    padding: 16,
-    borderRadius: 14,
-    gap: 12,
+    padding: isTablet ? 20 : 16,
+    borderRadius: isTablet ? 16 : 14,
+    gap: isTablet ? 16 : 12,
     borderWidth: 1,
     borderColor: "#FECACA",
   },
   errorText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: isTablet ? 16 : 14,
     color: "#DC2626",
-    lineHeight: 20,
+    lineHeight: isTablet ? 24 : 20,
     fontWeight: "500",
   },
   infoBannerContainer: {
-    marginTop: 12,
+    marginTop: isTablet ? 16 : 12,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#DBEAFE",
-    padding: 12,
-    borderRadius: 12,
-    gap: 8,
+    padding: isTablet ? 16 : 12,
+    borderRadius: isTablet ? 14 : 12,
+    gap: isTablet ? 12 : 8,
     borderWidth: 1,
     borderColor: "#BFDBFE",
   },
   infoBannerText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: isTablet ? 15 : 13,
     color: "#1E3A8A",
-    lineHeight: 18,
+    lineHeight: isTablet ? 22 : 18,
     fontWeight: "600",
   },
   buttonDisabled: {
@@ -2903,13 +2743,13 @@ const styles = StyleSheet.create({
   },
   generateButtonText: {
     color: "white",
-    fontSize: 17,
+    fontSize: isTablet ? 19 : 17,
     fontWeight: "700",
     letterSpacing: 0.3,
   },
   actionButtons: {
     flexDirection: "row",
-    gap: 12,
+    gap: isTablet ? 16 : 12,
   },
   previewButton: {
     flex: 1,
@@ -2917,9 +2757,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
+    paddingVertical: isTablet ? 20 : 16,
+    borderRadius: isTablet ? 16 : 12,
+    gap: isTablet ? 12 : 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -2928,7 +2768,7 @@ const styles = StyleSheet.create({
   },
   previewButtonText: {
     color: "white",
-    fontSize: 16,
+    fontSize: isTablet ? 18 : 16,
     fontWeight: "700",
   },
   downloadButton: {
@@ -2937,9 +2777,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
+    paddingVertical: isTablet ? 20 : 16,
+    borderRadius: isTablet ? 16 : 12,
+    gap: isTablet ? 12 : 8,
     shadowColor: "#10B981",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -2948,14 +2788,14 @@ const styles = StyleSheet.create({
   },
   downloadButtonText: {
     color: "white",
-    fontSize: 17,
+    fontSize: isTablet ? 19 : 17,
     fontWeight: "700",
     letterSpacing: 0.3,
   },
   infoNote: {
     backgroundColor: "#EFF6FF",
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: isTablet ? 20 : 16,
+    padding: isTablet ? 24 : 20,
     flexDirection: "row",
     borderWidth: 1,
     borderColor: "#BFDBFE",
@@ -2973,28 +2813,28 @@ const styles = StyleSheet.create({
   },
   infoTextContainer: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: isTablet ? 16 : 14,
   },
   infoTitle: {
-    fontSize: 15,
+    fontSize: isTablet ? 17 : 15,
     fontWeight: "700",
     color: "#1E40AF",
-    marginBottom: 6,
+    marginBottom: isTablet ? 8 : 6,
     letterSpacing: -0.1,
   },
   infoDescription: {
-    fontSize: 14,
+    fontSize: isTablet ? 16 : 14,
     color: "#1E40AF",
-    lineHeight: 21,
+    lineHeight: isTablet ? 24 : 21,
   },
   draftNote: {
     backgroundColor: "#FEF3C7",
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: isTablet ? 20 : 16,
+    padding: isTablet ? 24 : 20,
     flexDirection: "row",
     borderWidth: 1,
     borderColor: "#FCD34D",
-    marginTop: 16,
+    marginTop: isTablet ? 20 : 16,
     ...Platform.select({
       ios: {
         shadowColor: "#F59E0B",
@@ -3008,16 +2848,16 @@ const styles = StyleSheet.create({
     }),
   },
   draftNoteTitle: {
-    fontSize: 15,
+    fontSize: isTablet ? 17 : 15,
     fontWeight: "700",
     color: "#D97706",
-    marginBottom: 6,
+    marginBottom: isTablet ? 8 : 6,
     letterSpacing: -0.1,
   },
   draftNoteDescription: {
-    fontSize: 14,
+    fontSize: isTablet ? 16 : 14,
     color: "#D97706",
-    lineHeight: 21,
+    lineHeight: isTablet ? 24 : 21,
   },
 });
 

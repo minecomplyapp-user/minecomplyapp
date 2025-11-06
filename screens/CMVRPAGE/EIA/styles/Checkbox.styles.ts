@@ -4,38 +4,37 @@ export const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     padding: 4,
   },
-  radioOuter: {
+  checkboxOuter: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#02217C',
+    borderColor: '#D1D5DB',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
   },
-  radioOuterDisabled: {
-    borderColor: '#CBD5E1',
-    backgroundColor: '#F8FAFC',
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  checkboxOuterChecked: {
     backgroundColor: '#02217C',
+    borderColor: '#02217C',
   },
-  radioInnerDisabled: {
-    backgroundColor: '#94A3B8',
+  checkboxOuterDisabled: {
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+  },
+  checkboxOuterCheckedDisabled: {
+    backgroundColor: '#CBD5E1',
+    borderColor: '#CBD5E1',
   },
   label: {
     fontSize: 13,
-    color: '#1E293B',
+    color: '#374151',
     fontWeight: '500',
   },
   labelDisabled: {
-    color: '#94A3B8',
+    color: '#9CA3AF',
   },
 });

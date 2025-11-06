@@ -375,13 +375,12 @@ export default function ChemicalSafetyScreen({ navigation, route }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <CMSHeader
-        fileName="Chemical Safety"
         onBack={() => navigation.goBack()}
         onSave={handleSave}
         onStay={handleStay}
         onSaveToDraft={handleSaveToDraft}
         onDiscard={handleDiscard}
-        allowEdit={true}
+        allowEdit={false}
       />
       <ScrollView
         style={styles.scrollView}

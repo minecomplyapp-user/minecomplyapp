@@ -389,13 +389,12 @@ export default function NoiseQualityScreen({ navigation, route }: any) {
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
         <CMSHeader
-          fileName="Noise Quality Assessment"
           onBack={() => navigation.goBack()}
           onSave={handleSave}
           onStay={handleStay}
           onSaveToDraft={handleSaveToDraft}
           onDiscard={handleDiscard}
-          allowEdit={true}
+          allowEdit={false}
         />
       </View>
       <ScrollView

@@ -544,13 +544,12 @@ const RecommendationsScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <CMSHeader
-        fileName="File_Name"
         onBack={handleBack}
         onSave={handleSave}
         onStay={handleStay}
         onSaveToDraft={handleSaveToDraft}
         onDiscard={handleDiscard}
-        allowEdit={true}
+        allowEdit={false}
       />
       <ScrollView
         style={styles.scrollView}

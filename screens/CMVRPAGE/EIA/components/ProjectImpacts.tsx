@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { RadioButton } from './RadioButton';
+import { Checkbox } from './Checkbox';
 import { ProjectImpactsProps } from '../types/ProjectImpacts.types';
 import { styles } from '../styles/ProjectImpacts.styles';
 
@@ -17,8 +17,8 @@ export const ProjectImpacts: React.FC<ProjectImpactsProps> = ({
         <View style={styles.row}>
           <Text style={styles.label}>Pre-Construction</Text>
           <View style={styles.radioWrapper}>
-            <RadioButton
-              selected={preConstruction === 'no'}
+            <Checkbox
+              checked={preConstruction === 'no'}
               onPress={() => onPreConstructionChange('no')}
             />
             <Text style={styles.radioLabel}>N/A</Text>
@@ -27,8 +27,8 @@ export const ProjectImpacts: React.FC<ProjectImpactsProps> = ({
         <View style={styles.row}>
           <Text style={styles.label}>Construction</Text>
           <View style={styles.radioWrapper}>
-            <RadioButton
-              selected={construction === 'no'}
+            <Checkbox
+              checked={construction === 'no'}
               onPress={() => onConstructionChange('no')}
             />
             <Text style={styles.radioLabel}>N/A</Text>
