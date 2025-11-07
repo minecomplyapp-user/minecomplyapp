@@ -36,7 +36,7 @@ import { apiGet } from "../../lib/api";
 import { Ionicons } from "@expo/vector-icons";
 import { CustomHeader } from "../../components/CustomHeader";
 import {useEccStore} from "../../store/eccStore"
-
+import {useEccDraftStore} from "../../store/eccDraftStore"
 interface Report {
   id: string;
   title: string;
@@ -57,11 +57,16 @@ interface AttendanceRecord {
 }
 
 export default function DashboardScreen({ navigation }: any) {
+    const { user,session  } = useAuth();
+    const token = session?.access_token;
     const {getAllReports} = useEccStore();
-  
-  const { user } = useAuth();
+    const {getDraftList} =useEccDraftStore()
+
   const [reports, setReports] = useState<Report[]>([]);
   const [drafts, setDrafts] = useState<Report[]>([]);
+
+
+  const [eccdrafts, setEccDrafts] = useState<Report[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<
     AttendanceRecord[]
   >([]);
@@ -81,6 +86,10 @@ export default function DashboardScreen({ navigation }: any) {
 
       // Fetch local drafts first
       try {
+
+
+
+        
         const draftMetadata = await getAllDraftMetadata();
         console.log("Found drafts:", draftMetadata.length);
         const localDrafts = draftMetadata.slice(0, 3).map((draft) => ({
@@ -104,43 +113,43 @@ export default function DashboardScreen({ navigation }: any) {
         setDrafts([]);
       }
 
-      // Fetch CMVR reports for current user
+
+
+
+      // ECC LOCAL
       try {
-        if (!user?.id) {
-          console.log("No user ID available");
-          // Don't clear drafts here - they're already loaded above
-          setReports([]);
-        } else {
-          const submissionsData = await apiGet<any>(`/cmvr/user/${user.id}`);
-          const allReports = (submissionsData || []).map((sub: any) => {
-            // Use only fileName, with "Untitled" as fallback
-            const projectName = sub.fileName || "Untitled";
-
-            return {
-              id: sub.id,
-              title: projectName,
-              projectName: projectName,
-              type: "CMVR",
-              status: "submitted",
-              date: new Date(sub.updatedAt || sub.createdAt).toLocaleDateString(
-                "en-US",
-                {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                }
-              ),
-              updatedAt: sub.updatedAt,
-            };
-          });
-
-          // For now, treat all as submitted (you can add draft logic later)
-          setReports(allReports.slice(0, 3));
-        }
+        const draftMetadata = await getDraftList();
+        console.log("Found drafts:", draftMetadata.length);
+        const localDrafts = draftMetadata.slice(0, 3).map((draft) => ({
+          id: draft.key,
+          title: draft.fileName,
+          projectName: "",
+          type: "ECC",
+          status: "draft" as const,
+          date: new Date(draft.saveAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
+          updatedAt: draft.saveAt,
+          isLocalDraft: true,
+        }));
+        console.log("Loaded local drafts:", localDrafts);
+        setEccDrafts(localDrafts);
       } catch (err) {
-        console.log("No CMVR reports found:", err);
-        setReports([]);
+        console.log("Error loading local drafts:", err);
+        setEccDrafts([]);
       }
+
+
+
+
+
+
+
+
+
+
 
       // Fetch attendance records
       try {
@@ -182,6 +191,8 @@ export default function DashboardScreen({ navigation }: any) {
         console.log("No attendance records found:", err);
         setAttendanceRecords([]);
       }
+
+
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
@@ -199,6 +210,7 @@ export default function DashboardScreen({ navigation }: any) {
 
   const hasReports = reports.length > 0;
   const hasDrafts = drafts.length > 0;
+  const haseccDrafts = eccdrafts.length > 0;
   const hasAttendance = attendanceRecords.length > 0;
 
   console.log("Dashboard state:", {
@@ -271,7 +283,7 @@ export default function DashboardScreen({ navigation }: any) {
               subtitle="Use a previous template"
              onPress={async () => { // <--- Make the callback function ASYNC
                   // 1. Await the report fetch to ensure the store is updated
-                  await getAllReports(); // <--- Use AWAIT
+                  await getAllReports(token); // <--- Use AWAIT
                   
                   // 2. Navigate after data is guaranteed to be in the store
                   navigation.navigate("DuplicateReport");
@@ -288,10 +300,10 @@ export default function DashboardScreen({ navigation }: any) {
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
                 <Edit3 size={18} color={theme.colors.warning} />
-                <Text style={styles.sectionTitle}>Draft Reports</Text>
+                <Text style={styles.sectionTitle}>CMVR Draft Reports</Text>
               </View>
               {hasDrafts && (
-                <TouchableOpacity
+                <TouchableOpacity 
                   onPress={() => navigation.navigate("CMVRDrafts")}
                   style={styles.viewAllButton}
                   hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
@@ -323,6 +335,55 @@ export default function DashboardScreen({ navigation }: any) {
                   <Text style={styles.emptyStateTitle}>No drafts saved</Text>
                   <Text style={styles.emptyStateText}>
                     Start a CMVR report and save as draft to continue later
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+
+
+            {!loading && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <Edit3 size={18} color={theme.colors.warning} />
+                <Text style={styles.sectionTitle}>ECC Draft Reports</Text>
+              </View>
+              {hasDrafts && (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("ECCDraftScreen")}
+                  style={styles.viewAllButton}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Text style={styles.viewAllText}>View All</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={styles.summaryContainer}>
+              {haseccDrafts ? (
+                <View style={styles.reportsContainer}>
+                  {eccdrafts.map((draft, index) => (
+                    <React.Fragment key={draft.id}>
+                      <DraftCard draft={draft} navigation={navigation} />
+                      {index < drafts.length - 1 && (
+                        <View style={styles.divider} />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.emptyState}>
+                  <Edit3
+                    color={theme.colors.textLight}
+                    size={48}
+                    strokeWidth={1.5}
+                  />
+                  <Text style={styles.emptyStateTitle}>No drafts saved</Text>
+                  <Text style={styles.emptyStateText}>
+                    Start a ECC report and save as draft to continue later
                   </Text>
                 </View>
               )}

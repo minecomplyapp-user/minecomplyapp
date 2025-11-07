@@ -30,10 +30,13 @@ import * as FileSystem from 'expo-file-system/legacy'; // Correct
 import * as Sharing from 'expo-sharing';
 import {useEccStore} from "../../store/eccStore.js"
 import { useAuth } from "../../contexts/AuthContext";
+import { useEccDraftStore } from "../../store/eccDraftStore"
 
 export default function ECCMonitoringScreen({ navigation, route }: any) {
-  const { user } = useAuth();
-  const existingReport = route?.params?.report;
+   const { saveDraft } = useEccDraftStore();
+  const { user,session  } = useAuth();
+  const token = session?.access_token;
+
 const { selectedReport, isLoading, clearSelectedReport } = useEccStore(state => state);
 
   const {addReport,createAndDownloadReport}= useEccStore();
@@ -58,12 +61,10 @@ const { selectedReport, isLoading, clearSelectedReport } = useEccStore(state => 
     setTelNo(report.mmtInfo?.telNo || "");
     setFaxNo(report.mmtInfo?.faxNo || "");
     setEmailAddress(report.mmtInfo?.emailAddress || "");
-    if (report.monitoringData) {
-          setMonitoringState(report.monitoringData); // Assuming monitoringData contains the StoredState structure
-      }
+   
     // Permit Holders
     setPermitHolders(report.permit_holders || []);
-    console.log("permit holdersasadasdasdasdasdas",permit_holders)
+    // console.log("permit holdersasadasdasdasdasdas",permit_holders)
     // Recommendations
     // Ensure recommendations is an array of strings, defaulting to [""]
     setRecommendations(report.recommendations || [""]);
@@ -75,7 +76,7 @@ const handleGenerateAndDownload = async (
 ) => {
     // 1. Initiate the report creation and download.
     // Pass the loading callback down to the API function (createAndDownloadReport)
-    const result = await createAndDownloadReport(reportData, onLoadingChange);
+    const result = await createAndDownloadReport(reportData,token);
 
     if (result.success && result.fileBlob) {
         const { fileBlob, filename } = result;
@@ -297,12 +298,40 @@ remarks_list: permit_holders.reduce((acc, holder, index) => {
     });
   };
 
+
   
+const saveToDraft = async () => {
+    // console.log("Save button clicked, starting draft save process."); 
+    
+    // --- START of Local Error Handling ---
+    try {
+       
+
+        // 🛑 LIKELY CRASH POINT: Check what happens inside this function
+        const draftData = getMonitoringData(); 
+
+        const result = await saveDraft(draftData);
+
+        if (result.success) {
+            alert("✅ Draft saved successfully!");
+        } else {
+            // This handles a clean failure returned by saveDraft
+            alert("❌ Failed to save draft.");
+        }
+    } catch (error) {
+        // 🚨 This will catch the crash from getMonitoringData() or any sync error
+        console.error("Critical synchronous error in saveToDraft:", error);
+        alert("❌ Failed to prepare data for draft. See console for details.");
+    }
+    // --- END of Local Error Handling ---
+};
   
   return (
     <SafeAreaView style={styles.safeContainer}>
       <CustomHeader
+       onSave={saveToDraft}
   showSave={true}
+  saveDisabled={false}
   showFileName={true}
   filename={filename}
   onChangeFileName={setFileName}

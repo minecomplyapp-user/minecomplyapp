@@ -1,22 +1,22 @@
 {
     "permit_holders": [
         {
-            "id": "ISAG-1762346473696",
-            "name": "",
+            "id": "ISAG-1762361777164",
+            "name": "nico abadiano",
             "type": "ISAG",
             "remarks": [
                 ""
             ],
             "issuanceDate": null,
-            "permitNumber": "",
+            "permitNumber": "himehime",
             "monitoringState": {
                 "edits": {},
                 "customs": [],
                 "formatted": {
                     "conditions": [
                         {
-                            "status": "",
-                            "remarks": "No remarks.",
+                            "status": "complied",
+                            "remarks": "All necessary permits are secured.",
                             "section": 1,
                             "condition": "Condition 1: Secure all necessary Permits from concerned agencies",
                             "remark_list": [
@@ -26,12 +26,9 @@
                             ],
                             "condition_number": 1
                         },
-
-
-                       
                         {
-                            "status": "",
-                            "remarks": "No remarks.",
+                            "status": "complied",
+                            "remarks": "The project complies with the approved extraction and processing limit of 70,000 cu. m. annually and ensures that only 2 units of sand and gravel classifiers with a maximum production capacity of 80 cu. m./hr are installed and operated within the applied area of 19.9999 hectares.",
                             "section": 1,
                             "condition": "Condition 1.1: That this Certificate shall cover the extraction and processing of 70,000 cu. m. sand, gravel and boulders annually and the installation of 2 units of sand and gravel classifiers with a production capacity of 80 cu. m./ hr; confined within an applied area of 19.9999 ha.",
                             "nested_to": 1,
@@ -43,8 +40,8 @@
                             "condition_number": 2
                         },
                         {
-                            "status": "",
-                            "remarks": "No remarks.",
+                            "status": "complied",
+                            "remarks": "CMRs are regularly submitted.",
                             "section": 1,
                             "condition": "Condition 1.2: Submission of semi-annual Compliance Monitoring Report (CMR)",
                             "nested_to": 1,
@@ -56,8 +53,8 @@
                             "condition_number": 3
                         },
                         {
-                            "status": "",
-                            "remarks": "No remarks.",
+                            "status": "complied",
+                            "remarks": "Adequate drainage system is constructed.",
                             "section": 1,
                             "condition": "Condition 2: Provision of adequate drainage system and soil erosion control measures",
                             "remark_list": [
@@ -68,8 +65,8 @@
                             "condition_number": 4
                         },
                         {
-                            "status": "",
-                            "remarks": "No remarks.",
+                            "status": "complied",
+                            "remarks": "Permit to transport application is in process. The permittee attended the Technical Conference on May 19, 2025 regarding NOV issued for non-compliance with the provisions of RA 6969 and commitments will be undertaken until June 15, 2025.",
                             "section": 1,
                             "condition": "Condition 3: Implementation of regular sanitary housekeeping practices, proper collection of solid and hazardous waste",
                             "remark_list": [
@@ -80,8 +77,8 @@
                             "condition_number": 5
                         },
                         {
-                            "status": "",
-                            "remarks": "No remarks.",
+                            "status": "complied",
+                            "remarks": "Tree planting is regularly conducted and annual report is submitted",
                             "section": 1,
                             "condition": "Condition 4: Conduct of Tree Planting and submission of annual report (if applicable)",
                             "remark_list": [
@@ -140,7 +137,6 @@
                             ],
                             "condition_number": 10
                         },
-                         
                         {
                             "status": "",
                             "remarks": "No remarks.",
@@ -292,7 +288,333 @@
                         }
                     ]
                 },
-                "selections": {}
+                "selections": {
+                    "1": "complied",
+                    "2": "complied",
+                    "3": "complied",
+                    "4": "complied",
+                    "1.1": "complied",
+                    "1.2": "complied"
+                }
+            }
+        },
+        {
+            "id": "ISAG-1762361778296",
+            "name": "",
+            "type": "ISAG",
+            "remarks": [
+                "sbbshs",
+                "hshzhz"
+            ],
+            "issuanceDate": null,
+            "permitNumber": "",
+            "monitoringState": {
+                "edits": {},
+                "customs": [
+                    {
+                        "id": "custom-1762361791440",
+                        "title": "Condition custom-1762361791440: Untitled",
+                        "isDefault": false,
+                        "descriptions": {
+                            "not": "dbdbbs",
+                            "partial": "bshshszn",
+                            "complied": "ehshs"
+                        }
+                    }
+                ],
+                "formatted": {
+                    "conditions": [
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 1: Secure all necessary Permits from concerned agencies",
+                            "remark_list": [
+                                "All necessary permits are secured.",
+                                "Some permits are secured while others are still being processed.",
+                                "Still in the process of securing the necessary permits from concerned agencies."
+                            ],
+                            "condition_number": 1
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 1.1: That this Certificate shall cover the extraction and processing of 70,000 cu. m. sand, gravel and boulders annually and the installation of 2 units of sand and gravel classifiers with a production capacity of 80 cu. m./ hr; confined within an applied area of 19.9999 ha.",
+                            "nested_to": 1,
+                            "remark_list": [
+                                "The project complies with the approved extraction and processing limit of 70,000 cu. m. annually and ensures that only 2 units of sand and gravel classifiers with a maximum production capacity of 80 cu. m./hr are installed and operated within the applied area of 19.9999 hectares.",
+                                "The proponent adheres to the set annual extraction and processing volume of 70,000 cu. m. and limits the installation of sand and gravel classifiers to 2 units with a production capacity of 80 cu. m./hr within the 19.9999-hectare applied area.",
+                                "Still in the process of securing the necessary requirements for ECC EIS category application for MPSA Contract."
+                            ],
+                            "condition_number": 2
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 1.2: Submission of semi-annual Compliance Monitoring Report (CMR)",
+                            "nested_to": 1,
+                            "remark_list": [
+                                "CMRs are regularly submitted.",
+                                "CMRs are submitted with occasional delay or minor deficiency.",
+                                "Still in the process of completing and preparing the necessary reports for submission."
+                            ],
+                            "condition_number": 3
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 2: Provision of adequate drainage system and soil erosion control measures",
+                            "remark_list": [
+                                "Adequate drainage system is constructed.",
+                                "Partial drainage system and soil erosion control measures are in place, with improvements ongoing.",
+                                "Still in the process of establishing adequate drainage system and soil erosion control measures"
+                            ],
+                            "condition_number": 4
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 3: Implementation of regular sanitary housekeeping practices, proper collection of solid and hazardous waste",
+                            "remark_list": [
+                                "Permit to transport application is in process. The permittee attended the Technical Conference on May 19, 2025 regarding NOV issued for non-compliance with the provisions of RA 6969 and commitments will be undertaken until June 15, 2025.",
+                                "Regular sanitary housekeeping practices are in place, with proper collection of solid waste observed; hazardous waste management is partially complied with pending permit issuance.",
+                                "Still in the process of fully implementing regular sanitary housekeeping practices, proper collection, and hazardous waste management measures"
+                            ],
+                            "condition_number": 5
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 4: Conduct of Tree Planting and submission of annual report (if applicable)",
+                            "remark_list": [
+                                "Tree planting is regularly conducted and annual report is submitted",
+                                "Tree planting activities are conducted but annual report submission is delayed or incomplete",
+                                "Still in the process of conducting tree planting activities and preparing the annual report"
+                            ],
+                            "condition_number": 6
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 5: Secure Tree Cutting Permit",
+                            "remark_list": [
+                                "Tree Cutting Permit is secured",
+                                "Application for Tree Cutting Permit is in process",
+                                "No cutting of trees involved"
+                            ],
+                            "condition_number": 7
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 6: Conduct of Information, Education & Communication (IEC) Campaign and submission of annual report of compliance (if applicable)",
+                            "remark_list": [
+                                "IEC is regularly conducted with report submitted to this Office",
+                                "IEC is conducted but annual report submission is delayed or incomplete",
+                                "Still in the process of conducting IEC and preparing the annual report for submission"
+                            ],
+                            "condition_number": 8
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Compliance with the provisions of RA 8749, RA 9275, RA 9003 and RA 6969",
+                            "remark_list": [
+                                "",
+                                "",
+                                ""
+                            ],
+                            "condition_number": 9
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 7a: Secure a PTO and Discharge Permit",
+                            "nested_to": 7,
+                            "remark_list": [
+                                "PTO-OL-R01-2021-02801-R valid until 05/06/2026 and DP-R01-20-02099 valid until 09/01/2025. WWDP requirements for domestic wastewater are in process. The permittee attended the Technical Conference on May 19, 2025 regarding NOV issued for non-compliance with the provisions of RA 9275 and commitments will be undertaken until June 15, 2025",
+                                "PTO and Discharge Permit are secured, but renewal/application for WWDP requirements is ongoing",
+                                "Still in the process of securing PTO, Discharge Permit, and WWDP requirements"
+                            ],
+                            "condition_number": 10
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 7b: Designate a PCO",
+                            "nested_to": 7,
+                            "remark_list": [
+                                "With designated PCO. PCO accreditation renewal is in process",
+                                "PCO is designated but accreditation has not yet been renewed/updated",
+                                "Still in the process of designating a PCO and securing accreditation"
+                            ],
+                            "condition_number": 11
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 7c: Registration as a HW Generator",
+                            "nested_to": 7,
+                            "remark_list": [
+                                "OL-GR-R1-28-012653 issued on 12-14-2024",
+                                "Registration as HW Generator is secured but renewal/validation is in process",
+                                "Still in the process of securing registration as HW Generator"
+                            ],
+                            "condition_number": 12
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 7d: Submission of SMR (if applicable)",
+                            "nested_to": 7,
+                            "remark_list": [
+                                "SMRs are regularly and timely submitted",
+                                "SMRs are submitted but with occasional delays or incomplete documentation",
+                                "Still in the process of preparing and submitting SMRs"
+                            ],
+                            "condition_number": 13
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 7e: Submission of ROLA (if applicable)",
+                            "nested_to": 7,
+                            "remark_list": [
+                                "ROLA is regularly submitted and passed the DENR Effluent Standards",
+                                "ROLA is submitted but with delay or has minor deficiencies in meeting the DENR Effluent Standards",
+                                "Still in the process of preparing and submitting ROLA"
+                            ],
+                            "condition_number": 14
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 7f: Secure Permit to Transport (PTT) and submission of HW-Manifest and Certificate of Treatment (COT) (if applicable)",
+                            "nested_to": 7,
+                            "remark_list": [
+                                "PTT requirements are still in process. The permittee attended the Technical Conference on May 19, 2025 regarding NOV issued for non-compliance with the provisions of RA 9275 and commitments will be undertaken until June 15, 2025",
+                                "PTT and HW-Manifest are secured, but Certificate of Treatment (COT) is pending/partially complied with",
+                                "Still in the process of securing PTT, HW-Manifest, and COT"
+                            ],
+                            "condition_number": 15
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 8: Submission of report on the implemented mitigating measures and the corresponding cost of such activities",
+                            "remark_list": [
+                                "Included in the submitted CMRs",
+                                "Report on mitigating measures is prepared but submission is delayed or incomplete",
+                                "Still in the process of preparing and submitting report on mitigating measures and corresponding costs"
+                            ],
+                            "condition_number": 16
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 9: Conduct of Information, Education & Communication (IEC) Campaign and submission of annual report of compliance (if applicable)",
+                            "remark_list": [
+                                "IEC is regularly conducted with report submitted to this Office",
+                                "IEC is conducted but annual report submission is delayed or incomplete",
+                                "Still in the process of conducting IEC and preparing the annual report for submission"
+                            ],
+                            "condition_number": 17
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 10: Creation of Environmental Unit and designation of PCO",
+                            "remark_list": [
+                                "With designated PCO. PCO accreditation renewal is in process",
+                                "Environmental Unit is organized but PCO accreditation is still pending/for renewal",
+                                "Still in the process of creating an Environmental Unit and designating a PCO"
+                            ],
+                            "condition_number": 18
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 11: Submit abandonment plan in case of abandonment, 3 months prior abandonment",
+                            "remark_list": [
+                                "Abandonment plan is prepared and submitted 3 months prior to project abandonment",
+                                "Abandonment plan is being prepared but not yet submitted",
+                                "The management has no plans of abandoning the project"
+                            ],
+                            "condition_number": 19
+                        },
+                        {
+                            "status": "complied",
+                            "remarks": "Still in the process of securing the necessary requirements for ECC EIS category application for MPSA Contract",
+                            "section": 2,
+                            "condition": "Condition 12: Project expansion and/or construction of additional structures, change in location shall be subject to a new EIA",
+                            "remark_list": [
+                                "Still in the process of securing the necessary requirements for ECC EIS category application for MPSA Contract",
+                                "Application for new EIA requirements is prepared but pending submission/approval",
+                                "No project expansion, additional structures, or change in location undertaken that requires a new EIA"
+                            ],
+                            "condition_number": 20
+                        },
+                        {
+                            "status": "",
+                            "remarks": "No remarks.",
+                            "section": 2,
+                            "condition": "Condition 13: Land clearing within the project description",
+                            "remark_list": [
+                                "Land area developed is within the project description",
+                                "Land clearing activities are ongoing but still within the approved project description",
+                                "Still in the process of securing confirmation that land clearing activities are within the approved project description"
+                            ],
+                            "condition_number": 21
+                        },
+                        {
+                            "status": "complied",
+                            "remarks": "No transfer of ownership",
+                            "section": 2,
+                            "condition": "Condition 14: Notify EMB in case of transfer of ownership within 15 days from the date of transfer",
+                            "remark_list": [
+                                "No transfer of ownership",
+                                "Transfer of ownership occurred, EMB was notified within 15 days",
+                                "Transfer of ownership occurred, but EMB notification is still in process / delayed"
+                            ],
+                            "condition_number": 22
+                        },
+                        {
+                            "status": "partial",
+                            "remarks": "bshshszn",
+                            "section": 2,
+                            "condition": "Condition custom-1762361791440: Untitled",
+                            "remark_list": [
+                                "ehshs",
+                                "bshshszn",
+                                "dbdbbs"
+                            ],
+                            "condition_number": 23
+                        }
+                    ]
+                },
+                "selections": {
+                    "12": "complied",
+                    "14": "complied",
+                    "custom-1762361791440": "partial"
+                }
             }
         }
     ]

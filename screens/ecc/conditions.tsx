@@ -457,7 +457,7 @@ export default function ECCMonitoringScreen2() {
     console.error("Failed to clear storage:", e);
   }
 };
-clearAppStorage();
+// clearAppStorage();
 
   const saveModal = async () => {
     if (!editing) return;

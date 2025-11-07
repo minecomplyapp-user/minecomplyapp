@@ -35,6 +35,9 @@ import ExportReportScreen from "../screens/CMVRPAGE/ExportReportScreen";
 import CMVRDraftsScreen from "../screens/CMVRPAGE/CMVRDraftsScreen";
 import GuestDashboardScreen from "../screens/dashboard/GuestDashboardScreen";
 import EPEPScreen from "../screens/EPEP/epepScreen";
+import ECCDraftsScreen from "../screens/ecc/ECCDraftsScreen";
+
+
 
 const RootStack = createStackNavigator();
 
@@ -94,6 +97,12 @@ const AppNavigator = () => {
                 component={CMVRDraftsScreen}
                 options={{ headerShown: false }}
               />
+            <RootStack.Screen
+                name="ECCDraftScreen"
+                component={ECCDraftsScreen}
+                options={{ headerShown: false }}
+              />
+            
               <RootStack.Screen
                 name="GuestDashboard"
                 component={GuestDashboardScreen}
