@@ -2100,6 +2100,37 @@ const CMVRDocumentExportScreen = () => {
         <View style={styles.actionSection}>
           {!documentGenerated ? (
             <>
+              {!hasSubmitted && (
+                <TouchableOpacity
+                  style={[
+                    styles.submitButton,
+                    isSubmitting && styles.buttonDisabled,
+                  ]}
+                  onPress={handleSubmitToSupabase}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <ActivityIndicator size="small" color="white" />
+                      <Text style={styles.submitButtonText}>
+                        Submitting...
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="cloud-upload"
+                        size={20}
+                        color="white"
+                      />
+                      <Text style={styles.submitButtonText}>
+                        Submit to Database
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+              
               <TouchableOpacity
                 style={[
                   styles.generateButton,
@@ -2117,96 +2148,66 @@ const CMVRDocumentExportScreen = () => {
                   </>
                 ) : (
                   <>
-                    {!hasSubmitted && (
-                      <TouchableOpacity
-                        style={[
-                          styles.submitButton,
-                          isSubmitting && styles.buttonDisabled,
-                        ]}
-                        onPress={handleSubmitToSupabase}
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <ActivityIndicator size="small" color="white" />
-                            <Text style={styles.submitButtonText}>
-                              Submitting...
-                            </Text>
-                          </>
-                        ) : (
-                          <>
-                            <Ionicons
-                              name="cloud-upload"
-                              size={20}
-                              color="white"
-                            />
-                            <Text style={styles.submitButtonText}>
-                              Submit to Database
-                            </Text>
-                          </>
-                        )}
-                      </TouchableOpacity>
-                    )}
                     <Ionicons name="document-text" size={20} color="white" />
                     <Text style={styles.generateButtonText}>
                       Generate Docx
-                      {!hasSubmitted ? " (enable after submit)" : ""}
+                      {!hasSubmitted ? " (Submit Required)" : ""}
                     </Text>
                   </>
                 )}
               </TouchableOpacity>
-              {hasSubmitted && submittedReportId ? (
-                <TouchableOpacity
-                  style={[
-                    styles.updateButton,
-                    isUpdating && styles.buttonDisabled,
-                  ]}
-                  onPress={handleSubmitUpdate}
-                  disabled={isUpdating}
-                >
-                  {isUpdating ? (
-                    <>
-                      <ActivityIndicator size="small" color="white" />
-                      <Text style={styles.updateButtonText}>Updating...</Text>
-                    </>
-                  ) : (
-                    <>
-                      <Ionicons name="cloud-upload" size={20} color="white" />
-                      <Text style={styles.updateButtonText}>Submit Update</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              ) : null}
-              {hasSubmitted && submittedReportId ? (
-                <TouchableOpacity
-                  style={[
-                    styles.deleteButton,
-                    isDeleting && styles.buttonDisabled,
-                  ]}
-                  onPress={handleDeleteFromSupabase}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? (
-                    <>
-                      <ActivityIndicator size="small" color="white" />
-                      <Text style={styles.deleteButtonText}>Deleting...</Text>
-                    </>
-                  ) : (
-                    <>
-                      <Ionicons name="trash" size={20} color="white" />
-                      <Text style={styles.deleteButtonText}>
-                        Delete from Database
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              ) : null}
+
+              {hasSubmitted && submittedReportId && (
+                <>
+                  <TouchableOpacity
+                    style={[
+                      styles.updateButton,
+                      isUpdating && styles.buttonDisabled,
+                    ]}
+                    onPress={handleSubmitUpdate}
+                    disabled={isUpdating}
+                  >
+                    {isUpdating ? (
+                      <>
+                        <ActivityIndicator size="small" color="white" />
+                        <Text style={styles.updateButtonText}>Updating...</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons name="refresh" size={20} color="white" />
+                        <Text style={styles.updateButtonText}>Update</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.deleteButton,
+                      isDeleting && styles.buttonDisabled,
+                    ]}
+                    onPress={handleDeleteFromSupabase}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <ActivityIndicator size="small" color="white" />
+                        <Text style={styles.deleteButtonText}>Deleting...</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons name="trash" size={20} color="white" />
+                        <Text style={styles.deleteButtonText}>Delete</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </>
+              )}
+
               {!hasSubmitted && (
                 <View style={styles.infoBannerContainer}>
-                  <Ionicons name="lock-closed" size={18} color="#1E40AF" />
+                  <Ionicons name="information-circle" size={18} color="#1E40AF" />
                   <Text style={styles.infoBannerText}>
-                    Document generation is enabled after the report is saved in
-                    the database.
+                    Submit your report to the database first to enable document generation.
                   </Text>
                 </View>
               )}
@@ -2604,21 +2605,21 @@ const styles = StyleSheet.create({
     marginBottom: isTablet ? 32 : 20,
     paddingHorizontal: 4,
   },
-  generateButton: {
-    backgroundColor: "#1E40AF",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: isTablet ? 22 : 18,
-    borderRadius: isTablet ? 20 : 16,
-    gap: isTablet ? 16 : 12,
-    shadowColor: "#1E40AF",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 6,
-    marginBottom: isTablet ? 16 : 14,
-  },
+ generateButton: {
+  backgroundColor: "#1E40AF",
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  paddingVertical: isTablet ? 22 : 18,
+  borderRadius: isTablet ? 20 : 16,
+  gap: isTablet ? 16 : 12,
+  shadowColor: "#1E40AF",
+  shadowOffset: { width: 0, height: 6 },
+  shadowOpacity: 0.4,
+  shadowRadius: 12,
+  elevation: 6,
+  marginTop: isTablet ? 32 : 24,  
+},
   submitButton: {
     backgroundColor: "#10B981",
     flexDirection: "row",
