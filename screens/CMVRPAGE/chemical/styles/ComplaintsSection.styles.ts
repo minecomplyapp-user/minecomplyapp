@@ -119,8 +119,12 @@ export const styles = StyleSheet.create({
     padding: 8,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 8,
+    borderRadius: 16,
     backgroundColor: "#FEF2F2",
+    borderColor: '#DC2626',
+
+  borderWidth: 1,
+
   },
   contentWrapper: {
     gap: 16,

@@ -45,7 +45,6 @@ export const CustomHeader: React.FC<CustomHeaderProps> = ({
   };
 
   const handleSaveFileName = () => {
-    console.log("Asdasdd")
     onChangeFileName?.(tempFileName);
     setModalVisible(false);
   };

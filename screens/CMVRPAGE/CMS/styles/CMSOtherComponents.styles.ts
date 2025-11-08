@@ -2,6 +2,7 @@ import { StyleSheet, Platform } from "react-native";
 
 export const styles = StyleSheet.create({
   formField: {
+    position: 'relative', // Add this line
     backgroundColor: "#FFFFFF",
     paddingVertical: 20,
     paddingHorizontal: 20,
@@ -134,35 +135,16 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
   },
   deleteButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#DC2626",
-    borderWidth: 1.5,
-    borderColor: "#B91C1C",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginTop: 14,
-    borderRadius: 8,
-    gap: 6,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#DC2626",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  deleteButtonText: {
-    fontSize: 12,
-    color: "#fff",
-    fontWeight: "700",
-    letterSpacing: 0.3,
-    lineHeight: 16,
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 16,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: '#DC2626',
+    zIndex: 10,
+    elevation: 2,
   },
   addButton: {
     backgroundColor: "#EFF6FF",

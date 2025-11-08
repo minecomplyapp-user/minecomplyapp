@@ -9,13 +9,17 @@ import {
   Platform,
   Alert,
   Dimensions,
+  Image,
+  TextInput,
 } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../contexts/AuthContext";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
+import { uploadFileFromUri } from "../../lib/storage";
 
 import { useFileName } from "../../contexts/FileNameContext";
 import {
@@ -514,7 +518,8 @@ const transformProcessDocumentationForPayload = (raw: any) => {
     .toLowerCase();
   const applicable =
     sva === "yes" || sva === "y" || raw.siteValidationApplicable === true;
-  const none = sva === "no" || sva === "none" || raw.siteValidationApplicable === false;
+  const none =
+    sva === "no" || sva === "none" || raw.siteValidationApplicable === false;
   return {
     dateConducted: raw?.dateConducted ?? "",
     mergedMethodologyOrOtherRemarks: raw?.methodologyRemarks ?? "",
@@ -592,8 +597,8 @@ const transformImpactCommitmentsForPayload = (raw: any) => {
     String(v).toLowerCase() === "yes"
       ? true
       : String(v).toLowerCase() === "no"
-      ? false
-      : !!v;
+        ? false
+        : !!v;
   const mapMeasures = (section: any) => {
     const measures = Array.isArray(section?.measures) ? section.measures : [];
     return {
@@ -814,19 +819,19 @@ const transformWasteManagementForPayload = (raw: any) => {
   const quarry = raw?.quarryData?.N_A
     ? "N/A"
     : raw?.quarryData?.noSignificantImpact && !raw?.quarryData?.generateTable
-    ? "No significant impact"
-    : mapPlantPortSection(raw?.quarryPlantData);
+      ? "No significant impact"
+      : mapPlantPortSection(raw?.quarryPlantData);
   const plant = raw?.plantSimpleData?.N_A
     ? "N/A"
     : raw?.plantSimpleData?.noSignificantImpact &&
-      !raw?.plantSimpleData?.generateTable
-    ? "No significant impact"
-    : mapPlantPortSection(raw?.plantData);
+        !raw?.plantSimpleData?.generateTable
+      ? "No significant impact"
+      : mapPlantPortSection(raw?.plantData);
   const port = raw?.portData?.N_A
     ? "N/A"
     : raw?.portData?.noSignificantImpact && !raw?.portData?.generateTable
-    ? "No significant impact"
-    : mapPlantPortSection(raw?.portPlantData);
+      ? "No significant impact"
+      : mapPlantPortSection(raw?.portPlantData);
   return { quarry, plant, port };
 };
 
@@ -1119,6 +1124,8 @@ const CMVRDocumentExportScreen = () => {
     selectedAttendanceId: routeSelectedAttendanceId,
     selectedAttendanceTitle: routeSelectedAttendanceTitle,
     documentation: routeDocumentation,
+    attachments: routeAttachments,
+    newlyUploadedPaths: routeNewlyUploadedPaths,
   } = routeParams;
 
   const resolvedFileName = useMemo(
@@ -1147,19 +1154,41 @@ const CMVRDocumentExportScreen = () => {
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [attachments, setAttachments] = useState<
+    { uri: string; path?: string; uploading?: boolean; caption?: string }[]
+  >([]);
+  const [newlyUploadedPaths, setNewlyUploadedPaths] = useState<string[]>([]);
 
-  const loadStoredDraft = useCallback(async (): Promise<DraftSnapshot | null> => {
-    try {
-      const raw = await AsyncStorage.getItem(DRAFT_KEY);
-      if (!raw) {
+  // Handle incoming attachments from CMVRAttachmentsScreen
+  useEffect(() => {
+    if (routeAttachments && Array.isArray(routeAttachments)) {
+      console.log("Loading attachments from route:", routeAttachments);
+      const formattedAttachments = routeAttachments.map((att: any) => ({
+        uri: att.path || "",
+        path: att.path || "",
+        caption: att.caption || "",
+        uploading: false,
+      }));
+      setAttachments(formattedAttachments);
+    }
+    if (routeNewlyUploadedPaths && Array.isArray(routeNewlyUploadedPaths)) {
+      setNewlyUploadedPaths(routeNewlyUploadedPaths);
+    }
+  }, [routeAttachments, routeNewlyUploadedPaths]);
+
+  const loadStoredDraft =
+    useCallback(async (): Promise<DraftSnapshot | null> => {
+      try {
+        const raw = await AsyncStorage.getItem(DRAFT_KEY);
+        if (!raw) {
+          return null;
+        }
+        return JSON.parse(raw) as DraftSnapshot;
+      } catch (error) {
+        console.error("Failed to load CMVR draft:", error);
         return null;
       }
-      return JSON.parse(raw) as DraftSnapshot;
-    } catch (error) {
-      console.error("Failed to load CMVR draft:", error);
-      return null;
-    }
-  }, [DRAFT_KEY]);
+    }, [DRAFT_KEY]);
 
   const persistSnapshot = useCallback(
     async (snapshot: DraftSnapshot) => {
@@ -1346,6 +1375,28 @@ const CMVRDocumentExportScreen = () => {
                 reportData.processDocumentationOfActivitiesUndertaken,
               ...reportData.complianceMonitoringReport,
             };
+
+            // Load attachments if they exist
+            if (
+              reportData.attachments &&
+              Array.isArray(reportData.attachments)
+            ) {
+              console.log(
+                "Loading existing attachments:",
+                reportData.attachments
+              );
+              const loadedAttachments = reportData.attachments.map(
+                (att: any) => ({
+                  uri: att.path || "", // Use path as uri for display purposes
+                  path: att.path || "",
+                  caption: att.caption || "",
+                  uploading: false,
+                })
+              );
+              setAttachments(loadedAttachments);
+              console.log("Attachments loaded into state:", loadedAttachments);
+            }
+
             console.log("Successfully loaded report data from API");
           }
         } catch (error) {
@@ -1457,6 +1508,25 @@ const CMVRDocumentExportScreen = () => {
         },
         user?.id
       );
+
+      // Add attachments to payload
+      console.log("=== DEBUG UPDATE: Attachments state ===", attachments);
+      if (attachments.length > 0) {
+        const formattedAttachments = attachments
+          .filter((a) => !!a.path)
+          .map((a) => ({ path: a.path!, caption: a.caption || undefined }));
+        console.log(
+          "=== DEBUG UPDATE: Formatted attachments ===",
+          formattedAttachments
+        );
+        payload.attachments = formattedAttachments;
+      }
+
+      console.log(
+        "=== DEBUG UPDATE: Payload attachments ===",
+        payload.attachments
+      );
+
       const fileNameForUpdate =
         sanitizeString(snapshotForSubmission.fileName) ||
         sanitizeString(snapshotForSubmission.generalInfo?.projectName) ||
@@ -1547,6 +1617,21 @@ const CMVRDocumentExportScreen = () => {
         },
         user?.id
       );
+
+      // Add attachments to payload
+      console.log("=== DEBUG: Attachments state ===", attachments);
+      if (attachments.length > 0) {
+        const formattedAttachments = attachments
+          .filter((a) => !!a.path)
+          .map((a) => ({ path: a.path!, caption: a.caption || undefined }));
+        console.log(
+          "=== DEBUG: Formatted attachments ===",
+          formattedAttachments
+        );
+        payload.attachments = formattedAttachments;
+      }
+
+      console.log("=== DEBUG: Payload attachments ===", payload.attachments);
       console.log("=== DEBUG: Payload being sent ===");
       console.log(JSON.stringify(payload, null, 2));
       const fileNameForSubmission =
@@ -1863,6 +1948,104 @@ const CMVRDocumentExportScreen = () => {
     } as any);
   };
 
+  // --- Attachments Handlers ---
+  const processPickedAsset = async (asset: ImagePicker.ImagePickerAsset) => {
+    const newItem = { uri: asset.uri, uploading: true, caption: "" } as {
+      uri: string;
+      path?: string;
+      uploading?: boolean;
+      caption?: string;
+    };
+    setAttachments((prev) => [...prev, newItem]);
+    try {
+      const nameFromPicker = (
+        asset.fileName ??
+        asset.uri.split("/").pop() ??
+        "image.jpg"
+      ).replace(/\?.*$/, "");
+      const ext = nameFromPicker.includes(".")
+        ? nameFromPicker.split(".").pop()
+        : "jpg";
+      const baseName = fileName
+        ? fileName.trim().replace(/[^a-zA-Z0-9._-]/g, "_")
+        : "cmvr";
+      const finalName = `${baseName}_${Date.now()}.${ext}`;
+      const contentType = asset.mimeType ?? "image/jpeg";
+      const { path } = await uploadFileFromUri({
+        uri: asset.uri,
+        fileName: finalName,
+        contentType,
+        upsert: false,
+      });
+      console.log("=== DEBUG: File uploaded ===", {
+        path,
+        uri: asset.uri,
+        finalName,
+      });
+      setNewlyUploadedPaths((prev) => [...prev, path]);
+      setAttachments((prev) =>
+        prev.map((a) =>
+          a.uri === newItem.uri ? { ...a, path, uploading: false } : a
+        )
+      );
+      console.log("=== DEBUG: Updated attachments state ===", attachments);
+    } catch (e: any) {
+      setAttachments((prev) => prev.filter((a) => a.uri !== newItem.uri));
+      Alert.alert(
+        "Upload failed",
+        e?.message || "Could not upload the image. Please try again."
+      );
+    }
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission required",
+        "We need access to your media library to attach images."
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.length) return;
+    const asset = result.assets[0];
+    await processPickedAsset(asset);
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission required",
+        "Camera permission is needed to take a photo."
+      );
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.length) return;
+    const asset = result.assets[0];
+    await processPickedAsset(asset);
+  };
+
+  const removeAttachment = (uri: string) => {
+    setAttachments((prev) => prev.filter((a) => a.uri !== uri));
+  };
+
+  const updateAttachmentCaption = (uri: string, caption: string) => {
+    setAttachments((prev) =>
+      prev.map((a) => (a.uri === uri ? { ...a, caption } : a))
+    );
+  };
+
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: false,
@@ -1870,26 +2053,26 @@ const CMVRDocumentExportScreen = () => {
   }, [navigation]);
 
   return (
-<View style={styles.container}>
-  <SafeAreaView style={{ flex: 0, backgroundColor: "white" }}>
-    <View style={styles.header}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Ionicons name="close" size={24} color="#1E293B" />
-      </TouchableOpacity>
-      <View style={styles.headerTextContainer}>
-        <Text style={styles.headerTitle}>CMVR Report Export</Text>
-        <Text style={styles.headerSubtitle}>
-          Generate and download your report
-        </Text>
-      </View>
-      <TouchableOpacity onPress={handleExit}>
-        <Text style={styles.exitText}>Exit</Text>
-      </TouchableOpacity>
-    </View>
-  </SafeAreaView>
+    <View style={styles.container}>
+      <SafeAreaView style={{ flex: 0, backgroundColor: "white" }}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="close" size={24} color="#1E293B" />
+          </TouchableOpacity>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerTitle}>CMVR Report Export</Text>
+            <Text style={styles.headerSubtitle}>
+              Generate and download your report
+            </Text>
+          </View>
+          <TouchableOpacity onPress={handleExit}>
+            <Text style={styles.exitText}>Exit</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -2076,6 +2259,25 @@ const CMVRDocumentExportScreen = () => {
             }
             onPress={navigateToAttendanceSelection}
           />
+          <SummaryItem
+            icon="📎"
+            title="Attachments"
+            value={
+              attachments.length > 0
+                ? `${attachments.length} file${attachments.length > 1 ? "s" : ""}`
+                : "No attachments"
+            }
+            onPress={() =>
+              navigation.navigate(
+                "CMVRAttachments" as never,
+                {
+                  ...baseNavParams,
+                  existingAttachments: attachments,
+                  fileName,
+                } as never
+              )
+            }
+          />
         </View>
 
         {documentGenerated && (
@@ -2100,6 +2302,31 @@ const CMVRDocumentExportScreen = () => {
         <View style={styles.actionSection}>
           {!documentGenerated ? (
             <>
+              {!hasSubmitted && (
+                <TouchableOpacity
+                  style={[
+                    styles.submitButton,
+                    isSubmitting && styles.buttonDisabled,
+                  ]}
+                  onPress={handleSubmitToSupabase}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <ActivityIndicator size="small" color="white" />
+                      <Text style={styles.submitButtonText}>Submitting...</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="cloud-upload" size={20} color="white" />
+                      <Text style={styles.submitButtonText}>
+                        Submit to Database
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity
                 style={[
                   styles.generateButton,
@@ -2117,96 +2344,71 @@ const CMVRDocumentExportScreen = () => {
                   </>
                 ) : (
                   <>
-                    {!hasSubmitted && (
-                      <TouchableOpacity
-                        style={[
-                          styles.submitButton,
-                          isSubmitting && styles.buttonDisabled,
-                        ]}
-                        onPress={handleSubmitToSupabase}
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <ActivityIndicator size="small" color="white" />
-                            <Text style={styles.submitButtonText}>
-                              Submitting...
-                            </Text>
-                          </>
-                        ) : (
-                          <>
-                            <Ionicons
-                              name="cloud-upload"
-                              size={20}
-                              color="white"
-                            />
-                            <Text style={styles.submitButtonText}>
-                              Submit to Database
-                            </Text>
-                          </>
-                        )}
-                      </TouchableOpacity>
-                    )}
                     <Ionicons name="document-text" size={20} color="white" />
                     <Text style={styles.generateButtonText}>
                       Generate Docx
-                      {!hasSubmitted ? " (enable after submit)" : ""}
+                      {!hasSubmitted ? " (Submit Required)" : ""}
                     </Text>
                   </>
                 )}
               </TouchableOpacity>
-              {hasSubmitted && submittedReportId ? (
-                <TouchableOpacity
-                  style={[
-                    styles.updateButton,
-                    isUpdating && styles.buttonDisabled,
-                  ]}
-                  onPress={handleSubmitUpdate}
-                  disabled={isUpdating}
-                >
-                  {isUpdating ? (
-                    <>
-                      <ActivityIndicator size="small" color="white" />
-                      <Text style={styles.updateButtonText}>Updating...</Text>
-                    </>
-                  ) : (
-                    <>
-                      <Ionicons name="cloud-upload" size={20} color="white" />
-                      <Text style={styles.updateButtonText}>Submit Update</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              ) : null}
-              {hasSubmitted && submittedReportId ? (
-                <TouchableOpacity
-                  style={[
-                    styles.deleteButton,
-                    isDeleting && styles.buttonDisabled,
-                  ]}
-                  onPress={handleDeleteFromSupabase}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? (
-                    <>
-                      <ActivityIndicator size="small" color="white" />
-                      <Text style={styles.deleteButtonText}>Deleting...</Text>
-                    </>
-                  ) : (
-                    <>
-                      <Ionicons name="trash" size={20} color="white" />
-                      <Text style={styles.deleteButtonText}>
-                        Delete from Database
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              ) : null}
+
+              {hasSubmitted && submittedReportId && (
+                <>
+                  <TouchableOpacity
+                    style={[
+                      styles.updateButton,
+                      isUpdating && styles.buttonDisabled,
+                    ]}
+                    onPress={handleSubmitUpdate}
+                    disabled={isUpdating}
+                  >
+                    {isUpdating ? (
+                      <>
+                        <ActivityIndicator size="small" color="white" />
+                        <Text style={styles.updateButtonText}>Updating...</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons name="refresh" size={20} color="white" />
+                        <Text style={styles.updateButtonText}>Update</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.deleteButton,
+                      isDeleting && styles.buttonDisabled,
+                    ]}
+                    onPress={handleDeleteFromSupabase}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <ActivityIndicator size="small" color="white" />
+                        <Text style={styles.deleteButtonText}>Deleting...</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons name="trash" size={20} color="white" />
+                        <Text style={styles.deleteButtonText}>Delete</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </>
+              )}
+
               {!hasSubmitted && (
                 <View style={styles.infoBannerContainer}>
-                  <Ionicons name="lock-closed" size={18} color="#1E40AF" />
+                  <Ionicons
+                    name="information-circle"
+                    size={18}
+                    color="#1E40AF"
+                  />
                   <Text style={styles.infoBannerText}>
-                    Document generation is enabled after the report is saved in
-                    the database.
+                    Submit your report to the database first to enable document
+                    generation.
                   </Text>
                 </View>
               )}
@@ -2327,27 +2529,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F8FAFC",
   },
- header: {
-  flexDirection: "row",
-  alignItems: "center",
-  paddingHorizontal: isTablet ? 32 : 20,
-  paddingTop: Platform.OS === "ios" ? 40 : 20, // Reduced paddingTop for both platforms
-  paddingBottom: isTablet ? 24 : 20,
-  backgroundColor: "white",
-  borderBottomWidth: 1,
-  borderBottomColor: "#E2E8F0",
-  ...Platform.select({
-    ios: {
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 8,
-    },
-    android: {
-      elevation: 2,
-    },
-  }),
-},
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: isTablet ? 32 : 20,
+    paddingTop: Platform.OS === "ios" ? 40 : 20, // Reduced paddingTop for both platforms
+    paddingBottom: isTablet ? 24 : 20,
+    backgroundColor: "white",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
 
   backButton: {
     padding: isTablet ? 12 : 8,
@@ -2617,7 +2819,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 6,
-    marginBottom: isTablet ? 16 : 14,
+    marginTop: isTablet ? 32 : 24,
   },
   submitButton: {
     backgroundColor: "#10B981",
@@ -2858,6 +3060,30 @@ const styles = StyleSheet.create({
     fontSize: isTablet ? 16 : 14,
     color: "#D97706",
     lineHeight: isTablet ? 24 : 21,
+  },
+  card: {
+    backgroundColor: "white",
+    borderRadius: isTablet ? 20 : 16,
+    padding: isTablet ? 24 : 20,
+    marginBottom: isTablet ? 20 : 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  sectionTitle: {
+    fontSize: isTablet ? 20 : 18,
+    fontWeight: "700",
+    color: "#0F172A",
+    marginBottom: isTablet ? 8 : 6,
+  },
+  sectionDescription: {
+    fontSize: isTablet ? 15 : 14,
+    color: "#64748B",
+    lineHeight: isTablet ? 22 : 20,
   },
 });
 

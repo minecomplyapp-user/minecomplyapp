@@ -476,11 +476,13 @@ const EIAComplianceScreen: React.FC<{
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.titleContainer}>
-          <View style={styles.titleAccent} />
-          <Text style={styles.titleText}>
-            2. Compliance to Impact Management Commitments in EIA report & EPEP
-          </Text>
+        <View style={styles.titleAccent}>
+          <Text style={styles.titleAccentText}>2.</Text>
         </View>
+        <Text style={styles.titleText}>
+          Compliance to Impact Management Commitments in EIA report & EPEP
+        </Text>
+      </View>
         <ProjectImpacts
           preConstruction={preConstruction}
           construction={construction}

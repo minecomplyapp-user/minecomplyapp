@@ -61,10 +61,13 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   deleteButton: {
-    padding: 8,
+    padding: 6,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#DC2626',
+    borderRadius: 16,
   },
   addButton: {
     alignSelf: 'center',

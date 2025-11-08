@@ -31,7 +31,7 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
     <View style={!isMain && styles.additionalContainer}>
       {!isMain && onDelete && (
         <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
-          <Ionicons name="trash" size={20} color="#DC2626" />
+           <Ionicons name="trash-outline" size={16} color="#DC2626" />
         </TouchableOpacity>
       )}
 

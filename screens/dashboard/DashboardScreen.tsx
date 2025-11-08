@@ -85,34 +85,7 @@ export default function DashboardScreen({ navigation }: any) {
       }
 
       // Fetch local drafts first
-      try {
-
-
-
-        
-        const draftMetadata = await getAllDraftMetadata();
-        console.log("Found drafts:", draftMetadata.length);
-        const localDrafts = draftMetadata.slice(0, 3).map((draft) => ({
-          id: draft.key,
-          title: draft.projectName || draft.fileName,
-          projectName: draft.projectName || draft.fileName,
-          type: "CMVR",
-          status: "draft" as const,
-          date: new Date(draft.lastSaved).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          }),
-          updatedAt: draft.lastSaved,
-          isLocalDraft: true,
-        }));
-        console.log("Loaded local drafts:", localDrafts);
-        setDrafts(localDrafts);
-      } catch (err) {
-        console.log("Error loading local drafts:", err);
-        setDrafts([]);
-      }
-
+    
 
 
 
@@ -134,7 +107,7 @@ export default function DashboardScreen({ navigation }: any) {
           updatedAt: draft.saveAt,
           isLocalDraft: true,
         }));
-        console.log("Loaded local drafts:", localDrafts);
+        console.log("Loaded local ECC drafts:", localDrafts);
         setEccDrafts(localDrafts);
       } catch (err) {
         console.log("Error loading local drafts:", err);

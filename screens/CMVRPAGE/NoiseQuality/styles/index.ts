@@ -133,12 +133,22 @@ bulletRow: {
     fontWeight: '700',
     color: '#02217C',
   },
-  deleteButton: {
-    padding: 6,
-  },
+ deleteButton: {
+  position: 'absolute',
+  top: 8,
+  right: 8,
+  backgroundColor: '#FEE2E2',
+  borderRadius: 16,
+  padding: 6,
+  borderWidth: 1,
+  borderColor: '#DC2626',
+  zIndex: 10,
+  elevation: 2,
+},
   fieldGroup: {
     marginBottom: 16,
   },
+  
   labelWithAction: {
     flexDirection: 'row',
     justifyContent: 'space-between',

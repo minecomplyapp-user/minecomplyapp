@@ -58,7 +58,7 @@ export const PortSection: React.FC<PortSectionProps> = ({
           style={styles.deletePortButton}
           onPress={() => onDelete(port.id)}
         >
-          <Ionicons name="trash-outline" size={18} color="#DC2626" />
+           <Ionicons name="trash-outline" size={16} color="#DC2626" />
         </TouchableOpacity>
       </View>
 

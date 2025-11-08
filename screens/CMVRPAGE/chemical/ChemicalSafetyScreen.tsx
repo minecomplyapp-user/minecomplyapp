@@ -8,6 +8,8 @@ import {
   Text,
 } from "react-native";
 import { CommonActions } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
+
 import { CMSHeader } from "../../../components/CMSHeader";
 import { saveDraft } from "../../../lib/drafts";
 import { ChemicalSafetySection } from "./components/ChemicalSafetySection";
@@ -426,6 +428,7 @@ export default function ChemicalSafetyScreen({ navigation, route }: any) {
         )}
         <TouchableOpacity style={styles.saveButton} onPress={handleSaveNext}>
           <Text style={styles.saveButtonText}>Save & Next</Text>
+          <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
