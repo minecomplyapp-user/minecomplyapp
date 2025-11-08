@@ -226,80 +226,121 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
     });
   };
 
-const handleDeleteComponent = (index: number) => {
-  Alert.alert(
-    'Delete Parameter',
-    'Are you sure you want to delete this parameter?',
-    [
-      {
-        text: 'Cancel',
-        style: 'cancel',
-      },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          setOtherComponents((prev) => prev.filter((_, i) => i !== index));
+  const handleDeleteComponent = (index: number) => {
+    Alert.alert(
+      "Delete Parameter",
+      "Are you sure you want to delete this parameter?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
         },
-      },
-    ]
-  );
-};
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            setOtherComponents((prev) => prev.filter((_, i) => i !== index));
+          },
+        },
+      ]
+    );
+  };
+
   const handleSave = async () => {
-    console.log("Form data:", JSON.stringify(formData, null, 2));
-    console.log("Other components:", JSON.stringify(otherComponents, null, 2));
-    console.log("Uploaded images:", uploadedImages);
-
-    // Collect all previous page data from route.params
-    const prevPageData: any = route.params || {};
-
-    // Prepare compliance monitoring data
+    console.log("Proceeding to next page (no draft save)");
     const complianceToProjectLocationAndCoverageLimits = {
       formData,
       otherComponents,
       uploadedImages,
     };
-
-    // Combine all data from previous pages + current page
-    const draftData = {
-      generalInfo: prevPageData.generalInfo,
-      eccInfo: prevPageData.eccInfo,
-      eccAdditionalForms: prevPageData.eccAdditionalForms,
-      isagInfo: prevPageData.isagInfo,
-      isagAdditionalForms: prevPageData.isagAdditionalForms,
-      epepInfo: prevPageData.epepInfo,
-      epepAdditionalForms: prevPageData.epepAdditionalForms,
-      rcfInfo: prevPageData.rcfInfo,
-      rcfAdditionalForms: prevPageData.rcfAdditionalForms,
-      mtfInfo: prevPageData.mtfInfo,
-      mtfAdditionalForms: prevPageData.mtfAdditionalForms,
-      fmrdfInfo: prevPageData.fmrdfInfo,
-      fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
-      mmtInfo: prevPageData.mmtInfo,
-      executiveSummary: prevPageData.executiveSummary,
-      processDocumentation: prevPageData.processDocumentation,
+    const nextParams = {
+      ...(route?.params || {}),
+      fileName: (route?.params as any)?.fileName || fileName,
       complianceToProjectLocationAndCoverageLimits,
-      savedAt: new Date().toISOString(),
-    };
+    } as any;
+    console.log(
+      "Navigating with ComplianceMonitoring params keys:",
+      Object.keys(nextParams)
+    );
+    navigation.navigate("EIACompliance", nextParams);
+  };
 
-    // Resolve fileName from params
-    const resolvedFileName = prevPageData.fileName || "Untitled";
+  const handleStay = () => {
+    console.log("User chose to stay");
+  };
 
-    // Save draft to AsyncStorage
-    const success = await saveDraft(resolvedFileName, draftData);
-
-    if (success) {
-      Alert.alert("Success", "Draft saved successfully");
-      // Navigate to Dashboard using CommonActions.reset
-      navigation.dispatch(
-        CommonActions.reset({
-          index: 0,
-          routes: [{ name: "Dashboard" }],
-        })
+  const handleSaveToDraft = async () => {
+    try {
+      console.log("Form data:", JSON.stringify(formData, null, 2));
+      console.log(
+        "Other components:",
+        JSON.stringify(otherComponents, null, 2)
       );
-    } else {
-      Alert.alert("Error", "Failed to save draft");
+      console.log("Uploaded images:", uploadedImages);
+
+      // Collect all previous page data from route.params
+      const prevPageData: any = route.params || {};
+
+      // Prepare compliance monitoring data
+      const complianceToProjectLocationAndCoverageLimits = {
+        formData,
+        otherComponents,
+        uploadedImages,
+      };
+
+      // Combine all data from previous pages + current page
+      const draftData = {
+        generalInfo: prevPageData.generalInfo,
+        eccInfo: prevPageData.eccInfo,
+        eccAdditionalForms: prevPageData.eccAdditionalForms,
+        isagInfo: prevPageData.isagInfo,
+        isagAdditionalForms: prevPageData.isagAdditionalForms,
+        epepInfo: prevPageData.epepInfo,
+        epepAdditionalForms: prevPageData.epepAdditionalForms,
+        rcfInfo: prevPageData.rcfInfo,
+        rcfAdditionalForms: prevPageData.rcfAdditionalForms,
+        mtfInfo: prevPageData.mtfInfo,
+        mtfAdditionalForms: prevPageData.mtfAdditionalForms,
+        fmrdfInfo: prevPageData.fmrdfInfo,
+        fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
+        mmtInfo: prevPageData.mmtInfo,
+        executiveSummary: prevPageData.executiveSummary,
+        processDocumentation: prevPageData.processDocumentation,
+        complianceToProjectLocationAndCoverageLimits,
+        savedAt: new Date().toISOString(),
+      };
+
+      // Resolve fileName from params
+      const resolvedFileName = prevPageData.fileName || "Untitled";
+
+      // Save draft to AsyncStorage
+      const success = await saveDraft(resolvedFileName, draftData);
+
+      if (success) {
+        Alert.alert("Success", "Draft saved successfully");
+        // Navigate to Dashboard using CommonActions.reset
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: "Dashboard" }],
+          })
+        );
+      } else {
+        Alert.alert("Error", "Failed to save draft. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      Alert.alert("Error", "Failed to save draft. Please try again.");
     }
+  };
+
+  const handleDiscard = () => {
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: "Dashboard" }],
+      })
+    );
   };
 
   const fillTestData = () => {
@@ -419,25 +460,6 @@ const handleDeleteComponent = (index: number) => {
     );
   };
 
-  const handleSaveAndNext = () => {
-    console.log("Proceeding to next page (no draft save)");
-    const complianceToProjectLocationAndCoverageLimits = {
-      formData,
-      otherComponents,
-      uploadedImages,
-    };
-    const nextParams = {
-      ...(route?.params || {}),
-      fileName: (route?.params as any)?.fileName || fileName,
-      complianceToProjectLocationAndCoverageLimits,
-    } as any;
-    console.log(
-      "Navigating with ComplianceMonitoring params keys:",
-      Object.keys(nextParams)
-    );
-    navigation.navigate("EIACompliance", nextParams);
-  };
-
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: false,
@@ -463,7 +485,13 @@ const handleDeleteComponent = (index: number) => {
       style={styles.container}
     >
       <View style={styles.headerContainer}>
-        <CMSHeader onBack={() => navigation.goBack()} onSave={handleSave} />
+        <CMSHeader
+          onBack={() => navigation.goBack()}
+          onSave={handleSave}
+          onStay={handleStay}
+          onSaveToDraft={handleSaveToDraft}
+          onDiscard={handleDiscard}
+        />
       </View>
       <ScrollView
         style={styles.scrollView}
@@ -524,10 +552,7 @@ const handleDeleteComponent = (index: number) => {
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity
-          style={styles.saveNextButton}
-          onPress={handleSaveAndNext}
-        >
+        <TouchableOpacity style={styles.saveNextButton} onPress={handleSave}>
           <Text style={styles.saveNextButtonText}>Save & Next</Text>
           <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>

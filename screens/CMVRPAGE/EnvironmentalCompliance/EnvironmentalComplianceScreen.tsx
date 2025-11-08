@@ -18,10 +18,13 @@ import { LocationCheckboxRow } from "./components/LocationCheckboxRow";
 import { ParameterForm } from "./components/ParameterForm";
 import { SectionHeader } from "./components/SectionHeader";
 import { FormInputField } from "./components/FormInputField";
+import { AirQualityLocationSection } from "./components/AirQualityLocationSection";
 import {
   ParameterData,
   LocationState,
   ComplianceData,
+  LocationData,
+  createEmptyLocationData,
 } from "../types/EnvironmentalComplianceScreen.types";
 import { styles } from "../styles/EnvironmentalComplianceScreen.styles";
 
@@ -38,6 +41,22 @@ export default function EnvironmentalComplianceScreen({
   });
   const [naChecked, setNaChecked] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+
+  // Separate state for each location
+  const [quarryData, setQuarryData] = useState<LocationData>(
+    createEmptyLocationData
+  );
+  const [plantData, setPlantData] = useState<LocationData>(
+    createEmptyLocationData
+  );
+  const [portData, setPortData] = useState<LocationData>(
+    createEmptyLocationData
+  );
+  const [quarryPlantData, setQuarryPlantData] = useState<LocationData>(
+    createEmptyLocationData
+  );
+
+  // Legacy data state (kept for backward compatibility)
   const [data, setData] = useState<ComplianceData>({
     eccConditions: "",
     quarry: "",
@@ -68,6 +87,11 @@ export default function EnvironmentalComplianceScreen({
     if (saved) {
       if (saved.selectedLocations)
         setSelectedLocations(saved.selectedLocations);
+      if (saved.quarryData) setQuarryData(saved.quarryData);
+      if (saved.plantData) setPlantData(saved.plantData);
+      if (saved.portData) setPortData(saved.portData);
+      if (saved.quarryPlantData) setQuarryPlantData(saved.quarryPlantData);
+      // Legacy support
       if (saved.data) setData((prev) => ({ ...prev, ...saved.data }));
       if (saved.uploadedEccFile) setUploadedEccFile(saved.uploadedEccFile);
       if (saved.uploadedImage) setUploadedImage(saved.uploadedImage);
@@ -214,6 +238,11 @@ export default function EnvironmentalComplianceScreen({
 
       const airQualityImpactAssessment = {
         selectedLocations,
+        quarryData,
+        plantData,
+        portData,
+        quarryPlantData,
+        // Legacy support
         data,
         uploadedEccFile,
         uploadedImage,
@@ -276,6 +305,11 @@ export default function EnvironmentalComplianceScreen({
 
       const airQualityImpactAssessment = {
         selectedLocations,
+        quarryData,
+        plantData,
+        portData,
+        quarryPlantData,
+        // Legacy support
         data,
         uploadedEccFile,
         uploadedImage,
@@ -337,6 +371,234 @@ export default function EnvironmentalComplianceScreen({
     );
   };
 
+  // ============ QUARRY HANDLERS ============
+  const addQuarryParameter = () => {
+    const newId = Date.now().toString();
+    setQuarryData((prev) => ({
+      ...prev,
+      parameters: [
+        ...prev.parameters,
+        {
+          id: newId,
+          parameter: "",
+          currentSMR: "",
+          previousSMR: "",
+          currentMMT: "",
+          previousMMT: "",
+          thirdPartyTesting: "",
+          eqplRedFlag: "",
+          action: "",
+          limitPM25: "",
+          remarks: "",
+        },
+      ],
+    }));
+  };
+
+  const updateQuarryParameter = (
+    id: string,
+    field: keyof Omit<ParameterData, "id">,
+    value: string
+  ) => {
+    setQuarryData((prev) => ({
+      ...prev,
+      parameters: prev.parameters.map((param) =>
+        param.id === id ? { ...param, [field]: value } : param
+      ),
+    }));
+  };
+
+  const deleteQuarryParameter = (id: string) => {
+    Alert.alert(
+      "Remove Parameter",
+      "Are you sure you want to remove this parameter?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            setQuarryData((prev) => ({
+              ...prev,
+              parameters: prev.parameters.filter((param) => param.id !== id),
+            }));
+          },
+        },
+      ]
+    );
+  };
+
+  // ============ PLANT HANDLERS ============
+  const addPlantParameter = () => {
+    const newId = Date.now().toString();
+    setPlantData((prev) => ({
+      ...prev,
+      parameters: [
+        ...prev.parameters,
+        {
+          id: newId,
+          parameter: "",
+          currentSMR: "",
+          previousSMR: "",
+          currentMMT: "",
+          previousMMT: "",
+          thirdPartyTesting: "",
+          eqplRedFlag: "",
+          action: "",
+          limitPM25: "",
+          remarks: "",
+        },
+      ],
+    }));
+  };
+
+  const updatePlantParameter = (
+    id: string,
+    field: keyof Omit<ParameterData, "id">,
+    value: string
+  ) => {
+    setPlantData((prev) => ({
+      ...prev,
+      parameters: prev.parameters.map((param) =>
+        param.id === id ? { ...param, [field]: value } : param
+      ),
+    }));
+  };
+
+  const deletePlantParameter = (id: string) => {
+    Alert.alert(
+      "Remove Parameter",
+      "Are you sure you want to remove this parameter?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            setPlantData((prev) => ({
+              ...prev,
+              parameters: prev.parameters.filter((param) => param.id !== id),
+            }));
+          },
+        },
+      ]
+    );
+  };
+
+  // ============ PORT HANDLERS ============
+  const addPortParameter = () => {
+    const newId = Date.now().toString();
+    setPortData((prev) => ({
+      ...prev,
+      parameters: [
+        ...prev.parameters,
+        {
+          id: newId,
+          parameter: "",
+          currentSMR: "",
+          previousSMR: "",
+          currentMMT: "",
+          previousMMT: "",
+          thirdPartyTesting: "",
+          eqplRedFlag: "",
+          action: "",
+          limitPM25: "",
+          remarks: "",
+        },
+      ],
+    }));
+  };
+
+  const updatePortParameter = (
+    id: string,
+    field: keyof Omit<ParameterData, "id">,
+    value: string
+  ) => {
+    setPortData((prev) => ({
+      ...prev,
+      parameters: prev.parameters.map((param) =>
+        param.id === id ? { ...param, [field]: value } : param
+      ),
+    }));
+  };
+
+  const deletePortParameter = (id: string) => {
+    Alert.alert(
+      "Remove Parameter",
+      "Are you sure you want to remove this parameter?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            setPortData((prev) => ({
+              ...prev,
+              parameters: prev.parameters.filter((param) => param.id !== id),
+            }));
+          },
+        },
+      ]
+    );
+  };
+
+  // ============ QUARRY/PLANT HANDLERS ============
+  const addQuarryPlantParameter = () => {
+    const newId = Date.now().toString();
+    setQuarryPlantData((prev) => ({
+      ...prev,
+      parameters: [
+        ...prev.parameters,
+        {
+          id: newId,
+          parameter: "",
+          currentSMR: "",
+          previousSMR: "",
+          currentMMT: "",
+          previousMMT: "",
+          thirdPartyTesting: "",
+          eqplRedFlag: "",
+          action: "",
+          limitPM25: "",
+          remarks: "",
+        },
+      ],
+    }));
+  };
+
+  const updateQuarryPlantParameter = (
+    id: string,
+    field: keyof Omit<ParameterData, "id">,
+    value: string
+  ) => {
+    setQuarryPlantData((prev) => ({
+      ...prev,
+      parameters: prev.parameters.map((param) =>
+        param.id === id ? { ...param, [field]: value } : param
+      ),
+    }));
+  };
+
+  const deleteQuarryPlantParameter = (id: string) => {
+    Alert.alert(
+      "Remove Parameter",
+      "Are you sure you want to remove this parameter?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            setQuarryPlantData((prev) => ({
+              ...prev,
+              parameters: prev.parameters.filter((param) => param.id !== id),
+            }));
+          },
+        },
+      ]
+    );
+  };
+
   const fillTestData = () => {
     // Set location checkboxes
     setSelectedLocations({
@@ -346,13 +608,9 @@ export default function EnvironmentalComplianceScreen({
       quarryPlant: false,
     });
 
-    // Fill main form fields
-    setData({
-      eccConditions: "ECC No. R10-2020-123 dated January 15, 2020",
-      quarry: "Open pit mining with progressive rehabilitation",
-      plant: "Crushing and screening plant with dust suppression",
-      port: "",
-      quarryPlant: "",
+    // Fill Quarry location data
+    setQuarryData({
+      locationInput: "Open pit mining with progressive rehabilitation",
       parameter: "TSP (Total Suspended Particulates)",
       currentSMR: "85 µg/Nm³",
       previousSMR: "92 µg/Nm³",
@@ -390,6 +648,29 @@ export default function EnvironmentalComplianceScreen({
           limitPM25: "180 µg/Nm³",
           remarks: "Well within standards",
         },
+      ],
+      dateTime: "March 15, 2025, 10:00 AM",
+      weatherWind: "Sunny, Wind speed 3-5 m/s from Northeast",
+      explanation:
+        "Air quality monitoring conducted at designated stations around quarry area. All parameters measured are within DENR standards.",
+      overallCompliance:
+        "Compliant - All air quality parameters are within acceptable limits as per ECC conditions and DAO 2016-08.",
+    });
+
+    // Fill Plant location data
+    setPlantData({
+      locationInput: "Crushing and screening plant with dust suppression",
+      parameter: "TSP (Total Suspended Particulates)",
+      currentSMR: "78 µg/Nm³",
+      previousSMR: "82 µg/Nm³",
+      currentMMT: "80 µg/Nm³",
+      previousMMT: "85 µg/Nm³",
+      thirdPartyTesting: "79 µg/Nm³",
+      eqplRedFlag: "No",
+      action: "Maintain dust suppression systems",
+      limitPM25: "150 µg/Nm³",
+      remarks: "Within limits",
+      parameters: [
         {
           id: "3",
           parameter: "NO2 (Nitrogen Dioxide)",
@@ -404,6 +685,31 @@ export default function EnvironmentalComplianceScreen({
           remarks: "Compliant",
         },
       ],
+      dateTime: "March 15, 2025, 11:30 AM",
+      weatherWind: "Clear, Wind speed 2-4 m/s from East",
+      explanation:
+        "Air quality monitoring conducted at plant processing areas. Dust suppression systems working effectively.",
+      overallCompliance: "Compliant - All parameters within ECC limits.",
+    });
+
+    // Keep legacy data for backward compatibility
+    setData({
+      eccConditions: "ECC No. R10-2020-123 dated January 15, 2020",
+      quarry: "Open pit mining with progressive rehabilitation",
+      plant: "Crushing and screening plant with dust suppression",
+      port: "",
+      quarryPlant: "",
+      parameter: "TSP (Total Suspended Particulates)",
+      currentSMR: "85 µg/Nm³",
+      previousSMR: "92 µg/Nm³",
+      currentMMT: "88 µg/Nm³",
+      previousMMT: "90 µg/Nm³",
+      thirdPartyTesting: "87 µg/Nm³",
+      eqplRedFlag: "No",
+      action: "Continue monitoring, maintain dust suppression measures",
+      limitPM25: "150 µg/Nm³",
+      remarks: "Within acceptable limits",
+      parameters: [],
       dateTime: "March 15, 2025, 10:00 AM",
       weatherWind: "Sunny, Wind speed 3-5 m/s from Northeast",
       explanation:
@@ -416,7 +722,7 @@ export default function EnvironmentalComplianceScreen({
 
     Alert.alert(
       "Test Data",
-      "Environmental Compliance filled with test data (3 parameters)"
+      "Environmental Compliance filled with test data for Quarry and Plant locations"
     );
   };
 
@@ -424,6 +730,11 @@ export default function EnvironmentalComplianceScreen({
     console.log("Save & Next pressed", data);
     const airQualityImpactAssessment = {
       selectedLocations,
+      quarryData,
+      plantData,
+      portData,
+      quarryPlantData,
+      // Legacy support
       data,
       uploadedEccFile,
       uploadedImage,
@@ -553,77 +864,201 @@ export default function EnvironmentalComplianceScreen({
           />
         </View>
 
-        {/* Main Parameter Form */}
-        <View style={styles.formSection}>
-          <ParameterForm
-            data={mainParameterData}
-            onUpdate={updateMainParameter}
-            showNA={true}
+        {/* Location-Specific Sections */}
+        {selectedLocations.quarry && (
+          <AirQualityLocationSection
+            locationName="Quarry"
+            locationInput={quarryData.locationInput}
+            onLocationInputChange={(text) =>
+              setQuarryData((prev) => ({ ...prev, locationInput: text }))
+            }
+            mainParameter={{
+              id: "main",
+              parameter: quarryData.parameter,
+              currentSMR: quarryData.currentSMR,
+              previousSMR: quarryData.previousSMR,
+              currentMMT: quarryData.currentMMT,
+              previousMMT: quarryData.previousMMT,
+              thirdPartyTesting: quarryData.thirdPartyTesting,
+              eqplRedFlag: quarryData.eqplRedFlag,
+              action: quarryData.action,
+              limitPM25: quarryData.limitPM25,
+              remarks: quarryData.remarks,
+            }}
+            onMainParameterUpdate={(field, value) =>
+              setQuarryData((prev) => ({ ...prev, [field]: value }))
+            }
+            parameters={quarryData.parameters}
+            onUpdateParameter={updateQuarryParameter}
+            onDeleteParameter={deleteQuarryParameter}
+            onAddParameter={addQuarryParameter}
             naChecked={naChecked}
             onNAChange={() => setNaChecked(!naChecked)}
+            dateTime={quarryData.dateTime}
+            onDateTimeChange={(text) =>
+              setQuarryData((prev) => ({ ...prev, dateTime: text }))
+            }
+            weatherWind={quarryData.weatherWind}
+            onWeatherWindChange={(text) =>
+              setQuarryData((prev) => ({ ...prev, weatherWind: text }))
+            }
+            explanation={quarryData.explanation}
+            onExplanationChange={(text) =>
+              setQuarryData((prev) => ({ ...prev, explanation: text }))
+            }
+            overallCompliance={quarryData.overallCompliance}
+            onOverallComplianceChange={(text) =>
+              setQuarryData((prev) => ({ ...prev, overallCompliance: text }))
+            }
           />
+        )}
 
-          {/* Additional Parameters */}
-          {data.parameters.map((param, index) => (
-            <View key={param.id} style={styles.additionalParameterContainer}>
-              <ParameterForm
-                data={param}
-                onUpdate={(field, value) =>
-                  updateParameterField(param.id, field, value)
-                }
-                showDelete={true}
-                onDelete={() => removeParameter(param.id)}
-                index={index}
-              />
-            </View>
-          ))}
-
-          {/* Add New Parameter Button */}
-          <TouchableOpacity style={styles.addButton} onPress={addParameter}>
-            <Ionicons name="add-circle-outline" size={20} color="#02217C" />
-            <Text style={styles.addButtonText}>Add More Parameter</Text>
-          </TouchableOpacity>
-
-          {/* Additional Fields - Outside Parameters */}
-          <View style={styles.additionalFieldsSection}>
-            <FormInputField
-              label="Date/Time of Sampling:"
-              value={data.dateTime}
-              onChangeText={(text) => updateField("dateTime", text)}
-            />
-
-            <FormInputField
-              label="Weather and Wind Direction:"
-              value={data.weatherWind}
-              onChangeText={(text) => updateField("weatherWind", text)}
-            />
-
-            <FormInputField
-              label="Explanation of why confirmatory sampling was conducted for specific parameter in the sampling station:"
-              value={data.explanation}
-              onChangeText={(text) => updateField("explanation", text)}
-              multiline
-              numberOfLines={3}
-            />
-          </View>
-        </View>
-
-        {/* Overall Compliance */}
-        <View style={styles.overallSection}>
-          <View style={styles.overallHeader}>
-            <View style={styles.overallIconCircle}>
-              <Text style={styles.overallIcon}>✓</Text>
-            </View>
-            <Text style={styles.overallLabel}>
-              Overall Compliance Assessment
-            </Text>
-          </View>
-          <FormInputField
-            label=""
-            value={data.overallCompliance}
-            onChangeText={(text) => updateField("overallCompliance", text)}
+        {selectedLocations.plant && (
+          <AirQualityLocationSection
+            locationName="Plant"
+            locationInput={plantData.locationInput}
+            onLocationInputChange={(text) =>
+              setPlantData((prev) => ({ ...prev, locationInput: text }))
+            }
+            mainParameter={{
+              id: "main",
+              parameter: plantData.parameter,
+              currentSMR: plantData.currentSMR,
+              previousSMR: plantData.previousSMR,
+              currentMMT: plantData.currentMMT,
+              previousMMT: plantData.previousMMT,
+              thirdPartyTesting: plantData.thirdPartyTesting,
+              eqplRedFlag: plantData.eqplRedFlag,
+              action: plantData.action,
+              limitPM25: plantData.limitPM25,
+              remarks: plantData.remarks,
+            }}
+            onMainParameterUpdate={(field, value) =>
+              setPlantData((prev) => ({ ...prev, [field]: value }))
+            }
+            parameters={plantData.parameters}
+            onUpdateParameter={updatePlantParameter}
+            onDeleteParameter={deletePlantParameter}
+            onAddParameter={addPlantParameter}
+            naChecked={naChecked}
+            onNAChange={() => setNaChecked(!naChecked)}
+            dateTime={plantData.dateTime}
+            onDateTimeChange={(text) =>
+              setPlantData((prev) => ({ ...prev, dateTime: text }))
+            }
+            weatherWind={plantData.weatherWind}
+            onWeatherWindChange={(text) =>
+              setPlantData((prev) => ({ ...prev, weatherWind: text }))
+            }
+            explanation={plantData.explanation}
+            onExplanationChange={(text) =>
+              setPlantData((prev) => ({ ...prev, explanation: text }))
+            }
+            overallCompliance={plantData.overallCompliance}
+            onOverallComplianceChange={(text) =>
+              setPlantData((prev) => ({ ...prev, overallCompliance: text }))
+            }
           />
-        </View>
+        )}
+
+        {selectedLocations.port && (
+          <AirQualityLocationSection
+            locationName="Port"
+            locationInput={portData.locationInput}
+            onLocationInputChange={(text) =>
+              setPortData((prev) => ({ ...prev, locationInput: text }))
+            }
+            mainParameter={{
+              id: "main",
+              parameter: portData.parameter,
+              currentSMR: portData.currentSMR,
+              previousSMR: portData.previousSMR,
+              currentMMT: portData.currentMMT,
+              previousMMT: portData.previousMMT,
+              thirdPartyTesting: portData.thirdPartyTesting,
+              eqplRedFlag: portData.eqplRedFlag,
+              action: portData.action,
+              limitPM25: portData.limitPM25,
+              remarks: portData.remarks,
+            }}
+            onMainParameterUpdate={(field, value) =>
+              setPortData((prev) => ({ ...prev, [field]: value }))
+            }
+            parameters={portData.parameters}
+            onUpdateParameter={updatePortParameter}
+            onDeleteParameter={deletePortParameter}
+            onAddParameter={addPortParameter}
+            naChecked={naChecked}
+            onNAChange={() => setNaChecked(!naChecked)}
+            dateTime={portData.dateTime}
+            onDateTimeChange={(text) =>
+              setPortData((prev) => ({ ...prev, dateTime: text }))
+            }
+            weatherWind={portData.weatherWind}
+            onWeatherWindChange={(text) =>
+              setPortData((prev) => ({ ...prev, weatherWind: text }))
+            }
+            explanation={portData.explanation}
+            onExplanationChange={(text) =>
+              setPortData((prev) => ({ ...prev, explanation: text }))
+            }
+            overallCompliance={portData.overallCompliance}
+            onOverallComplianceChange={(text) =>
+              setPortData((prev) => ({ ...prev, overallCompliance: text }))
+            }
+          />
+        )}
+
+        {selectedLocations.quarryPlant && (
+          <AirQualityLocationSection
+            locationName="Quarry/Plant (Mobile Crusher)"
+            locationInput={quarryPlantData.locationInput}
+            onLocationInputChange={(text) =>
+              setQuarryPlantData((prev) => ({ ...prev, locationInput: text }))
+            }
+            mainParameter={{
+              id: "main",
+              parameter: quarryPlantData.parameter,
+              currentSMR: quarryPlantData.currentSMR,
+              previousSMR: quarryPlantData.previousSMR,
+              currentMMT: quarryPlantData.currentMMT,
+              previousMMT: quarryPlantData.previousMMT,
+              thirdPartyTesting: quarryPlantData.thirdPartyTesting,
+              eqplRedFlag: quarryPlantData.eqplRedFlag,
+              action: quarryPlantData.action,
+              limitPM25: quarryPlantData.limitPM25,
+              remarks: quarryPlantData.remarks,
+            }}
+            onMainParameterUpdate={(field, value) =>
+              setQuarryPlantData((prev) => ({ ...prev, [field]: value }))
+            }
+            parameters={quarryPlantData.parameters}
+            onUpdateParameter={updateQuarryPlantParameter}
+            onDeleteParameter={deleteQuarryPlantParameter}
+            onAddParameter={addQuarryPlantParameter}
+            naChecked={naChecked}
+            onNAChange={() => setNaChecked(!naChecked)}
+            dateTime={quarryPlantData.dateTime}
+            onDateTimeChange={(text) =>
+              setQuarryPlantData((prev) => ({ ...prev, dateTime: text }))
+            }
+            weatherWind={quarryPlantData.weatherWind}
+            onWeatherWindChange={(text) =>
+              setQuarryPlantData((prev) => ({ ...prev, weatherWind: text }))
+            }
+            explanation={quarryPlantData.explanation}
+            onExplanationChange={(text) =>
+              setQuarryPlantData((prev) => ({ ...prev, explanation: text }))
+            }
+            overallCompliance={quarryPlantData.overallCompliance}
+            onOverallComplianceChange={(text) =>
+              setQuarryPlantData((prev) => ({
+                ...prev,
+                overallCompliance: text,
+              }))
+            }
+          />
+        )}
 
         {/* Fill Test Data Button (Dev Only) */}
         {__DEV__ && (

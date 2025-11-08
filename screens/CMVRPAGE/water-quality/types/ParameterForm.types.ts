@@ -4,7 +4,10 @@ export type ParameterFormProps = {
   parameter: Parameter;
   index?: number;
   isMain?: boolean;
-  onUpdate: (field: keyof Omit<Parameter, 'id'>, value: string | boolean) => void;
+  onUpdate: (
+    field: keyof Omit<Parameter, "id">,
+    value: string | boolean
+  ) => void;
   onDelete?: () => void;
   mmtCurrent?: string;
   mmtPrevious?: string;
