@@ -9,10 +9,12 @@ export const useEccDraftStore = create((set) => ({
     try {
       const draftWithId = {
         ...draft,
-      id: "ECC-"+Date.now().toString().toString, // unique ID
-      saveAt: Date.now()
-  
-   
+      id: "ECC-"+Date.now().toString(), // unique ID
+      date: new Date(draft.saveAt || Date.now()).toLocaleDateString("en-US", {
+         month: "short",
+         day: "numeric",
+         year: "numeric",
+    }),
    
     
       };
@@ -49,14 +51,32 @@ clearDrafts: async () => { // ✅ FULL WIPE
       const index = drafts.findIndex(d => d.id === id);
       if (index === -1) return;
 
-      drafts[index] = { id, ...updatedDraft };
+      // 1. Get the existing draft object
+      const existingDraft = drafts[index]; 
+
+      // 2. Create the new merged draft
+      //    This preserves existingDraft properties 
+      //    and overwrites them with properties from updatedDraft (if any).
+      //    The 'id' property is preserved/explicitly set last.
+      const mergedDraft = {
+          ...existingDraft,
+          ...updatedDraft, 
+          id: existingDraft.id, // Ensure the original ID is used
+          date: new Date().toISOString(), // 💡 Optional: Update the timestamp
+      };
+
+      // 3. Put the merged draft back into the array
+      drafts[index] = mergedDraft;
+
       await AsyncStorage.setItem(ECC_DRAFT_KEY, JSON.stringify(drafts));
+      console.log(`Draft ${id} updated and merged.`);
 
       return { success: true };
     } catch (e) {
       console.log("updateDraft error:", e);
+      return { success: false, error: e.message };
     }
-  },
+},
 
   deleteDraft: async (id) => {
     try {
@@ -82,12 +102,12 @@ clearDrafts: async () => { // ✅ FULL WIPE
           }
 
           const drafts = JSON.parse(existing);
-          
+          // console.log("DATE SAVED : ",drafts.date)
           // 🟢 MAPPING: Iterate over the full drafts and extract only the necessary metadata
           const metadataList = drafts.map(draft => ({
               id: draft.id,
               fileName: draft.filename || 'Untitled Draft', // Use a fallback if fileName is missing
-              savedAt: draft.savedAt, // This is your 'updated' or 'saved' timestamp
+              date: draft.date, // This is your 'updated' or 'saved' timestamp
             
             
           }));
@@ -127,14 +147,15 @@ clearDrafts: async () => { // ✅ FULL WIPE
         }));
 
         return {
+         
           id: holder.id,
           name: holder.name,
           type: holder.type,
           monitoringState,
         };
       });
-
-      return { 
+      return {
+        draftId:id, 
         filename: draft.filename,
         generalInfo:draft.generalInfo,
         permit_holders: draft.permit_holders,

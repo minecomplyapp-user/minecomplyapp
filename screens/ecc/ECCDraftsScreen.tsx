@@ -22,9 +22,7 @@ import { theme } from "../../theme/theme";
 import { CustomHeader } from "../../components/CustomHeader";
 import { cmvrDraftStyles as styles } from "./styles/ECCDraftsScreen.styles";
 import {
-  getAllDraftMetadata,
-  getDraft,
-  deleteDraft,
+
   DraftMetadata,
 } from "../../lib/drafts";
 import { useFileName } from "../../contexts/FileNameContext";
@@ -40,7 +38,7 @@ interface DraftListItem extends DraftMetadata {
 type Navigation = StackNavigationProp<any>;
 
 const CMVRDraftsScreen = () => {
-  const {getDraftList,loadDraftById,clearDrafts} =useEccDraftStore()
+  const {getDraftList,loadDraftById,clearDrafts,deleteDraft} =useEccDraftStore()
   const {setSelectedReport} =useEccStore()
 
   const navigation = useNavigation<Navigation>();
@@ -51,22 +49,7 @@ const CMVRDraftsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [createAnim] = useState(new Animated.Value(1));
 
-  const formatDate = (isoString?: string) => {
-    if (!isoString) return "";
-    try {
-      const d = new Date(isoString);
-      if (Number.isNaN(d.getTime())) {
-        return isoString;
-      }
-      return d.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    } catch (error) {
-      return isoString;
-    }
-  };
+  
 
   const hydrateDrafts = useCallback(async () => {
 
@@ -87,7 +70,7 @@ const CMVRDraftsScreen = () => {
             day: "numeric",
             year: "numeric",
           }),
-          updatedAt:formatDate(draft.saveAt),
+          updatedAt:draft.date,
           isLocalDraft: true,
         }));
       setDrafts(hydrated);
@@ -159,17 +142,16 @@ const CMVRDraftsScreen = () => {
   };
 
   const handleOpenDraft = async (id:string) => {
-    // clearDrafts()
         const data = await loadDraftById(id);
         setSelectedReport(data)
         console.log("asd",data)
-        navigation.navigate("ECCMonitoring")
+        navigation.navigate("ECCMonitoring",{id:id})
 
 
     
   };
 
-  const handleDeleteDraft = (item: DraftListItem) => {
+  const handleDeleteDraft = (id: any) => {
     Alert.alert(
       "Delete Draft",
       "Are you sure you want to delete this draft? This cannot be undone.",
@@ -180,11 +162,10 @@ const CMVRDraftsScreen = () => {
           style: "destructive",
           onPress: async () => {
             try {
-              const success = await deleteDraft(item.key);
+              const success = await deleteDraft(id);
               if (success) {
-                setDrafts((prev) =>
-                  prev.filter((draft) => draft.key !== item.key)
-                );
+                  await hydrateDrafts(); 
+
               } else {
                 Alert.alert("Error", "Unable to delete draft right now.");
               }
@@ -210,9 +191,9 @@ const CMVRDraftsScreen = () => {
         }
       >
         <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>CMVR Drafts</Text>
+          <Text style={styles.headerTitle}>ECC Drafts</Text>
           <Text style={styles.headerSubtitle}>
-            Continue working on saved drafts or start a new CMVR report.
+            Continue working on saved drafts or start a new ECC report.
           </Text>
         </View>
 
@@ -238,7 +219,7 @@ const CMVRDraftsScreen = () => {
                   key={item.id}
                   draft={item}
                   onOpen={() => handleOpenDraft(item.id)}
-                  onDelete={handleDeleteDraft}
+                  onDelete={() => handleDeleteDraft(item.id)}
                 />
               ))
             ) : (
@@ -303,7 +284,9 @@ function AnimatedDraftCard({ draft, onOpen, onDelete }: DraftCardProps) {
           <View style={styles.draftMeta}>
             <Calendar color={theme.colors.textLight} size={14} />
             <Text style={styles.draftMetaText}>
-              Last saved: {draft.displayDate}
+              Last saved: {draft.updatedAt 
+                ? draft.updatedAt 
+                : 'Unknown Date'}
             </Text>
           </View>
         </View>

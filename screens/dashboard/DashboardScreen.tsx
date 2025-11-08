@@ -60,7 +60,7 @@ export default function DashboardScreen({ navigation }: any) {
     const { user,session  } = useAuth();
     const token = session?.access_token;
     const {getAllReports} = useEccStore();
-    const {getDraftList} =useEccDraftStore()
+    const {getDraftList, loadDraftById} =useEccDraftStore()
 
   const [reports, setReports] = useState<Report[]>([]);
   const [drafts, setDrafts] = useState<Report[]>([]);
@@ -86,6 +86,68 @@ export default function DashboardScreen({ navigation }: any) {
 
       // Fetch local drafts first
     
+     // Fetch local drafts first
+      try {
+        const draftMetadata = await getAllDraftMetadata();
+        console.log("Found drafts:", draftMetadata.length);
+        const localDrafts = draftMetadata.slice(0, 3).map((draft) => ({
+          id: draft.key,
+          title: draft.projectName || draft.fileName,
+          projectName: draft.projectName || draft.fileName,
+          type: "CMVR",
+          status: "draft" as const,
+          date: new Date(draft.lastSaved).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
+          updatedAt: draft.lastSaved,
+          isLocalDraft: true,
+        }));
+        console.log("Loaded local drafts:", localDrafts);
+        setDrafts(localDrafts);
+      } catch (err) {
+        console.log("Error loading local drafts:", err);
+        setDrafts([]);
+      }
+
+      // Fetch CMVR reports for current user
+      try {
+        if (!user?.id) {
+          console.log("No user ID available");
+          // Don't clear drafts here - they're already loaded above
+          setReports([]);
+        } else {
+          const submissionsData = await apiGet<any>(`/cmvr/user/${user.id}`);
+          const allReports = (submissionsData || []).map((sub: any) => {
+            // Use only fileName, with "Untitled" as fallback
+            const projectName = sub.fileName || "Untitled";
+
+            return {
+              id: sub.id,
+              title: projectName,
+              projectName: projectName,
+              type: "CMVR",
+              status: "submitted",
+              date: new Date(sub.updatedAt || sub.createdAt).toLocaleDateString(
+                "en-US",
+                {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                }
+              ),
+              updatedAt: sub.updatedAt,
+            };
+          });
+
+          // For now, treat all as submitted (you can add draft logic later)
+          setReports(allReports.slice(0, 3));
+        }
+      } catch (err) {
+        console.log("No CMVR reports found:", err);
+        setReports([]);
+      }
 
 
 
@@ -94,7 +156,7 @@ export default function DashboardScreen({ navigation }: any) {
         const draftMetadata = await getDraftList();
         console.log("Found drafts:", draftMetadata.length);
         const localDrafts = draftMetadata.slice(0, 3).map((draft) => ({
-          id: draft.key,
+          id: draft.id,
           title: draft.fileName,
           projectName: "",
           type: "ECC",
@@ -200,6 +262,7 @@ export default function DashboardScreen({ navigation }: any) {
     (user as any)?.email?.split("@")[0] ||
     "User";
 
+ 
   return (
     <SafeAreaView style={styles.safeContainer}>
       <CustomHeader goBackTo="RoleSelection" showSave={false} />
@@ -324,7 +387,7 @@ export default function DashboardScreen({ navigation }: any) {
                 <Edit3 size={18} color={theme.colors.warning} />
                 <Text style={styles.sectionTitle}>ECC Draft Reports</Text>
               </View>
-              {hasDrafts && (
+              {haseccDrafts && (
                 <TouchableOpacity
                   onPress={() => navigation.navigate("ECCDraftScreen")}
                   style={styles.viewAllButton}
@@ -338,14 +401,16 @@ export default function DashboardScreen({ navigation }: any) {
             <View style={styles.summaryContainer}>
               {haseccDrafts ? (
                 <View style={styles.reportsContainer}>
-                  {eccdrafts.map((draft, index) => (
-                    <React.Fragment key={draft.id}>
-                      <DraftCard draft={draft} navigation={navigation} />
-                      {index < drafts.length - 1 && (
-                        <View style={styles.divider} />
-                      )}
-                    </React.Fragment>
-                  ))}
+
+
+                   {eccdrafts.map((draft, index) => (
+                  <React.Fragment key={draft.id}>
+                      <EccDraftCard draft={draft} navigation={navigation} />
+                    {index < eccdrafts.length - 1 && (
+                      <View style={styles.divider} />
+                    )}
+                  </React.Fragment>
+                ))}
                 </View>
               ) : (
                 <View style={styles.emptyState}>
@@ -563,7 +628,7 @@ function CreateReportModal({ visible, onClose, navigation }: any) {
                     onClose();
                     setTimeout(() => {
                       clearSelectedReport();
-                      navigation.navigate("ECCMonitoring");
+                      navigation.navigate("ECCMonitoring",{id:''});
                     }, 120);
                   }}
                 />
@@ -653,7 +718,7 @@ function ReportCard({ report, navigation }: any) {
   );
 }
 
-function DraftCard({ draft, navigation }: any) {
+function DraftCard({ draft, navigation}: any) {
   const { setFileName } = useFileName();
 
   const handleOpenDraft = async () => {
@@ -699,6 +764,45 @@ function DraftCard({ draft, navigation }: any) {
     }
   };
 
+  return (
+    <TouchableOpacity
+      style={[styles.reportCard, styles.draftCard]}
+      activeOpacity={0.8}
+      onPress={handleOpenDraft}
+    >
+      <View style={styles.reportContent}>
+        <View style={styles.reportHeader}>
+          <Text style={styles.reportTitle} numberOfLines={1}>
+            {draft.title}
+          </Text>
+          <View style={[styles.reportTypeBadge, styles.draftBadge]}>
+            <Edit3 size={10} color={theme.colors.warning} />
+            <Text style={[styles.reportTypeText, styles.draftBadgeText]}>
+              Draft
+            </Text>
+          </View>
+        </View>
+        <View style={styles.reportMeta}>
+          <Calendar color={theme.colors.textLight} size={12} />
+          <Text style={styles.reportMetaText}>Last edited: {draft.date}</Text>
+        </View>
+      </View>
+      <ChevronRight color={theme.colors.textLight} size={18} />
+    </TouchableOpacity>
+  );
+}
+
+
+function EccDraftCard({ draft, navigation}: any) {
+
+    const {loadDraftById} = useEccDraftStore();
+    const {setSelectedReport} = useEccStore();
+
+  const handleOpenDraft = async () => {
+  const data = await loadDraftById(draft.id);
+  setSelectedReport(data);
+  navigation.navigate("ECCMonitoring",{id:draft.id});
+};
   return (
     <TouchableOpacity
       style={[styles.reportCard, styles.draftCard]}

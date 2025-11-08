@@ -33,7 +33,8 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useEccDraftStore } from "../../store/eccDraftStore"
 
 export default function ECCMonitoringScreen({ navigation, route }: any) {
-   const { saveDraft } = useEccDraftStore();
+  const { id } = route.params || {};
+   const { saveDraft,updateDraft } = useEccDraftStore();
   const { user,session  } = useAuth();
   const token = session?.access_token;
 
@@ -307,21 +308,25 @@ const saveToDraft = async () => {
     try {
        
 
-        // 🛑 LIKELY CRASH POINT: Check what happens inside this function
         const draftData = getMonitoringData(); 
-
-        const result = await saveDraft(draftData);
-
+        let result
+          if (id !== '') {
+            // If 'id' exists, update the existing draft.
+            result = await updateDraft(id, draftData); // Should use 'await' here too
+        } else {
+            // If 'id' is empty/new, save a new draft.
+            result = await saveDraft(draftData);
+        }
         if (result.success) {
-            alert("✅ Draft saved successfully!");
+            alert(" Draft saved successfully!");
         } else {
             // This handles a clean failure returned by saveDraft
-            alert("❌ Failed to save draft.");
+            alert(" Failed to save draft.");
         }
     } catch (error) {
         // 🚨 This will catch the crash from getMonitoringData() or any sync error
         console.error("Critical synchronous error in saveToDraft:", error);
-        alert("❌ Failed to prepare data for draft. See console for details.");
+        alert(" Failed to prepare data for draft. See console for details.");
     }
     // --- END of Local Error Handling ---
 };
