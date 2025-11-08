@@ -92,11 +92,10 @@ export async function generateCMVRDocx(
   fileName = "CMVR_Report"
 ): Promise<string> {
   const baseUrl = getApiBaseUrl();
-  const token = await getJwt();
 
-  // Construct the download URL with the JWT token as a query parameter
-  // This allows the browser to download without needing Authorization header
-  const downloadUrl = `${baseUrl}/api/cmvr/${id}/docx?token=${encodeURIComponent(token)}`;
+  // Construct the download URL - no authentication required for downloads
+  // This allows the browser to download without token expiration issues
+  const downloadUrl = `${baseUrl}/api/cmvr/${id}/docx`;
 
   try {
     const supported = await Linking.canOpenURL(downloadUrl);
