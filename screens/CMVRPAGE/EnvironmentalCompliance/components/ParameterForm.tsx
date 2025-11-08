@@ -29,7 +29,8 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
           onPress={onDelete}
           accessibilityLabel={`Delete parameter ${index !== undefined ? index + 1 : ''}`}
         >
-          <Ionicons name="trash-outline" size={20} color="#DC2626" />
+          <Ionicons name="trash-outline" size={16} color="#DC2626" />
+
         </TouchableOpacity>
       )}
 

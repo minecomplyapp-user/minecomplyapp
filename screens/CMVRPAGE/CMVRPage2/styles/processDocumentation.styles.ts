@@ -214,10 +214,15 @@ export const styles = StyleSheet.create({
   additionalInput: {
     flex: 1,
   },
-  deleteButton: {
+    deleteButton: {
     padding: 6,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: '#FEE2E2',
+  borderRadius: 16,
+  borderWidth: 1,
+  borderColor: '#DC2626',
+
   },
   addButton: {
     backgroundColor: "#EFF6FF",

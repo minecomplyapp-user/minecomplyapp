@@ -1,65 +1,46 @@
-import { StyleSheet, Platform } from "react-native";
+import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
   container: {
+    backgroundColor: "#EFF6FF",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    marginTop: 4,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EFF6FF",
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: "#93C5FD",
-    marginBottom: 20,
-    marginTop: 4,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#1E3A8A",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    borderRadius: 10,
+    gap: 12,
+    shadowColor: "#02217C",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   iconContainer: {
-    marginRight: 14,
+    marginRight: 0,
   },
   iconCircle: {
-    backgroundColor: "#FFFFFF",
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    backgroundColor: "#02217C",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#1E3A8A",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#1E3A8A",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
   },
   textContainer: {
     flex: 1,
   },
   title: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#1E3A8A",
-    lineHeight: 21,
-    letterSpacing: 0.2,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#02217C",
+    lineHeight: 18,
   },
   sectionNumber: {
-    fontWeight: "800",
-    color: "#1E3A8A",
+    fontWeight: "700",
+    color: "#02217C",
   },
 });

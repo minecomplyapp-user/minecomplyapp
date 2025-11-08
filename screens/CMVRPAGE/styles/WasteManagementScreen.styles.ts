@@ -13,38 +13,49 @@ export const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  sectionHeaderContainer: {
-    backgroundColor: 'white',
-    padding: 20,
-    marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  sectionHeaderContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  sectionBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#02217C',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sectionBadgeText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: 'white',
-  },
-  sectionTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#02217C',
-    lineHeight: 24,
-  },
+// Update these styles in your stylesheet
+sectionHeaderContainer: {
+  backgroundColor: '#EFF6FF',
+  paddingVertical: 12,
+  paddingHorizontal: 14,
+  marginTop: 16,
+  marginBottom: 16,
+  marginHorizontal: 16,
+  borderWidth: 1,
+  borderColor: '#BFDBFE',
+  borderRadius: 20, // Increased for more curved edges
+  shadowColor: '#02217C',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.05,
+  shadowRadius: 2,
+  elevation: 1,
+},
+sectionHeaderContent: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 12,
+},
+sectionBadge: {
+  backgroundColor: '#02217C',
+  paddingHorizontal: 10,
+  paddingVertical: 4,
+  borderRadius: 20, // Made more curved
+  minWidth: 40,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+sectionBadgeText: {
+  fontSize: 13,
+  fontWeight: '800',
+  color: '#FFFFFF',
+},
+sectionTitle: {
+  fontSize: 14,
+  fontWeight: '600',
+  color: '#02217C',
+  flex: 1,
+  lineHeight: 20,
+},
   quarterPickerContainer: {
     backgroundColor: 'white',
     padding: 20,

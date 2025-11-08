@@ -139,54 +139,81 @@ const RecommendationItemComponent: React.FC<{
   onChange: (data: RecommendationItem) => void;
   onRemove: (() => void) | null;
   showStatus: boolean;
-}> = ({ index, data, onChange, onRemove, showStatus }) => (
-  <View style={styles.itemCard}>
-    <View style={styles.itemHeader}>
-      <View style={styles.itemNumber}>
-        <Text style={styles.itemNumberText}>{index}</Text>
+}> = ({ index, data, onChange, onRemove, showStatus }) => {
+  const handleRemoveWithConfirmation = () => {
+    if (onRemove) {
+      Alert.alert(
+        "Delete Recommendation",
+        "Are you sure you want to delete this recommendation?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: onRemove,
+          },
+        ],
+        { cancelable: true }
+      );
+    }
+  };
+
+  return (
+    <View style={styles.itemCard}>
+      <View style={styles.itemHeader}>
+        <View style={styles.itemNumber}>
+          <Text style={styles.itemNumberText}>{index}</Text>
+        </View>
+        {onRemove && (
+          <TouchableOpacity
+            onPress={handleRemoveWithConfirmation}
+            style={styles.removeButton}
+          >
+
+            <Ionicons name="trash-outline" size={16} color="#DC2626" />
+          </TouchableOpacity>
+        )}
       </View>
-      {onRemove && (
-        <TouchableOpacity onPress={onRemove} style={styles.removeButton}>
-          <Ionicons name="trash-outline" size={20} color="#EF4444" />
-        </TouchableOpacity>
-      )}
-    </View>
-    <View style={styles.fieldGroup}>
-      <Text style={styles.fieldLabel}>Recommendation</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Type here..."
-        placeholderTextColor="#94A3B8"
-        value={data.recommendation}
-        onChangeText={(text) => onChange({ ...data, recommendation: text })}
-        multiline
-      />
-    </View>
-    <View style={styles.fieldGroup}>
-      <Text style={styles.fieldLabel}>Commitment</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Type here..."
-        placeholderTextColor="#94A3B8"
-        value={data.commitment}
-        onChangeText={(text) => onChange({ ...data, commitment: text })}
-        multiline
-      />
-    </View>
-    {showStatus && (
       <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>Status</Text>
+        <Text style={styles.fieldLabel}>Recommendation</Text>
         <TextInput
           style={styles.input}
           placeholder="Type here..."
           placeholderTextColor="#94A3B8"
-          value={data.status}
-          onChangeText={(text) => onChange({ ...data, status: text })}
+          value={data.recommendation}
+          onChangeText={(text) => onChange({ ...data, recommendation: text })}
+          multiline
         />
       </View>
-    )}
-  </View>
-);
+      <View style={styles.fieldGroup}>
+        <Text style={styles.fieldLabel}>Commitment</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Type here..."
+          placeholderTextColor="#94A3B8"
+          value={data.commitment}
+          onChangeText={(text) => onChange({ ...data, commitment: text })}
+          multiline
+        />
+      </View>
+      {showStatus && (
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>Status</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Type here..."
+            placeholderTextColor="#94A3B8"
+            value={data.status}
+            onChangeText={(text) => onChange({ ...data, status: text })}
+          />
+        </View>
+      )}
+    </View>
+  );
+};
 
 const RecommendationSection: React.FC<{
   title: string;
@@ -246,16 +273,14 @@ const RecommendationSection: React.FC<{
   );
 };
 
-// --- Main Screen Component ---
 const RecommendationsScreen: React.FC = () => {
   const navigation = useNavigation<RecommendationsScreenNavigationProp>();
   const route = useRoute<RecommendationsScreenRouteProp>();
   const allPreviousParams = route.params || {};
   const [prevYear, setPrevYear] = useState("");
   const [prevQuarter, setPrevQuarter] = useState("1st");
-  const [currentSections, setCurrentSections] = useState<
-    Record<SectionKey, SectionData>
-  >({
+  
+  const [currentSections, setCurrentSections] = useState<Record<SectionKey, SectionData>>({
     plant: {
       isNA: false,
       items: [{ recommendation: "", commitment: "", status: "" }],
@@ -269,9 +294,8 @@ const RecommendationsScreen: React.FC = () => {
       items: [{ recommendation: "", commitment: "", status: "" }],
     },
   });
-  const [previousSections, setPreviousSections] = useState<
-    Record<SectionKey, SectionData>
-  >({
+  
+  const [previousSections, setPreviousSections] = useState<Record<SectionKey, SectionData>>({
     plant: {
       isNA: false,
       items: [{ recommendation: "", commitment: "", status: "" }],

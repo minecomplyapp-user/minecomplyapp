@@ -23,7 +23,8 @@ export const WasteEntryCard: React.FC<WasteEntryCardProps> = ({
         </View>
         {canDelete && (
           <TouchableOpacity style={styles.deleteButton} onPress={() => onDelete(entry.id)}>
-            <Ionicons name="trash" size={20} color="#DC2626" />
+            <Ionicons name="trash-outline" size={16} color="#DC2626" />
+
           </TouchableOpacity>
         )}
       </View>

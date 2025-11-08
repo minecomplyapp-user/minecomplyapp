@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
-import { X, Plus } from 'lucide-react-native';
+import { Plus } from 'lucide-react-native';
 import { CMSOtherComponentsProps } from '../types/CMSOtherComponents.types';
 import { styles } from '../styles/CMSOtherComponents.styles';
+import { Ionicons } from "@expo/vector-icons";
+
 
 export const CMSOtherComponents: React.FC<CMSOtherComponentsProps> = ({
   components,
@@ -15,6 +17,14 @@ export const CMSOtherComponents: React.FC<CMSOtherComponentsProps> = ({
     <>
       {components.map((component, index) => (
         <View key={index} style={styles.formField}>
+          {/* Move delete button here - outside of fieldRow */}
+          <TouchableOpacity 
+            style={styles.deleteButton} 
+            onPress={() => onDeleteComponent(index)}
+          >
+            <Ionicons name="trash-outline" size={18} color="#DC2626" />
+          </TouchableOpacity>
+          
           <View style={styles.fieldRow}>
             <View style={styles.leftSection}>
               <View style={styles.labelPill}>
@@ -64,13 +74,6 @@ export const CMSOtherComponents: React.FC<CMSOtherComponentsProps> = ({
                   <Text style={styles.radioText}>No</Text>
                 </TouchableOpacity>
               </View>
-              <TouchableOpacity 
-                style={styles.deleteButton} 
-                onPress={() => onDeleteComponent(index)}
-              >
-                <X size={14} color="#fff" />
-                <Text style={styles.deleteButtonText}>Delete</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </View>

@@ -380,7 +380,23 @@ const CMVRPage2Screen = () => {
   };
 
   const removeEccMmtAdditional = (index: number) => {
-    setEccMmtAdditional(eccMmtAdditional.filter((_, i) => i !== index));
+    Alert.alert(
+      "Delete MMT Member",
+      "Are you sure you want to delete this ECC MMT member?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            setEccMmtAdditional(eccMmtAdditional.filter((_, i) => i !== index));
+          }
+        }
+      ]
+    );
   };
 
   const removeEpepMmtAdditional = (index: number) => {

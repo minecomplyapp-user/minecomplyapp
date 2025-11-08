@@ -43,6 +43,14 @@ export const styles = StyleSheet.create({
   },
   deletePortButton: {
     marginLeft: 10,
+
+  backgroundColor: '#FEE2E2',
+  borderRadius: 16,
+  padding: 6,
+  borderWidth: 1,
+  borderColor: '#DC2626',
+  zIndex: 10,
+  elevation: 2,
   },
   internalMonitoringContainer: {
     marginTop: 12,

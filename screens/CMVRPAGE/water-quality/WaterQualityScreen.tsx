@@ -325,9 +325,25 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     );
   };
 
-  const deletePort = (portId: string) => {
-    setPorts((prev) => prev.filter((port) => port.id !== portId));
-  };
+const deletePort = (portId: string) => {
+  Alert.alert(
+    'Delete Port',
+    'Are you sure you want to delete this port? This action cannot be undone.',
+    [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          setPorts((prev) => prev.filter((port) => port.id !== portId));
+        },
+      },
+    ]
+  );
+};
 
   const addPortParameter = (portId: string) => {
     setPorts(
@@ -382,21 +398,38 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     );
   };
 
-  const deletePortParameter = (portId: string, parameterIndex: number) => {
-    setPorts(
-      ports.map((port) => {
-        if (port.id === portId) {
-          return {
-            ...port,
-            additionalParameters: port.additionalParameters.filter(
-              (_, i) => i !== parameterIndex
-            ),
-          };
-        }
-        return port;
-      })
-    );
-  };
+
+const deletePortParameter = (portId: string, parameterIndex: number) => {
+  Alert.alert(
+    'Delete Parameter',
+    'Are you sure you want to delete this parameter?',
+    [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          setPorts((prevPorts) =>
+            prevPorts.map((port) => {
+              if (port.id === portId) {
+                return {
+                  ...port,
+                  additionalParameters: port.additionalParameters.filter(
+                    (_, i) => i !== parameterIndex
+                  ),
+                };
+              }
+              return port;
+            })
+          );
+        },
+      },
+    ]
+  );
+};
 
   const mainParameter: Parameter = {
     id: "main",
@@ -629,10 +662,11 @@ export default function WaterQualityScreen({ navigation, route }: any) {
             />
           </View>
 
-          {parameters.map((param) => (
+          {parameters.map((param, index) => (
             <ParameterForm
               key={param.id}
               parameter={param}
+              index={index + 2}
               isMain={false}
               onUpdate={(field, value) =>
                 updateParameter(param.id, field, value)

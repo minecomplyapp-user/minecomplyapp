@@ -5,6 +5,8 @@ import { Checkbox } from './Checkbox';
 import { MitigatingMeasureForm } from '../components/MitigatingMeasureForm';
 import { OperationSectionProps } from '../types/OperationSection.types';
 import { styles } from '../styles/OperationSection.styles';
+import { Ionicons } from "@expo/vector-icons";
+
 
 export const OperationSectionComponent: React.FC<OperationSectionProps> = ({
   section,
@@ -45,7 +47,8 @@ export const OperationSectionComponent: React.FC<OperationSectionProps> = ({
               onPress={() => onDeleteMeasure?.(measure.id)}
               disabled={section.isNA}
             >
-              <Trash2 size={18} color={section.isNA ? '#CBD5E1' : '#EF4444'} />
+               <Ionicons name="trash-outline" size={16} color="#DC2626" />
+
             </TouchableOpacity>
           )}
         </View>

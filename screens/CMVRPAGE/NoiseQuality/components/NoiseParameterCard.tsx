@@ -23,7 +23,7 @@ export const NoiseParameterCard: React.FC<NoiseParameterCardProps> = ({
         </View>
         {canDelete && (
           <TouchableOpacity style={styles.deleteButton} onPress={() => onDelete(parameter.id)}>
-            <Ionicons name="trash" size={20} color="#DC2626" />
+            <Ionicons name="trash-outline" size={16} color="#DC2626" />
           </TouchableOpacity>
         )}
       </View>
