@@ -1124,6 +1124,8 @@ const CMVRDocumentExportScreen = () => {
     selectedAttendanceId: routeSelectedAttendanceId,
     selectedAttendanceTitle: routeSelectedAttendanceTitle,
     documentation: routeDocumentation,
+    attachments: routeAttachments,
+    newlyUploadedPaths: routeNewlyUploadedPaths,
   } = routeParams;
 
   const resolvedFileName = useMemo(
@@ -1156,6 +1158,23 @@ const CMVRDocumentExportScreen = () => {
     { uri: string; path?: string; uploading?: boolean; caption?: string }[]
   >([]);
   const [newlyUploadedPaths, setNewlyUploadedPaths] = useState<string[]>([]);
+
+  // Handle incoming attachments from CMVRAttachmentsScreen
+  useEffect(() => {
+    if (routeAttachments && Array.isArray(routeAttachments)) {
+      console.log("Loading attachments from route:", routeAttachments);
+      const formattedAttachments = routeAttachments.map((att: any) => ({
+        uri: att.path || "",
+        path: att.path || "",
+        caption: att.caption || "",
+        uploading: false,
+      }));
+      setAttachments(formattedAttachments);
+    }
+    if (routeNewlyUploadedPaths && Array.isArray(routeNewlyUploadedPaths)) {
+      setNewlyUploadedPaths(routeNewlyUploadedPaths);
+    }
+  }, [routeAttachments, routeNewlyUploadedPaths]);
 
   const loadStoredDraft =
     useCallback(async (): Promise<DraftSnapshot | null> => {
@@ -1356,6 +1375,28 @@ const CMVRDocumentExportScreen = () => {
                 reportData.processDocumentationOfActivitiesUndertaken,
               ...reportData.complianceMonitoringReport,
             };
+
+            // Load attachments if they exist
+            if (
+              reportData.attachments &&
+              Array.isArray(reportData.attachments)
+            ) {
+              console.log(
+                "Loading existing attachments:",
+                reportData.attachments
+              );
+              const loadedAttachments = reportData.attachments.map(
+                (att: any) => ({
+                  uri: att.path || "", // Use path as uri for display purposes
+                  path: att.path || "",
+                  caption: att.caption || "",
+                  uploading: false,
+                })
+              );
+              setAttachments(loadedAttachments);
+              console.log("Attachments loaded into state:", loadedAttachments);
+            }
+
             console.log("Successfully loaded report data from API");
           }
         } catch (error) {
@@ -1469,11 +1510,22 @@ const CMVRDocumentExportScreen = () => {
       );
 
       // Add attachments to payload
+      console.log("=== DEBUG UPDATE: Attachments state ===", attachments);
       if (attachments.length > 0) {
-        payload.attachments = attachments
+        const formattedAttachments = attachments
           .filter((a) => !!a.path)
           .map((a) => ({ path: a.path!, caption: a.caption || undefined }));
+        console.log(
+          "=== DEBUG UPDATE: Formatted attachments ===",
+          formattedAttachments
+        );
+        payload.attachments = formattedAttachments;
       }
+
+      console.log(
+        "=== DEBUG UPDATE: Payload attachments ===",
+        payload.attachments
+      );
 
       const fileNameForUpdate =
         sanitizeString(snapshotForSubmission.fileName) ||
@@ -1567,12 +1619,19 @@ const CMVRDocumentExportScreen = () => {
       );
 
       // Add attachments to payload
+      console.log("=== DEBUG: Attachments state ===", attachments);
       if (attachments.length > 0) {
-        payload.attachments = attachments
+        const formattedAttachments = attachments
           .filter((a) => !!a.path)
           .map((a) => ({ path: a.path!, caption: a.caption || undefined }));
+        console.log(
+          "=== DEBUG: Formatted attachments ===",
+          formattedAttachments
+        );
+        payload.attachments = formattedAttachments;
       }
 
+      console.log("=== DEBUG: Payload attachments ===", payload.attachments);
       console.log("=== DEBUG: Payload being sent ===");
       console.log(JSON.stringify(payload, null, 2));
       const fileNameForSubmission =
@@ -1918,12 +1977,18 @@ const CMVRDocumentExportScreen = () => {
         contentType,
         upsert: false,
       });
+      console.log("=== DEBUG: File uploaded ===", {
+        path,
+        uri: asset.uri,
+        finalName,
+      });
       setNewlyUploadedPaths((prev) => [...prev, path]);
       setAttachments((prev) =>
         prev.map((a) =>
           a.uri === newItem.uri ? { ...a, path, uploading: false } : a
         )
       );
+      console.log("=== DEBUG: Updated attachments state ===", attachments);
     } catch (e: any) {
       setAttachments((prev) => prev.filter((a) => a.uri !== newItem.uri));
       Alert.alert(
@@ -2194,124 +2259,25 @@ const CMVRDocumentExportScreen = () => {
             }
             onPress={navigateToAttendanceSelection}
           />
-        </View>
-
-        {/* Attachments Section */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>📎 Attachments</Text>
-          <Text style={styles.sectionDescription}>
-            Add images or documents to attach to this CMVR report
-          </Text>
-
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 12,
-              marginTop: 16,
-            }}
-          >
-            {attachments.map((att) => (
-              <View key={att.uri} style={{ width: 160 }}>
-                <View style={{ position: "relative" }}>
-                  <Image
-                    source={{ uri: att.uri }}
-                    style={{
-                      width: 160,
-                      height: 120,
-                      borderRadius: 8,
-                      backgroundColor: "#eee",
-                    }}
-                  />
-                  <View style={{ position: "absolute", top: -8, right: -8 }}>
-                    <TouchableOpacity
-                      onPress={() => removeAttachment(att.uri)}
-                      style={{
-                        backgroundColor: "#0008",
-                        padding: 4,
-                        borderRadius: 12,
-                      }}
-                    >
-                      <Feather name="x" size={12} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-                  {att.uploading && (
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        color: "#64748B",
-                        marginTop: 4,
-                      }}
-                    >
-                      Uploading…
-                    </Text>
-                  )}
-                </View>
-                <TextInput
-                  value={att.caption || ""}
-                  onChangeText={(text) =>
-                    updateAttachmentCaption(att.uri, text)
-                  }
-                  placeholder="Add caption..."
-                  style={{
-                    marginTop: 8,
-                    paddingVertical: 6,
-                    paddingHorizontal: 10,
-                    borderRadius: 6,
-                    borderWidth: 1,
-                    borderColor: "#E2E8F0",
-                    backgroundColor: "white",
-                    fontSize: 12,
-                    color: "#1E293B",
-                  }}
-                  placeholderTextColor="#94A3B8"
-                  editable={!att.uploading}
-                />
-              </View>
-            ))}
-          </View>
-
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 16 }}>
-            <TouchableOpacity
-              onPress={pickImage}
-              style={{
-                alignSelf: "flex-start",
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 8,
-                paddingHorizontal: 12,
-                borderRadius: 8,
-                backgroundColor: "#3B82F615",
-              }}
-            >
-              <Feather name="image" size={16} color="#3B82F6" />
-              <Text
-                style={{ marginLeft: 6, color: "#3B82F6", fontWeight: "600" }}
-              >
-                Add image
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={takePhoto}
-              style={{
-                alignSelf: "flex-start",
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 8,
-                paddingHorizontal: 12,
-                borderRadius: 8,
-                backgroundColor: "#3B82F615",
-              }}
-            >
-              <Feather name="camera" size={16} color="#3B82F6" />
-              <Text
-                style={{ marginLeft: 6, color: "#3B82F6", fontWeight: "600" }}
-              >
-                Take photo
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <SummaryItem
+            icon="📎"
+            title="Attachments"
+            value={
+              attachments.length > 0
+                ? `${attachments.length} file${attachments.length > 1 ? "s" : ""}`
+                : "No attachments"
+            }
+            onPress={() =>
+              navigation.navigate(
+                "CMVRAttachments" as never,
+                {
+                  ...baseNavParams,
+                  existingAttachments: attachments,
+                  fileName,
+                } as never
+              )
+            }
+          />
         </View>
 
         {documentGenerated && (
