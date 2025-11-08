@@ -1,3 +1,4 @@
+// QuarterSelector.tsx - Updated component
 import React from "react";
 import { View, Text, TextInput } from "react-native";
 import { CustomPicker } from "./CustomPicker";
@@ -24,25 +25,28 @@ export const QuarterSelector: React.FC<QuarterSelectorProps> = ({
   onYearChange,
 }) => (
   <View style={styles.quarterSelectorCard}>
-    <View style={styles.quarterRow}>
-      <Text style={styles.fieldLabel}>Prev Quarter:</Text>
-      <CustomPicker
-        selectedValue={selectedQuarter}
-        onValueChange={onQuarterChange}
-        items={quarterItems}
-      />
-    </View>
-    <View style={styles.quarterRow}>
-      <Text style={styles.fieldLabel}>Year:</Text>
-      <TextInput
-        style={[styles.input, styles.yearInput]}
-        placeholder="YYYY"
-        placeholderTextColor="#94A3B8"
-        value={year}
-        onChangeText={onYearChange}
-        keyboardType="numeric"
-        maxLength={4}
-      />
+    <Text style={styles.quarterSelectorTitle}>Report Period</Text>
+    <View style={styles.quarterInputsContainer}>
+      <View style={styles.quarterInputGroup}>
+        <Text style={styles.inputLabel}>Quarter</Text>
+        <CustomPicker
+          selectedValue={selectedQuarter}
+          onValueChange={onQuarterChange}
+          items={quarterItems}
+        />
+      </View>
+      <View style={styles.quarterInputGroup}>
+        <Text style={styles.inputLabel}>Year</Text>
+        <TextInput
+          style={styles.yearInput}
+          placeholder="YYYY"
+          placeholderTextColor="#94A3B8"
+          value={year}
+          onChangeText={onYearChange}
+          keyboardType="numeric"
+          maxLength={4}
+        />
+      </View>
     </View>
   </View>
 );

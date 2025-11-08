@@ -8,4 +8,5 @@ export type PortSectionProps = {
   onAddParameter: (portId: string) => void;
   onUpdateParameter: (portId: string, parameterId: string, field: keyof Omit<Parameter, 'id'>, value: string | boolean) => void;
   onDeleteParameter: (portId: string, parameterIndex: number) => void;
+  
 };

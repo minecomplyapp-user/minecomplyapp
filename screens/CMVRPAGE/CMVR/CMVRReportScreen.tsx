@@ -752,7 +752,7 @@ const CMVRReportScreen: React.FC = () => {
           style={styles.saveNextButton}
           onPress={handleSaveAndContinue}
         >
-          <Text style={styles.saveNextButtonText}>Continue</Text>
+          <Text style={styles.saveNextButtonText}>Save & Next</Text>
           <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
         <View style={{ height: 20 }} />

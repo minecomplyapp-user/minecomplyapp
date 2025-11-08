@@ -63,11 +63,12 @@ export const styles = StyleSheet.create({
       },
     }),
   },
-  quarterRow: {
+ quarterRow: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 12,
   },
+  
   pickerContainer: {
     flex: 1,
   },
@@ -249,9 +250,16 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
   },
   removeButton: {
-    padding: 6,
-    borderRadius: 8,
-    backgroundColor: "#FEE2E2",
+      position: 'absolute',
+  top: 8,
+  right: 8,
+  backgroundColor: '#FEE2E2',
+  borderRadius: 16,
+  padding: 6,
+  borderWidth: 1,
+  borderColor: '#DC2626',
+  zIndex: 10,
+  elevation: 2,
   },
   fieldGroup: {
     marginBottom: 16,

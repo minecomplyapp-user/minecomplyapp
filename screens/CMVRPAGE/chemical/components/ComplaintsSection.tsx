@@ -42,7 +42,7 @@ export const ComplaintsSection: React.FC<ComplaintsSectionProps> = ({
                     style={styles.deleteButton}
                     onPress={() => removeComplaint(complaint.id)}
                   >
-                    <Ionicons name="trash" size={20} color="#EF4444" />
+                    <Ionicons name="trash-outline" size={16} color="#DC2626" />
                   </TouchableOpacity>
                 )}
               </View>

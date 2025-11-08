@@ -226,10 +226,25 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
     });
   };
 
-  const handleDeleteComponent = (index: number) => {
-    setOtherComponents((prev) => prev.filter((_, i) => i !== index));
-  };
-
+const handleDeleteComponent = (index: number) => {
+  Alert.alert(
+    'Delete Parameter',
+    'Are you sure you want to delete this parameter?',
+    [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          setOtherComponents((prev) => prev.filter((_, i) => i !== index));
+        },
+      },
+    ]
+  );
+};
   const handleSave = async () => {
     console.log("Form data:", JSON.stringify(formData, null, 2));
     console.log("Other components:", JSON.stringify(otherComponents, null, 2));

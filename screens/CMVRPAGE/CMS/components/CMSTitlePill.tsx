@@ -6,7 +6,6 @@ import { styles } from '../styles/CMSTitlePill.styles';
 export const CMSTitlePill: React.FC<CMSTitlePillProps> = ({ title }) => {
   return (
     <View style={styles.titleContainer}>
-      <View style={styles.titleAccent} />
       <Text style={styles.titleText}>{title}</Text>
     </View>
   );

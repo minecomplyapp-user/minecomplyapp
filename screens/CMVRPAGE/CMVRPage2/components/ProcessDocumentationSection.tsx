@@ -90,7 +90,7 @@ export const ProcessDocumentationSection: React.FC<ProcessDocumentationProps> = 
                 style={styles.deleteButton}
                 onPress={() => removeEccMmtAdditional(index)}
               >
-                <Ionicons name="trash" size={20} color="#DC2626" />
+                <Ionicons name="trash-outline" size={16} color="#DC2626" />
               </TouchableOpacity>
             </View>
           ))}
