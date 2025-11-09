@@ -319,7 +319,7 @@ export default function DashboardScreen({ navigation }: any) {
               subtitle="Use a previous template"
              onPress={async () => { // <--- Make the callback function ASYNC
                   // 1. Await the report fetch to ensure the store is updated
-                  await getAllReports(token); // <--- Use AWAIT
+                  await getAllReports(user?.email,token); // <--- Use AWAIT
                   
                   // 2. Navigate after data is guaranteed to be in the store
                   navigation.navigate("DuplicateReport");

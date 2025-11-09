@@ -183,13 +183,13 @@ getReportById: async (id,token) => {
   }
 },
 
-  getAllReports: async (token) => {
+  getAllReports: async (createdById,token) => {
     // 1. Start Loading
     set({ isLoading: true, error: null }); 
     try {
         // 2. Fetch Data from the API endpoint
         // You'll need to replace 'YOUR_API_BASE_URL' and use a fetch or axios call.
-        const response = await fetch(`${BASE_URL}/ecc/getAllEccReports`, {
+        const response = await fetch(`${BASE_URL}/ecc/getAllEccReports/${createdById}`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -201,7 +201,7 @@ getReportById: async (id,token) => {
         }
 
         const data = await response.json();
-
+            console.log("asdasda")
         // 3. Update State with the fetched data
         set({
             reports: data, // Assuming the API returns an array of reports
