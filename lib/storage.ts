@@ -34,6 +34,7 @@ export type UploadFromUriParams = {
   fileName: string;
   contentType?: string;
   upsert?: boolean;
+  folder?: string; // optional folder path inside bucket (e.g. 'epep/upload')
 };
 
 export async function uploadFileFromUri({
@@ -41,6 +42,7 @@ export async function uploadFileFromUri({
   fileName,
   contentType,
   upsert,
+  folder,
 }: UploadFromUriParams): Promise<{ path: string }> {
   console.log("📤 Starting uploadFileFromUri (Supabase SDK direct upload)...");
   console.log("📝 Parameters:", {
@@ -54,7 +56,8 @@ export async function uploadFileFromUri({
   const uniqueId =
     Math.random().toString(36).substring(2, 15) +
     Math.random().toString(36).substring(2, 15);
-  const path = `uploads/${uniqueId}-${fileName}`;
+  const prefix = folder ? folder.replace(/^\/+|\/+$/g, '') : 'uploads';
+  const path = `${prefix}/${uniqueId}-${fileName}`;
 
   console.log("📂 Upload path:", path);
 
@@ -183,7 +186,8 @@ export async function uploadSignature(uri: string): Promise<{ path: string }> {
  */
 export async function uploadAttachment(
   uri: string,
-  fileName?: string
+  fileName?: string,
+  folder?: string
 ): Promise<{ path: string }> {
   console.log("📤 Starting uploadAttachment (Supabase SDK direct upload)...");
   console.log("📝 URI length:", uri.length);
@@ -195,7 +199,8 @@ export async function uploadAttachment(
   const uniqueId =
     Math.random().toString(36).substring(2, 15) +
     Math.random().toString(36).substring(2, 15);
-  const path = `uploads/${uniqueId}-${finalFileName}`;
+  const prefix = folder ? folder.replace(/^\/+|\/+$/g, '') : 'uploads';
+  const path = `${prefix}/${uniqueId}-${finalFileName}`;
 
   console.log("📂 Upload path:", path);
 
