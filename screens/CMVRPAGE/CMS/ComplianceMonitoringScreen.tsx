@@ -164,6 +164,7 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
+      presentationStyle: ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN,
     });
 
     if (result.canceled || !result.assets?.length) {
@@ -432,6 +433,70 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
     );
   };
 
+  const handleGoToSummary = async () => {
+    try {
+      console.log("Navigating to summary with current data");
+      
+      // Prepare current page data
+      const complianceToProjectLocationAndCoverageLimits = {
+        formData,
+        otherComponents,
+        uploadedImages,
+      };
+
+      // Collect all data from route params and current page
+      const prevPageData: any = route.params || {};
+      
+      // Prepare complete snapshot with all sections
+      const completeData = {
+        generalInfo: prevPageData.generalInfo,
+        eccInfo: prevPageData.eccInfo,
+        eccAdditionalForms: prevPageData.eccAdditionalForms,
+        isagInfo: prevPageData.isagInfo,
+        isagAdditionalForms: prevPageData.isagAdditionalForms,
+        epepInfo: prevPageData.epepInfo,
+        epepAdditionalForms: prevPageData.epepAdditionalForms,
+        rcfInfo: prevPageData.rcfInfo,
+        rcfAdditionalForms: prevPageData.rcfAdditionalForms,
+        mtfInfo: prevPageData.mtfInfo,
+        mtfAdditionalForms: prevPageData.mtfAdditionalForms,
+        fmrdfInfo: prevPageData.fmrdfInfo,
+        fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
+        mmtInfo: prevPageData.mmtInfo,
+        executiveSummary: prevPageData.executiveSummary,
+        processDocumentation: prevPageData.processDocumentation,
+        complianceToProjectLocationAndCoverageLimits, // Current page data
+        complianceToImpactManagement: prevPageData.complianceToImpactManagement,
+        airQuality: prevPageData.airQuality,
+        waterQuality: prevPageData.waterQuality,
+        noiseQuality: prevPageData.noiseQuality,
+        wasteManagement: prevPageData.wasteManagement,
+        chemicalSafety: prevPageData.chemicalSafety,
+        complaints: prevPageData.complaints,
+        recommendationsData: prevPageData.recommendationsData,
+        attendanceUrl: prevPageData.attendanceUrl,
+        savedAt: new Date().toISOString(),
+      };
+
+      // Resolve fileName from params or context
+      const resolvedFileName = prevPageData.fileName || fileName || "Untitled";
+
+      // Save to draft before navigating
+      await saveDraft(resolvedFileName, completeData);
+
+      // Navigate to summary screen with all data
+      navigation.navigate("CMVRDocumentExport", {
+        ...prevPageData,
+        fileName: resolvedFileName,
+        complianceToProjectLocationAndCoverageLimits,
+        draftData: completeData,
+      });
+    } catch (error) {
+      console.error("Error navigating to summary:", error);
+      Alert.alert("Error", "Failed to navigate to summary. Please try again.");
+    }
+  };
+
   const fillTestData = () => {
     // Populate main form fields with sample values
     setFormData({
@@ -648,6 +713,7 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
             onStay={handleStay}
             onSaveToDraft={handleSaveToDraft}
             onDiscard={handleDiscard}
+            onGoToSummary={handleGoToSummary}
           />
         </View>
         <ScrollView

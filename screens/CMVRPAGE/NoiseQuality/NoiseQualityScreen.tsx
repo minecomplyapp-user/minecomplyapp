@@ -292,6 +292,74 @@ export default function NoiseQualityScreen({ navigation, route }: any) {
     );
   };
 
+  const handleGoToSummary = async () => {
+    try {
+      console.log("Navigating to summary with current noise quality data");
+      
+      const prevPageData: any = route.params || {};
+
+      // Prepare current page data
+      const noiseQualityImpactAssessment = {
+        hasInternalNoise,
+        uploadedFiles,
+        parameters,
+        remarks,
+        dateTime,
+        weatherWind,
+        explanation,
+        explanationNA,
+        quarters,
+      };
+
+      // Prepare complete snapshot with all sections
+      const completeData = {
+        generalInfo: prevPageData.generalInfo,
+        eccInfo: prevPageData.eccInfo,
+        eccAdditionalForms: prevPageData.eccAdditionalForms,
+        isagInfo: prevPageData.isagInfo,
+        isagAdditionalForms: prevPageData.isagAdditionalForms,
+        epepInfo: prevPageData.epepInfo,
+        epepAdditionalForms: prevPageData.epepAdditionalForms,
+        rcfInfo: prevPageData.rcfInfo,
+        rcfAdditionalForms: prevPageData.rcfAdditionalForms,
+        mtfInfo: prevPageData.mtfInfo,
+        mtfAdditionalForms: prevPageData.mtfAdditionalForms,
+        fmrdfInfo: prevPageData.fmrdfInfo,
+        fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
+        mmtInfo: prevPageData.mmtInfo,
+        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
+        processDocumentationOfActivitiesUndertaken: prevPageData.processDocumentationOfActivitiesUndertaken,
+        complianceToProjectLocationAndCoverageLimits: prevPageData.complianceToProjectLocationAndCoverageLimits,
+        complianceToImpactManagementCommitments: prevPageData.complianceToImpactManagementCommitments,
+        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
+        waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
+        noiseQualityImpactAssessment, // Current page data
+        complianceWithGoodPracticeInSolidAndHazardousWasteManagement: prevPageData.complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
+        complianceWithGoodPracticeInChemicalSafetyManagement: prevPageData.complianceWithGoodPracticeInChemicalSafetyManagement,
+        complaintsVerificationAndManagement: prevPageData.complaintsVerificationAndManagement,
+        recommendationsData: prevPageData.recommendationsData,
+        attendanceUrl: prevPageData.attendanceUrl,
+        savedAt: new Date().toISOString(),
+      };
+
+      const resolvedFileName = prevPageData.fileName || "Untitled";
+
+      // Save to draft before navigating
+      await saveDraft(resolvedFileName, completeData);
+
+      // Navigate to summary screen with all data
+      navigation.navigate("CMVRDocumentExport", {
+        ...prevPageData,
+        fileName: resolvedFileName,
+        noiseQualityImpactAssessment,
+        draftData: completeData,
+      });
+    } catch (error) {
+      console.error("Error navigating to summary:", error);
+      Alert.alert("Error", "Failed to navigate to summary. Please try again.");
+    }
+  };
+
   const addParameter = () => {
     const newId = `param-${Date.now()}`;
     setParameters([
@@ -469,6 +537,7 @@ export default function NoiseQualityScreen({ navigation, route }: any) {
             onStay={handleStay}
             onSaveToDraft={handleSaveToDraft}
             onDiscard={handleDiscard}
+            onGoToSummary={handleGoToSummary}
             allowEdit={false}
           />
         </View>

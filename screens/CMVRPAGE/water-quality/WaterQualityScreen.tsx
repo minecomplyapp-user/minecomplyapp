@@ -229,6 +229,72 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     );
   };
 
+  const handleGoToSummary = async () => {
+    try {
+      console.log("Navigating to summary with current water quality data");
+      
+      const prevPageData: any = route.params || {};
+
+      // Prepare current page data
+      const waterQualityImpactAssessment = {
+        selectedLocations,
+        quarryData,
+        plantData,
+        quarryPlantData,
+        ports,
+        data,
+        parameters,
+      };
+
+      // Prepare complete snapshot with all sections
+      const completeData = {
+        generalInfo: prevPageData.generalInfo,
+        eccInfo: prevPageData.eccInfo,
+        eccAdditionalForms: prevPageData.eccAdditionalForms,
+        isagInfo: prevPageData.isagInfo,
+        isagAdditionalForms: prevPageData.isagAdditionalForms,
+        epepInfo: prevPageData.epepInfo,
+        epepAdditionalForms: prevPageData.epepAdditionalForms,
+        rcfInfo: prevPageData.rcfInfo,
+        rcfAdditionalForms: prevPageData.rcfAdditionalForms,
+        mtfInfo: prevPageData.mtfInfo,
+        mtfAdditionalForms: prevPageData.mtfAdditionalForms,
+        fmrdfInfo: prevPageData.fmrdfInfo,
+        fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
+        mmtInfo: prevPageData.mmtInfo,
+        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
+        processDocumentationOfActivitiesUndertaken: prevPageData.processDocumentationOfActivitiesUndertaken,
+        complianceToProjectLocationAndCoverageLimits: prevPageData.complianceToProjectLocationAndCoverageLimits,
+        complianceToImpactManagementCommitments: prevPageData.complianceToImpactManagementCommitments,
+        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
+        waterQualityImpactAssessment, // Current page data
+        noiseQualityImpactAssessment: prevPageData.noiseQualityImpactAssessment,
+        complianceWithGoodPracticeInSolidAndHazardousWasteManagement: prevPageData.complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
+        complianceWithGoodPracticeInChemicalSafetyManagement: prevPageData.complianceWithGoodPracticeInChemicalSafetyManagement,
+        complaintsVerificationAndManagement: prevPageData.complaintsVerificationAndManagement,
+        recommendationsData: prevPageData.recommendationsData,
+        attendanceUrl: prevPageData.attendanceUrl,
+        savedAt: new Date().toISOString(),
+      };
+
+      const resolvedFileName = prevPageData.fileName || "Untitled";
+
+      // Save to draft before navigating
+      await saveDraft(resolvedFileName, completeData);
+
+      // Navigate to summary screen with all data
+      navigation.navigate("CMVRDocumentExport", {
+        ...prevPageData,
+        fileName: resolvedFileName,
+        waterQualityImpactAssessment,
+        draftData: completeData,
+      });
+    } catch (error) {
+      console.error("Error navigating to summary:", error);
+      Alert.alert("Error", "Failed to navigate to summary. Please try again.");
+    }
+  };
+
   const handleLocationToggle = (location: keyof LocationState) => {
     setSelectedLocations((prev) => ({
       ...prev,
@@ -935,6 +1001,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
         onStay={handleStay}
         onSaveToDraft={handleSaveToDraft}
         onDiscard={handleDiscard}
+        onGoToSummary={handleGoToSummary}
       />
       <ScrollView
         style={styles.scrollView}

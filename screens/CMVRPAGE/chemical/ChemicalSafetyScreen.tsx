@@ -296,6 +296,70 @@ export default function ChemicalSafetyScreen({ navigation, route }: any) {
     );
   };
 
+  const handleGoToSummary = async () => {
+    try {
+      console.log("Navigating to summary with current chemical safety data");
+      
+      const prevPageData: any = route.params || {};
+
+      // Prepare current page data
+      const complianceWithGoodPracticeInChemicalSafetyManagement = {
+        chemicalSafety,
+        healthSafetyChecked,
+        socialDevChecked,
+      };
+      const complaintsVerificationAndManagement = complaints;
+
+      // Prepare complete snapshot with all sections
+      const completeData = {
+        generalInfo: prevPageData.generalInfo,
+        eccInfo: prevPageData.eccInfo,
+        eccAdditionalForms: prevPageData.eccAdditionalForms,
+        isagInfo: prevPageData.isagInfo,
+        isagAdditionalForms: prevPageData.isagAdditionalForms,
+        epepInfo: prevPageData.epepInfo,
+        epepAdditionalForms: prevPageData.epepAdditionalForms,
+        rcfInfo: prevPageData.rcfInfo,
+        rcfAdditionalForms: prevPageData.rcfAdditionalForms,
+        mtfInfo: prevPageData.mtfInfo,
+        mtfAdditionalForms: prevPageData.mtfAdditionalForms,
+        fmrdfInfo: prevPageData.fmrdfInfo,
+        fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
+        mmtInfo: prevPageData.mmtInfo,
+        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
+        processDocumentationOfActivitiesUndertaken: prevPageData.processDocumentationOfActivitiesUndertaken,
+        complianceToProjectLocationAndCoverageLimits: prevPageData.complianceToProjectLocationAndCoverageLimits,
+        complianceToImpactManagementCommitments: prevPageData.complianceToImpactManagementCommitments,
+        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
+        waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
+        noiseQualityImpactAssessment: prevPageData.noiseQualityImpactAssessment,
+        complianceWithGoodPracticeInSolidAndHazardousWasteManagement: prevPageData.complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
+        complianceWithGoodPracticeInChemicalSafetyManagement, // Current page data
+        complaintsVerificationAndManagement, // Current page data
+        recommendationsData: prevPageData.recommendationsData,
+        attendanceUrl: prevPageData.attendanceUrl,
+        savedAt: new Date().toISOString(),
+      };
+
+      const resolvedFileName = prevPageData.fileName || "Untitled";
+
+      // Save to draft before navigating
+      await saveDraft(resolvedFileName, completeData);
+
+      // Navigate to summary screen with all data
+      navigation.navigate("CMVRDocumentExport", {
+        ...prevPageData,
+        fileName: resolvedFileName,
+        complianceWithGoodPracticeInChemicalSafetyManagement,
+        complaintsVerificationAndManagement,
+        draftData: completeData,
+      });
+    } catch (error) {
+      console.error("Error navigating to summary:", error);
+      Alert.alert("Error", "Failed to navigate to summary. Please try again.");
+    }
+  };
+
   const fillTestData = () => {
     setChemicalSafety({
       isNA: false,
@@ -382,6 +446,7 @@ export default function ChemicalSafetyScreen({ navigation, route }: any) {
         onStay={handleStay}
         onSaveToDraft={handleSaveToDraft}
         onDiscard={handleDiscard}
+        onGoToSummary={handleGoToSummary}
         allowEdit={false}
       />
       <ScrollView

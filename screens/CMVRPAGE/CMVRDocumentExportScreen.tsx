@@ -19,7 +19,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../contexts/AuthContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
-import { uploadFileFromUri } from "../../lib/storage";
+import { uploadFileFromUri, deleteFilesFromStorage } from "../../lib/storage";
 
 import { useFileName } from "../../contexts/FileNameContext";
 import {
@@ -2501,10 +2501,10 @@ const normalizeWasteManagementFromApi = (
 const toChemicalYesNo = (value: any): ChemicalYesNoNull => {
   if (typeof value === "string") {
     const normalized = value.trim().toUpperCase();
-    if (normalized === "YES" || normalized === "Y") {
+    if (normalized === "YES" || normalized === "Y" || normalized === "TRUE") {
       return "YES";
     }
-    if (normalized === "NO" || normalized === "N") {
+    if (normalized === "NO" || normalized === "N" || normalized === "FALSE") {
       return "NO";
     }
   }
@@ -3414,10 +3414,85 @@ const CMVRDocumentExportScreen = () => {
           onPress: async () => {
             try {
               setIsDeleting(true);
+
+              // Collect all uploaded file paths from draftSnapshot
+              const filesToDelete: string[] = [];
+
+              // Extract location images from complianceToProjectLocationAndCoverageLimits
+              if (
+                draftSnapshot?.complianceToProjectLocationAndCoverageLimits
+                  ?.uploadedImages
+              ) {
+                const uploadedImages =
+                  draftSnapshot.complianceToProjectLocationAndCoverageLimits
+                    .uploadedImages;
+                Object.values(uploadedImages).forEach((imagePath: any) => {
+                  if (typeof imagePath === "string" && imagePath.trim()) {
+                    // Extract storage path from URL or use directly if it's already a path
+                    const path = imagePath.includes("location/")
+                      ? imagePath.split("location/")[1]?.split("?")[0]
+                      : imagePath;
+                    if (path && !path.startsWith("http")) {
+                      filesToDelete.push(`location/${path}`);
+                    } else if (path && path.includes("location/")) {
+                      const extractedPath =
+                        path.match(/location\/([^?]+)/)?.[0];
+                      if (extractedPath) filesToDelete.push(extractedPath);
+                    }
+                  }
+                });
+              }
+
+              // Extract noise quality files from noiseQualityImpactAssessment
+              if (draftSnapshot?.noiseQualityImpactAssessment?.uploadedFiles) {
+                const uploadedFiles =
+                  draftSnapshot.noiseQualityImpactAssessment.uploadedFiles;
+                if (Array.isArray(uploadedFiles)) {
+                  uploadedFiles.forEach((file: any) => {
+                    const storagePath = file?.storagePath || file?.path;
+                    if (
+                      storagePath &&
+                      typeof storagePath === "string" &&
+                      storagePath.trim()
+                    ) {
+                      // Clean up the path
+                      const cleanPath = storagePath.includes("noise-quality/")
+                        ? storagePath.split("noise-quality/")[1]?.split("?")[0]
+                        : storagePath;
+                      if (cleanPath && !cleanPath.startsWith("http")) {
+                        filesToDelete.push(`noise-quality/${cleanPath}`);
+                      } else if (
+                        cleanPath &&
+                        cleanPath.includes("noise-quality/")
+                      ) {
+                        const extractedPath = cleanPath.match(
+                          /noise-quality\/([^?]+)/
+                        )?.[0];
+                        if (extractedPath) filesToDelete.push(extractedPath);
+                      }
+                    }
+                  });
+                }
+              }
+
+              console.log("🗑️ Files to delete with CMVR:", filesToDelete);
+
+              // Delete files from storage (non-blocking)
+              if (filesToDelete.length > 0) {
+                deleteFilesFromStorage(filesToDelete).catch((err) => {
+                  console.error("⚠️ Failed to delete some files:", err);
+                  // Don't block the CMVR deletion if file deletion fails
+                });
+              }
+
+              // Delete the CMVR report from database
               await deleteCMVRReport(submittedReportId);
               setHasSubmitted(false);
               setSubmittedReportId(null);
-              Alert.alert("Deleted", "The CMVR report was deleted.");
+              Alert.alert(
+                "Deleted",
+                "The CMVR report and associated files were deleted."
+              );
             } catch (e: any) {
               console.error("Delete CMVR report failed:", e);
               Alert.alert(

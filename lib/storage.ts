@@ -511,3 +511,74 @@ export async function uploadNoiseQualityFile({
 
   return { path: data.path };
 }
+
+/**
+ * Delete a file from Supabase storage
+ */
+export async function deleteFileFromStorage(
+  path: string
+): Promise<{ success: boolean }> {
+  console.log("🗑️ Deleting file from storage:", path);
+
+  if (!path) {
+    console.warn("⚠️ No path provided, skipping deletion");
+    return { success: false };
+  }
+
+  const { data, error } = await supabase.storage
+    .from("minecomplyapp-bucket")
+    .remove([path]);
+
+  if (error) {
+    console.error("❌ Failed to delete file:", {
+      path,
+      message: error.message,
+      error,
+    });
+    // Don't throw - we want deletion to be non-blocking
+    return { success: false };
+  }
+
+  console.log("✅ File deleted successfully:", path);
+  return { success: true };
+}
+
+/**
+ * Delete multiple files from Supabase storage
+ */
+export async function deleteFilesFromStorage(
+  paths: string[]
+): Promise<{ success: boolean; deletedCount: number }> {
+  console.log("🗑️ Deleting multiple files from storage:", paths);
+
+  if (!paths || paths.length === 0) {
+    console.warn("⚠️ No paths provided, skipping deletion");
+    return { success: true, deletedCount: 0 };
+  }
+
+  const validPaths = paths.filter((p) => p && p.trim());
+  if (validPaths.length === 0) {
+    console.warn("⚠️ No valid paths provided, skipping deletion");
+    return { success: true, deletedCount: 0 };
+  }
+
+  const { data, error } = await supabase.storage
+    .from("minecomplyapp-bucket")
+    .remove(validPaths);
+
+  if (error) {
+    console.error("❌ Failed to delete files:", {
+      paths: validPaths,
+      message: error.message,
+      error,
+    });
+    // Don't throw - we want deletion to be non-blocking
+    return { success: false, deletedCount: 0 };
+  }
+
+  console.log("✅ Files deleted successfully:", {
+    count: data.length,
+    paths: validPaths,
+  });
+  return { success: true, deletedCount: data.length };
+}
