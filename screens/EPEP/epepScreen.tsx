@@ -10,6 +10,8 @@ import {
   RefreshControl,
   Linking,
   Platform,
+  Image,
+  ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
@@ -31,6 +33,7 @@ type EpepDoc = {
   createdAt?: string | null;
   url?: string;
   path?: string;
+  contentType?: string | null;
 };
 
 export default function EPEPScreen({ navigation }: any) {
@@ -163,11 +166,22 @@ export default function EPEPScreen({ navigation }: any) {
 
       const uploadRes = await uploadFileFromUri({ uri, fileName, contentType: mimeType });
 
+      // Try to obtain a signed URL for immediate preview/download
+      let signedUrl: string | undefined = undefined;
+      try {
+        const dl = await createSignedDownloadUrl(uploadRes.path, 3600);
+        signedUrl = dl.url;
+      } catch (e) {
+        // ignore signing error; we'll still store the path
+      }
+
       const newDoc: EpepDoc = {
         id: Date.now().toString(),
         fileName,
         createdAt: new Date().toISOString(),
         path: uploadRes.path,
+        url: signedUrl,
+        contentType: mimeType || null,
       };
 
       const updated = [newDoc, ...docs];
@@ -204,11 +218,22 @@ export default function EPEPScreen({ navigation }: any) {
       // Use uploadAttachment helper for images
       const uploadRes = await uploadAttachment(uri);
 
+      // Get a signed URL for preview
+      let signedUrl: string | undefined = undefined;
+      try {
+        const dl = await createSignedDownloadUrl(uploadRes.path, 3600);
+        signedUrl = dl.url;
+      } catch (e) {
+        // ignore signing error
+      }
+
       const newDoc: EpepDoc = {
         id: Date.now().toString(),
         fileName,
         createdAt: new Date().toISOString(),
         path: uploadRes.path,
+        url: signedUrl,
+        contentType: "image/jpeg",
       };
 
       const updated = [newDoc, ...docs];
@@ -221,6 +246,15 @@ export default function EPEPScreen({ navigation }: any) {
       Alert.alert("Scan failed", e?.message || "Could not scan/upload photo");
     }
   };
+
+  // Split docs into images (gallery) and other uploaded documents
+  const isImageDoc = (d: EpepDoc) => {
+    if (d.contentType && d.contentType.startsWith("image/")) return true;
+    return /\.(jpe?g|png|gif|webp|heic)$/i.test(d.fileName || "");
+  };
+
+  const imageDocs = docs.filter(isImageDoc);
+  const otherDocs = docs.filter((d) => !isImageDoc(d));
 
   return (
     <SafeAreaView style={styles.safeContainer}>
@@ -248,22 +282,53 @@ export default function EPEPScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
+        {/* Gallery for scanned images */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Saved EPEP Documents</Text>
+            <Text style={styles.sectionTitle}>Gallery</Text>
           </View>
 
           <View style={styles.recordsContainer}>
-            {docs.length === 0 ? (
+            {imageDocs.length === 0 ? (
               <View style={styles.emptyStateCard}>
                 <View style={styles.emptyState}>
                   <ClipboardList color={theme.colors.textLight} size={48} />
-                  <Text style={styles.emptyStateTitle}>No documents</Text>
-                  <Text style={styles.emptyStateText}>You don't have any saved EPEP documents yet.</Text>
+                  <Text style={styles.emptyStateTitle}>No images</Text>
+                  <Text style={styles.emptyStateText}>You don't have any scanned images yet.</Text>
                 </View>
               </View>
             ) : (
-              docs.map((doc) => (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8 }}>
+                {imageDocs.map((doc) => (
+                  <ImageThumbnail
+                    key={doc.id}
+                    doc={doc}
+                    onDelete={() => handleDelete(doc.id)}
+                    onOpen={() => handleOpen(doc)}
+                  />
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+
+        {/* Uploaded documents (non-image) */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Uploaded Documents</Text>
+          </View>
+
+          <View style={styles.recordsContainer}>
+            {otherDocs.length === 0 ? (
+              <View style={styles.emptyStateCard}>
+                <View style={styles.emptyState}>
+                  <ClipboardList color={theme.colors.textLight} size={48} />
+                  <Text style={styles.emptyStateTitle}>No uploaded files</Text>
+                  <Text style={styles.emptyStateText}>You don't have any uploaded documents yet.</Text>
+                </View>
+              </View>
+            ) : (
+              otherDocs.map((doc) => (
                 <DocCard
                   key={doc.id}
                   doc={doc}
@@ -309,5 +374,56 @@ function DocCard({ doc, onDelete, onDownload, onOpen }: any) {
         </View>
       </TouchableOpacity>
     </Animated.View>
+  );
+}
+
+function ImageThumbnail({ doc, onOpen, onDelete }: any) {
+  const [imageUrl, setImageUrl] = useState<string | undefined>(doc.url);
+  const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (imageUrl) return;
+      if (!doc.path) return;
+      try {
+        setLoading(true);
+        const dl = await createSignedDownloadUrl(doc.path, 3600);
+        if (mounted) setImageUrl(dl.url);
+      } catch (e) {
+        // ignore
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [doc.path]);
+
+  return (
+    <View style={{ marginRight: 12, width: 120 }}>
+      <TouchableOpacity activeOpacity={0.9} onPress={() => onOpen && onOpen(doc)} style={{ borderRadius: 8, overflow: 'hidden', backgroundColor: '#f3f3f3', height: 160, justifyContent: 'center', alignItems: 'center' }}>
+        {loading ? (
+          <ActivityIndicator size="small" color={theme.colors.primaryDark} />
+        ) : imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={{ width: 120, height: 160, resizeMode: 'cover' }} />
+        ) : (
+          <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ color: theme.colors.textLight }}>No preview</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+        <TouchableOpacity style={[styles.iconButton, styles.downloadButton]} onPress={() => onOpen && onOpen(doc)}>
+          <Download size={16} color={theme.colors.primaryDark} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.iconButton, styles.deleteButton]} onPress={() => onDelete && onDelete(doc.id)}>
+          <Trash2 size={16} color={theme.colors.error} />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
