@@ -149,7 +149,7 @@ export default function DuplicateReportScreen({ navigation }: any) {
             }
             else if (record.type === "ecc") {
                await getReportById(record.id,token);
-                navigation.navigate("ECCMonitoring",selectedReport); // ECCMonitoring will read selectedReport from store
+                navigation.navigate("ECCMonitoring"); // ECCMonitoring will read selectedReport from store
             }else {
                 navigation.navigate("CMVRReport", {
                 submissionId: null,
@@ -216,7 +216,7 @@ export default function DuplicateReportScreen({ navigation }: any) {
             />
               <FilterTab
               label="ECC"
-              count={mockECCReports.length}
+              count={reports?.length}
               isActive={selectedType === "ecc"}
               onPress={() => setSelectedType("ecc")}
               isTablet={isTablet}

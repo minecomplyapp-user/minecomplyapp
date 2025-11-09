@@ -8,7 +8,7 @@ import { useAuth } from "../contexts/AuthContext";
 export const useEccStore = create((set) => ({
     // ... (initial state)
     
-    reports: null, 
+    reports: [], 
     isLoading: false,
     selectedReport: null,
     setSelectedReport: (report) => set({ selectedReport: report }),

@@ -19,7 +19,7 @@ export const useEccDraftStore = create((set) => ({
     
       };
 
-      console.log("asdasd",draft)
+      // console.log("asdasd",draft)
 
       const existing = await AsyncStorage.getItem(ECC_DRAFT_KEY);
       const drafts = existing ? JSON.parse(existing) : [];

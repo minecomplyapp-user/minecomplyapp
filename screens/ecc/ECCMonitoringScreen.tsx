@@ -310,13 +310,16 @@ const saveToDraft = async () => {
 
         const draftData = getMonitoringData(); 
         let result
-          if (id !== '') {
+          if (id !== undefined) {
+            console.log("HERE")
             // If 'id' exists, update the existing draft.
             result = await updateDraft(id, draftData); // Should use 'await' here too
         } else {
             // If 'id' is empty/new, save a new draft.
             result = await saveDraft(draftData);
         }
+        console.log("MONITORING DATAs:",id)
+
         if (result.success) {
             alert(" Draft saved successfully!");
         } else {
