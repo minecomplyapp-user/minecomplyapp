@@ -164,6 +164,9 @@ export default function WaterQualityScreen({ navigation, route }: any) {
 
       const waterQualityImpactAssessment = {
         selectedLocations,
+        quarryData,
+        plantData,
+        quarryPlantData,
         data,
         parameters,
         ports,
@@ -1110,6 +1113,9 @@ export default function WaterQualityScreen({ navigation, route }: any) {
           onPress={() => {
             const waterQualityImpactAssessment = {
               selectedLocations,
+              quarryData,
+              plantData,
+              quarryPlantData,
               data,
               parameters,
               ports,

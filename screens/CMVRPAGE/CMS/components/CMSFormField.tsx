@@ -1,5 +1,12 @@
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity, Image } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+} from "react-native";
 import { Upload, X } from "lucide-react-native";
 import { CMSFormFieldProps } from "../types/CMSFormField.types";
 import { styles } from "../styles/CMSFormField.styles";
@@ -12,6 +19,7 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
   subFields,
   showUploadImage = false,
   uploadedImage,
+  isUploadingImage,
   onSpecificationChange,
   onRemarksChange,
   onWithinSpecsChange,
@@ -29,11 +37,21 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
             </View>
             {showUploadImage && (
               <TouchableOpacity
-                style={styles.uploadButton}
-                onPress={onUploadImage}
+                style={[
+                  styles.uploadButton,
+                  isUploadingImage ? { opacity: 0.6 } : null,
+                ]}
+                onPress={isUploadingImage ? undefined : onUploadImage}
+                disabled={isUploadingImage}
               >
-                <Upload size={16} color="#1E3A8A" />
-                <Text style={styles.uploadText}>Upload Image</Text>
+                {isUploadingImage ? (
+                  <ActivityIndicator size="small" color="#1E3A8A" />
+                ) : (
+                  <Upload size={16} color="#1E3A8A" />
+                )}
+                <Text style={styles.uploadText}>
+                  {isUploadingImage ? "Uploading..." : "Upload Image"}
+                </Text>
               </TouchableOpacity>
             )}
           </View>

@@ -121,7 +121,7 @@ export const LocationMonitoringSection: React.FC<
             onUpdateParameter(param.id, "isMMTNA", !param.isMMTNA)
           }
         />
-      ))}{" "}
+      ))}
       {/* Add More Parameter Button */}
       <TouchableOpacity style={styles.addButton} onPress={onAddParameter}>
         <Ionicons name="add-circle-outline" size={16} color="#02217C" />

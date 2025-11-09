@@ -787,7 +787,31 @@ const transformProjectLocationCoverageForPayload = (raw: any) => {
     remarks: String(item?.remarks ?? ""),
     withinSpecs: Boolean(item?.withinSpecs),
   }));
-  return { parameters, otherComponents };
+
+  // Preserve uploaded images metadata
+  const uploadedImages =
+    raw && typeof raw.uploadedImages === "object"
+      ? Object.entries(raw.uploadedImages as Record<string, unknown>).reduce(
+          (acc: Record<string, string>, [key, value]) => {
+            const cleanKey = String(key).trim();
+            if (!cleanKey || typeof value !== "string") return acc;
+            const cleanValue = value.trim();
+            if (cleanValue) {
+              acc[cleanKey] = cleanValue;
+            }
+            return acc;
+          },
+          {}
+        )
+      : {};
+
+  return {
+    parameters,
+    otherComponents,
+    uploadedImages: Object.keys(uploadedImages).length
+      ? uploadedImages
+      : undefined,
+  };
 };
 
 const transformImpactCommitmentsForPayload = (raw: any) => {
@@ -866,94 +890,272 @@ const hasAirParameterValues = (param: AirParameterData) => {
 
 const transformAirQualityForPayload = (raw: any) => {
   if (!raw) return undefined;
-  const data = raw.data || {};
-  const gatherParameters = (): AirParameterData[] => {
-    const main: AirParameterData = {
-      parameter: sanitizeString(data?.parameter),
-      currentSMR: sanitizeString(data?.currentSMR),
-      previousSMR: sanitizeString(data?.previousSMR),
-      currentMMT: sanitizeString(data?.currentMMT),
-      previousMMT: sanitizeString(data?.previousMMT),
-      thirdPartyTesting: sanitizeString(data?.thirdPartyTesting),
-      eqplRedFlag: sanitizeString(data?.eqplRedFlag),
-      action: sanitizeString(data?.action),
-      limitPM25: sanitizeString(data?.limitPM25),
-      remarks: sanitizeString(data?.remarks),
-      id: "main",
-    };
-    const extras = Array.isArray(data?.parameters)
-      ? data.parameters.map((p: AirParameterData) => ({
-          ...p,
-          parameter: sanitizeString(p?.parameter),
-          currentSMR: sanitizeString(p?.currentSMR),
-          previousSMR: sanitizeString(p?.previousSMR),
-          currentMMT: sanitizeString(p?.currentMMT),
-          previousMMT: sanitizeString(p?.previousMMT),
-          thirdPartyTesting: sanitizeString(p?.thirdPartyTesting),
-          eqplRedFlag: sanitizeString(p?.eqplRedFlag),
-          action: sanitizeString(p?.action),
-          limitPM25: sanitizeString(p?.limitPM25),
-          remarks: sanitizeString(p?.remarks),
-        }))
-      : [];
-    const collected = [] as AirParameterData[];
-    if (hasAirParameterValues(main)) {
-      collected.push(main);
-    }
-    extras.forEach((extra: AirParameterData) => {
-      if (hasAirParameterValues(extra)) {
-        collected.push(extra);
+
+  // NEW STRUCTURE: Check if we have location-based data (quarryData, plantData, etc.)
+  const hasNewStructure =
+    raw.quarryData || raw.plantData || raw.portData || raw.quarryPlantData;
+
+  if (hasNewStructure) {
+    // Transform new location-based structure
+    const result: any = {};
+
+    const transformLocationData = (locationData: any) => {
+      if (!locationData) return null;
+
+      const mergeRemarks = (param: any) => {
+        const remarks = sanitizeString(param?.remarks);
+        const thirdParty = sanitizeString(param?.thirdPartyTesting);
+        if (!thirdParty) {
+          return remarks;
+        }
+        const thirdPartyNote = `Third Party Testing: ${thirdParty}`;
+        return remarks ? `${remarks} | ${thirdPartyNote}` : thirdPartyNote;
+      };
+
+      // Helper to map a single parameter
+      const mapParameter = (param: any) => ({
+        name: sanitizeString(param?.parameter),
+        results: {
+          inSMR: {
+            current: sanitizeString(param?.currentSMR),
+            previous: sanitizeString(param?.previousSMR),
+          },
+          mmtConfirmatorySampling: {
+            current: sanitizeString(param?.currentMMT),
+            previous: sanitizeString(param?.previousMMT),
+          },
+        },
+        eqpl: {
+          redFlag: sanitizeString(param?.eqplRedFlag),
+          action: sanitizeString(param?.action),
+          limit: sanitizeString(param?.limitPM25),
+        },
+        remarks: mergeRemarks(param),
+      });
+
+      // Build main parameter
+      const mainParameter = {
+        parameter: sanitizeString(locationData?.parameter),
+        currentSMR: sanitizeString(locationData?.currentSMR),
+        previousSMR: sanitizeString(locationData?.previousSMR),
+        currentMMT: sanitizeString(locationData?.currentMMT),
+        previousMMT: sanitizeString(locationData?.previousMMT),
+        thirdPartyTesting: sanitizeString(locationData?.thirdPartyTesting),
+        eqplRedFlag: sanitizeString(locationData?.eqplRedFlag),
+        action: sanitizeString(locationData?.action),
+        limitPM25: sanitizeString(locationData?.limitPM25),
+        remarks: sanitizeString(locationData?.remarks),
+      };
+
+      // Gather all parameters (main + additional)
+      const allParameters = [];
+      if (mainParameter.parameter) {
+        allParameters.push(mapParameter(mainParameter));
       }
-    });
-    return collected.length > 0 ? collected : [main];
-  };
+      if (Array.isArray(locationData.parameters)) {
+        locationData.parameters.forEach((param: any) => {
+          if (param.parameter) {
+            allParameters.push(mapParameter(param));
+          }
+        });
+      }
 
-  const mappedParameters = gatherParameters().map((param) => {
-    const results: any = {
-      inSMR: {
-        current: sanitizeString(param.currentSMR),
-        previous: sanitizeString(param.previousSMR),
-      },
-      mmtConfirmatorySampling: {
-        current: sanitizeString(param.currentMMT),
-        previous: sanitizeString(param.previousMMT),
-      },
+      return {
+        locationDescription: sanitizeString(locationData.locationInput),
+        parameters: allParameters,
+        samplingDate: sanitizeString(locationData?.dateTime),
+        weatherAndWind: sanitizeString(locationData?.weatherWind),
+        explanationForConfirmatorySampling: sanitizeString(
+          locationData?.explanation
+        ),
+        overallAssessment: sanitizeString(locationData?.overallCompliance),
+      };
     };
-    const thirdParty = sanitizeString(param.thirdPartyTesting);
-    if (thirdParty) {
-      results.thirdPartyTesting = thirdParty;
+
+    // Transform each location
+    if (raw.quarryData) {
+      const transformed = transformLocationData(raw.quarryData);
+      if (transformed) result.quarry = transformed;
     }
-    return {
-      name: sanitizeString(param.parameter),
-      results,
-      eqpl: {
-        redFlag: sanitizeString(param.eqplRedFlag),
-        action: sanitizeString(param.action),
-        limit: sanitizeString(param.limitPM25),
-      },
-      remarks: sanitizeString(param.remarks),
-    };
-  });
+    if (raw.plantData) {
+      const transformed = transformLocationData(raw.plantData);
+      if (transformed) result.plant = transformed;
+    }
+    if (raw.portData) {
+      const transformed = transformLocationData(raw.portData);
+      if (transformed) result.port = transformed;
+    }
+    if (raw.quarryPlantData) {
+      const transformed = transformLocationData(raw.quarryPlantData);
+      if (transformed) result.quarryAndPlant = transformed;
+    }
 
-  const result: any = {
-    quarry: sanitizeString(data?.quarry),
-    plant: sanitizeString(data?.plant),
-    port: sanitizeString(data?.port),
-    parameters: mappedParameters,
-    samplingDate: sanitizeString(data?.dateTime),
-    weatherAndWind: sanitizeString(data?.weatherWind),
-    explanationForConfirmatorySampling: sanitizeString(data?.explanation),
-    overallAssessment: sanitizeString(data?.overallCompliance),
-  };
-  const quarryPlantValue = sanitizeString(data?.quarryPlant);
-  if (quarryPlantValue) {
-    result.quarryPlant = quarryPlantValue;
+    return Object.keys(result).length > 0 ? result : undefined;
   }
-  return result;
+
+  // LEGACY STRUCTURE: Old format with data object - NO LONGER SUPPORTED
+  // Return undefined to prevent invalid data structure from being sent
+  console.warn(
+    "Legacy air quality format detected but not supported. Please use location-based structure (quarryData, plantData, portData)."
+  );
+  return undefined;
 };
 
 const transformWaterQualityForPayload = (raw: any) => {
   if (!raw) return undefined;
+
+  const hasLocationStructure =
+    raw.quarryData ||
+    raw.plantData ||
+    raw.quarryPlantData ||
+    (Array.isArray(raw.ports) && raw.ports.some((port: any) => port));
+
+  if (hasLocationStructure) {
+    const orFallback = (value: any, fallback: any) => {
+      if (value === undefined || value === null || value === "") {
+        return fallback;
+      }
+      return value;
+    };
+
+    const mapLocationParam = (param: any, fallback: any) => {
+      const resolvedParameter = sanitizeString(
+        orFallback(param?.parameter, fallback?.parameter)
+      );
+      if (!resolvedParameter.trim()) {
+        return null;
+      }
+      const resolvedResultType = sanitizeString(
+        orFallback(param?.resultType, fallback?.resultType)
+      );
+      const currentTss = sanitizeString(
+        orFallback(param?.tssCurrent, fallback?.tssCurrent)
+      );
+      const previousTss = sanitizeString(
+        orFallback(param?.tssPrevious, fallback?.tssPrevious)
+      );
+      return {
+        name: resolvedParameter,
+        result: {
+          internalMonitoring: {
+            month: resolvedResultType,
+            readings: [
+              {
+                label: resolvedParameter,
+                current_mgL: parseFirstNumber(currentTss),
+                previous_mgL: parseFirstNumber(previousTss),
+              },
+            ],
+          },
+          mmtConfirmatorySampling: {
+            current: sanitizeString(
+              orFallback(param?.mmtCurrent, fallback?.mmtCurrent)
+            ),
+            previous: sanitizeString(
+              orFallback(param?.mmtPrevious, fallback?.mmtPrevious)
+            ),
+          },
+        },
+        denrStandard: {
+          redFlag: sanitizeString(
+            orFallback(param?.eqplRedFlag, fallback?.eqplRedFlag)
+          ),
+          action: sanitizeString(orFallback(param?.action, fallback?.action)),
+          limit_mgL: parseFirstNumber(
+            sanitizeString(orFallback(param?.limit, fallback?.limit))
+          ),
+        },
+        remark: sanitizeString(orFallback(param?.remarks, fallback?.remarks)),
+      };
+    };
+
+    const mapLocationData = (locationData: any) => {
+      if (!locationData || typeof locationData !== "object") {
+        return null;
+      }
+      const mainParam = mapLocationParam(locationData, locationData);
+      const extraParams = Array.isArray(locationData.parameters)
+        ? locationData.parameters
+            .map((param: any) => mapLocationParam(param, locationData))
+            .filter((param): param is NonNullable<typeof param> => !!param)
+        : [];
+      const parameters = [...(mainParam ? [mainParam] : []), ...extraParams];
+      if (!parameters.length) {
+        return null;
+      }
+      return {
+        locationDescription: sanitizeString(locationData.locationInput),
+        parameters,
+        samplingDate: sanitizeString(locationData.dateTime),
+        weatherAndWind: sanitizeString(locationData.weatherWind),
+        explanationForConfirmatorySampling: sanitizeString(
+          locationData.isExplanationNA ? "N/A" : locationData.explanation
+        ),
+        overallAssessment: sanitizeString(locationData.overallCompliance),
+      };
+    };
+
+    const mapPortData = (portData: any) => {
+      if (!portData || typeof portData !== "object") {
+        return null;
+      }
+      const mainParam = mapLocationParam(portData, portData);
+      const extraParams = Array.isArray(portData.additionalParameters)
+        ? portData.additionalParameters
+            .map((param: any) => mapLocationParam(param, portData))
+            .filter((param): param is NonNullable<typeof param> => !!param)
+        : [];
+      const parameters = [...(mainParam ? [mainParam] : []), ...extraParams];
+      if (!parameters.length) {
+        return null;
+      }
+      return {
+        locationDescription: sanitizeString(
+          portData.portName ?? portData.locationInput
+        ),
+        parameters,
+        samplingDate: sanitizeString(portData.dateTime),
+        weatherAndWind: sanitizeString(portData.weatherWind),
+        explanationForConfirmatorySampling: sanitizeString(
+          portData.isExplanationNA ? "N/A" : portData.explanation
+        ),
+        overallAssessment: sanitizeString(
+          portData.overallCompliance ?? raw?.data?.overallCompliance
+        ),
+      };
+    };
+
+    const result: any = {};
+    if (raw.quarryData) {
+      const quarry = mapLocationData(raw.quarryData);
+      if (quarry) {
+        result.quarry = quarry;
+      }
+    }
+    if (raw.plantData) {
+      const plant = mapLocationData(raw.plantData);
+      if (plant) {
+        result.plant = plant;
+      }
+    }
+    if (raw.quarryPlantData) {
+      const quarryPlant = mapLocationData(raw.quarryPlantData);
+      if (quarryPlant) {
+        result.quarryAndPlant = quarryPlant;
+      }
+    }
+    if (Array.isArray(raw.ports) && raw.ports.length) {
+      raw.ports.forEach((portData: any) => {
+        const port = mapPortData(portData);
+        if (port) {
+          result.port = port;
+        }
+      });
+    }
+
+    return Object.keys(result).length > 0 ? result : undefined;
+  }
+
   const sel = raw.selectedLocations || {};
   const d = raw.data || {};
   const params = Array.isArray(raw.parameters) ? raw.parameters : [];
@@ -985,14 +1187,13 @@ const transformWaterQualityForPayload = (raw: any) => {
     remark: String(p?.remarks ?? d?.remarks ?? ""),
   });
 
-  // Build location objects with their own parameters and metadata
   const result: any = {};
 
-  // Quarry location
   if (sel.quarry && d?.quarryInput) {
     const mainParam = makeParam(d);
     const extraParams = params.map(makeParam);
     result.quarry = {
+      locationDescription: String(d?.quarryInput ?? ""),
       parameters: [mainParam, ...extraParams].filter((p) => p.name),
       samplingDate: String(d?.dateTime ?? ""),
       weatherAndWind: String(d?.weatherWind ?? ""),
@@ -1001,11 +1202,11 @@ const transformWaterQualityForPayload = (raw: any) => {
     };
   }
 
-  // Plant location
   if (sel.plant && d?.plantInput) {
     const mainParam = makeParam(d);
     const extraParams = params.map(makeParam);
     result.plant = {
+      locationDescription: String(d?.plantInput ?? ""),
       parameters: [mainParam, ...extraParams].filter((p) => p.name),
       samplingDate: String(d?.dateTime ?? ""),
       weatherAndWind: String(d?.weatherWind ?? ""),
@@ -1014,11 +1215,11 @@ const transformWaterQualityForPayload = (raw: any) => {
     };
   }
 
-  // QuarryAndPlant location
   if (sel.quarryPlant && d?.quarryPlantInput) {
     const mainParam = makeParam(d);
     const extraParams = params.map(makeParam);
     result.quarryAndPlant = {
+      locationDescription: String(d?.quarryPlantInput ?? ""),
       parameters: [mainParam, ...extraParams].filter((p) => p.name),
       samplingDate: String(d?.dateTime ?? ""),
       weatherAndWind: String(d?.weatherWind ?? ""),
@@ -1027,7 +1228,6 @@ const transformWaterQualityForPayload = (raw: any) => {
     };
   }
 
-  // Port location(s)
   if (ports?.length) {
     ports.forEach((port: any) => {
       const portMainParam = makeParam(port);
@@ -1036,6 +1236,9 @@ const transformWaterQualityForPayload = (raw: any) => {
         : [];
 
       result.port = {
+        locationDescription: String(
+          port?.portName ?? port?.locationInput ?? d?.port ?? ""
+        ),
         parameters: [portMainParam, ...portExtraParams].filter((p) => p.name),
         samplingDate: String(port?.dateTime ?? d?.dateTime ?? ""),
         weatherAndWind: String(port?.weatherWind ?? d?.weatherWind ?? ""),
@@ -1089,6 +1292,40 @@ const transformNoiseQualityForPayload = (raw: any) => {
     overallAssessment.thirdQuarter = toQuarter("3rd", raw.quarters.third);
   if (raw?.quarters?.fourth)
     overallAssessment.fourthQuarter = toQuarter("4th", raw.quarters.fourth);
+
+  // Preserve uploaded files metadata
+  const uploadedFiles = (
+    Array.isArray(raw?.uploadedFiles) ? raw.uploadedFiles : []
+  )
+    .map((file: any) => {
+      const storagePath =
+        typeof file?.storagePath === "string"
+          ? file.storagePath.trim()
+          : undefined;
+      const uri = typeof file?.uri === "string" ? file.uri.trim() : undefined;
+      if (!storagePath && !uri) return null;
+
+      const name =
+        typeof file?.name === "string" && file.name.trim()
+          ? file.name.trim()
+          : storagePath?.split("/").pop();
+
+      const size =
+        typeof file?.size === "number"
+          ? file.size
+          : Number.isFinite(Number(file?.size))
+            ? Number(file.size)
+            : undefined;
+
+      const mimeType =
+        typeof file?.mimeType === "string" && file.mimeType.trim()
+          ? file.mimeType.trim()
+          : undefined;
+
+      return { uri, name, size, mimeType, storagePath };
+    })
+    .filter(Boolean);
+
   return {
     parameters: parameters.length ? parameters : undefined,
     samplingDate: String(raw?.dateTime ?? ""),
@@ -1097,6 +1334,7 @@ const transformNoiseQualityForPayload = (raw: any) => {
     overallAssessment: Object.keys(overallAssessment).length
       ? overallAssessment
       : undefined,
+    uploadedFiles: uploadedFiles.length ? uploadedFiles : undefined,
   };
 };
 
@@ -2508,14 +2746,34 @@ const buildCreateCMVRPayload = (
   let hasImpact = false;
   let hasAir = false;
   let hasWater = false;
+
   if (norm.complianceToProjectLocationAndCoverageLimits) {
-    complianceMonitoringReport.complianceToProjectLocationAndCoverageLimits =
-      transformProjectLocationCoverageForPayload(
-        norm.complianceToProjectLocationAndCoverageLimits
+    const transformedPLCL = transformProjectLocationCoverageForPayload(
+      norm.complianceToProjectLocationAndCoverageLimits
+    );
+
+    // Backfill uploadedImages if transformer didn't capture them
+    if (
+      transformedPLCL &&
+      !transformedPLCL.uploadedImages &&
+      norm.complianceToProjectLocationAndCoverageLimits.uploadedImages
+    ) {
+      transformedPLCL.uploadedImages = Object.fromEntries(
+        Object.entries(
+          norm.complianceToProjectLocationAndCoverageLimits
+            .uploadedImages as Record<string, string | undefined>
+        )
+          .map(([k, v]) => [k.trim(), (v ?? "").trim()])
+          .filter(([, v]) => v)
       );
+    }
+
+    complianceMonitoringReport.complianceToProjectLocationAndCoverageLimits =
+      transformedPLCL;
     hasComplianceData = true;
     hasPLCL = true;
   }
+
   if (norm.complianceToImpactManagementCommitments) {
     complianceMonitoringReport.complianceToImpactManagementCommitments =
       transformImpactCommitmentsForPayload(
@@ -2536,9 +2794,53 @@ const buildCreateCMVRPayload = (
     hasComplianceData = true;
     hasWater = true;
   }
+
   if (norm.noiseQualityImpactAssessment) {
-    complianceMonitoringReport.noiseQualityImpactAssessment =
-      transformNoiseQualityForPayload(norm.noiseQualityImpactAssessment);
+    const transformedNoise = transformNoiseQualityForPayload(
+      norm.noiseQualityImpactAssessment
+    );
+
+    // Backfill uploadedFiles if transformer didn't capture them
+    if (
+      transformedNoise &&
+      (!transformedNoise.uploadedFiles ||
+        transformedNoise.uploadedFiles.length === 0) &&
+      Array.isArray(norm.noiseQualityImpactAssessment.uploadedFiles)
+    ) {
+      transformedNoise.uploadedFiles =
+        norm.noiseQualityImpactAssessment.uploadedFiles
+          .map((file: any) => {
+            const storagePath =
+              typeof file?.storagePath === "string"
+                ? file.storagePath.trim()
+                : undefined;
+            const uri =
+              typeof file?.uri === "string" ? file.uri.trim() : undefined;
+            if (!storagePath && !uri) return null;
+
+            const name =
+              typeof file?.name === "string" && file.name.trim()
+                ? file.name.trim()
+                : storagePath?.split("/").pop();
+
+            const size =
+              typeof file?.size === "number"
+                ? file.size
+                : Number.isFinite(Number(file?.size))
+                  ? Number(file.size)
+                  : undefined;
+
+            const mimeType =
+              typeof file?.mimeType === "string" && file.mimeType.trim()
+                ? file.mimeType.trim()
+                : undefined;
+
+            return { uri, name, size, mimeType, storagePath };
+          })
+          .filter(Boolean);
+    }
+
+    complianceMonitoringReport.noiseQualityImpactAssessment = transformedNoise;
     hasComplianceData = true;
   }
   if (norm.complianceWithGoodPracticeInSolidAndHazardousWasteManagement) {
@@ -2586,12 +2888,25 @@ const buildCreateCMVRPayload = (
       norm.recommendationForNextQuarter || transformedRecommendations;
     hasComplianceData = true;
   }
-  if (hasComplianceData && hasPLCL && hasImpact && hasAir && hasWater) {
+  // Relax gating: allow payload to include complianceMonitoringReport with any populated section
+  if (hasComplianceData) {
     payload.complianceMonitoringReport = complianceMonitoringReport;
   }
   if (options.attendanceId) {
     payload.attendanceId = options.attendanceId;
   }
+
+  // Add ECC Conditions attachment if uploaded
+  if (norm.airQualityImpactAssessment?.uploadedEccFile) {
+    const eccFile = norm.airQualityImpactAssessment.uploadedEccFile;
+    payload.eccConditionsAttachment = {
+      fileName: eccFile.name || "ECC Conditions Document",
+      fileUrl: eccFile.publicUrl || eccFile.uri || null,
+      mimeType: eccFile.mimeType || null,
+      storagePath: eccFile.storagePath || null,
+    };
+  }
+
   return payload;
 };
 

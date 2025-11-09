@@ -7,6 +7,7 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
@@ -14,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
 import { CMSHeader } from "../../../components/CMSHeader";
 import { saveDraft } from "../../../lib/drafts";
+import { supabase } from "../../../lib/supabase";
 import { LocationCheckboxRow } from "./components/LocationCheckboxRow";
 import { ParameterForm } from "./components/ParameterForm";
 import { SectionHeader } from "./components/SectionHeader";
@@ -33,6 +35,7 @@ export default function EnvironmentalComplianceScreen({
   route,
 }: any) {
   const [uploadedEccFile, setUploadedEccFile] = useState<any>(null);
+  const [isUploadingEcc, setIsUploadingEcc] = useState(false);
   const [selectedLocations, setSelectedLocations] = useState<LocationState>({
     quarry: false,
     plant: false,
@@ -44,16 +47,16 @@ export default function EnvironmentalComplianceScreen({
 
   // Separate state for each location
   const [quarryData, setQuarryData] = useState<LocationData>(
-    createEmptyLocationData
+    createEmptyLocationData()
   );
   const [plantData, setPlantData] = useState<LocationData>(
-    createEmptyLocationData
+    createEmptyLocationData()
   );
   const [portData, setPortData] = useState<LocationData>(
-    createEmptyLocationData
+    createEmptyLocationData()
   );
   const [quarryPlantData, setQuarryPlantData] = useState<LocationData>(
-    createEmptyLocationData
+    createEmptyLocationData()
   );
 
   // Legacy data state (kept for backward compatibility)
@@ -106,37 +109,149 @@ export default function EnvironmentalComplianceScreen({
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: [
-          "application/pdf",
           "application/msword",
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          "image/*",
         ],
         copyToCacheDirectory: true,
       });
+
       if (!result.canceled && result.assets[0]) {
-        setUploadedEccFile(result.assets[0]);
-        Alert.alert(
-          "File Uploaded",
-          `File "${result.assets[0].name}" uploaded successfully!`
-        );
-        setData((prev) => ({
-          ...prev,
-          eccConditions: result.assets[0].name,
-        }));
+        const file = result.assets[0];
+
+        setIsUploadingEcc(true);
+
+        try {
+          // Create unique filename
+          const timestamp = Date.now();
+          const fileExt = file.name.split(".").pop() || "docx";
+          const fileName = `cmvr-ecc/ecc-${timestamp}.${fileExt}`;
+
+          // Read file as ArrayBuffer (React Native Blob polyfill may not support creating from ArrayBuffer)
+          const response = await fetch(file.uri);
+          const arrayBuffer = await response.arrayBuffer();
+
+          // Try direct ArrayBuffer upload first
+          let uploadError;
+          let uploadData;
+          ({ data: uploadData, error: uploadError } = await supabase.storage
+            .from("minecomplyapp-bucket")
+            .upload(fileName, arrayBuffer, {
+              contentType:
+                file.mimeType ||
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              upsert: false,
+            }));
+
+          // Fallback: convert to Uint8Array if ArrayBuffer not accepted
+          if (uploadError) {
+            try {
+              const uint8 = new Uint8Array(arrayBuffer);
+              ({ data: uploadData, error: uploadError } = await supabase.storage
+                .from("minecomplyapp-bucket")
+                .upload(fileName, uint8, {
+                  contentType:
+                    file.mimeType ||
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                  upsert: false,
+                }));
+            } catch (fallbackErr) {
+              console.warn("Uint8Array fallback failed", fallbackErr);
+            }
+          }
+
+          // Final fallback: base64 via Expo FileSystem (if available)
+          if (uploadError) {
+            try {
+              // Dynamically import to avoid bundling if not needed
+              const FileSystem = await import("expo-file-system");
+              const base64 = await FileSystem.readAsStringAsync(file.uri, {
+                encoding: FileSystem.EncodingType.Base64,
+              });
+              // Supabase JS storage client in RN accepts a base64 string with contentType
+              ({ data: uploadData, error: uploadError } = await supabase.storage
+                .from("minecomplyapp-bucket")
+                .upload(fileName, base64, {
+                  contentType:
+                    file.mimeType ||
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                  upsert: false,
+                }));
+            } catch (base64Err) {
+              console.warn("Base64 fallback failed", base64Err);
+            }
+          }
+
+          if (uploadError) {
+            throw uploadError;
+          }
+
+          // Get public URL
+          const {
+            data: { publicUrl },
+          } = supabase.storage
+            .from("minecomplyapp-bucket")
+            .getPublicUrl(fileName);
+
+          // Store file info with storage path and public URL
+          const fileInfo = {
+            name: file.name,
+            uri: file.uri,
+            mimeType: file.mimeType,
+            size: file.size,
+            storagePath: fileName, // Store the storage path for deletion
+            publicUrl: publicUrl,
+          };
+
+          setUploadedEccFile(fileInfo);
+
+          Alert.alert(
+            "File Uploaded",
+            `File "${file.name}" uploaded successfully to storage!`
+          );
+
+          setData((prev) => ({
+            ...prev,
+            eccConditions: file.name,
+          }));
+        } catch (uploadError) {
+          console.error("Supabase upload error:", uploadError);
+          Alert.alert(
+            "Upload Failed",
+            "Failed to upload file to storage. Please try again."
+          );
+        } finally {
+          setIsUploadingEcc(false);
+        }
       }
     } catch (error) {
-      Alert.alert("Upload Error", "Failed to upload file. Please try again.");
+      Alert.alert("Upload Error", "Failed to select file. Please try again.");
       console.error("Document picker error:", error);
+      setIsUploadingEcc(false);
     }
   };
 
-  const removeEccFile = () => {
+  const removeEccFile = async () => {
     Alert.alert("Remove File", "Are you sure you want to remove this file?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Remove",
         style: "destructive",
-        onPress: () => {
+        onPress: async () => {
+          // Delete from Supabase storage if storagePath exists
+          if (uploadedEccFile?.storagePath) {
+            try {
+              const { error } = await supabase.storage
+                .from("minecomplyapp-bucket")
+                .remove([uploadedEccFile.storagePath]);
+
+              if (error) {
+                console.error("Failed to delete file from storage:", error);
+              }
+            } catch (error) {
+              console.error("Error deleting file from storage:", error);
+            }
+          }
+
           setUploadedEccFile(null);
           setData((prev) => ({
             ...prev,
@@ -798,10 +913,24 @@ export default function EnvironmentalComplianceScreen({
             <TouchableOpacity
               style={styles.uploadButton}
               onPress={uploadEccFile}
+              disabled={isUploadingEcc}
             >
-              <Ionicons name="cloud-upload-outline" size={24} color="#02217C" />
-              <Text style={styles.uploadButtonText}>Choose File</Text>
-              <Text style={styles.uploadHint}>PDF, DOC, or Image</Text>
+              {isUploadingEcc ? (
+                <>
+                  <ActivityIndicator color="#02217C" />
+                  <Text style={styles.uploadButtonText}>Uploading...</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons
+                    name="cloud-upload-outline"
+                    size={24}
+                    color="#02217C"
+                  />
+                  <Text style={styles.uploadButtonText}>Choose File</Text>
+                  <Text style={styles.uploadHint}>DOC or DOCX</Text>
+                </>
+              )}
             </TouchableOpacity>
           ) : (
             <View style={styles.uploadedFileContainer}>
@@ -816,6 +945,11 @@ export default function EnvironmentalComplianceScreen({
                       ? `${(uploadedEccFile.size / 1024).toFixed(2)} KB`
                       : "Size unknown"}
                   </Text>
+                  {uploadedEccFile.storagePath && (
+                    <Text style={styles.fileUploaded}>
+                      ✓ Uploaded to storage
+                    </Text>
+                  )}
                 </View>
               </View>
               <TouchableOpacity

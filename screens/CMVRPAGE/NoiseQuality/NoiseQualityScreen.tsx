@@ -7,11 +7,14 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
+import * as DocumentPicker from "expo-document-picker";
 import { CMSHeader } from "../../../components/CMSHeader";
 import { saveDraft } from "../../../lib/drafts";
+import { uploadNoiseQualityFile } from "../../../lib/storage";
 import { NoiseParameterCard } from "./components/NoiseParameterCard";
 import { FileUploadSection } from "./components/FileUploadSection";
 import { UploadedFile, QuarterData, NoiseParameter } from "./types";
@@ -20,6 +23,9 @@ import { noiseQualityScreenStyles as styles } from "./styles";
 export default function NoiseQualityScreen({ navigation, route }: any) {
   const [hasInternalNoise, setHasInternalNoise] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>(
+    {}
+  );
   const [parameters, setParameters] = useState<NoiseParameter[]>([
     {
       id: `param-${Date.now()}`,
@@ -75,6 +81,73 @@ export default function NoiseQualityScreen({ navigation, route }: any) {
         setQuarters((prev) => ({ ...prev, ...saved.quarters }));
     }
   }, [route?.params]);
+
+  // Handle file changes with Supabase upload
+  const handleFilesChange = async (newFiles: UploadedFile[]) => {
+    // Find newly added files (those without storagePath)
+    const filesToUpload = newFiles.filter(
+      (file) => !file.storagePath && !uploadingFiles[file.uri]
+    );
+
+    if (filesToUpload.length === 0) {
+      // Just update the list if no new files to upload
+      setUploadedFiles(newFiles);
+      return;
+    }
+
+    // Mark files as uploading
+    const uploadingState: Record<string, boolean> = {};
+    filesToUpload.forEach((file) => {
+      uploadingState[file.uri] = true;
+    });
+    setUploadingFiles((prev) => ({ ...prev, ...uploadingState }));
+    setUploadedFiles(newFiles);
+
+    // Upload each file
+    const uploadPromises = filesToUpload.map(async (file) => {
+      try {
+        console.log(`Uploading noise quality file: ${file.name}`);
+        const result = await uploadNoiseQualityFile({
+          uri: file.uri,
+          fileName: file.name,
+          mimeType: file.mimeType,
+        });
+
+        console.log(`✅ Successfully uploaded: ${file.name} to ${result.path}`);
+
+        // Update the file with storage path
+        setUploadedFiles((prevFiles) =>
+          prevFiles.map((f) =>
+            f.uri === file.uri ? { ...f, storagePath: result.path } : f
+          )
+        );
+
+        return { success: true, uri: file.uri, path: result.path };
+      } catch (error: any) {
+        console.error(`❌ Failed to upload ${file.name}:`, error);
+        Alert.alert(
+          "Upload Failed",
+          `Failed to upload ${file.name}: ${error.message}`
+        );
+
+        // Remove the failed file from the list
+        setUploadedFiles((prevFiles) =>
+          prevFiles.filter((f) => f.uri !== file.uri)
+        );
+
+        return { success: false, uri: file.uri };
+      } finally {
+        // Mark as no longer uploading
+        setUploadingFiles((prev) => {
+          const updated = { ...prev };
+          delete updated[file.uri];
+          return updated;
+        });
+      }
+    });
+
+    await Promise.all(uploadPromises);
+  };
 
   const handleSave = async () => {
     try {
@@ -386,168 +459,172 @@ export default function NoiseQualityScreen({ navigation, route }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerContainer}>
-        <CMSHeader
-          onBack={() => navigation.goBack()}
-          onSave={handleSave}
-          onStay={handleStay}
-          onSaveToDraft={handleSaveToDraft}
-          onDiscard={handleDiscard}
-          allowEdit={false}
-        />
-      </View>
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.sectionHeaderContainer}>
-          <View style={styles.sectionHeaderContent}>
-            <View style={styles.sectionBadge}>
-              <Text style={styles.sectionBadgeText}>B.4</Text>
-            </View>
-            <Text style={styles.sectionTitle}>
-              Noise Quality Impact Assessment
-            </Text>
-          </View>
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <SafeAreaView style={styles.container}>
+        <View style={styles.headerContainer}>
+          <CMSHeader
+            onBack={() => navigation.goBack()}
+            onSave={handleSave}
+            onStay={handleStay}
+            onSaveToDraft={handleSaveToDraft}
+            onDiscard={handleDiscard}
+            allowEdit={false}
+          />
         </View>
-        <FileUploadSection
-          uploadedFiles={uploadedFiles}
-          onFilesChange={setUploadedFiles}
-        />
-
-        <View style={styles.parametersSection}>
-          {parameters.map((param, index) => (
-            <NoiseParameterCard
-              key={param.id}
-              parameter={param}
-              index={index}
-              canDelete={parameters.length > 1}
-              onUpdate={updateParameter}
-              onDelete={removeParameter}
-            />
-          ))}
-
-          {/* Remarks placed above Add More Parameter button */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Remarks</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={remarks}
-              onChangeText={setRemarks}
-              placeholder="Enter remarks..."
-              placeholderTextColor="#94A3B8"
-              multiline
-              numberOfLines={3}
-            />
-          </View>
-
-          <TouchableOpacity style={styles.addButton} onPress={addParameter}>
-            <Ionicons name="add-circle" size={20} color="#02217C" />
-            <Text style={styles.addButtonText}>Add More Parameter</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.additionalFieldsContainer}>
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Date/Time of Sampling</Text>
-            <TextInput
-              style={styles.input}
-              value={dateTime}
-              onChangeText={setDateTime}
-              placeholder="MM/DD/YYYY HH:MM"
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Weather and Wind Direction</Text>
-            <TextInput
-              style={styles.input}
-              value={weatherWind}
-              onChangeText={setWeatherWind}
-              placeholder="Enter weather conditions..."
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
-          <View style={styles.fieldGroup}>
-            <View style={styles.labelWithAction}>
-              <Text style={styles.label}>
-                Explanation of Confirmatory Sampling
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.sectionHeaderContainer}>
+            <View style={styles.sectionHeaderContent}>
+              <View style={styles.sectionBadge}>
+                <Text style={styles.sectionBadgeText}>B.4</Text>
+              </View>
+              <Text style={styles.sectionTitle}>
+                Noise Quality Impact Assessment
               </Text>
             </View>
-            <TextInput
-              style={[
-                styles.input,
-                styles.textArea,
-                explanationNA && styles.disabledInput,
-              ]}
-              value={explanation}
-              onChangeText={setExplanation}
-              placeholder="Explain why confirmatory sampling was conducted..."
-              placeholderTextColor="#94A3B8"
-              multiline
-              numberOfLines={3}
-              editable={!explanationNA}
-            />
           </View>
-        </View>
+          <FileUploadSection
+            uploadedFiles={uploadedFiles}
+            uploadingFiles={uploadingFiles}
+            onFilesChange={handleFilesChange}
+          />
 
-        <View style={styles.overallAssessmentContainer}>
-          <View style={styles.overallHeader}>
-            <Ionicons name="analytics" size={20} color="#02217C" />
-            <Text style={styles.overallTitle}>
-              Overall Noise Quality Impact Assessment
-            </Text>
-          </View>
-        </View>
+          <View style={styles.parametersSection}>
+            {parameters.map((param, index) => (
+              <NoiseParameterCard
+                key={param.id}
+                parameter={param}
+                index={index}
+                canDelete={parameters.length > 1}
+                onUpdate={updateParameter}
+                onDelete={removeParameter}
+              />
+            ))}
 
-        {/* Changed quarters from checkboxes to bullets */}
-        <View style={styles.quartersContainer}>
-          {[
-            { key: "first", label: "1st Quarter" },
-            { key: "second", label: "2nd Quarter" },
-            { key: "third", label: "3rd Quarter" },
-            { key: "fourth", label: "4th Quarter" },
-          ].map((quarter) => (
-            <View key={quarter.key} style={styles.quarterRow}>
-              <View style={styles.bulletRow}>
-                <View style={styles.bullet} />
-                <Text style={styles.quarterLabel}>{quarter.label}</Text>
-              </View>
+            {/* Remarks placed above Add More Parameter button */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Remarks</Text>
               <TextInput
-                style={styles.quarterInput}
-                value={quarters[quarter.key as keyof QuarterData] as string}
-                onChangeText={(text) =>
-                  updateQuarter(quarter.key as keyof QuarterData, text)
-                }
-                placeholder="Enter assessment"
+                style={[styles.input, styles.textArea]}
+                value={remarks}
+                onChangeText={setRemarks}
+                placeholder="Enter remarks..."
+                placeholderTextColor="#94A3B8"
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+
+            <TouchableOpacity style={styles.addButton} onPress={addParameter}>
+              <Ionicons name="add-circle" size={20} color="#02217C" />
+              <Text style={styles.addButtonText}>Add More Parameter</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.additionalFieldsContainer}>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Date/Time of Sampling</Text>
+              <TextInput
+                style={styles.input}
+                value={dateTime}
+                onChangeText={setDateTime}
+                placeholder="MM/DD/YYYY HH:MM"
                 placeholderTextColor="#94A3B8"
               />
             </View>
-          ))}
-        </View>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Weather and Wind Direction</Text>
+              <TextInput
+                style={styles.input}
+                value={weatherWind}
+                onChangeText={setWeatherWind}
+                placeholder="Enter weather conditions..."
+                placeholderTextColor="#94A3B8"
+              />
+            </View>
+            <View style={styles.fieldGroup}>
+              <View style={styles.labelWithAction}>
+                <Text style={styles.label}>
+                  Explanation of Confirmatory Sampling
+                </Text>
+              </View>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.textArea,
+                  explanationNA && styles.disabledInput,
+                ]}
+                value={explanation}
+                onChangeText={setExplanation}
+                placeholder="Explain why confirmatory sampling was conducted..."
+                placeholderTextColor="#94A3B8"
+                multiline
+                numberOfLines={3}
+                editable={!explanationNA}
+              />
+            </View>
+          </View>
 
-        {__DEV__ && (
+          <View style={styles.overallAssessmentContainer}>
+            <View style={styles.overallHeader}>
+              <Ionicons name="analytics" size={20} color="#02217C" />
+              <Text style={styles.overallTitle}>
+                Overall Noise Quality Impact Assessment
+              </Text>
+            </View>
+          </View>
+
+          {/* Changed quarters from checkboxes to bullets */}
+          <View style={styles.quartersContainer}>
+            {[
+              { key: "first", label: "1st Quarter" },
+              { key: "second", label: "2nd Quarter" },
+              { key: "third", label: "3rd Quarter" },
+              { key: "fourth", label: "4th Quarter" },
+            ].map((quarter) => (
+              <View key={quarter.key} style={styles.quarterRow}>
+                <View style={styles.bulletRow}>
+                  <View style={styles.bullet} />
+                  <Text style={styles.quarterLabel}>{quarter.label}</Text>
+                </View>
+                <TextInput
+                  style={styles.quarterInput}
+                  value={quarters[quarter.key as keyof QuarterData] as string}
+                  onChangeText={(text) =>
+                    updateQuarter(quarter.key as keyof QuarterData, text)
+                  }
+                  placeholder="Enter assessment"
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+            ))}
+          </View>
+
+          {__DEV__ && (
+            <TouchableOpacity
+              style={[
+                styles.saveNextButton,
+                { backgroundColor: "#ff8c00", marginTop: 12 },
+              ]}
+              onPress={fillTestData}
+            >
+              <Text style={styles.saveNextButtonText}>Fill Test Data</Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
-            style={[
-              styles.saveNextButton,
-              { backgroundColor: "#ff8c00", marginTop: 12 },
-            ]}
-            onPress={fillTestData}
+            style={styles.saveNextButton}
+            onPress={handleSaveAndNext}
           >
-            <Text style={styles.saveNextButtonText}>Fill Test Data</Text>
+            <Text style={styles.saveNextButtonText}>Save & Next</Text>
+            <Ionicons name="arrow-forward" size={20} color="white" />
           </TouchableOpacity>
-        )}
-
-        <TouchableOpacity
-          style={styles.saveNextButton}
-          onPress={handleSaveAndNext}
-        >
-          <Text style={styles.saveNextButtonText}>Save & Next</Text>
-          <Ionicons name="arrow-forward" size={20} color="white" />
-        </TouchableOpacity>
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
-    </SafeAreaView>
+          <View style={styles.bottomSpacing} />
+        </ScrollView>
+      </SafeAreaView>
+    </>
   );
 }

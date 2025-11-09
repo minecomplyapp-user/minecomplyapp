@@ -11,10 +11,11 @@ export interface CMSFormFieldProps {
   subFields?: SubField[];
   showUploadImage?: boolean;
   uploadedImage?: string;
+  isUploadingImage?: boolean;
   onSpecificationChange: (text: string) => void;
   onRemarksChange: (text: string) => void;
   onWithinSpecsChange: (value: boolean) => void;
   onSubFieldChange?: (index: number, value: string) => void;
-  onUploadImage?: () => void;
-  onRemoveImage?: () => void;
+  onUploadImage?: () => void | Promise<void>;
+  onRemoveImage?: () => void | Promise<void>;
 }

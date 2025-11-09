@@ -8,12 +8,18 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation, CommonActions } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { CMSHeader } from "../../../components/CMSHeader";
 import { saveDraft } from "../../../lib/drafts";
+import {
+  createSignedDownloadUrl,
+  uploadProjectLocationImage,
+} from "../../../lib/storage";
+import { supabase } from "../../../lib/supabase";
 import { CMSTitlePill } from "./components/CMSTitlePill";
 import { CMSSectionHeader } from "./components/CMSSectionHeader";
 import { CMSFormField } from "./components//CMSFormField";
@@ -129,8 +135,21 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
 
   const [otherComponents, setOtherComponents] = useState<OtherComponent[]>([]);
   const [uploadedImages, setUploadedImages] = useState<UploadedImages>({});
+  const [imagePreviews, setImagePreviews] = useState<Record<string, string>>(
+    {}
+  );
+  const [uploadingImages, setUploadingImages] = useState<
+    Record<string, boolean>
+  >({});
 
   const pickImage = async (fieldKey: string) => {
+    if (fieldKey !== "projectLocation") {
+      console.warn(
+        `Image uploads are currently supported only for projectLocation. Ignoring field: ${fieldKey}`
+      );
+      return;
+    }
+
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert(
@@ -139,22 +158,92 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
       );
       return;
     }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
     });
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      setUploadedImages((prev) => ({
-        ...prev,
-        [fieldKey]: result.assets[0].uri,
-      }));
+
+    if (result.canceled || !result.assets?.length) {
+      return;
+    }
+
+    const asset = result.assets[0];
+    const previousPath = uploadedImages[fieldKey];
+    const previousPreview = imagePreviews[fieldKey];
+
+    setUploadingImages((prev) => ({ ...prev, [fieldKey]: true }));
+    setImagePreviews((prev) => ({ ...prev, [fieldKey]: asset.uri }));
+
+    try {
+      const { path } = await uploadProjectLocationImage({
+        uri: asset.uri,
+        fileName: asset.fileName ?? undefined,
+        mimeType: asset.mimeType,
+      });
+
+      setUploadedImages((prev) => ({ ...prev, [fieldKey]: path }));
+
+      if (previousPath && previousPath !== path) {
+        try {
+          await supabase.storage
+            .from("minecomplyapp-bucket")
+            .remove([previousPath]);
+        } catch (removeErr) {
+          console.warn(
+            "Failed to remove previous project location image from storage",
+            removeErr
+          );
+        }
+      }
+    } catch (error: any) {
+      console.error("Failed to upload project location image:", error);
+      if (previousPreview) {
+        setImagePreviews((prev) => ({
+          ...prev,
+          [fieldKey]: previousPreview,
+        }));
+      } else {
+        setImagePreviews((prev) => {
+          const updated = { ...prev };
+          delete updated[fieldKey];
+          return updated;
+        });
+      }
+      Alert.alert(
+        "Upload failed",
+        error?.message || "Could not upload the image. Please try again."
+      );
+    } finally {
+      setUploadingImages((prev) => {
+        const updated = { ...prev };
+        delete updated[fieldKey];
+        return updated;
+      });
     }
   };
 
-  const removeImage = (fieldKey: string) => {
+  const removeImage = async (fieldKey: string) => {
+    const existingPath = uploadedImages[fieldKey];
+    if (existingPath) {
+      try {
+        await supabase.storage
+          .from("minecomplyapp-bucket")
+          .remove([existingPath]);
+      } catch (error) {
+        console.warn("Failed to remove image from Supabase storage", error);
+      }
+    }
+
     setUploadedImages((prev) => {
+      const updated = { ...prev };
+      delete updated[fieldKey];
+      return updated;
+    });
+
+    setImagePreviews((prev) => {
       const updated = { ...prev };
       delete updated[fieldKey];
       return updated;
@@ -470,94 +559,164 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
   useEffect(() => {
     const params: any = route?.params || {};
     const saved = params.complianceToProjectLocationAndCoverageLimits;
+    let isCancelled = false;
+
     if (saved) {
-      if (saved.formData)
+      if (saved.formData) {
         setFormData((prev) => ({ ...prev, ...saved.formData }));
-      if (Array.isArray(saved.otherComponents))
+      }
+      if (Array.isArray(saved.otherComponents)) {
         setOtherComponents(saved.otherComponents);
-      if (saved.uploadedImages) setUploadedImages(saved.uploadedImages);
+      }
+      if (saved.uploadedImages) {
+        setUploadedImages(saved.uploadedImages);
+
+        const loadPreviews = async () => {
+          const entries = Object.entries(saved.uploadedImages).filter(
+            ([, path]) => Boolean(path)
+          );
+          if (!entries.length) {
+            setImagePreviews((prev) => {
+              const updated = { ...prev };
+              Object.keys(saved.uploadedImages).forEach((key) => {
+                delete updated[key];
+              });
+              return updated;
+            });
+            return;
+          }
+
+          const previews: Record<string, string> = {};
+          await Promise.all(
+            entries.map(async ([key, path]) => {
+              const storagePath = String(path);
+              if (!storagePath) {
+                return;
+              }
+              try {
+                const { url } = await createSignedDownloadUrl(storagePath, 600);
+                if (url) {
+                  previews[key] = url;
+                }
+              } catch (error) {
+                console.error(
+                  `Failed to fetch signed URL for project location image at ${storagePath}`,
+                  error
+                );
+              }
+            })
+          );
+
+          if (isCancelled) {
+            return;
+          }
+
+          setImagePreviews((prev) => {
+            const updated = { ...prev };
+            Object.keys(saved.uploadedImages).forEach((key) => {
+              const previewUrl = previews[key];
+              if (previewUrl) {
+                updated[key] = previewUrl;
+              } else {
+                delete updated[key];
+              }
+            });
+            return updated;
+          });
+        };
+
+        loadPreviews();
+      }
     }
+
+    return () => {
+      isCancelled = true;
+    };
   }, [route?.params]);
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.container}
-    >
-      <View style={styles.headerContainer}>
-        <CMSHeader
-          onBack={() => navigation.goBack()}
-          onSave={handleSave}
-          onStay={handleStay}
-          onSaveToDraft={handleSaveToDraft}
-          onDiscard={handleDiscard}
-        />
-      </View>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+    <>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.container}
       >
-        <CMSTitlePill title="COMPLIANCE MONITORING REPORT AND DISCUSSIONS" />
-        <CMSSectionHeader
-          sectionNumber="1."
-          title="Compliance to Project Location and Coverage Limits (As specified in ECC and/ or EPEP)"
-        />
-        <View style={styles.parametersHeader}>
-          <Text style={styles.parametersText}>PARAMETERS:</Text>
-        </View>
-        {Object.entries(formData).map(([key, field]) => (
-          <CMSFormField
-            key={key}
-            label={field.label}
-            specification={field.specification}
-            remarks={field.remarks}
-            withinSpecs={field.withinSpecs}
-            subFields={field.subFields}
-            showUploadImage={key === "projectLocation"}
-            uploadedImage={uploadedImages[key]}
-            onSpecificationChange={(text) =>
-              updateField(key as keyof FormData, "specification", text)
-            }
-            onRemarksChange={(text) =>
-              updateField(key as keyof FormData, "remarks", text)
-            }
-            onWithinSpecsChange={(value) =>
-              updateField(key as keyof FormData, "withinSpecs", value)
-            }
-            onSubFieldChange={(index, value) =>
-              updateSubField(key as keyof FormData, index, value)
-            }
-            onUploadImage={() => pickImage(key)}
-            onRemoveImage={() => removeImage(key)}
+        <View style={styles.headerContainer}>
+          <CMSHeader
+            onBack={() => navigation.goBack()}
+            onSave={handleSave}
+            onStay={handleStay}
+            onSaveToDraft={handleSaveToDraft}
+            onDiscard={handleDiscard}
           />
-        ))}
-        <CMSOtherComponents
-          components={otherComponents}
-          onComponentChange={updateOtherComponent}
-          onWithinSpecsChange={handleWithinSpecsChange}
-          onAddComponent={addOtherComponent}
-          onDeleteComponent={handleDeleteComponent}
-        />
-        {__DEV__ && (
-          <TouchableOpacity
-            style={[
-              styles.saveNextButton,
-              { backgroundColor: "#ff8c00", marginTop: 12 },
-            ]}
-            onPress={fillTestData}
-          >
-            <Text style={styles.saveNextButtonText}>Fill Test Data</Text>
-          </TouchableOpacity>
-        )}
+        </View>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <CMSTitlePill title="COMPLIANCE MONITORING REPORT AND DISCUSSIONS" />
+          <CMSSectionHeader
+            sectionNumber="1."
+            title="Compliance to Project Location and Coverage Limits (As specified in ECC and/ or EPEP)"
+          />
+          <View style={styles.parametersHeader}>
+            <Text style={styles.parametersText}>PARAMETERS:</Text>
+          </View>
+          {Object.entries(formData).map(([key, field]) => (
+            <CMSFormField
+              key={key}
+              label={field.label}
+              specification={field.specification}
+              remarks={field.remarks}
+              withinSpecs={field.withinSpecs}
+              subFields={field.subFields}
+              showUploadImage={key === "projectLocation"}
+              uploadedImage={imagePreviews[key]}
+              isUploadingImage={!!uploadingImages[key]}
+              onSpecificationChange={(text) =>
+                updateField(key as keyof FormData, "specification", text)
+              }
+              onRemarksChange={(text) =>
+                updateField(key as keyof FormData, "remarks", text)
+              }
+              onWithinSpecsChange={(value) =>
+                updateField(key as keyof FormData, "withinSpecs", value)
+              }
+              onSubFieldChange={(index, value) =>
+                updateSubField(key as keyof FormData, index, value)
+              }
+              onUploadImage={() => pickImage(key)}
+              onRemoveImage={() => removeImage(key)}
+            />
+          ))}
+          <CMSOtherComponents
+            components={otherComponents}
+            onComponentChange={updateOtherComponent}
+            onWithinSpecsChange={handleWithinSpecsChange}
+            onAddComponent={addOtherComponent}
+            onDeleteComponent={handleDeleteComponent}
+          />
+          {__DEV__ && (
+            <TouchableOpacity
+              style={[
+                styles.saveNextButton,
+                { backgroundColor: "#ff8c00", marginTop: 12 },
+              ]}
+              onPress={fillTestData}
+            >
+              <Text style={styles.saveNextButtonText}>Fill Test Data</Text>
+            </TouchableOpacity>
+          )}
 
-        <TouchableOpacity style={styles.saveNextButton} onPress={handleSave}>
-          <Text style={styles.saveNextButtonText}>Save & Next</Text>
-          <Ionicons name="arrow-forward" size={20} color="white" />
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <TouchableOpacity style={styles.saveNextButton} onPress={handleSave}>
+            <Text style={styles.saveNextButtonText}>Save & Next</Text>
+            <Ionicons name="arrow-forward" size={20} color="white" />
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </>
   );
 };
 
