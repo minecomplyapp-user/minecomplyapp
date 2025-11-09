@@ -480,7 +480,7 @@ export default function WasteManagementScreen({ navigation, route }: any) {
   const handleGoToSummary = async () => {
     try {
       console.log("Navigating to summary with current waste management data");
-      
+
       const prevPageData: any = route.params || {};
 
       // Prepare current page data
@@ -511,15 +511,20 @@ export default function WasteManagementScreen({ navigation, route }: any) {
         fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
         mmtInfo: prevPageData.mmtInfo,
         executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken: prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits: prevPageData.complianceToProjectLocationAndCoverageLimits,
-        complianceToImpactManagementCommitments: prevPageData.complianceToImpactManagementCommitments,
+        processDocumentationOfActivitiesUndertaken:
+          prevPageData.processDocumentationOfActivitiesUndertaken,
+        complianceToProjectLocationAndCoverageLimits:
+          prevPageData.complianceToProjectLocationAndCoverageLimits,
+        complianceToImpactManagementCommitments:
+          prevPageData.complianceToImpactManagementCommitments,
         airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
         waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
         noiseQualityImpactAssessment: prevPageData.noiseQualityImpactAssessment,
         complianceWithGoodPracticeInSolidAndHazardousWasteManagement, // Current page data
-        complianceWithGoodPracticeInChemicalSafetyManagement: prevPageData.complianceWithGoodPracticeInChemicalSafetyManagement,
-        complaintsVerificationAndManagement: prevPageData.complaintsVerificationAndManagement,
+        complianceWithGoodPracticeInChemicalSafetyManagement:
+          prevPageData.complianceWithGoodPracticeInChemicalSafetyManagement,
+        complaintsVerificationAndManagement:
+          prevPageData.complaintsVerificationAndManagement,
         recommendationsData: prevPageData.recommendationsData,
         attendanceUrl: prevPageData.attendanceUrl,
         savedAt: new Date().toISOString(),

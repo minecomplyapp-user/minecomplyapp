@@ -235,7 +235,7 @@ const EIAComplianceScreen: React.FC<{
   const handleGoToSummary = async () => {
     try {
       console.log("Navigating to summary with current EIA compliance data");
-      
+
       const prevPageData: any = route.params || {};
 
       // Prepare current page data
@@ -265,15 +265,20 @@ const EIAComplianceScreen: React.FC<{
         fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
         mmtInfo: prevPageData.mmtInfo,
         executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken: prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits: prevPageData.complianceToProjectLocationAndCoverageLimits,
+        processDocumentationOfActivitiesUndertaken:
+          prevPageData.processDocumentationOfActivitiesUndertaken,
+        complianceToProjectLocationAndCoverageLimits:
+          prevPageData.complianceToProjectLocationAndCoverageLimits,
         complianceToImpactManagementCommitments, // Current page data
         airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
         waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
         noiseQualityImpactAssessment: prevPageData.noiseQualityImpactAssessment,
-        complianceWithGoodPracticeInSolidAndHazardousWasteManagement: prevPageData.complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
-        complianceWithGoodPracticeInChemicalSafetyManagement: prevPageData.complianceWithGoodPracticeInChemicalSafetyManagement,
-        complaintsVerificationAndManagement: prevPageData.complaintsVerificationAndManagement,
+        complianceWithGoodPracticeInSolidAndHazardousWasteManagement:
+          prevPageData.complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
+        complianceWithGoodPracticeInChemicalSafetyManagement:
+          prevPageData.complianceWithGoodPracticeInChemicalSafetyManagement,
+        complaintsVerificationAndManagement:
+          prevPageData.complaintsVerificationAndManagement,
         recommendationsData: prevPageData.recommendationsData,
         attendanceUrl: prevPageData.attendanceUrl,
         savedAt: new Date().toISOString(),
@@ -542,13 +547,13 @@ const EIAComplianceScreen: React.FC<{
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.titleContainer}>
-        <View style={styles.titleAccent}>
-          <Text style={styles.titleAccentText}>2.</Text>
+          <View style={styles.titleAccent}>
+            <Text style={styles.titleAccentText}>2.</Text>
+          </View>
+          <Text style={styles.titleText}>
+            Compliance to Impact Management Commitments in EIA report & EPEP
+          </Text>
         </View>
-        <Text style={styles.titleText}>
-          Compliance to Impact Management Commitments in EIA report & EPEP
-        </Text>
-      </View>
         <ProjectImpacts
           preConstruction={preConstruction}
           construction={construction}

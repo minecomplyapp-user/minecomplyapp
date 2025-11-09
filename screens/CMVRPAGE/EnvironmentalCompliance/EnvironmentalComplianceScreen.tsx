@@ -489,7 +489,7 @@ export default function EnvironmentalComplianceScreen({
   const handleGoToSummary = async () => {
     try {
       console.log("Navigating to summary with current air quality data");
-      
+
       const prevPageData: any = route.params || {};
 
       // Prepare current page data
@@ -521,15 +521,21 @@ export default function EnvironmentalComplianceScreen({
         fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
         mmtInfo: prevPageData.mmtInfo,
         executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken: prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits: prevPageData.complianceToProjectLocationAndCoverageLimits,
-        complianceToImpactManagementCommitments: prevPageData.complianceToImpactManagementCommitments,
+        processDocumentationOfActivitiesUndertaken:
+          prevPageData.processDocumentationOfActivitiesUndertaken,
+        complianceToProjectLocationAndCoverageLimits:
+          prevPageData.complianceToProjectLocationAndCoverageLimits,
+        complianceToImpactManagementCommitments:
+          prevPageData.complianceToImpactManagementCommitments,
         airQualityImpactAssessment, // Current page data
         waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
         noiseQualityImpactAssessment: prevPageData.noiseQualityImpactAssessment,
-        complianceWithGoodPracticeInSolidAndHazardousWasteManagement: prevPageData.complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
-        complianceWithGoodPracticeInChemicalSafetyManagement: prevPageData.complianceWithGoodPracticeInChemicalSafetyManagement,
-        complaintsVerificationAndManagement: prevPageData.complaintsVerificationAndManagement,
+        complianceWithGoodPracticeInSolidAndHazardousWasteManagement:
+          prevPageData.complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
+        complianceWithGoodPracticeInChemicalSafetyManagement:
+          prevPageData.complianceWithGoodPracticeInChemicalSafetyManagement,
+        complaintsVerificationAndManagement:
+          prevPageData.complaintsVerificationAndManagement,
         recommendationsData: prevPageData.recommendationsData,
         attendanceUrl: prevPageData.attendanceUrl,
         savedAt: new Date().toISOString(),

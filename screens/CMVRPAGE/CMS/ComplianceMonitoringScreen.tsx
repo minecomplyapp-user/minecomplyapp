@@ -436,7 +436,7 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
   const handleGoToSummary = async () => {
     try {
       console.log("Navigating to summary with current data");
-      
+
       // Prepare current page data
       const complianceToProjectLocationAndCoverageLimits = {
         formData,
@@ -446,7 +446,7 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
 
       // Collect all data from route params and current page
       const prevPageData: any = route.params || {};
-      
+
       // Prepare complete snapshot with all sections
       const completeData = {
         generalInfo: prevPageData.generalInfo,

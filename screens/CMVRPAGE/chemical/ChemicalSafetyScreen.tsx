@@ -299,7 +299,7 @@ export default function ChemicalSafetyScreen({ navigation, route }: any) {
   const handleGoToSummary = async () => {
     try {
       console.log("Navigating to summary with current chemical safety data");
-      
+
       const prevPageData: any = route.params || {};
 
       // Prepare current page data
@@ -327,13 +327,17 @@ export default function ChemicalSafetyScreen({ navigation, route }: any) {
         fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
         mmtInfo: prevPageData.mmtInfo,
         executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken: prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits: prevPageData.complianceToProjectLocationAndCoverageLimits,
-        complianceToImpactManagementCommitments: prevPageData.complianceToImpactManagementCommitments,
+        processDocumentationOfActivitiesUndertaken:
+          prevPageData.processDocumentationOfActivitiesUndertaken,
+        complianceToProjectLocationAndCoverageLimits:
+          prevPageData.complianceToProjectLocationAndCoverageLimits,
+        complianceToImpactManagementCommitments:
+          prevPageData.complianceToImpactManagementCommitments,
         airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
         waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
         noiseQualityImpactAssessment: prevPageData.noiseQualityImpactAssessment,
-        complianceWithGoodPracticeInSolidAndHazardousWasteManagement: prevPageData.complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
+        complianceWithGoodPracticeInSolidAndHazardousWasteManagement:
+          prevPageData.complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
         complianceWithGoodPracticeInChemicalSafetyManagement, // Current page data
         complaintsVerificationAndManagement, // Current page data
         recommendationsData: prevPageData.recommendationsData,
