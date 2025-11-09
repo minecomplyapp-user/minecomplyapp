@@ -10,11 +10,15 @@ import {
   RefreshControl,
   Linking,
   Platform,
+  Image,
+  ActivityIndicator,
+  Modal,
+  Dimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { Camera, Upload, Download, Trash2, ClipboardList } from "lucide-react-native";
+import { Camera, Upload, Download, Trash2, ClipboardList, X, ChevronLeft, ChevronRight } from "lucide-react-native";
 import { CustomHeader } from "../../components/CustomHeader";
 import { theme } from "../../theme/theme";
 import { epepStyles as styles } from "./styles/epepScreen";
@@ -25,12 +29,120 @@ import {
 } from "../../lib/storage";
 import { deleteFiles } from "../../lib/api";
 
+// Helper: cache signed download URLs in AsyncStorage to avoid frequent API calls
+const SIGNED_URL_PREFIX = "@epep_signed_url:";
+async function getCachedSignedUrl(path: string, expiresIn = 3600) {
+  if (!path) throw new Error("No path");
+  const key = `${SIGNED_URL_PREFIX}${path}`;
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.url && parsed?.expiresAt && Date.now() < parsed.expiresAt) {
+        return parsed.url as string;
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  const dl = await createSignedDownloadUrl(path, expiresIn);
+  const expiresAt = Date.now() + expiresIn * 1000 - 30000; // 30s buffer
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify({ url: dl.url, expiresAt }));
+  } catch (e) {
+    // ignore
+  }
+  return dl.url;
+}
+
+function FullscreenImageViewer({ images, visible, index, onClose, onIndexChange }: any) {
+  const [current, setCurrent] = useState(index || 0);
+  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    setCurrent(index || 0);
+  }, [index, visible]);
+
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const doc = images?.[current];
+      if (!doc) return;
+      if (doc.url) {
+        setImageUrl(doc.url);
+        return;
+      }
+      if (!doc.path) return;
+      try {
+        setLoading(true);
+        const url = await getCachedSignedUrl(doc.path, 3600);
+        if (mounted) setImageUrl(url);
+      } catch (e) {
+        // ignore
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [current, images]);
+
+  const width = Dimensions.get("window").width;
+  const height = Dimensions.get("window").height;
+
+  const goto = (i: number) => {
+    const clamped = Math.max(0, Math.min((images || []).length - 1, i));
+    setCurrent(clamped);
+    onIndexChange?.(clamped);
+  };
+
+  if (!images || images.length === 0) return null;
+
+  return (
+    <Modal visible={!!visible} animationType="fade" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: "#000" }}>
+        <View style={{ position: "absolute", top: 40, right: 20, zIndex: 3 }}>
+          <TouchableOpacity onPress={onClose}>
+            <X color="#fff" size={28} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          {loading ? (
+            <ActivityIndicator size="large" color={theme.colors.primaryDark} />
+          ) : imageUrl ? (
+            <Image source={{ uri: imageUrl }} style={{ width, height, resizeMode: "contain" }} />
+          ) : (
+            <Text style={{ color: "#fff" }}>No preview available</Text>
+          )}
+        </View>
+
+        <View style={{ position: "absolute", left: 10, top: "50%", zIndex: 3 }}>
+          <TouchableOpacity disabled={current <= 0} onPress={() => goto(current - 1)}>
+            <ChevronLeft color="#fff" size={36} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ position: "absolute", right: 10, top: "50%", zIndex: 3 }}>
+          <TouchableOpacity disabled={current >= images.length - 1} onPress={() => goto(current + 1)}>
+            <ChevronRight color="#fff" size={36} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 type EpepDoc = {
   id: string;
   fileName: string;
   createdAt?: string | null;
   url?: string;
   path?: string;
+  contentType?: string | null;
 };
 
 export default function EPEPScreen({ navigation }: any) {
@@ -39,6 +151,8 @@ export default function EPEPScreen({ navigation }: any) {
   const [docs, setDocs] = useState<EpepDoc[]>([]);
 
   const [refreshing, setRefreshing] = useState(false);
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -68,6 +182,8 @@ export default function EPEPScreen({ navigation }: any) {
   React.useEffect(() => {
     loadDocs();
   }, []);
+
+  
 
   const handleDelete = (id: string) => {
     Alert.alert("Delete Document", "Are you sure you want to delete this document?", [
@@ -100,7 +216,7 @@ export default function EPEPScreen({ navigation }: any) {
     (async () => {
       try {
         if (doc.path) {
-          const { url } = await createSignedDownloadUrl(doc.path, 60);
+          const url = await getCachedSignedUrl(doc.path, 60);
           const can = await Linking.canOpenURL(url);
           if (can) {
             await Linking.openURL(url);
@@ -125,7 +241,7 @@ export default function EPEPScreen({ navigation }: any) {
     (async () => {
       try {
         if (doc.path) {
-          const { url } = await createSignedDownloadUrl(doc.path, 60);
+          const url = await getCachedSignedUrl(doc.path, 60);
           const can = await Linking.canOpenURL(url);
           if (can) await Linking.openURL(url);
           else Alert.alert("Open", "Cannot open file URL");
@@ -161,13 +277,23 @@ export default function EPEPScreen({ navigation }: any) {
 
       Alert.alert("Uploading", `Uploading ${fileName}...`);
 
-      const uploadRes = await uploadFileFromUri({ uri, fileName, contentType: mimeType });
+  const uploadRes = await uploadFileFromUri({ uri, fileName, contentType: mimeType, folder: 'epep/upload' });
+
+      // Try to obtain a signed URL for immediate preview/download
+      let signedUrl: string | undefined = undefined;
+      try {
+        signedUrl = await getCachedSignedUrl(uploadRes.path, 3600);
+      } catch (e) {
+        // ignore signing error; we'll still store the path
+      }
 
       const newDoc: EpepDoc = {
         id: Date.now().toString(),
         fileName,
         createdAt: new Date().toISOString(),
         path: uploadRes.path,
+        url: signedUrl,
+        contentType: mimeType || null,
       };
 
       const updated = [newDoc, ...docs];
@@ -202,13 +328,23 @@ export default function EPEPScreen({ navigation }: any) {
 
       Alert.alert("Uploading", `Uploading ${fileName}...`);
       // Use uploadAttachment helper for images
-      const uploadRes = await uploadAttachment(uri);
+  const uploadRes = await uploadAttachment(uri, undefined, 'epep/scan');
+
+      // Get a signed URL for preview
+      let signedUrl: string | undefined = undefined;
+      try {
+        signedUrl = await getCachedSignedUrl(uploadRes.path, 3600);
+      } catch (e) {
+        // ignore signing error
+      }
 
       const newDoc: EpepDoc = {
         id: Date.now().toString(),
         fileName,
         createdAt: new Date().toISOString(),
         path: uploadRes.path,
+        url: signedUrl,
+        contentType: "image/jpeg",
       };
 
       const updated = [newDoc, ...docs];
@@ -221,6 +357,15 @@ export default function EPEPScreen({ navigation }: any) {
       Alert.alert("Scan failed", e?.message || "Could not scan/upload photo");
     }
   };
+
+  // Split docs into images (gallery) and other uploaded documents
+  const isImageDoc = (d: EpepDoc) => {
+    if (d.contentType && d.contentType.startsWith("image/")) return true;
+    return /\.(jpe?g|png|gif|webp|heic)$/i.test(d.fileName || "");
+  };
+
+  const imageDocs = docs.filter(isImageDoc);
+  const otherDocs = docs.filter((d) => !isImageDoc(d));
 
   return (
     <SafeAreaView style={styles.safeContainer}>
@@ -248,22 +393,56 @@ export default function EPEPScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
+        {/* Gallery for scanned images */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Saved EPEP Documents</Text>
+            <Text style={styles.sectionTitle}>Gallery</Text>
           </View>
 
           <View style={styles.recordsContainer}>
-            {docs.length === 0 ? (
+            {imageDocs.length === 0 ? (
               <View style={styles.emptyStateCard}>
                 <View style={styles.emptyState}>
                   <ClipboardList color={theme.colors.textLight} size={48} />
-                  <Text style={styles.emptyStateTitle}>No documents</Text>
-                  <Text style={styles.emptyStateText}>You don't have any saved EPEP documents yet.</Text>
+                  <Text style={styles.emptyStateTitle}>No images</Text>
+                  <Text style={styles.emptyStateText}>You don't have any scanned images yet.</Text>
                 </View>
               </View>
             ) : (
-              docs.map((doc) => (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8 }}>
+                {imageDocs.map((doc, idx) => (
+                  <ImageThumbnail
+                    key={doc.id}
+                    doc={doc}
+                    onDelete={() => handleDelete(doc.id)}
+                    onOpen={() => {
+                      setViewerIndex(idx);
+                      setViewerVisible(true);
+                    }}
+                  />
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+
+        {/* Uploaded documents (non-image) */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Uploaded Documents</Text>
+          </View>
+
+          <View style={styles.recordsContainer}>
+            {otherDocs.length === 0 ? (
+              <View style={styles.emptyStateCard}>
+                <View style={styles.emptyState}>
+                  <ClipboardList color={theme.colors.textLight} size={48} />
+                  <Text style={styles.emptyStateTitle}>No uploaded files</Text>
+                  <Text style={styles.emptyStateText}>You don't have any uploaded documents yet.</Text>
+                </View>
+              </View>
+            ) : (
+              otherDocs.map((doc) => (
                 <DocCard
                   key={doc.id}
                   doc={doc}
@@ -275,6 +454,14 @@ export default function EPEPScreen({ navigation }: any) {
             )}
           </View>
         </View>
+        {/* Fullscreen viewer for gallery images */}
+        <FullscreenImageViewer
+          images={imageDocs}
+          visible={viewerVisible}
+          index={viewerIndex}
+          onClose={() => setViewerVisible(false)}
+          onIndexChange={(i: number) => setViewerIndex(i)}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -309,5 +496,56 @@ function DocCard({ doc, onDelete, onDownload, onOpen }: any) {
         </View>
       </TouchableOpacity>
     </Animated.View>
+  );
+}
+
+function ImageThumbnail({ doc, onOpen, onDelete }: any) {
+  const [imageUrl, setImageUrl] = useState<string | undefined>(doc.url);
+  const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (imageUrl) return;
+      if (!doc.path) return;
+      try {
+        setLoading(true);
+        const dlUrl = await getCachedSignedUrl(doc.path, 3600);
+        if (mounted) setImageUrl(dlUrl);
+      } catch (e) {
+        // ignore
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [doc.path]);
+
+  return (
+    <View style={{ marginRight: 12, width: 120 }}>
+      <TouchableOpacity activeOpacity={0.9} onPress={() => onOpen && onOpen()} style={{ borderRadius: 8, overflow: 'hidden', backgroundColor: '#f3f3f3', height: 160, justifyContent: 'center', alignItems: 'center' }}>
+        {loading ? (
+          <ActivityIndicator size="small" color={theme.colors.primaryDark} />
+        ) : imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={{ width: 120, height: 160, resizeMode: 'cover' }} />
+        ) : (
+          <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ color: theme.colors.textLight }}>No preview</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+        <TouchableOpacity style={[styles.iconButton, styles.downloadButton]} onPress={() => onOpen && onOpen()}>
+          <Download size={16} color={theme.colors.primaryDark} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.iconButton, styles.deleteButton]} onPress={() => onDelete && onDelete(doc.id)}>
+          <Trash2 size={16} color={theme.colors.error} />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
