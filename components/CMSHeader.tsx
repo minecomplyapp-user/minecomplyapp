@@ -159,9 +159,9 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({
           </View>
         )}
 
-        {/* Save Button */}
+        {/* Exit Button */}
         <TouchableOpacity onPress={handleHeaderSave} style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>Save</Text>
+          <Text style={styles.saveButtonText}>Exit</Text>
         </TouchableOpacity>
       </View>
 
