@@ -16,7 +16,6 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../contexts/AuthContext";
 import { SafeAreaView } from "react-native-safe-area-context";
-
 import { useFileName } from "../../contexts/FileNameContext";
 import {
   createCMVRReport,
@@ -1135,9 +1134,6 @@ const CMVRDocumentExportScreen = () => {
     null
   );
   const [isGenerating, setIsGenerating] = useState(false);
-  const [documentGenerated, setDocumentGenerated] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const selectedFormat: "docx" = "docx";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
@@ -1574,6 +1570,35 @@ const CMVRDocumentExportScreen = () => {
     }
   };
 
+  const handleGenerateDocument = async () => {
+    if (!hasSubmitted || !submittedReportId) {
+      Alert.alert(
+        "Submit Required",
+        "Please submit your report to the database first.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      await generateCMVRDocx(submittedReportId, resolvedFileName);
+      Alert.alert(
+        "Download Started",
+        "Your browser will open to download the DOCX file.",
+        [{ text: "OK" }]
+      );
+    } catch (err: any) {
+      console.error("Generate DOCX failed:", err);
+      Alert.alert(
+        "Generation Failed",
+        err?.message || "Unable to generate document. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const fileName = resolvedFileName;
   const generalInfo =
     draftSnapshot?.generalInfo ?? routeGeneralInfo ?? defaultGeneralInfo;
@@ -1703,84 +1728,6 @@ const CMVRDocumentExportScreen = () => {
     documentation,
   } as DraftSnapshot;
 
-  const handleGenerateDocument = async () => {
-    if (!hasSubmitted || !submittedReportId) {
-      Alert.alert(
-        "Submit Required",
-        "Please submit your report to the database first.",
-        [{ text: "OK" }]
-      );
-      return;
-    }
-    setIsGenerating(true);
-    try {
-      await generateCMVRDocx(submittedReportId, fileName);
-      Alert.alert(
-        "Download Started",
-        "Your browser will open to download the DOCX file.",
-        [{ text: "OK" }]
-      );
-      setDocumentGenerated(true);
-    } catch (err: any) {
-      console.error("Generate DOCX failed:", err);
-      Alert.alert(
-        "Generation Failed",
-        err?.message || "Unable to generate document. Please try again.",
-        [{ text: "OK" }]
-      );
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handlePreview = () => {
-    console.log("Opening DOCX preview...");
-  };
-
-  const handleDownload = async () => {
-    if (!documentGenerated) {
-      Alert.alert(
-        "Generate Required",
-        "Please generate the document before attempting to download it.",
-        [{ text: "OK" }]
-      );
-      return;
-    }
-    if (!submittedReportId) {
-      Alert.alert(
-        "Missing Report",
-        "The report identifier is not available. Please resubmit and try again.",
-        [{ text: "OK" }]
-      );
-      return;
-    }
-    setIsDownloading(true);
-    try {
-      await generateCMVRDocx(submittedReportId, fileName);
-      Alert.alert(
-        "Download Started",
-        "Your browser will open to download the file.",
-        [{ text: "OK" }]
-      );
-    } catch (err: any) {
-      console.error("Download DOCX failed:", err);
-      Alert.alert(
-        "Download Failed",
-        err?.message || "Unable to download the document. Please try again.",
-        [{ text: "OK" }]
-      );
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const getDisplayValue = (
-    value: string | undefined | null,
-    fallback = "Not provided"
-  ) => {
-    return value && value.trim() !== "" ? value : fallback;
-  };
-
   const navigateToGeneralInfo = () => {
     navigation.navigate("CMVRReport", {
       ...baseNavParams,
@@ -1863,6 +1810,13 @@ const CMVRDocumentExportScreen = () => {
     } as any);
   };
 
+  const getDisplayValue = (
+    value: string | undefined | null,
+    fallback = "Not provided"
+  ) => {
+    return value && value.trim() !== "" ? value : fallback;
+  };
+
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: false,
@@ -1870,26 +1824,26 @@ const CMVRDocumentExportScreen = () => {
   }, [navigation]);
 
   return (
-<View style={styles.container}>
-  <SafeAreaView style={{ flex: 0, backgroundColor: "white" }}>
-    <View style={styles.header}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Ionicons name="close" size={24} color="#1E293B" />
-      </TouchableOpacity>
-      <View style={styles.headerTextContainer}>
-        <Text style={styles.headerTitle}>CMVR Report Export</Text>
-        <Text style={styles.headerSubtitle}>
-          Generate and download your report
-        </Text>
-      </View>
-      <TouchableOpacity onPress={handleExit}>
-        <Text style={styles.exitText}>Exit</Text>
-      </TouchableOpacity>
-    </View>
-  </SafeAreaView>
+    <View style={styles.container}>
+      <SafeAreaView style={{ flex: 0, backgroundColor: "white" }}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="close" size={24} color="#1E293B" />
+          </TouchableOpacity>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerTitle}>CMVR Report Export</Text>
+            <Text style={styles.headerSubtitle}>
+              Generate and download your report
+            </Text>
+          </View>
+          <TouchableOpacity onPress={handleExit}>
+            <Text style={styles.exitText}>Exit</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -2077,67 +2031,53 @@ const CMVRDocumentExportScreen = () => {
             onPress={navigateToAttendanceSelection}
           />
         </View>
-
-        {documentGenerated && (
-          <View style={styles.generatedSection}>
-            <View style={styles.generatedCard}>
-              <View style={styles.generatedIconContainer}>
-                <Ionicons name="checkmark-circle" size={48} color="#10B981" />
-              </View>
-              <Text style={styles.generatedTitle} numberOfLines={1}>
-                {(fileName || "CMVR_Report") + ".docx"}
-              </Text>
-              <Text style={styles.generatedSubtitle}>
-                Document ready for download
-              </Text>
-              <Text style={styles.generatedDate}>
-                Generated on {new Date().toLocaleDateString()}
-              </Text>
-            </View>
-          </View>
-        )}
-
         <View style={styles.actionSection}>
-          {!documentGenerated ? (
+          {!hasSubmitted ? (
             <>
-              {!hasSubmitted && (
-                <TouchableOpacity
-                  style={[
-                    styles.submitButton,
-                    isSubmitting && styles.buttonDisabled,
-                  ]}
-                  onPress={handleSubmitToSupabase}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <ActivityIndicator size="small" color="white" />
-                      <Text style={styles.submitButtonText}>
-                        Submitting...
-                      </Text>
-                    </>
-                  ) : (
-                    <>
-                      <Ionicons
-                        name="cloud-upload"
-                        size={20}
-                        color="white"
-                      />
-                      <Text style={styles.submitButtonText}>
-                        Submit to Database
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              )}
-              
+              <TouchableOpacity
+                style={[
+                  styles.submitButton,
+                  isSubmitting && styles.buttonDisabled,
+                ]}
+                onPress={handleSubmitToSupabase}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <ActivityIndicator size="small" color="white" />
+                    <Text style={styles.submitButtonText}>
+                      Submitting...
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Ionicons
+                      name="cloud-upload"
+                      size={20}
+                      color="white"
+                    />
+                    <Text style={styles.submitButtonText}>
+                      Submit to Database
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              <View style={styles.infoBannerContainer}>
+                <Ionicons name="information-circle" size={18} color="#1E40AF" />
+                <Text style={styles.infoBannerText}>
+                  Submit your report to the database first to enable document generation.
+                </Text>
+              </View>
+            </>
+          ) : (
+            <>
               <TouchableOpacity
                 style={[
                   styles.generateButton,
-                  (isGenerating || !hasSubmitted) && styles.buttonDisabled,
+                  isGenerating && styles.buttonDisabled,
                 ]}
                 onPress={handleGenerateDocument}
-                disabled={isGenerating || !hasSubmitted}
+                disabled={isGenerating}
               >
                 {isGenerating ? (
                   <>
@@ -2151,106 +2091,59 @@ const CMVRDocumentExportScreen = () => {
                     <Ionicons name="document-text" size={20} color="white" />
                     <Text style={styles.generateButtonText}>
                       Generate Docx
-                      {!hasSubmitted ? " (Submit Required)" : ""}
                     </Text>
                   </>
                 )}
               </TouchableOpacity>
-
-              {hasSubmitted && submittedReportId && (
-                <>
-                  <TouchableOpacity
-                    style={[
-                      styles.updateButton,
-                      isUpdating && styles.buttonDisabled,
-                    ]}
-                    onPress={handleSubmitUpdate}
-                    disabled={isUpdating}
-                  >
-                    {isUpdating ? (
-                      <>
-                        <ActivityIndicator size="small" color="white" />
-                        <Text style={styles.updateButtonText}>Updating...</Text>
-                      </>
-                    ) : (
-                      <>
-                        <Ionicons name="refresh" size={20} color="white" />
-                        <Text style={styles.updateButtonText}>Update</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.deleteButton,
-                      isDeleting && styles.buttonDisabled,
-                    ]}
-                    onPress={handleDeleteFromSupabase}
-                    disabled={isDeleting}
-                  >
-                    {isDeleting ? (
-                      <>
-                        <ActivityIndicator size="small" color="white" />
-                        <Text style={styles.deleteButtonText}>Deleting...</Text>
-                      </>
-                    ) : (
-                      <>
-                        <Ionicons name="trash" size={20} color="white" />
-                        <Text style={styles.deleteButtonText}>Delete</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </>
-              )}
-
-              {!hasSubmitted && (
-                <View style={styles.infoBannerContainer}>
-                  <Ionicons name="information-circle" size={18} color="#1E40AF" />
-                  <Text style={styles.infoBannerText}>
-                    Submit your report to the database first to enable document generation.
-                  </Text>
-                </View>
-              )}
-              {submitError && (
-                <View style={styles.errorContainer}>
-                  <Ionicons name="alert-circle" size={20} color="#DC2626" />
-                  <Text style={styles.errorText}>{submitError}</Text>
-                </View>
-              )}
-            </>
-          ) : (
-            <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={styles.previewButton}
-                onPress={handlePreview}
-              >
-                <Ionicons name="eye" size={20} color="white" />
-                <Text style={styles.previewButtonText}>Preview</Text>
-              </TouchableOpacity>
               <TouchableOpacity
                 style={[
-                  styles.downloadButton,
-                  isDownloading && styles.buttonDisabled,
+                  styles.updateButton,
+                  isUpdating && styles.buttonDisabled,
                 ]}
-                onPress={handleDownload}
-                disabled={isDownloading}
+                onPress={handleSubmitUpdate}
+                disabled={isUpdating}
               >
-                {isDownloading ? (
+                {isUpdating ? (
                   <>
                     <ActivityIndicator size="small" color="white" />
-                    <Text style={styles.downloadButtonText}>Preparing...</Text>
+                    <Text style={styles.updateButtonText}>Updating...</Text>
                   </>
                 ) : (
                   <>
-                    <Ionicons name="download" size={20} color="white" />
-                    <Text style={styles.downloadButtonText}>Download</Text>
+                    <Ionicons name="refresh" size={20} color="white" />
+                    <Text style={styles.updateButtonText}>Update</Text>
                   </>
                 )}
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.deleteButton,
+                  isDeleting && styles.buttonDisabled,
+                ]}
+                onPress={handleDeleteFromSupabase}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <ActivityIndicator size="small" color="white" />
+                    <Text style={styles.deleteButtonText}>Deleting...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Ionicons name="trash" size={20} color="white" />
+                    <Text style={styles.deleteButtonText}>Delete</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
+          {submitError && (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle" size={20} color="#DC2626" />
+              <Text style={styles.errorText}>{submitError}</Text>
             </View>
           )}
         </View>
-
         <View style={styles.infoNote}>
           <Ionicons name="information-circle" size={20} color="#2563EB" />
           <View style={styles.infoTextContainer}>
@@ -2262,7 +2155,6 @@ const CMVRDocumentExportScreen = () => {
             </Text>
           </View>
         </View>
-
         <View style={styles.draftNote}>
           <Ionicons name="save-outline" size={20} color="#F59E0B" />
           <View style={styles.infoTextContainer}>
@@ -2274,7 +2166,6 @@ const CMVRDocumentExportScreen = () => {
             </Text>
           </View>
         </View>
-
         <View style={{ height: 20 }} />
       </ScrollView>
     </View>
@@ -2328,28 +2219,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F8FAFC",
   },
- header: {
-  flexDirection: "row",
-  alignItems: "center",
-  paddingHorizontal: isTablet ? 32 : 20,
-  paddingTop: Platform.OS === "ios" ? 40 : 20, // Reduced paddingTop for both platforms
-  paddingBottom: isTablet ? 24 : 20,
-  backgroundColor: "white",
-  borderBottomWidth: 1,
-  borderBottomColor: "#E2E8F0",
-  ...Platform.select({
-    ios: {
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 8,
-    },
-    android: {
-      elevation: 2,
-    },
-  }),
-},
-
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: isTablet ? 32 : 20,
+    paddingTop: Platform.OS === "ios" ? 40 : 20,
+    paddingBottom: isTablet ? 24 : 20,
+    backgroundColor: "white",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
   backButton: {
     padding: isTablet ? 12 : 8,
     marginRight: isTablet ? 20 : 16,
@@ -2605,21 +2495,21 @@ const styles = StyleSheet.create({
     marginBottom: isTablet ? 32 : 20,
     paddingHorizontal: 4,
   },
- generateButton: {
-  backgroundColor: "#1E40AF",
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  paddingVertical: isTablet ? 22 : 18,
-  borderRadius: isTablet ? 20 : 16,
-  gap: isTablet ? 16 : 12,
-  shadowColor: "#1E40AF",
-  shadowOffset: { width: 0, height: 6 },
-  shadowOpacity: 0.4,
-  shadowRadius: 12,
-  elevation: 6,
-  marginTop: isTablet ? 32 : 24,  
-},
+  generateButton: {
+    backgroundColor: "#1E40AF",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: isTablet ? 22 : 18,
+    borderRadius: isTablet ? 20 : 16,
+    gap: isTablet ? 16 : 12,
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
+    marginTop: isTablet ? 32 : 24,
+  },
   submitButton: {
     backgroundColor: "#10B981",
     flexDirection: "row",
