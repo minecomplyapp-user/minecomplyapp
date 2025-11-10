@@ -219,68 +219,79 @@ export const createAttendanceStyles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.primaryDark,
   },
+// Modal Container
   signatureModalContainer: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface, // Use white surface for the modal
   },
+
+  // Modal Header
   signatureModalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: theme.spacing.md,
+    paddingBottom: theme.spacing.lg, // Extra space below header
   },
   signatureModalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: theme.colors.text,
+    fontFamily: theme.typography.bold,
+    fontSize: theme.typography.sizes.lg, // 20px
+    color: theme.colors.primaryDark,
+  },
+
+  // Modal Canvas Area
+  signatureModalCanvas: {
+    flex: 1, // This is key to make the canvas fill the middle space
+    paddingHorizontal: theme.spacing.md, // Add padding so canvas isn't edge-to-edge
+  },
+
+  // Modal Footer
+  signatureModalFooter: {
+    padding: theme.spacing.md,
+    paddingTop: theme.spacing.lg, // Extra space above buttons
+    backgroundColor: theme.colors.surface,
+    // Add a subtle top border for separation
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.background, // Use the light gray background as border
   },
   signatureModalButtons: {
-    flexDirection: "row",
-    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md, // Use 'gap' for modern spacing between buttons
   },
+
+  // Base Button Styles
   signatureModalButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  signatureModalCancelButton: {
-    backgroundColor: theme.colors.error + "15",
-    borderColor: theme.colors.error,
-  },
-  signatureModalSaveButton: {
-    backgroundColor: theme.colors.primaryDark,
-    borderColor: theme.colors.primaryDark,
+    flex: 1,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.radii.md, // 12px
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    // --- THIS IS THE "CLEAR" BUTTON STYLE ---
+    backgroundColor: theme.colors.surface, // White
+    borderColor: theme.colors.border,     // Neutral border
   },
   signatureModalButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontFamily: theme.typography.semibold,
+    fontSize: theme.typography.sizes.md, 
+    // --- THIS IS THE "CLEAR" & "CANCEL" TEXT STYLE ---
     color: theme.colors.text,
   },
+
+  // "Cancel" Button Modifier
+  signatureModalCancelButton: {
+    backgroundColor: theme.colors.background, 
+    borderColor: theme.colors.background,
+  },
+
+  // "Save" Button Modifier
+  signatureModalSaveButton: {
+    backgroundColor: theme.colors.primaryDark, 
+    borderColor: theme.colors.primaryDark,
+  },
   signatureModalSaveText: {
-    color: "#fff",
-  },
-  signatureModalCanvas: {
-    flex: 1,
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 0,
-    borderRadius: moderateScale(theme.radii.md),
-    overflow: "hidden",
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  signatureModalFooter: {
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    color: theme.colors.surface,
   },
   removeIconButton: {
     width: moderateScale(30),
@@ -290,7 +301,22 @@ export const createAttendanceStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
+clearButtonContainer: {
+    alignItems: 'flex-end',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm, 
+  },
+  clearButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: theme.spacing.sm, 
+  },
+  clearButtonText: {
+    fontFamily: theme.typography.semibold,
+    fontSize: theme.typography.sizes.md, 
+    color: theme.colors.primaryDark, 
+    marginLeft: theme.spacing.xs, 
+  },
   // BUTTONS
   bottomButtonsContainer: {
     paddingHorizontal: scale(theme.spacing.lg),

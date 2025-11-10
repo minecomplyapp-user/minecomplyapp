@@ -905,91 +905,96 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
       </ScrollView>
 
       {/* Signature Modal */}
-      <Modal
-        visible={signatureModalVisible}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => setSignatureModalVisible(false)}
+<Modal
+  visible={signatureModalVisible}
+  animationType="slide"
+  transparent={false}
+  onRequestClose={() => setSignatureModalVisible(false)}
+>
+  <SafeAreaView style={styles.signatureModalContainer}>
+    <View style={styles.signatureModalHeader}>
+      <Text style={styles.signatureModalTitle}>Add Signature</Text>
+      <TouchableOpacity onPress={() => setSignatureModalVisible(false)}>
+        <Feather name="x" size={24} color={theme.colors.primaryDark} />
+      </TouchableOpacity>
+    </View>
+
+    {/* Canvas */}
+    <View style={styles.signatureModalCanvas}>
+      <SignatureScreen
+        ref={signatureCanvasRef}
+        onOK={handleSignatureOK}
+        onEmpty={() => Alert.alert("Error", "Please draw a signature")}
+        descriptionText="Sign above"
+        clearText="Clear"
+        confirmText="Save"
+        style={{ flex: 1, width: "100%" }}
+        webStyle={`
+          .m-signature-pad {
+            box-shadow: none;
+            border: 2px solid ${theme.colors.border};
+            border-radius: ${theme.radii.md}px; /* 12px */
+            height: 100%;
+          }
+          .m-signature-pad--body { height: 100%; }
+          .m-signature-pad--body canvas {
+            width: 100% !important;
+            height: 100% !important;
+          }
+          .m-signature-pad--footer { display: none; }
+        `}
+      />
+    </View>
+
+    {/* --- NEW CLEAR BUTTON --- */}
+    <View style={styles.clearButtonContainer}>
+      <TouchableOpacity
+        style={styles.clearButton}
+        onPress={handleSignatureClear}
       >
-        <SafeAreaView style={styles.signatureModalContainer}>
-          <View style={styles.signatureModalHeader}>
-            <Text style={styles.signatureModalTitle}>Add Signature</Text>
-            <TouchableOpacity onPress={() => setSignatureModalVisible(false)}>
-              <Feather name="x" size={20} color={theme.colors.text} />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.signatureModalCanvas}>
-            <SignatureScreen
-              ref={signatureCanvasRef}
-              onOK={handleSignatureOK}
-              onEmpty={() => Alert.alert("Error", "Please draw a signature")}
-              descriptionText="Sign above"
-              clearText="Clear"
-              confirmText="Save"
-              style={{ flex: 1, width: "100%" }}
-              webStyle={`
-                .m-signature-pad {
-                  box-shadow: none;
-                  border: 2px solid ${theme.colors.border};
-                  border-radius: 8px;
-                  height: 100%;
-                }
-                .m-signature-pad--body {
-                  height: 100%;
-                }
-                .m-signature-pad--body canvas {
-                  width: 100% !important;
-                  height: 100% !important;
-                }
-                .m-signature-pad--footer {
-                  display: none;
-                }
-              `}
-            />
-          </View>
-          <View style={styles.signatureModalFooter}>
-            <View style={styles.signatureModalButtons}>
-              <TouchableOpacity
-                style={styles.signatureModalButton}
-                onPress={handleSignatureClear}
-              >
-                <Text style={styles.signatureModalButtonText}>Clear</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.signatureModalButton,
-                  styles.signatureModalCancelButton,
-                ]}
-                onPress={() => setSignatureModalVisible(false)}
-                disabled={uploadingSignature}
-              >
-                <Text style={styles.signatureModalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.signatureModalButton,
-                  styles.signatureModalSaveButton,
-                ]}
-                onPress={handleSignatureEnd}
-                disabled={uploadingSignature}
-              >
-                {uploadingSignature ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text
-                    style={[
-                      styles.signatureModalButtonText,
-                      styles.signatureModalSaveText,
-                    ]}
-                  >
-                    Save
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </SafeAreaView>
-      </Modal>
+        <Feather name="trash-2" size={18} color={theme.colors.primaryDark} />
+        <Text style={styles.clearButtonText}>Clear</Text>
+      </TouchableOpacity>
+    </View>
+
+    {/* Footer with only Cancel and Save */}
+    <View style={styles.signatureModalFooter}>
+      <View style={styles.signatureModalButtons}>
+        <TouchableOpacity
+          style={[
+            styles.signatureModalButton,
+            styles.signatureModalCancelButton,
+          ]}
+          onPress={() => setSignatureModalVisible(false)}
+          disabled={uploadingSignature}
+        >
+          <Text style={styles.signatureModalButtonText}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.signatureModalButton,
+            styles.signatureModalSaveButton,
+          ]}
+          onPress={handleSignatureEnd}
+          disabled={uploadingSignature}
+        >
+          {uploadingSignature ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text
+              style={[
+                styles.signatureModalButtonText,
+                styles.signatureModalSaveText,
+              ]}
+            >
+              Save
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  </SafeAreaView>
+</Modal>
     </SafeAreaView>
   );
 }
