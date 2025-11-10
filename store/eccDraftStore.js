@@ -7,14 +7,17 @@ export const useEccDraftStore = create((set) => ({
   
   saveDraft: async (draft) => {
     try {
+      const now = Date.now();
       const draftWithId = {
         ...draft,
-      id: "ECC-"+Date.now().toString(), // unique ID
-      date: new Date(draft.saveAt || Date.now()).toLocaleDateString("en-US", {
-         month: "short",
-         day: "numeric",
-         year: "numeric",
-    }),
+        id: "ECC-" + now.toString(), // unique ID
+        filename: draft.filename || draft.fileName || 'Untitled Draft',
+        saveAt: draft.saveAt || new Date(now).toISOString(),
+        date: new Date(draft.saveAt || now).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
    
     
       };
@@ -58,11 +61,18 @@ clearDrafts: async () => { // ✅ FULL WIPE
       //    This preserves existingDraft properties 
       //    and overwrites them with properties from updatedDraft (if any).
       //    The 'id' property is preserved/explicitly set last.
+      const now = Date.now();
       const mergedDraft = {
-          ...existingDraft,
-          ...updatedDraft, 
-          id: existingDraft.id, // Ensure the original ID is used
-          date: new Date().toISOString(), // 💡 Optional: Update the timestamp
+        ...existingDraft,
+        ...updatedDraft,
+        id: existingDraft.id, // Ensure the original ID is used
+        saveAt: new Date(now).toISOString(),
+        filename: updatedDraft.filename || updatedDraft.fileName || existingDraft.filename || existingDraft.fileName || 'Untitled Draft',
+        date: new Date(now).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        }),
       };
 
       // 3. Put the merged draft back into the array
@@ -105,13 +115,12 @@ clearDrafts: async () => { // ✅ FULL WIPE
           const drafts = JSON.parse(existing);
           // console.log("DATE SAVED : ",drafts.date)
           // 🟢 MAPPING: Iterate over the full drafts and extract only the necessary metadata
-          const metadataList = drafts.map(draft => ({
-              id: draft.id,
-              fileName: draft.filename || 'Untitled Draft', // Use a fallback if fileName is missing
-              date: draft.date, // This is your 'updated' or 'saved' timestamp
-            
-            
-          }));
+      const metadataList = drafts.map(draft => ({
+        id: draft.id,
+        fileName: draft.filename || draft.fileName || 'Untitled Draft', // Use a fallback if fileName is missing
+        date: draft.date, // formatted date
+        saveAt: draft.saveAt || new Date().toISOString(),
+      }));
 
           return metadataList;
       } catch (e) {

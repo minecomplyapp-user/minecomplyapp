@@ -43,6 +43,7 @@ export default function ECCMonitoringScreen({ navigation, route }: any) {
 const { selectedReport, isLoading, clearSelectedReport } = useEccStore(state => state);
 
   const {addReport,createAndDownloadReport}= useEccStore();
+  // navigation is available via props; ensure its type
 // *** Make sure your import looks like this in your file: ***
 // import * as FileSystem from 'expo-file-system/legacy'; 
 // import * as Sharing from 'expo-sharing';
@@ -55,7 +56,7 @@ const { selectedReport, isLoading, clearSelectedReport } = useEccStore(state => 
     setFileName(report.filename || "");
     setCompanyName(report.generalInfo?.companyName || "");
     setStatus(report.generalInfo?.status || null);
-    setDate(report.generalInfo?.date ? new Date(report.generalInfo.date) : new Date());
+  setDate(report.generalInfo?.date ? new Date(report.generalInfo.date) : null);
 
     // MMT Info
     setContactPerson(report.mmtInfo?.contactPerson || "");
@@ -143,7 +144,7 @@ const handleGenerateAndDownload = async (
     generalInfo: {
       companyName,
       status,
-      date: date.toISOString(),
+      date: date ? date.toISOString() : null,
     },
     mmtInfo: {
       contactPerson,
@@ -155,12 +156,12 @@ const handleGenerateAndDownload = async (
     },
     permit_holders, 
     
-   topass: {
+  topass: {
     filename,
      generalInfo: {
       companyName,
       status,
-      date: date.toISOString(),
+    date: date ? date.toISOString() : null,
     },
      mmtInfo: {
       contactPerson,
@@ -207,7 +208,7 @@ remarks_list: permit_holders.reduce((acc, holder, index) => {
   //field for filename
   const [filename, setFileName] = useState("");
   //fields for general info
-  const [date, setDate] = useState<Date>(new Date());
+  const [date, setDate] = useState<Date | null>(null);
   const [companyName, setCompanyName] = useState<string>("");
   const [permit_holders, setPermitHolders] = useState<any[]>([]);
   const [status, setStatus] = useState<"Active" | "Inactive" | null>(null);
@@ -239,7 +240,7 @@ remarks_list: permit_holders.reduce((acc, holder, index) => {
 
 
   const onChangeDate = (_event: any, selectedDate?: Date) => {
-    const currentDate = selectedDate || date;
+    const currentDate = selectedDate || date || new Date();
     if (Platform.OS === "android") setShowDatePicker(false);
     setDate(currentDate);
   };
@@ -335,11 +336,34 @@ const saveToDraft = async () => {
         }
 
         if (result.success) {
-          alert('Draft saved successfully!');
+          Alert.alert('Draft saved', 'Your ECC draft was saved locally.', [
+            { text: 'OK', onPress: () => navigation.navigate('ECCDraftScreen') },
+          ]);
         } else {
+          // If updateDraft failed because the draft was not found (e.g., route id
+          // pointed to a non-local report), fallback to creating a new draft.
           const errMsg = result.error || 'Failed to save draft.';
           console.warn('Draft save failed:', result);
-          alert(errMsg);
+
+          if (result.error === 'Draft not found' || result.error === 'No drafts stored') {
+            // Attempt to create a new draft instead
+            try {
+              const createResult = await saveDraft(draftData);
+              if (createResult && createResult.success) {
+                Alert.alert('Draft saved', 'Your ECC draft was saved.', [
+                  { text: 'OK' },
+                ]);
+                return;
+              }
+              const createErr = (createResult && createResult.error) || 'Failed to save draft.';
+              Alert.alert('Save failed', createErr);
+            } catch (e) {
+              console.error('Fallback saveDraft failed', e);
+              Alert.alert('Save failed', 'Unable to save draft. See console for details.');
+            }
+          } else {
+            Alert.alert('Save failed', errMsg);
+          }
         }
     } catch (error) {
         // 🚨 This will catch the crash from getMonitoringData() or any sync error
@@ -563,13 +587,13 @@ const saveToDraft = async () => {
                   size={moderateScale(20)}
                   color={theme.colors.primaryDark}
                 />
-                <Text style={styles.dateText}>{date.toLocaleDateString()}</Text>
+                <Text style={styles.dateText}>{date ? date.toLocaleDateString() : 'Select Date'}</Text>
               </TouchableOpacity>
 
               {showDatePicker && Platform.OS === "ios" && (
                 <View style={styles.datePickerWrapper}>
                   <DateTimePicker
-                    value={date}
+                    value={date || new Date()}
                     mode="date"
                     display="inline"
                     onChange={onChangeDate}
@@ -586,7 +610,7 @@ const saveToDraft = async () => {
 
               {showDatePicker && Platform.OS === "android" && (
                 <DateTimePicker
-                  value={date}
+                  value={date || new Date()}
                   mode="date"
                   display="default"
                   onChange={onChangeDate}
