@@ -45,11 +45,11 @@ clearDrafts: async () => { // ✅ FULL WIPE
   updateDraft: async (id, updatedDraft) => {
     try {
       const existing = await AsyncStorage.getItem(ECC_DRAFT_KEY);
-      if (!existing) return;
+      if (!existing) return { success: false, error: 'No drafts stored' };
 
       let drafts = JSON.parse(existing);
       const index = drafts.findIndex(d => d.id === id);
-      if (index === -1) return;
+      if (index === -1) return { success: false, error: 'Draft not found' };
 
       // 1. Get the existing draft object
       const existingDraft = drafts[index]; 
@@ -81,7 +81,7 @@ clearDrafts: async () => { // ✅ FULL WIPE
   deleteDraft: async (id) => {
     try {
       const existing = await AsyncStorage.getItem(ECC_DRAFT_KEY);
-      if (!existing) return;
+      if (!existing) return { success: false, error: 'No drafts stored' };
 
       let drafts = JSON.parse(existing).filter(d => d.id !== id);
       await AsyncStorage.setItem(ECC_DRAFT_KEY, JSON.stringify(drafts));
@@ -89,6 +89,7 @@ clearDrafts: async () => { // ✅ FULL WIPE
       return { success: true };
     } catch (e) {
       console.log("deleteDraft error:", e);
+      return { success: false, error: e.message };
     }
   },
   
