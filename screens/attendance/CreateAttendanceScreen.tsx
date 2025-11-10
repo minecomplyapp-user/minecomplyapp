@@ -914,6 +914,40 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
         <SafeAreaView style={styles.signatureModalContainer}>
           <View style={styles.signatureModalHeader}>
             <Text style={styles.signatureModalTitle}>Add Signature</Text>
+            <TouchableOpacity onPress={() => setSignatureModalVisible(false)}>
+              <Feather name="x" size={20} color={theme.colors.text} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.signatureModalCanvas}>
+            <SignatureScreen
+              ref={signatureCanvasRef}
+              onOK={handleSignatureOK}
+              onEmpty={() => Alert.alert("Error", "Please draw a signature")}
+              descriptionText="Sign above"
+              clearText="Clear"
+              confirmText="Save"
+              style={{ flex: 1, width: "100%" }}
+              webStyle={`
+                .m-signature-pad {
+                  box-shadow: none;
+                  border: 2px solid ${theme.colors.border};
+                  border-radius: 8px;
+                  height: 100%;
+                }
+                .m-signature-pad--body {
+                  height: 100%;
+                }
+                .m-signature-pad--body canvas {
+                  width: 100% !important;
+                  height: 100% !important;
+                }
+                .m-signature-pad--footer {
+                  display: none;
+                }
+              `}
+            />
+          </View>
+          <View style={styles.signatureModalFooter}>
             <View style={styles.signatureModalButtons}>
               <TouchableOpacity
                 style={styles.signatureModalButton}
@@ -954,28 +988,6 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
               </TouchableOpacity>
             </View>
           </View>
-          <SignatureScreen
-            ref={signatureCanvasRef}
-            onOK={handleSignatureOK}
-            onEmpty={() => Alert.alert("Error", "Please draw a signature")}
-            descriptionText="Sign above"
-            clearText="Clear"
-            confirmText="Save"
-            webStyle={`
-              .m-signature-pad {
-                box-shadow: none;
-                border: 2px solid ${theme.colors.border};
-                border-radius: 8px;
-                margin: 16px;
-              }
-              .m-signature-pad--body {
-                border: none;
-              }
-              .m-signature-pad--footer {
-                display: none;
-              }
-            `}
-          />
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
