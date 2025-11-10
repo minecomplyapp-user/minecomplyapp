@@ -17,6 +17,8 @@ import {
   
   
 } from "./types/eccMonitoring";
+import { Linking } from "react-native";
+
 import { Feather } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
@@ -80,60 +82,43 @@ const handleGenerateAndDownload = async (
 ) => {
     // 1. Initiate the report creation and download.
     // Pass the loading callback down to the API function (createAndDownloadReport)
-    const result = await createAndDownloadReport(reportData,token);
+   // ... inside handleGenerateAndDownload ...
 
-    if (result.success && result.fileBlob) {
-        const { fileBlob, filename } = result;
+// 1. Initiate the report creation and download.
+const result = await createAndDownloadReport(reportData, token);
 
-        // **NOTE:** createAndDownloadReport has already set loading to false 
-        // when the Blob was received. We re-enable it for the heavy file-writing phase.
-        onLoadingChange(true); 
+if (result.success && result.download_url) {
+    const { download_url } = result; // Extract the full URL
 
-        // 1. Convert the Blob (from fetch) to a Base64 string
-        const reader = new FileReader();
-        reader.readAsDataURL(fileBlob);
+    // We only need to show loading during the API call, so we turn it off here.
+    // The device handles the download in the background.
+    onLoadingChange(false); 
+
+    try {
+        // Check if the device can handle the URL scheme
+        const supported = await Linking.canOpenURL(download_url);
         
-        reader.onloadend = async () => {
-            const base64data = (reader.result as string).split(',')[1];
+        if (!supported) {
+            throw new Error("Unable to open download URL in browser");
+        }
+    
+        // 2. Open the URL to trigger the download
+        await Linking.openURL(download_url);
+        
+        // Optional: Show a success message to the user
+        alert("Report download successfully initiated.");
 
-            // 2. Define the local URI path
-            const fileUri = FileSystem.documentDirectory + filename;
-
-            try {
-                // 3. Write the Base64 data to a local file
-                await FileSystem.writeAsStringAsync(fileUri, base64data, {
-                    encoding: 'base64', 
-                });
-                
-                // 4. Share the file
-                if (await Sharing.isAvailableAsync()) {
-                    await Sharing.shareAsync(fileUri, {
-                         mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                    });
-                } else {
-                    alert(`File saved to ${fileUri}`);
-                }
-                
-                // Stop loading after success
-                onLoadingChange(false); 
-            } catch (e) {
-                console.error('File system error:', e);
-                alert('Failed to save or share the file.');
-                
-                // Stop loading after error
-                onLoadingChange(false);
-            }
-        };
-        reader.onerror = (e) => {
-            console.error('FileReader error:', e);
-            alert('File reading failed.');
-            onLoadingChange(false);
-        };
-
-    } else if (result.error) {
-        alert(`Error: ${result.error}`);
-        // Loading state is handled by createAndDownloadReport in this error path
+    } catch (error) {
+        console.error("Error opening download URL:", error);
+        alert(`Failed to start download: ${(error as Error).message}`);
     }
+
+} else if (result.error) {
+    alert(`Error: ${result.error}`);
+    onLoadingChange(false); // Ensure loading stops on API error
+} else {
+    onLoadingChange(false);
+}
 };
 
   const getMonitoringData = () => {

@@ -219,17 +219,15 @@ getReportById: async (id,token) => {
 },
   
    
-     createAndDownloadReport: async (reportData,token) => {
+  createAndDownloadReport: async (reportData, token) => {
     try {
-       
-        console.log("here")
+        console.log("Starting report creation API call...");
+        
         const response = await fetch(`${BASE_URL}/ecc/createEccAndGenerateDocs`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`, // <— REQUIRED when DISABLE_AUTH=false
-
-                // Add Authorization if needed
+                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify(reportData),
         });
@@ -238,26 +236,22 @@ getReportById: async (id,token) => {
             const errorText = await response.text();
             throw new Error(`Server error: ${response.status} - ${errorText}`);
         }
-
-        // Get filename from the Content-Disposition header set by NestJS
-        const contentDisposition = response.headers.get('content-disposition');
-        let filename = 'report_' + Date.now() + '.docx'; // Fallback filename
-        if (contentDisposition) {
-            const matches = contentDisposition.match(/filename="?(.+)"?/);
-            if (matches && matches[1]) {
-                filename = matches[1];
-            }
-        }
         
-        // Get the response body as a Blob
-        const fileBlob = await response.blob();
+        const { download_url } = await response.json();
+        console.log("DOWNLOAD URL (relative from service):", download_url);
+        
+        const base=BASE_URL+'/'
 
-        return { success: true, fileBlob, filename };
+ 
+        const fullDownloadUrl = new URL(download_url, base).href;
+        console.log(BASE_URL)
+        console.log("Full Download URL:", fullDownloadUrl);
+        return { success: true, download_url: fullDownloadUrl };
 
     } catch (error) {
         console.error('Report generation failed:', error);
         return { success: false, error: (error).message };
     }
-},
+}
 
 }));
