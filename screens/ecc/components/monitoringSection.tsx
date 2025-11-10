@@ -20,8 +20,6 @@ import {
   StoredState,
   ChoiceKey,
   CondID,
-  
-  
 } from "../types/eccMonitoring";
 import { DEFAULTS } from "../constants/defaultConditions";
 
@@ -41,7 +39,6 @@ export const ECCMonitoringSection = ({
   onChange: (s: StoredState) => void;
   toDisplay: BaseCondition[];
 }) => {
-
   const [edits, setEdits] = useState<Record<CondID, Partial<BaseCondition>>>(
     initialState.edits || {}
   );
@@ -54,60 +51,60 @@ export const ECCMonitoringSection = ({
   const [removedDefaults, setRemovedDefaults] = useState<CondID[]>([]);
   const [collapsed, setCollapsed] = useState(false);
 
-  // modal for add/edit 
+  // modal for add/edit
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [editing, setEditing] = useState<BaseCondition | null>(null);
-    
- let section = 0;
 
-const toConditionOutput = () => {
-  const conditions = currentList.map((cond, index) => {
-    const status = selections[cond.id] || "";
-    const remarks =
-      status && cond.descriptions[status]
-        ? cond.descriptions[status]
-        : "No remarks.";
+  let section = 0;
 
-    section += 1; // increment section count
+  const toConditionOutput = () => {
+    const conditions = currentList.map((cond, index) => {
+      const status = selections[cond.id] || "";
+      const remarks =
+        status && cond.descriptions[status]
+          ? cond.descriptions[status]
+          : "No remarks.";
 
-    return {
-      nested_to: cond.nested_to ? parseInt(cond.nested_to as string, 10) : undefined,
-      section, 
-      condition_number: index + 1,
-      condition: cond.title,
-      status,
-      remarks,
-      remark_list: [
-        cond.descriptions.complied,
-        cond.descriptions.partial,
-        cond.descriptions.not,
-      ],
-    };
-  });
+      section += 1; // increment section count
 
-  return {conditions};
-};
+      return {
+        nested_to: cond.nested_to
+          ? parseInt(cond.nested_to as string, 10)
+          : undefined,
+        section,
+        condition_number: index + 1,
+        condition: cond.title,
+        status,
+        remarks,
+        remark_list: [
+          cond.descriptions.complied,
+          cond.descriptions.partial,
+          cond.descriptions.not,
+        ],
+      };
+    });
+
+    return { conditions };
+  };
 
   useEffect(() => {
-      const formatted = toConditionOutput();
-      console.log(currentList)
+    const formatted = toConditionOutput();
+    console.log(currentList);
 
-    onChange({ edits, customs, selections, formatted  });
-
-    
+    onChange({ edits, customs, selections, formatted });
   }, [edits, customs, selections]);
 
   const currentList = useMemo(() => {
-    // Apply edits over DEFAULTS 
+    // Apply edits over DEFAULTS
     const toMap = Array.isArray(toDisplay) ? toDisplay : DEFAULTS;
 
-    const list: BaseCondition[] =toMap.map((d) => {
+    const list: BaseCondition[] = toMap.map((d) => {
       const e = edits[d.id];
       if (!e) return { ...d };
       return {
         ...d,
-        nested_to:d.nested_to,
+        nested_to: d.nested_to,
         title: (e.title as string) ?? d.title,
         descriptions: (e.descriptions as any) ?? d.descriptions,
       };
@@ -118,7 +115,7 @@ const toConditionOutput = () => {
   }, [edits, customs, removedDefaults]);
 
   // display items
-   const displayItems = useMemo(() => {
+  const displayItems = useMemo(() => {
     const items: { cond: BaseCondition; displayLabel: string }[] = [];
     let idx = 1;
     for (const c of currentList) {
@@ -247,10 +244,24 @@ const toConditionOutput = () => {
 
       {!collapsed && (
         <>
+          {/* First Pill (Standard) */}
           <View style={styles.instructionPill}>
             <Text style={styles.instructionText}>
               Choose only one (1) of the following statements that best applies
               to the project status.
+            </Text>
+          </View>
+
+          {/* Second Pill (Noticeable Note) */}
+          <View style={styles.notePill}>
+            <Ionicons
+              name="information-circle-outline"
+              size={20}
+              color={theme.colors.warning}
+            />
+            <Text style={styles.noteText}>
+              Note: Delete the condition if not applicable to avoid rendering in
+              the document.
             </Text>
           </View>
 
