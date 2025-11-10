@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Modal,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker } from "react-native-maps";
@@ -34,6 +35,7 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
   onChange,
 }) => {
   const [showMap, setShowMap] = useState(false);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [selectedLocation, setSelectedLocation] =
     useState<LocationCoordinates | null>(null);
   const [mapRegion, setMapRegion] = useState<MapRegion>({
@@ -44,19 +46,49 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
   });
 
   const getCurrentLocation = async () => {
+    setIsLoadingLocation(true);
     try {
+      // Check if location services are enabled
+      const isEnabled = await Location.hasServicesEnabledAsync();
+      if (!isEnabled) {
+        Alert.alert(
+          "Location Services Disabled",
+          "Please enable location services in your device settings."
+        );
+        setIsLoadingLocation(false);
+        return;
+      }
+
+      // Request permissions
       const { status } = await Location.requestForegroundPermissionsAsync();
+      
       if (status !== "granted") {
         Alert.alert(
           "Permission Denied",
           "Location permission is required to use GPS."
         );
+        setIsLoadingLocation(false);
         return;
       }
-      const currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
+
+      // Get current location with timeout
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Location request timed out")), 15000)
+      );
+
+      const locationPromise = Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: 10000,
+        distanceInterval: 0,
       });
+
+      const currentLocation = await Promise.race([
+        locationPromise,
+        timeoutPromise,
+      ]) as Location.LocationObject;
+
       const { latitude, longitude } = currentLocation.coords;
+      
       setMapRegion({
         latitude,
         longitude,
@@ -64,14 +96,48 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
         longitudeDelta: 0.0421,
       });
       setSelectedLocation({ latitude, longitude });
-    } catch (error) {
-      Alert.alert("Error", "Failed to get current location.");
+      
+    } catch (error: any) {
+      console.error("Location error:", error);
+      
+      let errorMessage = "Failed to get current location.";
+      
+      if (error.message.includes("timeout")) {
+        errorMessage = "Location request timed out. Please try again or select location manually on the map.";
+      } else if (error.code === "E_LOCATION_UNAVAILABLE") {
+        errorMessage = "Location is currently unavailable. Please try again.";
+      } else if (error.code === "E_LOCATION_SETTINGS_UNSATISFIED") {
+        errorMessage = "Location settings are not satisfied. Please check your device settings.";
+      }
+      
+      Alert.alert(
+        "Location Error",
+        errorMessage,
+        [
+          {
+            text: "Use Default Location",
+            onPress: () => {
+              // Use default Cebu location
+              setMapRegion({
+                latitude: 10.3157,
+                longitude: 123.8854,
+                latitudeDelta: 0.0922,
+                longitudeDelta: 0.0421,
+              });
+            }
+          },
+          { text: "OK" }
+        ]
+      );
+    } finally {
+      setIsLoadingLocation(false);
     }
   };
 
   const openMapPicker = async () => {
-    await getCurrentLocation();
     setShowMap(true);
+    // Automatically get current location when map opens
+    await getCurrentLocation();
   };
 
   const handleMapPress = (event: any) => {
@@ -106,7 +172,7 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
           onChange("location", locationString);
         }
       } catch (error) {
-        Alert.alert("Error", "Failed to get address for this location.");
+        console.error("Reverse geocode error:", error);
         const locationString = `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`;
         onChange("location", locationString);
       }
@@ -239,14 +305,25 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
           </View>
           <View style={styles.halfField}>
             <Text style={styles.label}>Year</Text>
-            <TextInput
-              style={styles.input}
-              value={year}
-              onChangeText={(text) => onChange("year", text)}
-              placeholder="Enter year"
-              placeholderTextColor="#94A3B8"
-              keyboardType="numeric"
-            />
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={year}
+                onValueChange={(value: string) => onChange("year", value)}
+                style={styles.picker}
+              >
+                <Picker.Item label="Select Year" value="" />
+                {Array.from({ length: 51 }, (_, i) => {
+                  const yearValue = (new Date().getFullYear() - 25 + i).toString();
+                  return (
+                    <Picker.Item
+                      key={yearValue}
+                      label={yearValue}
+                      value={yearValue}
+                    />
+                  );
+                })}
+              </Picker>
+            </View>
           </View>
         </View>
         <View style={styles.fieldGroup}>
@@ -307,14 +384,27 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
           >
             {selectedLocation && <Marker coordinate={selectedLocation} />}
           </MapView>
+          {isLoadingLocation && (
+            <View style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              marginLeft: -25,
+              marginTop: -25,
+              backgroundColor: 'white',
+              padding: 15,
+              borderRadius: 10,
+              elevation: 5,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+            }}>
+              <ActivityIndicator size="large" color="#02217C" />
+              <Text style={{ marginTop: 10, color: '#02217C' }}>Getting location...</Text>
+            </View>
+          )}
           <View style={styles.mapFooter}>
-            <TouchableOpacity
-              style={styles.myLocationButton}
-              onPress={getCurrentLocation}
-            >
-              <Ionicons name="navigate" size={20} color="white" />
-              <Text style={styles.myLocationButtonText}>My Location</Text>
-            </TouchableOpacity>
             <TouchableOpacity
               style={[
                 styles.confirmButton,
