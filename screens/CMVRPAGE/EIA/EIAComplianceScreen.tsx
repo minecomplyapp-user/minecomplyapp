@@ -232,6 +232,76 @@ const EIAComplianceScreen: React.FC<{
     );
   };
 
+  const handleGoToSummary = async () => {
+    try {
+      console.log("Navigating to summary with current EIA compliance data");
+
+      const prevPageData: any = route.params || {};
+
+      // Prepare current page data
+      const complianceToImpactManagementCommitments = {
+        preConstruction,
+        construction,
+        quarryOperation,
+        plantOperation,
+        portOperation,
+        overallCompliance,
+      };
+
+      // Prepare complete snapshot with all sections
+      const completeData = {
+        generalInfo: prevPageData.generalInfo,
+        eccInfo: prevPageData.eccInfo,
+        eccAdditionalForms: prevPageData.eccAdditionalForms,
+        isagInfo: prevPageData.isagInfo,
+        isagAdditionalForms: prevPageData.isagAdditionalForms,
+        epepInfo: prevPageData.epepInfo,
+        epepAdditionalForms: prevPageData.epepAdditionalForms,
+        rcfInfo: prevPageData.rcfInfo,
+        rcfAdditionalForms: prevPageData.rcfAdditionalForms,
+        mtfInfo: prevPageData.mtfInfo,
+        mtfAdditionalForms: prevPageData.mtfAdditionalForms,
+        fmrdfInfo: prevPageData.fmrdfInfo,
+        fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
+        mmtInfo: prevPageData.mmtInfo,
+        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
+        processDocumentationOfActivitiesUndertaken:
+          prevPageData.processDocumentationOfActivitiesUndertaken,
+        complianceToProjectLocationAndCoverageLimits:
+          prevPageData.complianceToProjectLocationAndCoverageLimits,
+        complianceToImpactManagementCommitments, // Current page data
+        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
+        waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
+        noiseQualityImpactAssessment: prevPageData.noiseQualityImpactAssessment,
+        complianceWithGoodPracticeInSolidAndHazardousWasteManagement:
+          prevPageData.complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
+        complianceWithGoodPracticeInChemicalSafetyManagement:
+          prevPageData.complianceWithGoodPracticeInChemicalSafetyManagement,
+        complaintsVerificationAndManagement:
+          prevPageData.complaintsVerificationAndManagement,
+        recommendationsData: prevPageData.recommendationsData,
+        attendanceUrl: prevPageData.attendanceUrl,
+        savedAt: new Date().toISOString(),
+      };
+
+      const resolvedFileName = prevPageData.fileName || "Untitled";
+
+      // Save to draft before navigating
+      await saveDraft(resolvedFileName, completeData);
+
+      // Navigate to summary screen with all data
+      navigation.navigate("CMVRDocumentExport", {
+        ...prevPageData,
+        fileName: resolvedFileName,
+        complianceToImpactManagementCommitments,
+        draftData: completeData,
+      });
+    } catch (error) {
+      console.error("Error navigating to summary:", error);
+      Alert.alert("Error", "Failed to navigate to summary. Please try again.");
+    }
+  };
+
   const fillTestData = () => {
     setPreConstruction("yes");
     setConstruction("yes");
@@ -466,6 +536,7 @@ const EIAComplianceScreen: React.FC<{
           onStay={handleStay}
           onSaveToDraft={handleSaveToDraft}
           onDiscard={handleDiscard}
+          onGoToSummary={handleGoToSummary}
           allowEdit={true}
         />
       </View>
@@ -476,13 +547,13 @@ const EIAComplianceScreen: React.FC<{
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.titleContainer}>
-        <View style={styles.titleAccent}>
-          <Text style={styles.titleAccentText}>2.</Text>
+          <View style={styles.titleAccent}>
+            <Text style={styles.titleAccentText}>2.</Text>
+          </View>
+          <Text style={styles.titleText}>
+            Compliance to Impact Management Commitments in EIA report & EPEP
+          </Text>
         </View>
-        <Text style={styles.titleText}>
-          Compliance to Impact Management Commitments in EIA report & EPEP
-        </Text>
-      </View>
         <ProjectImpacts
           preConstruction={preConstruction}
           construction={construction}

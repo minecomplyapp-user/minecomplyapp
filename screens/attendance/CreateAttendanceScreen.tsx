@@ -74,9 +74,6 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [location, setLocation] = useState("");
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
-  const [attachments, setAttachments] = useState<
-    { uri: string; path?: string; uploading?: boolean; caption?: string }[]
-  >([]);
   const [attendees, setAttendees] = useState([
     {
       id: 1,
@@ -171,21 +168,6 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
 
         setAttendees(attendeesWithSignedUrls);
       }
-
-      // Parse attachments
-      if (record.attachments) {
-        const parsedAttachments = Array.isArray(record.attachments)
-          ? record.attachments
-          : JSON.parse(record.attachments);
-
-        setAttachments(
-          parsedAttachments.map((att: any) => ({
-            uri: att.uri || att.url || "",
-            path: att.path || "",
-            caption: att.caption || "",
-          }))
-        );
-      }
     } catch (error: any) {
       Alert.alert(
         "Error",
@@ -244,98 +226,6 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
   const updateField = (id: number, field: string, value: string) => {
     setAttendees((prev) =>
       prev.map((a) => (a.id === id ? { ...a, [field]: value } : a))
-    );
-  };
-
-  // --- Attachments Handlers ---
-  const processPickedAsset = async (asset: ImagePicker.ImagePickerAsset) => {
-    const newItem = { uri: asset.uri, uploading: true, caption: "" } as {
-      uri: string;
-      path?: string;
-      uploading?: boolean;
-      caption?: string;
-    };
-    setAttachments((prev) => [...prev, newItem]);
-    try {
-      const nameFromPicker = (
-        asset.fileName ??
-        asset.uri.split("/").pop() ??
-        "image.jpg"
-      ).replace(/\?.*$/, "");
-      const ext = nameFromPicker.includes(".")
-        ? nameFromPicker.split(".").pop()
-        : "jpg";
-      const baseName = fileName?.trim()
-        ? fileName.trim().replace(/[^a-zA-Z0-9._-]/g, "_")
-        : "attendance";
-      const finalName = `${baseName}_${Date.now()}.${ext}`;
-      const contentType = asset.mimeType ?? "image/jpeg";
-      const { path } = await uploadFileFromUri({
-        uri: asset.uri,
-        fileName: finalName,
-        contentType,
-        upsert: false,
-      });
-      setNewlyUploadedPaths((prev) => [...prev, path]);
-      setAttachments((prev) =>
-        prev.map((a) =>
-          a.uri === newItem.uri ? { ...a, path, uploading: false } : a
-        )
-      );
-    } catch (e: any) {
-      setAttachments((prev) => prev.filter((a) => a.uri !== newItem.uri));
-      Alert.alert(
-        "Upload failed",
-        e?.message || "Could not upload the image. Please try again."
-      );
-    }
-  };
-
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        "Permission required",
-        "We need access to your media library to attach images."
-      );
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets?.length) return;
-    const asset = result.assets[0];
-    await processPickedAsset(asset);
-  };
-
-  const takePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        "Permission required",
-        "Camera permission is needed to take a photo."
-      );
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets?.length) return;
-    const asset = result.assets[0];
-    await processPickedAsset(asset);
-  };
-
-  const removeAttachment = (uri: string) => {
-    setAttachments((prev) => prev.filter((a) => a.uri !== uri));
-  };
-
-  const updateAttachmentCaption = (uri: string, caption: string) => {
-    setAttachments((prev) =>
-      prev.map((a) => (a.uri === uri ? { ...a, caption } : a))
     );
   };
 
@@ -615,15 +505,10 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
       // Send date-only (YYYY-MM-DD) without time
       meetingDate: meetingDate ? formatDateOnly(meetingDate) : undefined,
       location: location?.trim() || undefined,
-      attachments:
-        attachments
-          .filter((a) => !!a.path)
-          .map((a) => ({ path: a.path!, caption: a.caption || undefined })) ||
-        undefined,
       attendees: attendees.map((a) => ({
         name: a.name.trim(),
         agency: a.agency?.trim() || undefined,
-        office: a.agency?.trim() || undefined, // TODO: add separate Office field in UI
+        office: a.agency?.trim() || undefined,
         position: a.position?.trim() || undefined,
         signatureUrl:
           (a as any).signaturePath?.trim() ||
@@ -816,120 +701,6 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
                   : "Use current location"}
               </Text>
             </TouchableOpacity>
-          </View>
-
-          {/* Attachments (optional) */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Attachments (optional)</Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
-              {attachments.map((att) => (
-                <View key={att.uri} style={{ width: 160 }}>
-                  <View style={{ position: "relative" }}>
-                    <Image
-                      source={{ uri: att.uri }}
-                      style={{
-                        width: 160,
-                        height: 120,
-                        borderRadius: 8,
-                        backgroundColor: "#eee",
-                      }}
-                    />
-                    <View style={{ position: "absolute", top: -8, right: -8 }}>
-                      <TouchableOpacity
-                        onPress={() => removeAttachment(att.uri)}
-                        style={{
-                          backgroundColor: "#0008",
-                          padding: 4,
-                          borderRadius: 12,
-                        }}
-                      >
-                        <Feather name="x" size={12} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                    {att.uploading && (
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          color: theme.colors.textLight,
-                          marginTop: 4,
-                        }}
-                      >
-                        Uploading…
-                      </Text>
-                    )}
-                  </View>
-                  <TextInput
-                    value={att.caption || ""}
-                    onChangeText={(text) =>
-                      updateAttachmentCaption(att.uri, text)
-                    }
-                    placeholder="Add caption..."
-                    style={{
-                      marginTop: 8,
-                      paddingVertical: 6,
-                      paddingHorizontal: 10,
-                      borderRadius: 6,
-                      borderWidth: 1,
-                      borderColor: theme.colors.border,
-                      backgroundColor: theme.colors.background,
-                      fontSize: 12,
-                      color: theme.colors.text,
-                    }}
-                    placeholderTextColor={theme.colors.textLight}
-                    editable={!att.uploading}
-                  />
-                </View>
-              ))}
-            </View>
-            <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
-              <TouchableOpacity
-                onPress={pickImage}
-                style={{
-                  alignSelf: "flex-start",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingVertical: 8,
-                  paddingHorizontal: 12,
-                  borderRadius: 8,
-                  backgroundColor: theme.colors.primaryLight + "15",
-                }}
-              >
-                <Feather
-                  name="image"
-                  size={16}
-                  color={theme.colors.primaryDark}
-                />
-                <Text
-                  style={{ marginLeft: 6, color: theme.colors.primaryDark }}
-                >
-                  Add image
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={takePhoto}
-                style={{
-                  alignSelf: "flex-start",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingVertical: 8,
-                  paddingHorizontal: 12,
-                  borderRadius: 8,
-                  backgroundColor: theme.colors.primaryLight + "15",
-                }}
-              >
-                <Feather
-                  name="camera"
-                  size={16}
-                  color={theme.colors.primaryDark}
-                />
-                <Text
-                  style={{ marginLeft: 6, color: theme.colors.primaryDark }}
-                >
-                  Take photo
-                </Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
 

@@ -2,6 +2,63 @@ import { apiGet, apiPatch, apiPost, getApiBaseUrl, getJwt } from "./api";
 import { Linking } from "react-native";
 import type { CreateCMVRDto } from "../screens/CMVRPAGE/types/CMVRReportScreen.types";
 
+const COMPLIANCE_SECTION_KEYS = [
+  "complianceToProjectLocationAndCoverageLimits",
+  "complianceToImpactManagementCommitments",
+  "airQualityImpactAssessment",
+  "waterQualityImpactAssessment",
+  "noiseQualityImpactAssessment",
+  "complianceWithGoodPracticeInSolidAndHazardousWasteManagement",
+  "complianceWithGoodPracticeInChemicalSafetyManagement",
+  "complaintsVerificationAndManagement",
+  "recommendationFromPrevQuarter",
+  "recommendationForNextQuarter",
+];
+
+const normalizeComplianceSections = (source: any) => {
+  if (!source || typeof source !== "object") {
+    return {} as Record<string, unknown>;
+  }
+  const nested = source.complianceMonitoringReport;
+  if (nested && typeof nested === "object") {
+    return nested as Record<string, unknown>;
+  }
+  return COMPLIANCE_SECTION_KEYS.reduce<Record<string, unknown>>((acc, key) => {
+    if (key in source) {
+      acc[key] = (source as Record<string, unknown>)[key];
+    }
+    return acc;
+  }, {});
+};
+
+const buildGeneralInfoSnapshot = (data: any) => {
+  if (!data || typeof data !== "object") {
+    return undefined;
+  }
+  const generalInfo =
+    data.generalInfo && typeof data.generalInfo === "object"
+      ? data.generalInfo
+      : undefined;
+  const base: any = generalInfo ? { ...generalInfo } : {};
+  base.companyName = base.companyName ?? data.companyName ?? "";
+  base.projectName =
+    base.projectName ?? data.projectCurrentName ?? data.projectNameInEcc ?? "";
+  base.location =
+    base.location ?? (typeof data.location === "string" ? data.location : "");
+  base.region = base.region ?? data.location?.region ?? "";
+  base.province = base.province ?? data.location?.province ?? "";
+  base.municipality = base.municipality ?? data.location?.municipality ?? "";
+  base.quarter = base.quarter ?? data.quarter ?? "";
+  base.year = base.year ?? (data.year ? String(data.year) : "");
+  base.dateOfCompliance =
+    base.dateOfCompliance ?? data.dateOfComplianceMonitoringAndValidation ?? "";
+  base.monitoringPeriod =
+    base.monitoringPeriod ?? data.monitoringPeriodCovered ?? "";
+  base.dateOfCMRSubmission =
+    base.dateOfCMRSubmission ?? data.dateOfCmrSubmission ?? "";
+  return base;
+};
+
 /**
  * Create a new CMVR report
  * @param data - CMVR report data matching backend DTO structure (without fileName)
@@ -46,7 +103,34 @@ export async function getAllCMVRReports(): Promise<any[]> {
 export async function getCMVRReportById(id: string): Promise<any> {
   try {
     const response = await apiGet<any>(`/cmvr/${id}`);
-    return response;
+    if (!response) {
+      return response;
+    }
+
+    const cmvrData =
+      response.cmvrData && typeof response.cmvrData === "object"
+        ? response.cmvrData
+        : {};
+    const complianceSections = normalizeComplianceSections(cmvrData);
+    const generalInfo = buildGeneralInfoSnapshot(cmvrData);
+
+    const normalized = {
+      ...cmvrData,
+      ...response,
+      complianceMonitoringReport:
+        Object.keys(complianceSections).length > 0
+          ? complianceSections
+          : response.complianceMonitoringReport,
+      generalInfo,
+      attachments: Array.isArray(response.attachments)
+        ? response.attachments
+        : Array.isArray(cmvrData.attachments)
+          ? cmvrData.attachments
+          : [],
+      cmvrData,
+    };
+
+    return normalized;
   } catch (error) {
     console.error("Error fetching CMVR report:", error);
     throw error;
@@ -92,11 +176,10 @@ export async function generateCMVRDocx(
   fileName = "CMVR_Report"
 ): Promise<string> {
   const baseUrl = getApiBaseUrl();
-  const token = await getJwt();
 
-  // Construct the download URL with the JWT token as a query parameter
-  // This allows the browser to download without needing Authorization header
-  const downloadUrl = `${baseUrl}/api/cmvr/${id}/docx?token=${encodeURIComponent(token)}`;
+  // Construct the download URL - no authentication required for downloads
+  // This allows the browser to download without token expiration issues
+  const downloadUrl = `${baseUrl}/api/cmvr/${id}/docx`;
 
   try {
     const supported = await Linking.canOpenURL(downloadUrl);

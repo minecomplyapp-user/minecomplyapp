@@ -19,6 +19,7 @@ interface CMSHeaderProps {
   onStay?: () => void; // New callback for staying on current page
   onSaveToDraft?: () => Promise<void>; // New callback for saving to draft
   onDiscard?: () => void; // New callback for discarding changes
+  onGoToSummary?: () => void; // New callback for going to summary
   fileName?: string;
   onEditFileName?: () => void;
   allowEdit?: boolean; // New prop to control if editing is allowed
@@ -30,6 +31,7 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({
   onStay,
   onSaveToDraft,
   onDiscard,
+  onGoToSummary,
   fileName: fileNameProp,
   onEditFileName,
   allowEdit = false, // Default to false (read-only)
@@ -157,6 +159,17 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({
           <View style={styles.titleContainer}>
             <Text style={styles.headerTitleText}>{displayFileName}</Text>
           </View>
+        )}
+
+        {/* Go to Summary Button */}
+        {onGoToSummary && (
+          <TouchableOpacity
+            onPress={onGoToSummary}
+            style={styles.summaryButton}
+          >
+            <Ionicons name="document-text-outline" size={20} color="#02217C" />
+            <Text style={styles.summaryButtonText}>Summary</Text>
+          </TouchableOpacity>
         )}
 
         {/* Exit Button */}
@@ -313,6 +326,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#000",
     fontWeight: "500",
+  },
+  summaryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    marginRight: 8,
+  },
+  summaryButtonText: {
+    fontSize: 14,
+    color: "#02217C",
+    fontWeight: "600",
   },
   modalBackground: {
     flex: 1,

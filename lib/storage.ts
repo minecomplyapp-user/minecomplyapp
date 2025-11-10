@@ -34,6 +34,7 @@ export type UploadFromUriParams = {
   fileName: string;
   contentType?: string;
   upsert?: boolean;
+  folder?: string; // optional folder path inside bucket (e.g. 'epep/upload')
 };
 
 export async function uploadFileFromUri({
@@ -41,6 +42,7 @@ export async function uploadFileFromUri({
   fileName,
   contentType,
   upsert,
+  folder,
 }: UploadFromUriParams): Promise<{ path: string }> {
   console.log("📤 Starting uploadFileFromUri (Supabase SDK direct upload)...");
   console.log("📝 Parameters:", {
@@ -54,7 +56,8 @@ export async function uploadFileFromUri({
   const uniqueId =
     Math.random().toString(36).substring(2, 15) +
     Math.random().toString(36).substring(2, 15);
-  const path = `uploads/${uniqueId}-${fileName}`;
+  const prefix = folder ? folder.replace(/^\/+|\/+$/g, '') : 'uploads';
+  const path = `${prefix}/${uniqueId}-${fileName}`;
 
   console.log("📂 Upload path:", path);
 
@@ -183,7 +186,8 @@ export async function uploadSignature(uri: string): Promise<{ path: string }> {
  */
 export async function uploadAttachment(
   uri: string,
-  fileName?: string
+  fileName?: string,
+  folder?: string
 ): Promise<{ path: string }> {
   console.log("📤 Starting uploadAttachment (Supabase SDK direct upload)...");
   console.log("📝 URI length:", uri.length);
@@ -195,7 +199,8 @@ export async function uploadAttachment(
   const uniqueId =
     Math.random().toString(36).substring(2, 15) +
     Math.random().toString(36).substring(2, 15);
-  const path = `uploads/${uniqueId}-${finalFileName}`;
+  const prefix = folder ? folder.replace(/^\/+|\/+$/g, '') : 'uploads';
+  const path = `${prefix}/${uniqueId}-${finalFileName}`;
 
   console.log("📂 Upload path:", path);
 
@@ -316,4 +321,269 @@ export async function uploadQRCode(
   });
 
   return { path: data.path };
+}
+
+const sanitizeFileName = (name: string): string => {
+  if (!name) {
+    return "file";
+  }
+  return name.replace(/[^a-zA-Z0-9._-]/g, "_");
+};
+
+const guessExtension = (mimeType?: string): string => {
+  if (!mimeType) {
+    return "jpg";
+  }
+  const map: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/heic": "heic",
+    "image/heif": "heif",
+    "image/gif": "gif",
+  };
+  return map[mimeType.toLowerCase()] || mimeType.split("/").pop() || "jpg";
+};
+
+const ensureExtension = (name: string, fallbackExt: string): string => {
+  if (!name) {
+    return `file.${fallbackExt}`;
+  }
+  const sanitized = sanitizeFileName(name);
+  if (/\.[a-zA-Z0-9]+$/.test(sanitized)) {
+    return sanitized;
+  }
+  return `${sanitized}.${fallbackExt}`;
+};
+
+type UploadProjectLocationImageParams = {
+  uri: string;
+  fileName?: string;
+  mimeType?: string;
+  upsert?: boolean;
+};
+
+/**
+ * Upload a project location image to the location/ folder
+ */
+export async function uploadProjectLocationImage({
+  uri,
+  fileName,
+  mimeType,
+  upsert,
+}: UploadProjectLocationImageParams): Promise<{ path: string }> {
+  console.log("📤 Starting uploadProjectLocationImage...");
+  if (!uri) {
+    throw new Error("Invalid image URI");
+  }
+
+  const timestamp = Date.now();
+  const fallbackExt = guessExtension(mimeType);
+  const derivedName = fileName
+    ? ensureExtension(fileName, fallbackExt)
+    : `project-location-${timestamp}.${fallbackExt}`;
+  const finalFileName = sanitizeFileName(derivedName);
+  const uniqueId =
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15);
+  const path = `location/${uniqueId}-${finalFileName}`;
+
+  console.log("📂 Upload path:", path);
+
+  let arrayBuffer: ArrayBuffer;
+  try {
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    console.log("✅ File read as base64, length:", base64.length);
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    arrayBuffer = bytes.buffer;
+  } catch (readError: any) {
+    console.error("❌ Failed to read project location image:", readError);
+    throw new Error(`Failed to read image: ${readError.message}`);
+  }
+
+  const contentType = mimeType ?? "image/jpeg";
+
+  console.log("🚀 Uploading project location image to Supabase Storage...");
+  const { data, error } = await supabase.storage
+    .from("minecomplyapp-bucket")
+    .upload(path, arrayBuffer, {
+      contentType,
+      cacheControl: "3600",
+      upsert: upsert ?? false,
+    });
+
+  if (error) {
+    console.error("❌ Supabase upload failed:", {
+      message: error.message,
+      statusCode: (error as any).statusCode,
+      error,
+    });
+    throw new Error(`Upload failed: ${error.message}`);
+  }
+
+  console.log("✅ Project location image upload succeeded!", {
+    path: data.path,
+    id: data.id,
+    fullPath: data.fullPath,
+  });
+
+  return { path: data.path };
+}
+
+type UploadNoiseQualityFileParams = {
+  uri: string;
+  fileName?: string;
+  mimeType?: string;
+  upsert?: boolean;
+};
+
+/**
+ * Upload a noise quality monitoring file to the noise-quality/ folder
+ */
+export async function uploadNoiseQualityFile({
+  uri,
+  fileName,
+  mimeType,
+  upsert,
+}: UploadNoiseQualityFileParams): Promise<{ path: string }> {
+  console.log("📤 Starting uploadNoiseQualityFile...");
+  if (!uri) {
+    throw new Error("Invalid file URI");
+  }
+
+  const timestamp = Date.now();
+  const fallbackExt = guessExtension(mimeType);
+  const derivedName = fileName
+    ? ensureExtension(fileName, fallbackExt)
+    : `noise-quality-${timestamp}.${fallbackExt}`;
+  const finalFileName = sanitizeFileName(derivedName);
+  const uniqueId =
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15);
+  const path = `noise-quality/${uniqueId}-${finalFileName}`;
+
+  console.log("📂 Upload path:", path);
+
+  let arrayBuffer: ArrayBuffer;
+  try {
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    console.log("✅ File read as base64, length:", base64.length);
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    arrayBuffer = bytes.buffer;
+  } catch (readError: any) {
+    console.error("❌ Failed to read noise quality file:", readError);
+    throw new Error(`Failed to read file: ${readError.message}`);
+  }
+
+  const contentType = mimeType ?? "application/octet-stream";
+
+  console.log("🚀 Uploading noise quality file to Supabase Storage...");
+  const { data, error } = await supabase.storage
+    .from("minecomplyapp-bucket")
+    .upload(path, arrayBuffer, {
+      contentType,
+      cacheControl: "3600",
+      upsert: upsert ?? false,
+    });
+
+  if (error) {
+    console.error("❌ Supabase upload failed:", {
+      message: error.message,
+      statusCode: (error as any).statusCode,
+      error,
+    });
+    throw new Error(`Upload failed: ${error.message}`);
+  }
+
+  console.log("✅ Noise quality file upload succeeded!", {
+    path: data.path,
+    id: data.id,
+    fullPath: data.fullPath,
+  });
+
+  return { path: data.path };
+}
+
+/**
+ * Delete a file from Supabase storage
+ */
+export async function deleteFileFromStorage(
+  path: string
+): Promise<{ success: boolean }> {
+  console.log("🗑️ Deleting file from storage:", path);
+
+  if (!path) {
+    console.warn("⚠️ No path provided, skipping deletion");
+    return { success: false };
+  }
+
+  const { data, error } = await supabase.storage
+    .from("minecomplyapp-bucket")
+    .remove([path]);
+
+  if (error) {
+    console.error("❌ Failed to delete file:", {
+      path,
+      message: error.message,
+      error,
+    });
+    // Don't throw - we want deletion to be non-blocking
+    return { success: false };
+  }
+
+  console.log("✅ File deleted successfully:", path);
+  return { success: true };
+}
+
+/**
+ * Delete multiple files from Supabase storage
+ */
+export async function deleteFilesFromStorage(
+  paths: string[]
+): Promise<{ success: boolean; deletedCount: number }> {
+  console.log("🗑️ Deleting multiple files from storage:", paths);
+
+  if (!paths || paths.length === 0) {
+    console.warn("⚠️ No paths provided, skipping deletion");
+    return { success: true, deletedCount: 0 };
+  }
+
+  const validPaths = paths.filter((p) => p && p.trim());
+  if (validPaths.length === 0) {
+    console.warn("⚠️ No valid paths provided, skipping deletion");
+    return { success: true, deletedCount: 0 };
+  }
+
+  const { data, error } = await supabase.storage
+    .from("minecomplyapp-bucket")
+    .remove(validPaths);
+
+  if (error) {
+    console.error("❌ Failed to delete files:", {
+      paths: validPaths,
+      message: error.message,
+      error,
+    });
+    // Don't throw - we want deletion to be non-blocking
+    return { success: false, deletedCount: 0 };
+  }
+
+  console.log("✅ Files deleted successfully:", {
+    count: data.length,
+    paths: validPaths,
+  });
+  return { success: true, deletedCount: data.length };
 }

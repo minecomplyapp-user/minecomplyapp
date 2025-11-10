@@ -75,6 +75,12 @@ export const CMVR_STEPS: CMVRStep[] = [
   },
   {
     step: 12,
+    name: "Attachments",
+    screenName: "CMVRAttachments",
+    description: "Add supporting documents",
+  },
+  {
+    step: 13,
     name: "Export Report",
     screenName: "CMVRDocumentExport",
     description: "Generate final report",

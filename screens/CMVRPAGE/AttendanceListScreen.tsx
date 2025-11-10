@@ -151,8 +151,8 @@ export default function AttendanceListScreen({ navigation, route }: any) {
 
   const handleSelectRecord = (record: AttendanceRecordItem) => {
     if (isSelectionMode) {
-      // Directly navigate back with the selected record (no highlighting)
-      navigation.navigate("CMVRDocumentExport", {
+      // Navigate to attachments screen instead of directly to export
+      navigation.navigate("CMVRAttachments", {
         ...previousParams,
         selectedAttendanceId: record.id,
         selectedAttendanceTitle: record.title || record.fileName,

@@ -1,4 +1,6 @@
 // config/api.js
-const BASE_URL = "http://10.181.217.19:3000/api";
+const BASE_URL = "https://minecomplyapi.onrender.com/api";
+
+// const BASE_URL = "http://192.168.1.4:3000/api";
 
 export default BASE_URL;

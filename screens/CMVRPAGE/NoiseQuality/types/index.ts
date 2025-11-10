@@ -1,9 +1,12 @@
-import * as DocumentPicker from 'expo-document-picker';
+import * as DocumentPicker from "expo-document-picker";
 
-export type UploadedFile = DocumentPicker.DocumentPickerAsset;
+export type UploadedFile = DocumentPicker.DocumentPickerAsset & {
+  storagePath?: string; // Supabase storage path after upload
+};
 
 export type FileUploadSectionProps = {
   uploadedFiles: UploadedFile[];
+  uploadingFiles: Record<string, boolean>;
   onFilesChange: (files: UploadedFile[]) => void;
 };
 
@@ -27,7 +30,11 @@ export type NoiseParameterCardProps = {
   parameter: NoiseParameter;
   index: number;
   canDelete: boolean;
-  onUpdate: (id: string, field: keyof Omit<NoiseParameter, 'id'>, value: string | boolean) => void;
+  onUpdate: (
+    id: string,
+    field: keyof Omit<NoiseParameter, "id">,
+    value: string | boolean
+  ) => void;
   onDelete: (id: string) => void;
 };
 
@@ -50,4 +57,4 @@ export type QuarrySectionData = {
 export type QuarrySectionProps = {
   data: QuarrySectionData;
   onUpdate: (field: keyof QuarrySectionData, value: boolean) => void;
-}
+};

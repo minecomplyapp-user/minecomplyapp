@@ -2,12 +2,17 @@ import { create } from 'zustand';
 import BASE_URL from './api'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 const ECC_STORAGE_KEY = '@ecc_data_array';
+
+import { useAuth } from "../contexts/AuthContext";
+
 export const useEccStore = create((set) => ({
     // ... (initial state)
     
-    reports: null, 
+    reports: [], 
     isLoading: false,
     selectedReport: null,
+    setSelectedReport: (report) => set({ selectedReport: report }),
+
     clearSelectedReport:async () => {
     // Assuming 'selectedReport' is a state field you want to clear
     set({ selectedReport: null }); 
@@ -41,7 +46,7 @@ export const useEccStore = create((set) => ({
         console.error('Error saving or retrieving ECC data:', e);
     }
 },
-updateEcc : async (id, updatedEccObject) => {
+updateEcc : async (id, updatedEccObject,token) => {
     try {
         // 1. Retrieve the existing array data
         const existingDataString = await AsyncStorage.getItem(ECC_STORAGE_KEY);
@@ -93,7 +98,8 @@ updateEcc : async (id, updatedEccObject) => {
        
     },
 
-    addReport: async (reportData) => { 
+    addReport: async (reportData,token) => { 
+       
         set({ isLoading: true });
         
         try {
@@ -101,8 +107,12 @@ updateEcc : async (id, updatedEccObject) => {
 
             const response = await fetch(endpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json' ,
+                            'Authorization': `Bearer ${token}`, // <— REQUIRED when DISABLE_AUTH=false
+
+                },
                 body: JSON.stringify(reportData), 
+            
             });
 
             // 1. Check response status and handle errors
@@ -141,7 +151,8 @@ updateEcc : async (id, updatedEccObject) => {
             return { success: false, error: error.message };
         }
     },
-getReportById: async (id) => {
+getReportById: async (id,token) => {
+
   set({ isLoading: true, selectedReport: null });
   try {
     const endpoint = `${BASE_URL}/ecc/getEccReportById/${id}`;
@@ -150,6 +161,8 @@ getReportById: async (id) => {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        'Authorization': `Bearer ${token}`, // <— REQUIRED when DISABLE_AUTH=false
+
       },
     });
 
@@ -170,21 +183,25 @@ getReportById: async (id) => {
   }
 },
 
-  getAllReports: async () => {
+  getAllReports: async (createdById,token) => {
     // 1. Start Loading
     set({ isLoading: true, error: null }); 
-
     try {
         // 2. Fetch Data from the API endpoint
         // You'll need to replace 'YOUR_API_BASE_URL' and use a fetch or axios call.
-        const response = await fetch(`${BASE_URL}/ecc/getAllEccReports`);
-        
+        const response = await fetch(`${BASE_URL}/ecc/getAllEccReports/${createdById}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            }
+            });
         if (!response.ok) {
             throw new Error('Failed to fetch ECC reports.');
         }
 
         const data = await response.json();
-
+            console.log("asdasda")
         // 3. Update State with the fetched data
         set({
             reports: data, // Assuming the API returns an array of reports
@@ -200,48 +217,18 @@ getReportById: async (id) => {
         });
     }
 },
-    updateCondition: async (conditionId, data) => {
-        set({ isLoading: true });
-        try {
-            const endpoint = `${BASE_URL}/ecc/condition/${conditionId}`;
-            // The API response is likely the updated condition or the full report
-            const updatedCondition = await apiRequest(endpoint, 'PATCH', updateData); 
-
-            // Logic to update the condition in the local state (e.g., in selectedReport) goes here.
-            // ...
-
-            set({ isLoading: false });
-            return { success: true, condition: updatedCondition };
-        } catch (error) {
-            set({ isLoading: false });
-            console.error(`Error updating condition ${conditionId}:`, error.message);
-            return { success: false, error: error.message };
-        }
-    },
-    addCondition: async (reportId, data) => {
-        set({ isLoading: true });
-        try {
-            const endpoint = `${BASE_URL}/ecc/addCondition/${reportId}`;
-            const newCondition = await apiRequest(endpoint, 'POST', createDto); 
-
-            // Logic to add the new condition to the local state (e.g., in selectedReport) goes here.
-            // ...
-            
-            set({ isLoading: false });
-            return { success: true, condition: newCondition };
-        } catch (error) {
-            set({ isLoading: false });
-            console.error(`Error adding condition to report ${reportId}:`, error.message);
-            return { success: false, error: error.message };
-        }
-    },
-     createAndDownloadReport: async (reportData) => {
+  
+   
+     createAndDownloadReport: async (reportData,token) => {
     try {
+       
         console.log("here")
         const response = await fetch(`${BASE_URL}/ecc/createEccAndGenerateDocs`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`, // <— REQUIRED when DISABLE_AUTH=false
+
                 // Add Authorization if needed
             },
             body: JSON.stringify(reportData),
@@ -272,4 +259,5 @@ getReportById: async (id) => {
         return { success: false, error: (error).message };
     }
 },
+
 }));

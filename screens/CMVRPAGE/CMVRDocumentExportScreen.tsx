@@ -9,13 +9,18 @@ import {
   Platform,
   Alert,
   Dimensions,
+  Image,
+  TextInput,
 } from "react-native";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../contexts/AuthContext";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
+import { uploadFileFromUri, deleteFilesFromStorage } from "../../lib/storage";
+
 import { useFileName } from "../../contexts/FileNameContext";
 import {
   createCMVRReport,
@@ -34,6 +39,45 @@ import type {
   MMTInfo,
   CreateCMVRDto,
 } from "./types/CMVRReportScreen.types";
+import type {
+  ExecutiveSummary,
+  ProcessDocumentation,
+} from "./types/CMVRPage2Screen.types";
+import type {
+  FormData,
+  OtherComponent,
+} from "./types/ComplianceMonitoringScreen.types";
+import type {
+  YesNoNull as EiaYesNoNull,
+  OperationSection,
+  MitigatingMeasure,
+} from "./types/EIAComplianceScreen.types";
+import type {
+  ComplianceData as AirComplianceData,
+  ParameterData as AirParameterData,
+} from "./types/EnvironmentalComplianceScreen.types";
+import type {
+  WaterQualityData,
+  Parameter as WaterParameter,
+  PortData as WaterPortData,
+} from "./types/WaterQualityScreen.types";
+import type {
+  NoiseParameter,
+  QuarterData,
+} from "./types/NoiseQualityScreen.types";
+import type {
+  WasteEntry,
+  PlantPortSectionData,
+  QuarrySectionData,
+  PlantSectionData,
+  PortSectionData,
+} from "./types/WasteManagementScreen.types";
+import type {
+  ChemicalSafetyData,
+  Complaint,
+  YesNoNull as ChemicalYesNoNull,
+  ChemicalCategory,
+} from "./types/ChemicalSafetyScreen.types";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const isTablet = SCREEN_WIDTH >= 768;
@@ -196,6 +240,166 @@ const defaultMmtInfo: MMTInfo = {
 };
 
 const sanitizeString = (value?: string | null) => (value ?? "").toString();
+
+const parseCoordinateFields = (raw?: string) => {
+  if (!raw) {
+    return { gpsX: "", gpsY: "" };
+  }
+  const xMatch = raw.match(/X\s*:\s*([^,]+)/i);
+  const yMatch = raw.match(/Y\s*:\s*([^,]+)/i);
+  return {
+    gpsX: xMatch ? xMatch[1].trim() : "",
+    gpsY: yMatch ? yMatch[1].trim() : "",
+  };
+};
+
+const parseLocationComponents = (raw?: string) => {
+  const parts = (raw || "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+  if (parts.length === 0) {
+    return {
+      location: "",
+      municipality: "",
+      province: "",
+      region: "",
+    };
+  }
+  if (parts.length >= 4) {
+    return {
+      location: parts.slice(0, parts.length - 3).join(", ") || parts[0],
+      municipality: parts[parts.length - 3] || "",
+      province: parts[parts.length - 2] || "",
+      region: parts[parts.length - 1] || "",
+    };
+  }
+  if (parts.length === 3) {
+    return {
+      location: parts[0] || "",
+      municipality: parts[0] || "",
+      province: parts[1] || "",
+      region: parts[2] || "",
+    };
+  }
+  if (parts.length === 2) {
+    return {
+      location: parts[0] || "",
+      municipality: parts[0] || "",
+      province: parts[1] || "",
+      region: "",
+    };
+  }
+  return {
+    location: parts[0] || "",
+    municipality: "",
+    province: "",
+    region: "",
+  };
+};
+
+const mapEccEntriesToForm = (entries?: any[]) => {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return {
+      primary: { ...defaultEccInfo, isNA: true },
+      additional: [] as ECCAdditionalForm[],
+    };
+  }
+  const [first, ...rest] = entries;
+  const convert = (item: any): ECCAdditionalForm => ({
+    permitHolder: sanitizeString(item?.permitHolderName),
+    eccNumber: sanitizeString(item?.eccNumber),
+    dateOfIssuance: sanitizeString(item?.dateOfIssuance),
+  });
+  return {
+    primary: {
+      ...defaultEccInfo,
+      isNA: false,
+      permitHolder: sanitizeString(first?.permitHolderName),
+      eccNumber: sanitizeString(first?.eccNumber),
+      dateOfIssuance: sanitizeString(first?.dateOfIssuance),
+    },
+    additional: rest.map(convert),
+  };
+};
+
+const mapIsagEntriesToForm = (entries?: any[], projectName?: string) => {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return {
+      primary: { ...defaultIsagInfo, isNA: true },
+      additional: [] as ISAGAdditionalForm[],
+    };
+  }
+  const [first, ...rest] = entries;
+  const convert = (item: any): ISAGAdditionalForm => ({
+    permitHolder: sanitizeString(item?.permitHolderName),
+    isagNumber: sanitizeString(item?.isagPermitNumber),
+    dateOfIssuance: sanitizeString(item?.dateOfIssuance),
+  });
+  return {
+    primary: {
+      ...defaultIsagInfo,
+      isNA: false,
+      permitHolder: sanitizeString(first?.permitHolderName),
+      isagNumber: sanitizeString(first?.isagPermitNumber),
+      dateOfIssuance: sanitizeString(first?.dateOfIssuance),
+      currentName: sanitizeString(projectName),
+    },
+    additional: rest.map(convert),
+  };
+};
+
+const mapEpepEntriesToForm = (entries?: any[]) => {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return {
+      primary: { ...defaultEpepInfo, isNA: true },
+      additional: [] as EpepAdditionalForm[],
+    };
+  }
+  const [first, ...rest] = entries;
+  const convert = (item: any): EpepAdditionalForm => ({
+    permitHolder: sanitizeString(item?.permitHolderName),
+    epepNumber: sanitizeString(item?.epepNumber),
+    dateOfApproval: sanitizeString(item?.dateOfApproval),
+  });
+  return {
+    primary: {
+      ...defaultEpepInfo,
+      isNA: false,
+      permitHolder: sanitizeString(first?.permitHolderName),
+      epepNumber: sanitizeString(first?.epepNumber),
+      dateOfApproval: sanitizeString(first?.dateOfApproval),
+    },
+    additional: rest.map(convert),
+  };
+};
+
+const mapFundEntriesToForm = (entries?: any[]) => {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return {
+      primary: { ...defaultFundInfo, isNA: true },
+      additional: [] as FundAdditionalForm[],
+    };
+  }
+  const [first, ...rest] = entries;
+  const convert = (item: any): FundAdditionalForm => ({
+    permitHolder: sanitizeString(item?.permitHolderName),
+    savingsAccount: sanitizeString(item?.savingsAccountNumber),
+    amountDeposited: sanitizeString(item?.amountDeposited),
+    dateUpdated: sanitizeString(item?.dateUpdated),
+  });
+  return {
+    primary: {
+      ...defaultFundInfo,
+      isNA: false,
+      permitHolder: sanitizeString(first?.permitHolderName),
+      savingsAccount: sanitizeString(first?.savingsAccountNumber),
+      amountDeposited: sanitizeString(first?.amountDeposited),
+      dateUpdated: sanitizeString(first?.dateUpdated),
+    },
+    additional: rest.map(convert),
+  };
+};
 
 const buildLocationString = (info: GeneralInfo) =>
   [info.location, info.municipality, info.province, info.region]
@@ -513,7 +717,8 @@ const transformProcessDocumentationForPayload = (raw: any) => {
     .toLowerCase();
   const applicable =
     sva === "yes" || sva === "y" || raw.siteValidationApplicable === true;
-  const none = sva === "no" || sva === "none" || raw.siteValidationApplicable === false;
+  const none =
+    sva === "no" || sva === "none" || raw.siteValidationApplicable === false;
   return {
     dateConducted: raw?.dateConducted ?? "",
     mergedMethodologyOrOtherRemarks: raw?.methodologyRemarks ?? "",
@@ -582,7 +787,31 @@ const transformProjectLocationCoverageForPayload = (raw: any) => {
     remarks: String(item?.remarks ?? ""),
     withinSpecs: Boolean(item?.withinSpecs),
   }));
-  return { parameters, otherComponents };
+
+  // Preserve uploaded images metadata
+  const uploadedImages =
+    raw && typeof raw.uploadedImages === "object"
+      ? Object.entries(raw.uploadedImages as Record<string, unknown>).reduce(
+          (acc: Record<string, string>, [key, value]) => {
+            const cleanKey = String(key).trim();
+            if (!cleanKey || typeof value !== "string") return acc;
+            const cleanValue = value.trim();
+            if (cleanValue) {
+              acc[cleanKey] = cleanValue;
+            }
+            return acc;
+          },
+          {}
+        )
+      : {};
+
+  return {
+    parameters,
+    otherComponents,
+    uploadedImages: Object.keys(uploadedImages).length
+      ? uploadedImages
+      : undefined,
+  };
 };
 
 const transformImpactCommitmentsForPayload = (raw: any) => {
@@ -591,8 +820,8 @@ const transformImpactCommitmentsForPayload = (raw: any) => {
     String(v).toLowerCase() === "yes"
       ? true
       : String(v).toLowerCase() === "no"
-      ? false
-      : !!v;
+        ? false
+        : !!v;
   const mapMeasures = (section: any) => {
     const measures = Array.isArray(section?.measures) ? section.measures : [];
     return {
@@ -641,44 +870,297 @@ const transformImpactCommitmentsForPayload = (raw: any) => {
   };
 };
 
+const hasAirParameterValues = (param: AirParameterData) => {
+  const fields: Array<keyof AirParameterData> = [
+    "parameter",
+    "currentSMR",
+    "previousSMR",
+    "currentMMT",
+    "previousMMT",
+    "thirdPartyTesting",
+    "eqplRedFlag",
+    "action",
+    "limitPM25",
+    "remarks",
+  ];
+  return fields.some((key) =>
+    sanitizeString((param as Record<string, string | undefined>)[key]).trim()
+  );
+};
+
 const transformAirQualityForPayload = (raw: any) => {
   if (!raw) return undefined;
-  const sel = raw.selectedLocations || {};
-  const d = raw.data || {};
-  const combineParams = () => {
-    const main = [
-      {
-        name: String(d?.parameter ?? ""),
-        remarks: String(d?.remarks ?? ""),
-      },
-    ];
-    const extras = Array.isArray(d?.parameters)
-      ? d.parameters.map((p: any) => ({
-          name: String(p?.parameter ?? ""),
-          remarks: String(p?.remarks ?? ""),
-        }))
-      : [];
-    return [...main, ...extras].filter((x) => x.name);
-  };
-  return {
-    quarry: sel.quarry ? String(d?.quarry ?? "") : String(d?.quarry ?? ""),
-    quarryPlant: sel.quarryPlant ? String(d?.quarryPlant ?? "") : undefined,
-    plant: sel.plant ? String(d?.plant ?? "") : String(d?.plant ?? ""),
-    port: sel.port ? String(d?.port ?? "") : String(d?.port ?? ""),
-    parameters: combineParams(),
-    samplingDate: String(d?.dateTime ?? ""),
-    weatherAndWind: String(d?.weatherWind ?? ""),
-    explanationForConfirmatorySampling: String(d?.explanation ?? ""),
-    overallAssessment: String(d?.overallCompliance ?? ""),
-  };
+
+  // NEW STRUCTURE: Check if we have location-based data (quarryData, plantData, etc.)
+  const hasNewStructure =
+    raw.quarryData || raw.plantData || raw.portData || raw.quarryPlantData;
+
+  if (hasNewStructure) {
+    // Transform new location-based structure
+    const result: any = {};
+
+    const transformLocationData = (locationData: any) => {
+      if (!locationData) return null;
+
+      const mergeRemarks = (param: any) => {
+        const remarks = sanitizeString(param?.remarks);
+        const thirdParty = sanitizeString(param?.thirdPartyTesting);
+        if (!thirdParty) {
+          return remarks;
+        }
+        const thirdPartyNote = `Third Party Testing: ${thirdParty}`;
+        return remarks ? `${remarks} | ${thirdPartyNote}` : thirdPartyNote;
+      };
+
+      // Helper to map a single parameter
+      const mapParameter = (param: any) => ({
+        name: sanitizeString(param?.parameter),
+        results: {
+          inSMR: {
+            current: sanitizeString(param?.currentSMR),
+            previous: sanitizeString(param?.previousSMR),
+          },
+          mmtConfirmatorySampling: {
+            current: sanitizeString(param?.currentMMT),
+            previous: sanitizeString(param?.previousMMT),
+          },
+        },
+        eqpl: {
+          redFlag: sanitizeString(param?.eqplRedFlag),
+          action: sanitizeString(param?.action),
+          limit: sanitizeString(param?.limitPM25),
+        },
+        remarks: mergeRemarks(param),
+      });
+
+      // Build main parameter
+      const mainParameter = {
+        parameter: sanitizeString(locationData?.parameter),
+        currentSMR: sanitizeString(locationData?.currentSMR),
+        previousSMR: sanitizeString(locationData?.previousSMR),
+        currentMMT: sanitizeString(locationData?.currentMMT),
+        previousMMT: sanitizeString(locationData?.previousMMT),
+        thirdPartyTesting: sanitizeString(locationData?.thirdPartyTesting),
+        eqplRedFlag: sanitizeString(locationData?.eqplRedFlag),
+        action: sanitizeString(locationData?.action),
+        limitPM25: sanitizeString(locationData?.limitPM25),
+        remarks: sanitizeString(locationData?.remarks),
+      };
+
+      // Gather all parameters (main + additional)
+      const allParameters = [];
+      if (mainParameter.parameter) {
+        allParameters.push(mapParameter(mainParameter));
+      }
+      if (Array.isArray(locationData.parameters)) {
+        locationData.parameters.forEach((param: any) => {
+          if (param.parameter) {
+            allParameters.push(mapParameter(param));
+          }
+        });
+      }
+
+      return {
+        locationDescription: sanitizeString(locationData.locationInput),
+        parameters: allParameters,
+        samplingDate: sanitizeString(locationData?.dateTime),
+        weatherAndWind: sanitizeString(locationData?.weatherWind),
+        explanationForConfirmatorySampling: sanitizeString(
+          locationData?.explanation
+        ),
+        overallAssessment: sanitizeString(locationData?.overallCompliance),
+      };
+    };
+
+    // Transform each location
+    if (raw.quarryData) {
+      const transformed = transformLocationData(raw.quarryData);
+      if (transformed) result.quarry = transformed;
+    }
+    if (raw.plantData) {
+      const transformed = transformLocationData(raw.plantData);
+      if (transformed) result.plant = transformed;
+    }
+    if (raw.portData) {
+      const transformed = transformLocationData(raw.portData);
+      if (transformed) result.port = transformed;
+    }
+    if (raw.quarryPlantData) {
+      const transformed = transformLocationData(raw.quarryPlantData);
+      if (transformed) result.quarryAndPlant = transformed;
+    }
+
+    return Object.keys(result).length > 0 ? result : undefined;
+  }
+
+  // LEGACY STRUCTURE: Old format with data object - NO LONGER SUPPORTED
+  // Return undefined to prevent invalid data structure from being sent
+  console.warn(
+    "Legacy air quality format detected but not supported. Please use location-based structure (quarryData, plantData, portData)."
+  );
+  return undefined;
 };
 
 const transformWaterQualityForPayload = (raw: any) => {
   if (!raw) return undefined;
+
+  const hasLocationStructure =
+    raw.quarryData ||
+    raw.plantData ||
+    raw.quarryPlantData ||
+    (Array.isArray(raw.ports) && raw.ports.some((port: any) => port));
+
+  if (hasLocationStructure) {
+    const orFallback = (value: any, fallback: any) => {
+      if (value === undefined || value === null || value === "") {
+        return fallback;
+      }
+      return value;
+    };
+
+    const mapLocationParam = (param: any, fallback: any) => {
+      const resolvedParameter = sanitizeString(
+        orFallback(param?.parameter, fallback?.parameter)
+      );
+      if (!resolvedParameter.trim()) {
+        return null;
+      }
+      const resolvedResultType = sanitizeString(
+        orFallback(param?.resultType, fallback?.resultType)
+      );
+      const currentTss = sanitizeString(
+        orFallback(param?.tssCurrent, fallback?.tssCurrent)
+      );
+      const previousTss = sanitizeString(
+        orFallback(param?.tssPrevious, fallback?.tssPrevious)
+      );
+      return {
+        name: resolvedParameter,
+        result: {
+          internalMonitoring: {
+            month: resolvedResultType,
+            readings: [
+              {
+                label: resolvedParameter,
+                current_mgL: parseFirstNumber(currentTss),
+                previous_mgL: parseFirstNumber(previousTss),
+              },
+            ],
+          },
+          mmtConfirmatorySampling: {
+            current: sanitizeString(
+              orFallback(param?.mmtCurrent, fallback?.mmtCurrent)
+            ),
+            previous: sanitizeString(
+              orFallback(param?.mmtPrevious, fallback?.mmtPrevious)
+            ),
+          },
+        },
+        denrStandard: {
+          redFlag: sanitizeString(
+            orFallback(param?.eqplRedFlag, fallback?.eqplRedFlag)
+          ),
+          action: sanitizeString(orFallback(param?.action, fallback?.action)),
+          limit_mgL: parseFirstNumber(
+            sanitizeString(orFallback(param?.limit, fallback?.limit))
+          ),
+        },
+        remark: sanitizeString(orFallback(param?.remarks, fallback?.remarks)),
+      };
+    };
+
+    const mapLocationData = (locationData: any) => {
+      if (!locationData || typeof locationData !== "object") {
+        return null;
+      }
+      const mainParam = mapLocationParam(locationData, locationData);
+      const extraParams = Array.isArray(locationData.parameters)
+        ? locationData.parameters
+            .map((param: any) => mapLocationParam(param, locationData))
+            .filter((param): param is NonNullable<typeof param> => !!param)
+        : [];
+      const parameters = [...(mainParam ? [mainParam] : []), ...extraParams];
+      if (!parameters.length) {
+        return null;
+      }
+      return {
+        locationDescription: sanitizeString(locationData.locationInput),
+        parameters,
+        samplingDate: sanitizeString(locationData.dateTime),
+        weatherAndWind: sanitizeString(locationData.weatherWind),
+        explanationForConfirmatorySampling: sanitizeString(
+          locationData.isExplanationNA ? "N/A" : locationData.explanation
+        ),
+        overallAssessment: sanitizeString(locationData.overallCompliance),
+      };
+    };
+
+    const mapPortData = (portData: any) => {
+      if (!portData || typeof portData !== "object") {
+        return null;
+      }
+      const mainParam = mapLocationParam(portData, portData);
+      const extraParams = Array.isArray(portData.additionalParameters)
+        ? portData.additionalParameters
+            .map((param: any) => mapLocationParam(param, portData))
+            .filter((param): param is NonNullable<typeof param> => !!param)
+        : [];
+      const parameters = [...(mainParam ? [mainParam] : []), ...extraParams];
+      if (!parameters.length) {
+        return null;
+      }
+      return {
+        locationDescription: sanitizeString(
+          portData.portName ?? portData.locationInput
+        ),
+        parameters,
+        samplingDate: sanitizeString(portData.dateTime),
+        weatherAndWind: sanitizeString(portData.weatherWind),
+        explanationForConfirmatorySampling: sanitizeString(
+          portData.isExplanationNA ? "N/A" : portData.explanation
+        ),
+        overallAssessment: sanitizeString(
+          portData.overallCompliance ?? raw?.data?.overallCompliance
+        ),
+      };
+    };
+
+    const result: any = {};
+    if (raw.quarryData) {
+      const quarry = mapLocationData(raw.quarryData);
+      if (quarry) {
+        result.quarry = quarry;
+      }
+    }
+    if (raw.plantData) {
+      const plant = mapLocationData(raw.plantData);
+      if (plant) {
+        result.plant = plant;
+      }
+    }
+    if (raw.quarryPlantData) {
+      const quarryPlant = mapLocationData(raw.quarryPlantData);
+      if (quarryPlant) {
+        result.quarryAndPlant = quarryPlant;
+      }
+    }
+    if (Array.isArray(raw.ports) && raw.ports.length) {
+      raw.ports.forEach((portData: any) => {
+        const port = mapPortData(portData);
+        if (port) {
+          result.port = port;
+        }
+      });
+    }
+
+    return Object.keys(result).length > 0 ? result : undefined;
+  }
+
   const sel = raw.selectedLocations || {};
   const d = raw.data || {};
   const params = Array.isArray(raw.parameters) ? raw.parameters : [];
   const ports = Array.isArray(raw.ports) ? raw.ports : [];
+
   const makeParam = (p: any) => ({
     name: String(p?.parameter ?? ""),
     result: {
@@ -704,39 +1186,73 @@ const transformWaterQualityForPayload = (raw: any) => {
     },
     remark: String(p?.remarks ?? d?.remarks ?? ""),
   });
-  const mainParam = makeParam(d);
-  const extraParams = params.map(makeParam);
-  const portParams: any[] = [];
-  ports.forEach((port: any) => {
-    const base = makeParam(port);
-    base.name = `${port?.portName || "Port"} - ${base.name}`.trim();
-    portParams.push(base);
-    if (Array.isArray(port.additionalParameters)) {
-      port.additionalParameters.forEach((pp: any) => {
-        const p2 = makeParam(pp);
-        p2.name = `${port?.portName || "Port"} - ${p2.name}`.trim();
-        portParams.push(p2);
-      });
-    }
-  });
-  return {
-    quarry: sel.quarry
-      ? String(d?.quarryInput ?? "")
-      : String(d?.quarryInput ?? ""),
-    quarryPlant: sel.quarryPlant
-      ? String(d?.quarryPlantInput ?? "")
-      : undefined,
-    plant: sel.plant
-      ? String(d?.plantInput ?? "")
-      : String(d?.plantInput ?? ""),
-    port: ports?.length ? String(ports[0]?.portName ?? "") : undefined,
-    parameters: [mainParam, ...extraParams].filter((p) => p.name),
-    parametersTable2: portParams.length ? portParams : undefined,
-    samplingDate: String(d?.dateTime ?? ""),
-    weatherAndWind: String(d?.weatherWind ?? ""),
-    explanationForConfirmatorySampling: String(d?.explanation ?? ""),
-    overallAssessment: String(d?.overallCompliance ?? ""),
-  };
+
+  const result: any = {};
+
+  if (sel.quarry && d?.quarryInput) {
+    const mainParam = makeParam(d);
+    const extraParams = params.map(makeParam);
+    result.quarry = {
+      locationDescription: String(d?.quarryInput ?? ""),
+      parameters: [mainParam, ...extraParams].filter((p) => p.name),
+      samplingDate: String(d?.dateTime ?? ""),
+      weatherAndWind: String(d?.weatherWind ?? ""),
+      explanationForConfirmatorySampling: String(d?.explanation ?? ""),
+      overallAssessment: String(d?.overallCompliance ?? ""),
+    };
+  }
+
+  if (sel.plant && d?.plantInput) {
+    const mainParam = makeParam(d);
+    const extraParams = params.map(makeParam);
+    result.plant = {
+      locationDescription: String(d?.plantInput ?? ""),
+      parameters: [mainParam, ...extraParams].filter((p) => p.name),
+      samplingDate: String(d?.dateTime ?? ""),
+      weatherAndWind: String(d?.weatherWind ?? ""),
+      explanationForConfirmatorySampling: String(d?.explanation ?? ""),
+      overallAssessment: String(d?.overallCompliance ?? ""),
+    };
+  }
+
+  if (sel.quarryPlant && d?.quarryPlantInput) {
+    const mainParam = makeParam(d);
+    const extraParams = params.map(makeParam);
+    result.quarryAndPlant = {
+      locationDescription: String(d?.quarryPlantInput ?? ""),
+      parameters: [mainParam, ...extraParams].filter((p) => p.name),
+      samplingDate: String(d?.dateTime ?? ""),
+      weatherAndWind: String(d?.weatherWind ?? ""),
+      explanationForConfirmatorySampling: String(d?.explanation ?? ""),
+      overallAssessment: String(d?.overallCompliance ?? ""),
+    };
+  }
+
+  if (ports?.length) {
+    ports.forEach((port: any) => {
+      const portMainParam = makeParam(port);
+      const portExtraParams = Array.isArray(port.additionalParameters)
+        ? port.additionalParameters.map(makeParam)
+        : [];
+
+      result.port = {
+        locationDescription: String(
+          port?.portName ?? port?.locationInput ?? d?.port ?? ""
+        ),
+        parameters: [portMainParam, ...portExtraParams].filter((p) => p.name),
+        samplingDate: String(port?.dateTime ?? d?.dateTime ?? ""),
+        weatherAndWind: String(port?.weatherWind ?? d?.weatherWind ?? ""),
+        explanationForConfirmatorySampling: String(
+          port?.explanation ?? d?.explanation ?? ""
+        ),
+        overallAssessment: String(
+          port?.overallCompliance ?? d?.overallCompliance ?? ""
+        ),
+      };
+    });
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
 };
 
 const transformNoiseQualityForPayload = (raw: any) => {
@@ -776,6 +1292,40 @@ const transformNoiseQualityForPayload = (raw: any) => {
     overallAssessment.thirdQuarter = toQuarter("3rd", raw.quarters.third);
   if (raw?.quarters?.fourth)
     overallAssessment.fourthQuarter = toQuarter("4th", raw.quarters.fourth);
+
+  // Preserve uploaded files metadata
+  const uploadedFiles = (
+    Array.isArray(raw?.uploadedFiles) ? raw.uploadedFiles : []
+  )
+    .map((file: any) => {
+      const storagePath =
+        typeof file?.storagePath === "string"
+          ? file.storagePath.trim()
+          : undefined;
+      const uri = typeof file?.uri === "string" ? file.uri.trim() : undefined;
+      if (!storagePath && !uri) return null;
+
+      const name =
+        typeof file?.name === "string" && file.name.trim()
+          ? file.name.trim()
+          : storagePath?.split("/").pop();
+
+      const size =
+        typeof file?.size === "number"
+          ? file.size
+          : Number.isFinite(Number(file?.size))
+            ? Number(file.size)
+            : undefined;
+
+      const mimeType =
+        typeof file?.mimeType === "string" && file.mimeType.trim()
+          ? file.mimeType.trim()
+          : undefined;
+
+      return { uri, name, size, mimeType, storagePath };
+    })
+    .filter(Boolean);
+
   return {
     parameters: parameters.length ? parameters : undefined,
     samplingDate: String(raw?.dateTime ?? ""),
@@ -784,6 +1334,7 @@ const transformNoiseQualityForPayload = (raw: any) => {
     overallAssessment: Object.keys(overallAssessment).length
       ? overallAssessment
       : undefined,
+    uploadedFiles: uploadedFiles.length ? uploadedFiles : undefined,
   };
 };
 
@@ -813,19 +1364,19 @@ const transformWasteManagementForPayload = (raw: any) => {
   const quarry = raw?.quarryData?.N_A
     ? "N/A"
     : raw?.quarryData?.noSignificantImpact && !raw?.quarryData?.generateTable
-    ? "No significant impact"
-    : mapPlantPortSection(raw?.quarryPlantData);
+      ? "No significant impact"
+      : mapPlantPortSection(raw?.quarryPlantData);
   const plant = raw?.plantSimpleData?.N_A
     ? "N/A"
     : raw?.plantSimpleData?.noSignificantImpact &&
-      !raw?.plantSimpleData?.generateTable
-    ? "No significant impact"
-    : mapPlantPortSection(raw?.plantData);
+        !raw?.plantSimpleData?.generateTable
+      ? "No significant impact"
+      : mapPlantPortSection(raw?.plantData);
   const port = raw?.portData?.N_A
     ? "N/A"
     : raw?.portData?.noSignificantImpact && !raw?.portData?.generateTable
-    ? "No significant impact"
-    : mapPlantPortSection(raw?.portPlantData);
+      ? "No significant impact"
+      : mapPlantPortSection(raw?.portPlantData);
   return { quarry, plant, port };
 };
 
@@ -872,6 +1423,1226 @@ const transformComplaintsForPayload = (raw: any) => {
       isNA: c?.isNA ?? undefined,
     }));
   return cleaned.length ? cleaned : undefined;
+};
+
+const createHydrationId = (() => {
+  let counter = 0;
+  return (prefix: string, index?: number) => {
+    counter += 1;
+    const randomPart = Math.random().toString(36).slice(2, 8);
+    if (typeof index === "number") {
+      return `${prefix}-${index}-${counter}-${randomPart}`;
+    }
+    return `${prefix}-${counter}-${randomPart}`;
+  };
+})();
+
+const normalizeLabelKey = (value: string) =>
+  value.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+const COMPLIANCE_FORM_FIELD_DEFS = [
+  { key: "projectLocation", label: "Project Location" },
+  { key: "projectArea", label: "Project Area (ha)" },
+  { key: "capitalCost", label: "Capital Cost (Php)" },
+  { key: "typeOfMinerals", label: "Type of Minerals" },
+  { key: "miningMethod", label: "Mining Method" },
+  { key: "production", label: "Production" },
+  { key: "mineLife", label: "Mine Life" },
+  { key: "mineralReserves", label: "Mineral Reserves/ Resources" },
+  { key: "accessTransportation", label: "Access/ Transportation" },
+  { key: "powerSupply", label: "Power Supply", subFields: ["Plant", "Port"] },
+  {
+    key: "miningEquipment",
+    label: "Mining Equipment",
+    subFields: ["Quarry/Plant", "Port"],
+  },
+  {
+    key: "workForce",
+    label: "Work Force",
+    subFields: ["Employees"],
+  },
+  {
+    key: "developmentSchedule",
+    label: "Development/ Utilization Schedule",
+  },
+] as const;
+
+const buildDefaultComplianceFormData = (): FormData => {
+  const base: Partial<FormData> = {};
+  COMPLIANCE_FORM_FIELD_DEFS.forEach((def) => {
+    (base as Record<string, any>)[def.key] = {
+      label: def.label,
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+      ...(def.subFields
+        ? {
+            subFields: def.subFields.map((label) => ({
+              label: `${label}:`,
+              specification: "",
+            })),
+          }
+        : {}),
+    };
+  });
+  return base as FormData;
+};
+
+const isExecutiveSummaryFrontEndShape = (raw: any): raw is ExecutiveSummary => {
+  return (
+    raw &&
+    typeof raw === "object" &&
+    raw.epepCompliance &&
+    typeof raw.epepCompliance === "object" &&
+    Object.prototype.hasOwnProperty.call(raw, "sdmpCompliance")
+  );
+};
+
+const normalizeExecutiveSummaryFromApi = (
+  raw: any
+): ExecutiveSummary | undefined => {
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+  if (isExecutiveSummaryFrontEndShape(raw)) {
+    return raw;
+  }
+  const epep = raw.complianceWithEpepCommitments || raw.epepCompliance || {};
+  const sdmp = raw.complianceWithSdmpCommitments || raw.sdmp || {};
+  const complaints = raw.complaintsManagement || {};
+  const accountability = raw.accountability || {};
+  const others = raw.others || {};
+  const sdmpCompliance = sdmp.complied
+    ? "complied"
+    : sdmp.notComplied
+      ? "not-complied"
+      : "";
+  const accountabilityStatus = accountability.complied
+    ? "complied"
+    : accountability.notComplied
+      ? "not-complied"
+      : "";
+  return {
+    epepCompliance: {
+      safety: !!epep.safety,
+      social: !!epep.social,
+      rehabilitation: !!epep.rehabilitation,
+    },
+    epepRemarks: sanitizeString(epep.remarks),
+    sdmpCompliance,
+    sdmpRemarks: sanitizeString(sdmp.remarks),
+    complaintsManagement: {
+      naForAll: !!complaints.naForAll,
+      complaintReceiving: !!(
+        complaints.complaintReceiving ?? complaints.complaintReceivingSetup
+      ),
+      caseInvestigation: !!complaints.caseInvestigation,
+      implementationControl: !!(
+        complaints.implementationControl ?? complaints.implementationOfControl
+      ),
+      communicationComplainant: !!(
+        complaints.communicationComplainant ??
+        complaints.communicationWithComplainantOrPublic
+      ),
+      complaintDocumentation: !!complaints.complaintDocumentation,
+    },
+    complaintsRemarks: sanitizeString(complaints.remarks),
+    accountability: accountabilityStatus,
+    accountabilityRemarks: sanitizeString(accountability.remarks),
+    othersSpecify: sanitizeString(others.specify),
+    othersNA: !!(others.na ?? others.isNA),
+  };
+};
+
+type ProcessDocSnapshot = ProcessDocumentation & {
+  eccMmtAdditional: string[];
+  epepMmtAdditional: string[];
+  ocularMmtAdditional: string[];
+};
+
+const isProcessDocFrontEndShape = (raw: any): raw is ProcessDocSnapshot => {
+  return (
+    raw &&
+    typeof raw === "object" &&
+    Object.prototype.hasOwnProperty.call(raw, "eccMmtMembers") &&
+    (Array.isArray(raw.eccMmtAdditional) || raw.eccMmtAdditional === undefined)
+  );
+};
+
+const normalizeProcessDocumentationFromApi = (
+  raw: any
+): ProcessDocSnapshot | undefined => {
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+  if (isProcessDocFrontEndShape(raw)) {
+    return {
+      ...raw,
+      eccMmtAdditional: raw.eccMmtAdditional ?? [],
+      epepMmtAdditional: raw.epepMmtAdditional ?? [],
+      ocularMmtAdditional: raw.ocularMmtAdditional ?? [],
+    };
+  }
+  const activities = raw.activities || {};
+  const parseMembers = (value: any): string[] =>
+    Array.isArray(value)
+      ? value.map((entry) => sanitizeString(entry)).filter(Boolean)
+      : [];
+  const splitMembers = (value: any) => {
+    const list = parseMembers(value);
+    const [primary, ...additional] = list;
+    return {
+      primary: primary ?? "",
+      additional,
+    };
+  };
+  const eccMembers = splitMembers(
+    activities.complianceWithEccConditionsCommitments?.mmtMembersInvolved
+  );
+  const epepMembers = splitMembers(
+    activities.complianceWithEpepAepepConditions?.mmtMembersInvolved
+  );
+  const ocularMembers = splitMembers(
+    activities.siteOcularValidation?.mmtMembersInvolved
+  );
+  const sampling = activities.siteValidationConfirmatorySampling || {};
+  const siteValidationApplicable = sampling.applicable
+    ? "applicable"
+    : sampling.none
+      ? "none"
+      : "";
+  const samplingMembers = parseMembers(sampling.mmtMembersInvolved).join(", ");
+  return {
+    dateConducted: sanitizeString(raw.dateConducted),
+    sameDateForAll: !!(raw.sameDateForAll ?? raw.sameDateForAllActivities),
+    eccMmtMembers: eccMembers.primary,
+    eccMmtAdditional: eccMembers.additional,
+    epepMmtMembers: epepMembers.primary,
+    epepMmtAdditional: epepMembers.additional,
+    ocularMmtMembers: ocularMembers.primary,
+    ocularMmtAdditional: ocularMembers.additional,
+    ocularNA: !!raw.ocularNA,
+    methodologyRemarks: sanitizeString(
+      raw.mergedMethodologyOrOtherRemarks ?? raw.methodologyRemarks
+    ),
+    siteValidationApplicable,
+    samplingDateConducted: sanitizeString(sampling.dateConducted),
+    samplingMmtMembers: samplingMembers,
+    samplingMethodologyRemarks: sanitizeString(sampling.remarks),
+  };
+};
+
+const normalizeProjectLocationFromApi = (
+  raw: any
+):
+  | {
+      formData: FormData;
+      otherComponents: OtherComponent[];
+      uploadedImages: Record<string, string>;
+    }
+  | undefined => {
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+  if (raw.formData) {
+    return {
+      formData: raw.formData,
+      otherComponents: Array.isArray(raw.otherComponents)
+        ? raw.otherComponents
+        : [],
+      uploadedImages: raw.uploadedImages ?? {},
+    };
+  }
+  const formData = buildDefaultComplianceFormData();
+  const parameters = Array.isArray(raw.parameters) ? raw.parameters : [];
+  parameters.forEach((param: any) => {
+    const nameKey = normalizeLabelKey(
+      sanitizeString(param?.name ?? param?.label ?? "")
+    );
+    const definition = COMPLIANCE_FORM_FIELD_DEFS.find(
+      (def) => normalizeLabelKey(def.label) === nameKey
+    );
+    if (!definition) {
+      return;
+    }
+    const field = (formData as Record<string, any>)[definition.key];
+    if (!field) {
+      return;
+    }
+    const specificationSource = param?.specification;
+    if (specificationSource && typeof specificationSource === "object") {
+      field.specification = sanitizeString(
+        specificationSource.main ??
+          specificationSource.Main ??
+          specificationSource.default ??
+          specificationSource.specification
+      );
+      if (definition.subFields && field.subFields) {
+        field.subFields = field.subFields.map((subField: any) => {
+          const key = subField.label.replace(/:$/, "");
+          const match =
+            specificationSource[key] ??
+            specificationSource[key.toLowerCase()] ??
+            specificationSource[key.replace(/[^a-z0-9]/gi, "")];
+          return {
+            ...subField,
+            specification: sanitizeString(match),
+          };
+        });
+      }
+    } else if (specificationSource != null) {
+      field.specification = sanitizeString(specificationSource);
+    }
+    field.remarks = sanitizeString(param?.remarks);
+    field.withinSpecs =
+      typeof param?.withinSpecs === "boolean" ? param.withinSpecs : null;
+  });
+  const otherComponents = Array.isArray(raw.otherComponents)
+    ? raw.otherComponents.map((item: any, index: number) => ({
+        specification: sanitizeString(
+          item?.specification ?? item?.name ?? `Other Component ${index + 1}`
+        ),
+        remarks: sanitizeString(item?.remarks),
+        withinSpecs:
+          typeof item?.withinSpecs === "boolean" ? item.withinSpecs : null,
+      }))
+    : [];
+  return {
+    formData,
+    otherComponents,
+    uploadedImages: raw.uploadedImages ?? {},
+  };
+};
+
+const toEiaYesNo = (value: any): EiaYesNoNull => {
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "yes" || normalized === "complied") {
+      return "yes";
+    }
+    if (normalized === "no" || normalized === "not complied") {
+      return "no";
+    }
+  }
+  if (value === true) {
+    return "yes";
+  }
+  if (value === false) {
+    return "no";
+  }
+  return null;
+};
+
+const createEmptyMitigatingMeasure = (
+  prefix: string,
+  index: number
+): MitigatingMeasure => ({
+  id: createHydrationId(prefix, index),
+  planned: "",
+  actualObservation: "",
+  isEffective: null,
+  recommendations: "",
+});
+
+const mapCommitments = (
+  section: any,
+  prefix: string,
+  fallbackTitle: string
+): OperationSection => {
+  const title = sanitizeString(section?.areaName) || fallbackTitle;
+  const commitments = Array.isArray(section?.commitments)
+    ? section.commitments
+    : [];
+  const measures =
+    commitments.length > 0
+      ? commitments.map((item: any, index: number) => ({
+          id: item?.id || createHydrationId(`${prefix}-measure`, index),
+          planned: sanitizeString(item?.plannedMeasure),
+          actualObservation: sanitizeString(item?.actualObservation),
+          isEffective: toEiaYesNo(item?.isEffective),
+          recommendations: sanitizeString(item?.recommendations),
+        }))
+      : [createEmptyMitigatingMeasure(`${prefix}-measure`, 0)];
+  return {
+    title,
+    isNA: commitments.length === 0,
+    measures,
+  };
+};
+
+const normalizeImpactCommitmentsFromApi = (
+  raw: any
+):
+  | {
+      preConstruction: EiaYesNoNull;
+      construction: EiaYesNoNull;
+      quarryOperation: OperationSection;
+      plantOperation: OperationSection;
+      portOperation: OperationSection;
+      overallCompliance: string;
+    }
+  | undefined => {
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(raw, "quarryOperation") &&
+    Object.prototype.hasOwnProperty.call(raw, "preConstruction")
+  ) {
+    return raw;
+  }
+  const constructionInfo = Array.isArray(raw.constructionInfo)
+    ? raw.constructionInfo
+    : [];
+  const preConstructionInfo = constructionInfo.find((section: any) =>
+    String(section?.areaName || "")
+      .toLowerCase()
+      .includes("pre")
+  );
+  const constructionInfoEntry = constructionInfo.find((section: any) =>
+    String(section?.areaName || "")
+      .toLowerCase()
+      .includes("construction")
+  );
+  const preConstructionCommitment = preConstructionInfo?.commitments?.[0];
+  const constructionCommitment = constructionInfoEntry?.commitments?.[0];
+  const implementationSections = Array.isArray(
+    raw.implementationOfEnvironmentalImpactControlStrategies
+  )
+    ? raw.implementationOfEnvironmentalImpactControlStrategies
+    : [];
+  const [quarrySectionRaw, plantSectionRaw, portSectionRaw] =
+    implementationSections;
+  const quarryOperation = mapCommitments(
+    quarrySectionRaw,
+    "quarry",
+    "Quarry Operation"
+  );
+  const plantOperation = mapCommitments(
+    plantSectionRaw,
+    "plant",
+    "Plant Operation"
+  );
+  const portOperation = mapCommitments(
+    portSectionRaw,
+    "port",
+    "Port Operation"
+  );
+  return {
+    preConstruction: toEiaYesNo(preConstructionCommitment?.isEffective),
+    construction: toEiaYesNo(constructionCommitment?.isEffective),
+    quarryOperation,
+    plantOperation,
+    portOperation,
+    overallCompliance: sanitizeString(raw.overallComplianceAssessment),
+  };
+};
+
+const createEmptyAirParameter = (
+  prefix: string,
+  index: number
+): AirParameterData => ({
+  id: createHydrationId(prefix, index),
+  parameter: "",
+  currentSMR: "",
+  previousSMR: "",
+  currentMMT: "",
+  previousMMT: "",
+  thirdPartyTesting: "",
+  eqplRedFlag: "",
+  action: "",
+  limitPM25: "",
+  remarks: "",
+});
+
+const createEmptyAirComplianceData = (): AirComplianceData => ({
+  eccConditions: "",
+  quarry: "",
+  plant: "",
+  port: "",
+  quarryPlant: "",
+  parameter: "",
+  currentSMR: "",
+  previousSMR: "",
+  currentMMT: "",
+  previousMMT: "",
+  thirdPartyTesting: "",
+  eqplRedFlag: "",
+  action: "",
+  limitPM25: "",
+  remarks: "",
+  parameters: [],
+  dateTime: "",
+  weatherWind: "",
+  explanation: "",
+  overallCompliance: "",
+});
+
+const normalizeFileLikeFromApi = (file: any) => {
+  if (!file) {
+    return null;
+  }
+  if (typeof file === "string") {
+    const name = file.split("/").pop() || file;
+    return { name, uri: file };
+  }
+  if (typeof file === "object") {
+    const cloned: any = { ...file };
+    if (!cloned.name && typeof cloned.uri === "string") {
+      cloned.name = cloned.uri.split("/").pop() || "document";
+    }
+    return cloned;
+  }
+  return null;
+};
+
+const mapAirParameterFromApi = (
+  source: any,
+  prefix: string,
+  index: number
+): AirParameterData => {
+  const entry = createEmptyAirParameter(prefix, index);
+  entry.id = source?.id ?? entry.id;
+  entry.parameter = sanitizeString(source?.name ?? source?.parameter);
+  entry.currentSMR = sanitizeString(
+    source?.results?.inSMR?.current ?? source?.currentSMR
+  );
+  entry.previousSMR = sanitizeString(
+    source?.results?.inSMR?.previous ?? source?.previousSMR
+  );
+  entry.currentMMT = sanitizeString(
+    source?.results?.mmtConfirmatorySampling?.current ?? source?.currentMMT
+  );
+  entry.previousMMT = sanitizeString(
+    source?.results?.mmtConfirmatorySampling?.previous ?? source?.previousMMT
+  );
+  entry.thirdPartyTesting = sanitizeString(
+    source?.results?.thirdPartyTesting ??
+      source?.thirdPartyTesting ??
+      source?.thirdParty
+  );
+  entry.eqplRedFlag = sanitizeString(
+    source?.eqpl?.redFlag ?? source?.eqplRedFlag
+  );
+  entry.action = sanitizeString(source?.eqpl?.action ?? source?.action);
+  const limitSource =
+    source?.eqpl?.limit ??
+    source?.eqpl?.limit_mgL ??
+    source?.eqplLimit ??
+    source?.limitPM25 ??
+    source?.limit;
+  entry.limitPM25 = sanitizeString(
+    typeof limitSource === "number" ? limitSource.toString() : limitSource
+  );
+  entry.remarks = sanitizeString(source?.remarks);
+  return entry;
+};
+
+const normalizeAirQualityFromApi = (
+  raw: any
+):
+  | {
+      selectedLocations: {
+        quarry: boolean;
+        plant: boolean;
+        port: boolean;
+        quarryPlant: boolean;
+      };
+      data: AirComplianceData;
+      uploadedEccFile?: any;
+      uploadedImage?: string | null;
+    }
+  | undefined => {
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+  if (raw.data && typeof raw.data === "object") {
+    const normalizedParams = Array.isArray(raw.data.parameters)
+      ? raw.data.parameters.map((param: any, index: number) => {
+          const mapped = mapAirParameterFromApi(param, "air-extra", index);
+          mapped.id = param?.id ?? mapped.id;
+          return mapped;
+        })
+      : [];
+    const normalizedData: AirComplianceData = {
+      ...createEmptyAirComplianceData(),
+      ...raw.data,
+      parameters: normalizedParams,
+    };
+    if (!normalizedData.eccConditions) {
+      const inferredName = normalizeFileLikeFromApi(raw.uploadedEccFile)?.name;
+      normalizedData.eccConditions = inferredName ? inferredName : "";
+    }
+    const derivedSelected = {
+      quarry: !!sanitizeString(normalizedData.quarry),
+      plant: !!sanitizeString(normalizedData.plant),
+      port: !!sanitizeString(normalizedData.port),
+      quarryPlant: !!sanitizeString(normalizedData.quarryPlant),
+    };
+    const explicitSelected =
+      raw.selectedLocations && typeof raw.selectedLocations === "object"
+        ? {
+            quarry: !!raw.selectedLocations.quarry,
+            plant: !!raw.selectedLocations.plant,
+            port: !!raw.selectedLocations.port,
+            quarryPlant: !!raw.selectedLocations.quarryPlant,
+          }
+        : derivedSelected;
+    return {
+      selectedLocations: explicitSelected,
+      data: normalizedData,
+      uploadedEccFile: normalizeFileLikeFromApi(raw.uploadedEccFile),
+      uploadedImage:
+        typeof raw.uploadedImage === "string"
+          ? raw.uploadedImage
+          : (raw.uploadedImage?.uri ?? null),
+    };
+  }
+  const data = createEmptyAirComplianceData();
+  const parameters = Array.isArray(raw.parameters) ? raw.parameters : [];
+  if (parameters.length > 0) {
+    const mappedMain = mapAirParameterFromApi(parameters[0], "air-main", 0);
+    data.parameter = mappedMain.parameter;
+    data.currentSMR = mappedMain.currentSMR;
+    data.previousSMR = mappedMain.previousSMR;
+    data.currentMMT = mappedMain.currentMMT;
+    data.previousMMT = mappedMain.previousMMT;
+    data.thirdPartyTesting = mappedMain.thirdPartyTesting;
+    data.eqplRedFlag = mappedMain.eqplRedFlag;
+    data.action = mappedMain.action;
+    data.limitPM25 = mappedMain.limitPM25;
+    data.remarks = mappedMain.remarks;
+  }
+  data.parameters = parameters.slice(1).map((param: any, index: number) => {
+    const converted = mapAirParameterFromApi(param, "air-extra", index);
+    return converted;
+  });
+  data.quarry = sanitizeString(raw.quarry);
+  data.plant = sanitizeString(raw.plant);
+  data.port = sanitizeString(raw.port);
+  data.quarryPlant = sanitizeString(raw.quarryPlant);
+  data.dateTime = sanitizeString(raw.samplingDate);
+  data.weatherWind = sanitizeString(raw.weatherAndWind);
+  data.explanation = sanitizeString(raw.explanationForConfirmatorySampling);
+  data.overallCompliance = sanitizeString(raw.overallAssessment);
+  if (!data.eccConditions) {
+    const eccSource =
+      raw.eccConditions ??
+      raw.eccCondition ??
+      raw.eccConditionsDocument ??
+      normalizeFileLikeFromApi(raw.uploadedEccFile)?.name;
+    data.eccConditions = sanitizeString(eccSource);
+  }
+  return {
+    selectedLocations: {
+      quarry: !!sanitizeString(raw.quarry),
+      plant: !!sanitizeString(raw.plant),
+      port: !!sanitizeString(raw.port),
+      quarryPlant: !!sanitizeString(raw.quarryPlant),
+    },
+    data,
+    uploadedEccFile: normalizeFileLikeFromApi(raw.uploadedEccFile),
+    uploadedImage:
+      typeof raw.uploadedImage === "string"
+        ? raw.uploadedImage
+        : (raw.uploadedImage?.uri ?? null),
+  };
+};
+
+const createEmptyWaterParameter = (
+  prefix: string,
+  index: number
+): WaterParameter => ({
+  id: createHydrationId(prefix, index),
+  parameter: "",
+  resultType: "Month",
+  tssCurrent: "",
+  tssPrevious: "",
+  eqplRedFlag: "",
+  action: "",
+  limit: "",
+  remarks: "",
+  mmtCurrent: "",
+  mmtPrevious: "",
+  isMMTNA: false,
+});
+
+const createEmptyWaterQualityData = (): WaterQualityData => ({
+  quarryInput: "",
+  plantInput: "",
+  quarryPlantInput: "",
+  parameter: "",
+  resultType: "Month",
+  tssCurrent: "",
+  tssPrevious: "",
+  mmtCurrent: "",
+  mmtPrevious: "",
+  isMMTNA: false,
+  eqplRedFlag: "",
+  action: "",
+  limit: "",
+  remarks: "",
+  dateTime: "",
+  weatherWind: "",
+  explanation: "",
+  isExplanationNA: false,
+  overallCompliance: "",
+});
+
+const convertWaterBackendParam = (
+  param: any,
+  prefix: string,
+  index: number
+): WaterParameter => {
+  const base = createEmptyWaterParameter(prefix, index);
+  base.parameter = sanitizeString(param?.name);
+  const month = sanitizeString(param?.result?.internalMonitoring?.month ?? "");
+  if (month) {
+    base.resultType = month;
+  }
+  const readings =
+    param?.result?.internalMonitoring?.readings &&
+    Array.isArray(param.result.internalMonitoring.readings)
+      ? param.result.internalMonitoring.readings[0]
+      : undefined;
+  if (readings) {
+    base.tssCurrent =
+      readings.current_mgL != null ? String(readings.current_mgL) : "";
+    base.tssPrevious =
+      readings.previous_mgL != null ? String(readings.previous_mgL) : "";
+  }
+  base.mmtCurrent = sanitizeString(
+    param?.result?.mmtConfirmatorySampling?.current
+  );
+  base.mmtPrevious = sanitizeString(
+    param?.result?.mmtConfirmatorySampling?.previous
+  );
+  base.eqplRedFlag = sanitizeString(param?.denrStandard?.redFlag);
+  base.action = sanitizeString(param?.denrStandard?.action);
+  base.limit =
+    param?.denrStandard?.limit_mgL != null
+      ? String(param.denrStandard.limit_mgL)
+      : "";
+  base.remarks = sanitizeString(param?.remark);
+  return base;
+};
+
+const normalizeWaterQualityFromApi = (
+  raw: any
+):
+  | {
+      selectedLocations: {
+        quarry: boolean;
+        plant: boolean;
+        quarryPlant: boolean;
+      };
+      data: WaterQualityData;
+      parameters: WaterParameter[];
+      ports: WaterPortData[];
+    }
+  | undefined => {
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+
+  // If already normalized, return as-is
+  if (raw.data && raw.parameters && raw.ports) {
+    return raw;
+  }
+
+  const data = createEmptyWaterQualityData();
+  const extras: WaterParameter[] = [];
+  const ports: WaterPortData[] = [];
+
+  // Determine which locations are selected based on new structure
+  const selectedLocations = {
+    quarry: !!raw.quarry,
+    plant: !!raw.plant,
+    quarryPlant: !!raw.quarryAndPlant,
+  };
+
+  // Helper function to extract parameters from a location object
+  const extractLocationData = (location: any) => {
+    if (!location || typeof location !== "object") return null;
+
+    const parameters = Array.isArray(location.parameters)
+      ? location.parameters
+      : [];
+    const mappedParams = parameters.map((param: any, index: number) =>
+      convertWaterBackendParam(param, "water-location", index)
+    );
+
+    return {
+      parameters: mappedParams,
+      samplingDate: sanitizeString(location.samplingDate),
+      weatherAndWind: sanitizeString(location.weatherAndWind),
+      explanationForConfirmatorySampling: sanitizeString(
+        location.explanationForConfirmatorySampling
+      ),
+      overallAssessment: sanitizeString(location.overallAssessment),
+    };
+  };
+
+  // Try to load from quarry first, then plant, then quarryAndPlant
+  let primaryLocation = null;
+  if (raw.quarry) {
+    primaryLocation = extractLocationData(raw.quarry);
+    data.quarryInput = "Quarry data present";
+  } else if (raw.plant) {
+    primaryLocation = extractLocationData(raw.plant);
+    data.plantInput = "Plant data present";
+  } else if (raw.quarryAndPlant) {
+    primaryLocation = extractLocationData(raw.quarryAndPlant);
+    data.quarryPlantInput = "Quarry and Plant data present";
+  }
+
+  // Populate main data from primary location
+  if (primaryLocation) {
+    const params = primaryLocation.parameters;
+    if (params.length > 0) {
+      const main = params[0];
+      data.parameter = main.parameter;
+      data.resultType = main.resultType;
+      data.tssCurrent = main.tssCurrent;
+      data.tssPrevious = main.tssPrevious;
+      data.mmtCurrent = main.mmtCurrent ?? "";
+      data.mmtPrevious = main.mmtPrevious ?? "";
+      data.eqplRedFlag = main.eqplRedFlag;
+      data.action = main.action;
+      data.limit = main.limit;
+      data.remarks = main.remarks;
+
+      // Add additional parameters
+      params.slice(1).forEach((param: any) => {
+        extras.push(param);
+      });
+    }
+
+    data.dateTime = primaryLocation.samplingDate;
+    data.weatherWind = primaryLocation.weatherAndWind;
+    data.explanation = primaryLocation.explanationForConfirmatorySampling;
+    data.overallCompliance = primaryLocation.overallAssessment;
+  }
+
+  // Handle port data
+  if (raw.port) {
+    const portData = extractLocationData(raw.port);
+    if (portData) {
+      const portParams = portData.parameters;
+      if (portParams.length > 0) {
+        const [mainPortParam, ...additionalPortParams] = portParams;
+        ports.push({
+          id: createHydrationId("port", 0),
+          portName: "Port",
+          parameter: mainPortParam.parameter,
+          resultType: mainPortParam.resultType,
+          tssCurrent: mainPortParam.tssCurrent,
+          tssPrevious: mainPortParam.tssPrevious,
+          mmtCurrent: mainPortParam.mmtCurrent ?? "",
+          mmtPrevious: mainPortParam.mmtPrevious ?? "",
+          isMMTNA: false,
+          eqplRedFlag: mainPortParam.eqplRedFlag,
+          action: mainPortParam.action,
+          limit: mainPortParam.limit,
+          remarks: mainPortParam.remarks,
+          dateTime: portData.samplingDate,
+          weatherWind: portData.weatherAndWind,
+          explanation: portData.explanationForConfirmatorySampling,
+          isExplanationNA: !portData.explanationForConfirmatorySampling,
+          additionalParameters: additionalPortParams,
+        });
+      }
+    }
+  }
+
+  return {
+    selectedLocations,
+    data,
+    parameters: extras,
+    ports,
+  };
+};
+
+const normalizeNoiseQualityFromApi = (raw: any) => {
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+  if (
+    Array.isArray(raw.parameters) &&
+    raw.parameters.every((param: any) => param?.id)
+  ) {
+    return raw;
+  }
+  const parametersSource = Array.isArray(raw.parameters) ? raw.parameters : [];
+  const parameters: NoiseParameter[] =
+    parametersSource.length > 0
+      ? parametersSource.map((param: any, index: number) => ({
+          id: param?.id || createHydrationId("noise-param", index),
+          parameter: sanitizeString(param?.name ?? param?.parameter),
+          isParameterNA: !!param?.isParameterNA,
+          currentInSMR: sanitizeString(
+            param?.results?.inSMR?.current ?? param?.currentInSMR
+          ),
+          previousInSMR: sanitizeString(
+            param?.results?.inSMR?.previous ?? param?.previousInSMR
+          ),
+          mmtCurrent: sanitizeString(
+            param?.results?.mmtConfirmatorySampling?.current ??
+              param?.mmtCurrent
+          ),
+          mmtPrevious: sanitizeString(
+            param?.results?.mmtConfirmatorySampling?.previous ??
+              param?.mmtPrevious
+          ),
+          redFlag: sanitizeString(param?.eqpl?.redFlag ?? param?.redFlag),
+          isRedFlagChecked: !!(param?.eqpl?.redFlag ?? param?.isRedFlagChecked),
+          action: sanitizeString(param?.eqpl?.action ?? param?.action),
+          isActionChecked: !!(param?.eqpl?.action ?? param?.isActionChecked),
+          limit: sanitizeString(param?.eqpl?.denrStandard ?? param?.limit),
+          isLimitChecked: !!(
+            param?.eqpl?.denrStandard ?? param?.isLimitChecked
+          ),
+        }))
+      : [
+          {
+            id: createHydrationId("noise-param", 0),
+            parameter: "",
+            isParameterNA: false,
+            currentInSMR: "",
+            previousInSMR: "",
+            mmtCurrent: "",
+            mmtPrevious: "",
+            redFlag: "",
+            isRedFlagChecked: false,
+            action: "",
+            isActionChecked: false,
+            limit: "",
+            isLimitChecked: false,
+          },
+        ];
+  const overall = raw.overallAssessment || {};
+  const quarters: QuarterData = {
+    first: sanitizeString(overall.firstQuarter?.assessment),
+    isFirstChecked: !!overall.firstQuarter?.assessment,
+    second: sanitizeString(overall.secondQuarter?.assessment),
+    isSecondChecked: !!overall.secondQuarter?.assessment,
+    third: sanitizeString(overall.thirdQuarter?.assessment),
+    isThirdChecked: !!overall.thirdQuarter?.assessment,
+    fourth: sanitizeString(overall.fourthQuarter?.assessment),
+    isFourthChecked: !!overall.fourthQuarter?.assessment,
+  };
+  return {
+    hasInternalNoise: !!raw.hasInternalNoise,
+    uploadedFiles: Array.isArray(raw.uploadedFiles) ? raw.uploadedFiles : [],
+    parameters,
+    remarks: sanitizeString(raw.remarks),
+    dateTime: sanitizeString(raw.samplingDate ?? raw.dateTime),
+    weatherWind: sanitizeString(raw.weatherAndWind),
+    explanation: sanitizeString(raw.explanationForConfirmatorySampling),
+    explanationNA: !!raw.explanationNA,
+    quarters,
+  };
+};
+
+const createEmptyWasteSection = (prefix: string): PlantPortSectionData => ({
+  typeOfWaste: "",
+  eccEpepCommitments: [
+    {
+      id: createHydrationId(`${prefix}-waste`, 0),
+      handling: "",
+      storage: "",
+      disposal: "",
+    },
+  ],
+  isAdequate: null,
+  previousRecord: "",
+  currentQuarterWaste: "",
+});
+
+const normalizeWasteManagementFromApi = (
+  raw: any
+):
+  | {
+      selectedQuarter: string;
+      quarryData: QuarrySectionData;
+      quarryPlantData: PlantPortSectionData;
+      plantSimpleData: PlantSectionData;
+      plantData: PlantPortSectionData;
+      portData: PortSectionData;
+      portPlantData: PlantPortSectionData;
+    }
+  | undefined => {
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+  if (
+    raw.quarryData ||
+    raw.quarryPlantData ||
+    raw.plantData ||
+    raw.portPlantData
+  ) {
+    return {
+      selectedQuarter: raw.selectedQuarter ?? "Q2",
+      quarryData: raw.quarryData ?? {
+        noSignificantImpact: false,
+        generateTable: false,
+        N_A: false,
+      },
+      quarryPlantData: raw.quarryPlantData ?? createEmptyWasteSection("quarry"),
+      plantSimpleData: raw.plantSimpleData ?? {
+        noSignificantImpact: false,
+        generateTable: false,
+        N_A: false,
+      },
+      plantData: raw.plantData ?? createEmptyWasteSection("plant"),
+      portData: raw.portData ?? {
+        noSignificantImpact: false,
+        generateTable: false,
+        N_A: false,
+      },
+      portPlantData: raw.portPlantData ?? createEmptyWasteSection("port"),
+    };
+  }
+  const result = {
+    selectedQuarter: raw.selectedQuarter ?? "Q2",
+    quarryData: {
+      noSignificantImpact: false,
+      generateTable: false,
+      N_A: false,
+    },
+    quarryPlantData: createEmptyWasteSection("quarry"),
+    plantSimpleData: {
+      noSignificantImpact: false,
+      generateTable: false,
+      N_A: false,
+    },
+    plantData: createEmptyWasteSection("plant"),
+    portData: { noSignificantImpact: false, generateTable: false, N_A: false },
+    portPlantData: createEmptyWasteSection("port"),
+  };
+  const assignFlags = (
+    source: any,
+    target: {
+      noSignificantImpact: boolean;
+      generateTable: boolean;
+      N_A: boolean;
+    },
+    key: "quarryPlantData" | "plantData" | "portPlantData"
+  ) => {
+    if (!source) {
+      return;
+    }
+    if (Array.isArray(source)) {
+      target.noSignificantImpact = false;
+      target.N_A = false;
+      target.generateTable = true;
+      const sectionTarget = (result as Record<string, PlantPortSectionData>)[
+        key
+      ];
+      if (!sectionTarget) {
+        return;
+      }
+      if (!source.length) {
+        return;
+      }
+      const formatted = source.map((entry: any, index: number) => ({
+        id: createHydrationId(`${key}-entry`, index),
+        handling: sanitizeString(
+          entry?.eccEpepCommitments?.handling ?? entry?.handling
+        ),
+        storage: sanitizeString(
+          entry?.eccEpepCommitments?.storage ?? entry?.storage
+        ),
+        disposal: sanitizeString(
+          entry?.eccEpepCommitments?.disposal == null
+            ? ""
+            : entry.eccEpepCommitments.disposal
+              ? "Yes"
+              : "No"
+        ),
+      }));
+      sectionTarget.typeOfWaste = sanitizeString(
+        source[0]?.typeOfWaste ?? sectionTarget.typeOfWaste
+      );
+      const adequate = source[0]?.adequate;
+      sectionTarget.isAdequate = adequate?.y
+        ? "YES"
+        : adequate?.n
+          ? "NO"
+          : sectionTarget.isAdequate;
+      sectionTarget.previousRecord = sanitizeString(
+        source[0]?.previousRecord ?? sectionTarget.previousRecord
+      );
+      sectionTarget.currentQuarterWaste = sanitizeString(
+        source[0]?.q2_2025_Generated_HW ??
+          source[0]?.currentQuarterWaste ??
+          sectionTarget.currentQuarterWaste
+      );
+      sectionTarget.eccEpepCommitments = formatted;
+    } else if (typeof source === "string") {
+      const normalized = source.toLowerCase();
+      if (normalized.includes("n/a") || normalized === "na") {
+        target.N_A = true;
+        target.noSignificantImpact = false;
+        target.generateTable = false;
+      } else if (normalized.includes("no significant")) {
+        target.noSignificantImpact = true;
+        target.N_A = false;
+        target.generateTable = false;
+      }
+    }
+  };
+  assignFlags(raw.quarry, result.quarryData, "quarryPlantData");
+  assignFlags(raw.plant, result.plantSimpleData, "plantData");
+  assignFlags(raw.port, result.portData, "portPlantData");
+  return result;
+};
+
+const toChemicalYesNo = (value: any): ChemicalYesNoNull => {
+  if (typeof value === "string") {
+    const normalized = value.trim().toUpperCase();
+    if (normalized === "YES" || normalized === "Y" || normalized === "TRUE") {
+      return "YES";
+    }
+    if (normalized === "NO" || normalized === "N" || normalized === "FALSE") {
+      return "NO";
+    }
+  }
+  if (value === true) {
+    return "YES";
+  }
+  if (value === false) {
+    return "NO";
+  }
+  return null;
+};
+
+const normalizeChemicalSafetyFromApi = (
+  raw: any
+):
+  | {
+      chemicalSafety: ChemicalSafetyData;
+      healthSafetyChecked: boolean;
+      socialDevChecked: boolean;
+    }
+  | undefined => {
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+  if (raw.chemicalSafety) {
+    return {
+      chemicalSafety: {
+        ...raw.chemicalSafety,
+      },
+      healthSafetyChecked: !!raw.healthSafetyChecked,
+      socialDevChecked: !!raw.socialDevChecked,
+    };
+  }
+  const chemicalSafetySource = raw || {};
+  const chemicalSafety: ChemicalSafetyData = {
+    isNA: !!chemicalSafetySource.isNA,
+    riskManagement: toChemicalYesNo(chemicalSafetySource.riskManagement),
+    training: toChemicalYesNo(chemicalSafetySource.training),
+    handling: toChemicalYesNo(chemicalSafetySource.handling),
+    emergencyPreparedness: toChemicalYesNo(
+      chemicalSafetySource.emergencyPreparedness
+    ),
+    remarks: sanitizeString(chemicalSafetySource.remarks),
+    chemicalCategory: (sanitizeString(chemicalSafetySource.chemicalCategory) ||
+      null) as ChemicalCategory,
+    othersSpecify: sanitizeString(chemicalSafetySource.othersSpecify),
+  };
+  return {
+    chemicalSafety,
+    healthSafetyChecked: !!raw.healthSafetyChecked,
+    socialDevChecked: !!raw.socialDevChecked,
+  };
+};
+
+const normalizeComplaintsListFromApi = (raw: any): Complaint[] | undefined => {
+  if (!Array.isArray(raw)) {
+    return undefined;
+  }
+  return raw.map((item: any, index: number) => ({
+    id: item?.id || createHydrationId("complaint", index),
+    isNA: !!item?.isNA,
+    dateFiled: sanitizeString(item?.dateFiled),
+    filedLocation: (item?.filedLocation as Complaint["filedLocation"]) || null,
+    othersSpecify: sanitizeString(item?.othersSpecify),
+    nature: sanitizeString(item?.nature),
+    resolutions: sanitizeString(item?.resolutions),
+  }));
+};
+
+const normalizeComplianceMonitoringReportFromApi = (
+  raw: any
+): Partial<DraftSnapshot> => {
+  if (!raw || typeof raw !== "object") {
+    return {};
+  }
+  const result: Partial<DraftSnapshot> = {};
+  if (raw.complianceToProjectLocationAndCoverageLimits?.formData) {
+    result.complianceToProjectLocationAndCoverageLimits =
+      raw.complianceToProjectLocationAndCoverageLimits;
+  } else {
+    const plcl = normalizeProjectLocationFromApi(
+      raw.complianceToProjectLocationAndCoverageLimits
+    );
+    if (plcl) {
+      result.complianceToProjectLocationAndCoverageLimits = plcl;
+    }
+  }
+  if (raw.complianceToImpactManagementCommitments?.quarryOperation) {
+    result.complianceToImpactManagementCommitments =
+      raw.complianceToImpactManagementCommitments;
+  } else {
+    const impact = normalizeImpactCommitmentsFromApi(
+      raw.complianceToImpactManagementCommitments
+    );
+    if (impact) {
+      result.complianceToImpactManagementCommitments = impact;
+    }
+  }
+  const air = normalizeAirQualityFromApi(raw.airQualityImpactAssessment);
+  if (air) {
+    result.airQualityImpactAssessment = air;
+  }
+  const water = normalizeWaterQualityFromApi(raw.waterQualityImpactAssessment);
+  if (water) {
+    result.waterQualityImpactAssessment = water;
+  }
+  const noise = normalizeNoiseQualityFromApi(raw.noiseQualityImpactAssessment);
+  if (noise) {
+    result.noiseQualityImpactAssessment = noise;
+  }
+  const waste = normalizeWasteManagementFromApi(
+    raw.complianceWithGoodPracticeInSolidAndHazardousWasteManagement
+  );
+  if (waste) {
+    result.complianceWithGoodPracticeInSolidAndHazardousWasteManagement = waste;
+  }
+  const chemical = normalizeChemicalSafetyFromApi(
+    raw.complianceWithGoodPracticeInChemicalSafetyManagement
+  );
+  if (chemical) {
+    result.complianceWithGoodPracticeInChemicalSafetyManagement = chemical;
+  }
+  const complaints = normalizeComplaintsListFromApi(
+    raw.complaintsVerificationAndManagement
+  );
+  if (complaints) {
+    result.complaintsVerificationAndManagement = complaints;
+  }
+  if (raw.recommendationFromPrevQuarter) {
+    result.recommendationFromPrevQuarter = raw.recommendationFromPrevQuarter;
+  }
+  if (raw.recommendationForNextQuarter) {
+    result.recommendationForNextQuarter = raw.recommendationForNextQuarter;
+  }
+  if (raw.recommendationsData) {
+    result.recommendationsData = raw.recommendationsData;
+  }
+  return result;
 };
 
 const buildCreateCMVRPayload = (
@@ -975,14 +2746,34 @@ const buildCreateCMVRPayload = (
   let hasImpact = false;
   let hasAir = false;
   let hasWater = false;
+
   if (norm.complianceToProjectLocationAndCoverageLimits) {
-    complianceMonitoringReport.complianceToProjectLocationAndCoverageLimits =
-      transformProjectLocationCoverageForPayload(
-        norm.complianceToProjectLocationAndCoverageLimits
+    const transformedPLCL = transformProjectLocationCoverageForPayload(
+      norm.complianceToProjectLocationAndCoverageLimits
+    );
+
+    // Backfill uploadedImages if transformer didn't capture them
+    if (
+      transformedPLCL &&
+      !transformedPLCL.uploadedImages &&
+      norm.complianceToProjectLocationAndCoverageLimits.uploadedImages
+    ) {
+      transformedPLCL.uploadedImages = Object.fromEntries(
+        Object.entries(
+          norm.complianceToProjectLocationAndCoverageLimits
+            .uploadedImages as Record<string, string | undefined>
+        )
+          .map(([k, v]) => [k.trim(), (v ?? "").trim()])
+          .filter(([, v]) => v)
       );
+    }
+
+    complianceMonitoringReport.complianceToProjectLocationAndCoverageLimits =
+      transformedPLCL;
     hasComplianceData = true;
     hasPLCL = true;
   }
+
   if (norm.complianceToImpactManagementCommitments) {
     complianceMonitoringReport.complianceToImpactManagementCommitments =
       transformImpactCommitmentsForPayload(
@@ -1003,9 +2794,53 @@ const buildCreateCMVRPayload = (
     hasComplianceData = true;
     hasWater = true;
   }
+
   if (norm.noiseQualityImpactAssessment) {
-    complianceMonitoringReport.noiseQualityImpactAssessment =
-      transformNoiseQualityForPayload(norm.noiseQualityImpactAssessment);
+    const transformedNoise = transformNoiseQualityForPayload(
+      norm.noiseQualityImpactAssessment
+    );
+
+    // Backfill uploadedFiles if transformer didn't capture them
+    if (
+      transformedNoise &&
+      (!transformedNoise.uploadedFiles ||
+        transformedNoise.uploadedFiles.length === 0) &&
+      Array.isArray(norm.noiseQualityImpactAssessment.uploadedFiles)
+    ) {
+      transformedNoise.uploadedFiles =
+        norm.noiseQualityImpactAssessment.uploadedFiles
+          .map((file: any) => {
+            const storagePath =
+              typeof file?.storagePath === "string"
+                ? file.storagePath.trim()
+                : undefined;
+            const uri =
+              typeof file?.uri === "string" ? file.uri.trim() : undefined;
+            if (!storagePath && !uri) return null;
+
+            const name =
+              typeof file?.name === "string" && file.name.trim()
+                ? file.name.trim()
+                : storagePath?.split("/").pop();
+
+            const size =
+              typeof file?.size === "number"
+                ? file.size
+                : Number.isFinite(Number(file?.size))
+                  ? Number(file.size)
+                  : undefined;
+
+            const mimeType =
+              typeof file?.mimeType === "string" && file.mimeType.trim()
+                ? file.mimeType.trim()
+                : undefined;
+
+            return { uri, name, size, mimeType, storagePath };
+          })
+          .filter(Boolean);
+    }
+
+    complianceMonitoringReport.noiseQualityImpactAssessment = transformedNoise;
     hasComplianceData = true;
   }
   if (norm.complianceWithGoodPracticeInSolidAndHazardousWasteManagement) {
@@ -1053,12 +2888,25 @@ const buildCreateCMVRPayload = (
       norm.recommendationForNextQuarter || transformedRecommendations;
     hasComplianceData = true;
   }
-  if (hasComplianceData && hasPLCL && hasImpact && hasAir && hasWater) {
+  // Relax gating: allow payload to include complianceMonitoringReport with any populated section
+  if (hasComplianceData) {
     payload.complianceMonitoringReport = complianceMonitoringReport;
   }
   if (options.attendanceId) {
     payload.attendanceId = options.attendanceId;
   }
+
+  // Add ECC Conditions attachment if uploaded
+  if (norm.airQualityImpactAssessment?.uploadedEccFile) {
+    const eccFile = norm.airQualityImpactAssessment.uploadedEccFile;
+    payload.eccConditionsAttachment = {
+      fileName: eccFile.name || "ECC Conditions Document",
+      fileUrl: eccFile.publicUrl || eccFile.uri || null,
+      mimeType: eccFile.mimeType || null,
+      storagePath: eccFile.storagePath || null,
+    };
+  }
+
   return payload;
 };
 
@@ -1118,6 +2966,8 @@ const CMVRDocumentExportScreen = () => {
     selectedAttendanceId: routeSelectedAttendanceId,
     selectedAttendanceTitle: routeSelectedAttendanceTitle,
     documentation: routeDocumentation,
+    attachments: routeAttachments,
+    newlyUploadedPaths: routeNewlyUploadedPaths,
   } = routeParams;
 
   const resolvedFileName = useMemo(
@@ -1143,19 +2993,41 @@ const CMVRDocumentExportScreen = () => {
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [attachments, setAttachments] = useState<
+    { uri: string; path?: string; uploading?: boolean; caption?: string }[]
+  >([]);
+  const [newlyUploadedPaths, setNewlyUploadedPaths] = useState<string[]>([]);
 
-  const loadStoredDraft = useCallback(async (): Promise<DraftSnapshot | null> => {
-    try {
-      const raw = await AsyncStorage.getItem(DRAFT_KEY);
-      if (!raw) {
+  // Handle incoming attachments from CMVRAttachmentsScreen
+  useEffect(() => {
+    if (routeAttachments && Array.isArray(routeAttachments)) {
+      console.log("Loading attachments from route:", routeAttachments);
+      const formattedAttachments = routeAttachments.map((att: any) => ({
+        uri: att.path || "",
+        path: att.path || "",
+        caption: att.caption || "",
+        uploading: false,
+      }));
+      setAttachments(formattedAttachments);
+    }
+    if (routeNewlyUploadedPaths && Array.isArray(routeNewlyUploadedPaths)) {
+      setNewlyUploadedPaths(routeNewlyUploadedPaths);
+    }
+  }, [routeAttachments, routeNewlyUploadedPaths]);
+
+  const loadStoredDraft =
+    useCallback(async (): Promise<DraftSnapshot | null> => {
+      try {
+        const raw = await AsyncStorage.getItem(DRAFT_KEY);
+        if (!raw) {
+          return null;
+        }
+        return JSON.parse(raw) as DraftSnapshot;
+      } catch (error) {
+        console.error("Failed to load CMVR draft:", error);
         return null;
       }
-      return JSON.parse(raw) as DraftSnapshot;
-    } catch (error) {
-      console.error("Failed to load CMVR draft:", error);
-      return null;
-    }
-  }, [DRAFT_KEY]);
+    }, [DRAFT_KEY]);
 
   const persistSnapshot = useCallback(
     async (snapshot: DraftSnapshot) => {
@@ -1269,8 +3141,75 @@ const CMVRDocumentExportScreen = () => {
           const { getCMVRReportById } = await import("../../lib/cmvr");
           const reportData = await getCMVRReportById(routeReportId);
           if (reportData && isActive) {
-            const location =
+            const sourceGeneralInfo =
+              reportData.generalInfo &&
+              typeof reportData.generalInfo === "object"
+                ? (reportData.generalInfo as Record<string, unknown>)
+                : undefined;
+            const locationSource =
               typeof reportData.location === "string"
+                ? reportData.location
+                : (reportData.location?.barangay as string) || "";
+            const locationFields = parseLocationComponents(
+              (sourceGeneralInfo?.location as string) || locationSource
+            );
+            const { primary: eccPrimary, additional: eccAdditional } =
+              mapEccEntriesToForm(reportData.ecc);
+            const { primary: isagPrimaryBase, additional: isagAdditional } =
+              mapIsagEntriesToForm(
+                reportData.isagMpp,
+                reportData.projectCurrentName || reportData.projectNameInEcc
+              );
+            const { primary: epepPrimary, additional: epepAdditional } =
+              mapEpepEntriesToForm(reportData.epep);
+            const { primary: rcfPrimary, additional: rcfAdditional } =
+              mapFundEntriesToForm(reportData.rehabilitationCashFund);
+            const { primary: mtfPrimary, additional: mtfAdditional } =
+              mapFundEntriesToForm(reportData.monitoringTrustFundUnified);
+            const { primary: fmrdfPrimary, additional: fmrdfAdditional } =
+              mapFundEntriesToForm(
+                reportData.finalMineRehabilitationAndDecommissioningFund
+              );
+            const coords = parseCoordinateFields(
+              sanitizeString(reportData.projectGeographicalCoordinates)
+            );
+            const proponentInfoSource = reportData.proponent || {};
+            const mmtSource = reportData.mmt || {};
+            const isagPrimary: ISAGInfo = {
+              ...isagPrimaryBase,
+              isNA: isagPrimaryBase.isNA,
+              currentName:
+                sanitizeString(reportData.projectCurrentName) ||
+                isagPrimaryBase.currentName,
+              nameInECC:
+                sanitizeString(reportData.projectNameInEcc) ||
+                isagPrimaryBase.nameInECC,
+              projectStatus: sanitizeString(reportData.projectStatus),
+              gpsX: coords.gpsX,
+              gpsY: coords.gpsY,
+              proponentName: sanitizeString(
+                proponentInfoSource.contactPersonAndPosition
+              ),
+              proponentContact: sanitizeString(
+                proponentInfoSource.contactPersonAndPosition
+              ),
+              proponentAddress: sanitizeString(
+                proponentInfoSource.mailingAddress
+              ),
+              proponentPhone: sanitizeString(proponentInfoSource.telephoneFax),
+              proponentEmail: sanitizeString(proponentInfoSource.emailAddress),
+            };
+            const computedLocation = sourceGeneralInfo
+              ? {
+                  region: String(sourceGeneralInfo.region ?? ""),
+                  province: String(sourceGeneralInfo.province ?? ""),
+                  municipality: String(sourceGeneralInfo.municipality ?? ""),
+                  barangay: String(sourceGeneralInfo.location ?? ""),
+                }
+              : undefined;
+            const location = computedLocation
+              ? computedLocation
+              : typeof reportData.location === "string"
                 ? {
                     region: "",
                     province: "",
@@ -1280,68 +3219,127 @@ const CMVRDocumentExportScreen = () => {
                 : reportData.location || {};
             routeUpdate = {
               generalInfo: {
-                companyName: reportData.companyName || "",
+                companyName:
+                  (sourceGeneralInfo?.companyName as string) ||
+                  reportData.companyName ||
+                  "",
                 projectName:
+                  (sourceGeneralInfo?.projectName as string) ||
                   reportData.projectCurrentName ||
                   reportData.projectNameInEcc ||
                   "",
-                quarter: reportData.quarter || "",
-                year: reportData.year?.toString() || "",
+                quarter:
+                  (sourceGeneralInfo?.quarter as string) ||
+                  reportData.quarter ||
+                  "",
+                year:
+                  (sourceGeneralInfo?.year as string) ||
+                  reportData.year?.toString() ||
+                  "",
                 dateOfCompliance:
-                  reportData.dateOfComplianceMonitoringAndValidation || "",
-                monitoringPeriod: reportData.monitoringPeriodCovered || "",
-                dateOfCMRSubmission: reportData.dateOfCmrSubmission || "",
-                region: location.region || "",
-                province: location.province || "",
-                municipality: location.municipality || "",
-                barangay: location.barangay || "",
+                  (sourceGeneralInfo?.dateOfCompliance as string) ||
+                  reportData.dateOfComplianceMonitoringAndValidation ||
+                  "",
+                monitoringPeriod:
+                  (sourceGeneralInfo?.monitoringPeriod as string) ||
+                  reportData.monitoringPeriodCovered ||
+                  "",
+                dateOfCMRSubmission:
+                  (sourceGeneralInfo?.dateOfCMRSubmission as string) ||
+                  reportData.dateOfCmrSubmission ||
+                  "",
+                region:
+                  (sourceGeneralInfo?.region as string) ||
+                  locationFields.region ||
+                  (location.region as string) ||
+                  "",
+                province:
+                  (sourceGeneralInfo?.province as string) ||
+                  locationFields.province ||
+                  (location.province as string) ||
+                  "",
+                municipality:
+                  (sourceGeneralInfo?.municipality as string) ||
+                  locationFields.municipality ||
+                  (location.municipality as string) ||
+                  "",
+                location:
+                  locationFields.location ||
+                  (sourceGeneralInfo?.location as string) ||
+                  (location.barangay as string) ||
+                  "",
               },
-              eccInfo: reportData.ecc?.[0] || { isNA: true },
-              eccAdditionalForms: reportData.ecc?.slice(1) || [],
-              isagInfo: {
-                ...(reportData.isagMpp?.[0] || { isNA: true }),
-                currentName: reportData.projectCurrentName || "",
-                nameInECC: reportData.projectNameInEcc || "",
-                projectStatus: reportData.projectStatus || "",
-                proponentName:
-                  reportData.proponent?.contactPersonAndPosition || "",
-                proponentContact:
-                  reportData.proponent?.contactPersonAndPosition || "",
-                proponentAddress: reportData.proponent?.mailingAddress || "",
-                proponentPhone: reportData.proponent?.telephoneFax || "",
-                proponentEmail: reportData.proponent?.emailAddress || "",
-              },
-              isagAdditionalForms: reportData.isagMpp?.slice(1) || [],
-              epepInfo: reportData.epep?.[0] || { isNA: true },
-              epepAdditionalForms: reportData.epep?.slice(1) || [],
-              rcfInfo: reportData.rehabilitationCashFund?.[0] || { isNA: true },
-              rcfAdditionalForms:
-                reportData.rehabilitationCashFund?.slice(1) || [],
-              mtfInfo: reportData.monitoringTrustFundUnified?.[0] || {
-                isNA: true,
-              },
-              mtfAdditionalForms:
-                reportData.monitoringTrustFundUnified?.slice(1) || [],
-              fmrdfInfo: reportData
-                .finalMineRehabilitationAndDecommissioningFund?.[0] || {
-                isNA: true,
-              },
-              fmrdfAdditionalForms:
-                reportData.finalMineRehabilitationAndDecommissioningFund?.slice(
-                  1
-                ) || [],
+              eccInfo: eccPrimary,
+              eccAdditionalForms: eccAdditional,
+              isagInfo: isagPrimary,
+              isagAdditionalForms: isagAdditional,
+              epepInfo: epepPrimary,
+              epepAdditionalForms: epepAdditional,
+              rcfInfo: rcfPrimary,
+              rcfAdditionalForms: rcfAdditional,
+              mtfInfo: mtfPrimary,
+              mtfAdditionalForms: mtfAdditional,
+              fmrdfInfo: fmrdfPrimary,
+              fmrdfAdditionalForms: fmrdfAdditional,
               mmtInfo: {
-                contactPerson: reportData.mmt?.contactPersonAndPosition || "",
-                mailingAddress: reportData.mmt?.mailingAddress || "",
-                phoneNumber: reportData.mmt?.telephoneFax || "",
-                emailAddress: reportData.mmt?.emailAddress || "",
+                ...defaultMmtInfo,
+                isNA: false,
+                contactPerson: sanitizeString(
+                  mmtSource.contactPersonAndPosition
+                ),
+                mailingAddress: sanitizeString(mmtSource.mailingAddress),
+                phoneNumber: sanitizeString(mmtSource.telephoneFax),
+                emailAddress: sanitizeString(mmtSource.emailAddress),
               },
-              executiveSummaryOfCompliance:
-                reportData.executiveSummaryOfCompliance,
-              processDocumentationOfActivitiesUndertaken:
-                reportData.processDocumentationOfActivitiesUndertaken,
-              ...reportData.complianceMonitoringReport,
             };
+
+            const normalizedExecutiveSummary = normalizeExecutiveSummaryFromApi(
+              reportData.executiveSummaryOfCompliance ??
+                reportData.cmvrData?.executiveSummaryOfCompliance
+            );
+            if (normalizedExecutiveSummary) {
+              routeUpdate.executiveSummaryOfCompliance =
+                normalizedExecutiveSummary;
+            }
+
+            const normalizedProcessDoc = normalizeProcessDocumentationFromApi(
+              reportData.processDocumentationOfActivitiesUndertaken ??
+                reportData.cmvrData?.processDocumentationOfActivitiesUndertaken
+            );
+            if (normalizedProcessDoc) {
+              routeUpdate.processDocumentationOfActivitiesUndertaken =
+                normalizedProcessDoc;
+            }
+
+            const normalizedComplianceSections =
+              normalizeComplianceMonitoringReportFromApi(
+                reportData.complianceMonitoringReport
+              );
+            if (normalizedComplianceSections) {
+              Object.assign(routeUpdate, normalizedComplianceSections);
+            }
+
+            // Load attachments if they exist
+            if (
+              reportData.attachments &&
+              Array.isArray(reportData.attachments)
+            ) {
+              console.log(
+                "Loading existing attachments:",
+                reportData.attachments
+              );
+              const loadedAttachments = reportData.attachments.map(
+                (att: any) => ({
+                  uri: att.path || "", // Use path as uri for display purposes
+                  path: att.path || "",
+                  caption: att.caption || "",
+                  uploading: false,
+                })
+              );
+              setAttachments(loadedAttachments);
+              console.log("Attachments loaded into state:", loadedAttachments);
+            }
+
             console.log("Successfully loaded report data from API");
           }
         } catch (error) {
@@ -1413,10 +3411,85 @@ const CMVRDocumentExportScreen = () => {
           onPress: async () => {
             try {
               setIsDeleting(true);
+
+              // Collect all uploaded file paths from draftSnapshot
+              const filesToDelete: string[] = [];
+
+              // Extract location images from complianceToProjectLocationAndCoverageLimits
+              if (
+                draftSnapshot?.complianceToProjectLocationAndCoverageLimits
+                  ?.uploadedImages
+              ) {
+                const uploadedImages =
+                  draftSnapshot.complianceToProjectLocationAndCoverageLimits
+                    .uploadedImages;
+                Object.values(uploadedImages).forEach((imagePath: any) => {
+                  if (typeof imagePath === "string" && imagePath.trim()) {
+                    // Extract storage path from URL or use directly if it's already a path
+                    const path = imagePath.includes("location/")
+                      ? imagePath.split("location/")[1]?.split("?")[0]
+                      : imagePath;
+                    if (path && !path.startsWith("http")) {
+                      filesToDelete.push(`location/${path}`);
+                    } else if (path && path.includes("location/")) {
+                      const extractedPath =
+                        path.match(/location\/([^?]+)/)?.[0];
+                      if (extractedPath) filesToDelete.push(extractedPath);
+                    }
+                  }
+                });
+              }
+
+              // Extract noise quality files from noiseQualityImpactAssessment
+              if (draftSnapshot?.noiseQualityImpactAssessment?.uploadedFiles) {
+                const uploadedFiles =
+                  draftSnapshot.noiseQualityImpactAssessment.uploadedFiles;
+                if (Array.isArray(uploadedFiles)) {
+                  uploadedFiles.forEach((file: any) => {
+                    const storagePath = file?.storagePath || file?.path;
+                    if (
+                      storagePath &&
+                      typeof storagePath === "string" &&
+                      storagePath.trim()
+                    ) {
+                      // Clean up the path
+                      const cleanPath = storagePath.includes("noise-quality/")
+                        ? storagePath.split("noise-quality/")[1]?.split("?")[0]
+                        : storagePath;
+                      if (cleanPath && !cleanPath.startsWith("http")) {
+                        filesToDelete.push(`noise-quality/${cleanPath}`);
+                      } else if (
+                        cleanPath &&
+                        cleanPath.includes("noise-quality/")
+                      ) {
+                        const extractedPath = cleanPath.match(
+                          /noise-quality\/([^?]+)/
+                        )?.[0];
+                        if (extractedPath) filesToDelete.push(extractedPath);
+                      }
+                    }
+                  });
+                }
+              }
+
+              console.log("🗑️ Files to delete with CMVR:", filesToDelete);
+
+              // Delete files from storage (non-blocking)
+              if (filesToDelete.length > 0) {
+                deleteFilesFromStorage(filesToDelete).catch((err) => {
+                  console.error("⚠️ Failed to delete some files:", err);
+                  // Don't block the CMVR deletion if file deletion fails
+                });
+              }
+
+              // Delete the CMVR report from database
               await deleteCMVRReport(submittedReportId);
               setHasSubmitted(false);
               setSubmittedReportId(null);
-              Alert.alert("Deleted", "The CMVR report was deleted.");
+              Alert.alert(
+                "Deleted",
+                "The CMVR report and associated files were deleted."
+              );
             } catch (e: any) {
               console.error("Delete CMVR report failed:", e);
               Alert.alert(
@@ -1453,6 +3526,25 @@ const CMVRDocumentExportScreen = () => {
         },
         user?.id
       );
+
+      // Add attachments to payload
+      console.log("=== DEBUG UPDATE: Attachments state ===", attachments);
+      if (attachments.length > 0) {
+        const formattedAttachments = attachments
+          .filter((a) => !!a.path)
+          .map((a) => ({ path: a.path!, caption: a.caption || undefined }));
+        console.log(
+          "=== DEBUG UPDATE: Formatted attachments ===",
+          formattedAttachments
+        );
+        payload.attachments = formattedAttachments;
+      }
+
+      console.log(
+        "=== DEBUG UPDATE: Payload attachments ===",
+        payload.attachments
+      );
+
       const fileNameForUpdate =
         sanitizeString(snapshotForSubmission.fileName) ||
         sanitizeString(snapshotForSubmission.generalInfo?.projectName) ||
@@ -1543,6 +3635,21 @@ const CMVRDocumentExportScreen = () => {
         },
         user?.id
       );
+
+      // Add attachments to payload
+      console.log("=== DEBUG: Attachments state ===", attachments);
+      if (attachments.length > 0) {
+        const formattedAttachments = attachments
+          .filter((a) => !!a.path)
+          .map((a) => ({ path: a.path!, caption: a.caption || undefined }));
+        console.log(
+          "=== DEBUG: Formatted attachments ===",
+          formattedAttachments
+        );
+        payload.attachments = formattedAttachments;
+      }
+
+      console.log("=== DEBUG: Payload attachments ===", payload.attachments);
       console.log("=== DEBUG: Payload being sent ===");
       console.log(JSON.stringify(payload, null, 2));
       const fileNameForSubmission =
@@ -2029,6 +4136,25 @@ const CMVRDocumentExportScreen = () => {
                 : "Not selected"
             }
             onPress={navigateToAttendanceSelection}
+          />
+          <SummaryItem
+            icon="📎"
+            title="Attachments"
+            value={
+              attachments.length > 0
+                ? `${attachments.length} file${attachments.length > 1 ? "s" : ""}`
+                : "No attachments"
+            }
+            onPress={() =>
+              navigation.navigate(
+                "CMVRAttachments" as never,
+                {
+                  ...baseNavParams,
+                  existingAttachments: attachments,
+                  fileName,
+                } as never
+              )
+            }
           />
         </View>
         <View style={styles.actionSection}>
@@ -2749,6 +4875,30 @@ const styles = StyleSheet.create({
     fontSize: isTablet ? 16 : 14,
     color: "#D97706",
     lineHeight: isTablet ? 24 : 21,
+  },
+  card: {
+    backgroundColor: "white",
+    borderRadius: isTablet ? 20 : 16,
+    padding: isTablet ? 24 : 20,
+    marginBottom: isTablet ? 20 : 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  sectionTitle: {
+    fontSize: isTablet ? 20 : 18,
+    fontWeight: "700",
+    color: "#0F172A",
+    marginBottom: isTablet ? 8 : 6,
+  },
+  sectionDescription: {
+    fontSize: isTablet ? 15 : 14,
+    color: "#64748B",
+    lineHeight: isTablet ? 22 : 20,
   },
 });
 

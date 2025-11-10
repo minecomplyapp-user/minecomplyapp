@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, TextInput } from 'react-native';
-import { FormInputFieldProps } from '../types';
-import { formInputFieldStyles as styles } from '../styles';
+import React from "react";
+import { View, Text, TextInput } from "react-native";
+import { FormInputFieldProps } from "../types";
+import { formInputFieldStyles as styles } from "../styles";
 
 export const FormInputField: React.FC<FormInputFieldProps> = ({
   label,
@@ -17,12 +17,9 @@ export const FormInputField: React.FC<FormInputFieldProps> = ({
       {label && (
         <Text style={styles.label}>
           {label}
-          {subLabel && (
-            <>
-              {'\n'}
-              <Text style={styles.subLabel}>{subLabel}</Text>
-            </>
-          )}
+          {subLabel ? (
+            <Text style={styles.subLabel}>{`\n${subLabel}`}</Text>
+          ) : null}
         </Text>
       )}
       <TextInput
@@ -33,7 +30,7 @@ export const FormInputField: React.FC<FormInputFieldProps> = ({
         placeholderTextColor="#94A3B8"
         multiline={multiline}
         numberOfLines={numberOfLines}
-        textAlignVertical={multiline ? 'top' : 'center'}
+        textAlignVertical={multiline ? "top" : "center"}
         {...props}
       />
     </View>

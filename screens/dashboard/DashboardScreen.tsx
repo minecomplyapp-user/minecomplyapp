@@ -36,7 +36,7 @@ import { apiGet } from "../../lib/api";
 import { Ionicons } from "@expo/vector-icons";
 import { CustomHeader } from "../../components/CustomHeader";
 import {useEccStore} from "../../store/eccStore"
-
+import {useEccDraftStore} from "../../store/eccDraftStore"
 interface Report {
   id: string;
   title: string;
@@ -57,11 +57,16 @@ interface AttendanceRecord {
 }
 
 export default function DashboardScreen({ navigation }: any) {
+    const { user,session  } = useAuth();
+    const token = session?.access_token;
     const {getAllReports} = useEccStore();
-  
-  const { user } = useAuth();
+    const {getDraftList, loadDraftById} =useEccDraftStore()
+
   const [reports, setReports] = useState<Report[]>([]);
   const [drafts, setDrafts] = useState<Report[]>([]);
+
+
+  const [eccdrafts, setEccDrafts] = useState<Report[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<
     AttendanceRecord[]
   >([]);
@@ -80,6 +85,8 @@ export default function DashboardScreen({ navigation }: any) {
       }
 
       // Fetch local drafts first
+    
+     // Fetch local drafts first
       try {
         const draftMetadata = await getAllDraftMetadata();
         console.log("Found drafts:", draftMetadata.length);
@@ -142,6 +149,43 @@ export default function DashboardScreen({ navigation }: any) {
         setReports([]);
       }
 
+
+
+      // ECC LOCAL
+      try {
+        const draftMetadata = await getDraftList();
+        console.log("Found drafts:", draftMetadata.length);
+        const localDrafts = draftMetadata.slice(0, 3).map((draft) => ({
+          id: draft.id,
+          title: draft.fileName,
+          projectName: "",
+          type: "ECC",
+          status: "draft" as const,
+          date: new Date(draft.saveAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
+          updatedAt: draft.saveAt,
+          isLocalDraft: true,
+        }));
+        console.log("Loaded local ECC drafts:", localDrafts);
+        setEccDrafts(localDrafts);
+      } catch (err) {
+        console.log("Error loading local drafts:", err);
+        setEccDrafts([]);
+      }
+
+
+
+
+
+
+
+
+
+
+
       // Fetch attendance records
       try {
         const attendanceData = await apiGet<any>("/attendance");
@@ -182,6 +226,8 @@ export default function DashboardScreen({ navigation }: any) {
         console.log("No attendance records found:", err);
         setAttendanceRecords([]);
       }
+
+
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
@@ -199,6 +245,7 @@ export default function DashboardScreen({ navigation }: any) {
 
   const hasReports = reports.length > 0;
   const hasDrafts = drafts.length > 0;
+  const haseccDrafts = eccdrafts.length > 0;
   const hasAttendance = attendanceRecords.length > 0;
 
   console.log("Dashboard state:", {
@@ -215,6 +262,7 @@ export default function DashboardScreen({ navigation }: any) {
     (user as any)?.email?.split("@")[0] ||
     "User";
 
+ 
   return (
     <SafeAreaView style={styles.safeContainer}>
       <CustomHeader goBackTo="RoleSelection" showSave={false} />
@@ -271,7 +319,7 @@ export default function DashboardScreen({ navigation }: any) {
               subtitle="Use a previous template"
              onPress={async () => { // <--- Make the callback function ASYNC
                   // 1. Await the report fetch to ensure the store is updated
-                  await getAllReports(); // <--- Use AWAIT
+                  await getAllReports(user?.email,token); // <--- Use AWAIT
                   
                   // 2. Navigate after data is guaranteed to be in the store
                   navigation.navigate("DuplicateReport");
@@ -288,10 +336,10 @@ export default function DashboardScreen({ navigation }: any) {
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
                 <Edit3 size={18} color={theme.colors.warning} />
-                <Text style={styles.sectionTitle}>Draft Reports</Text>
+                <Text style={styles.sectionTitle}>CMVR Draft Reports</Text>
               </View>
               {hasDrafts && (
-                <TouchableOpacity
+                <TouchableOpacity 
                   onPress={() => navigation.navigate("CMVRDrafts")}
                   style={styles.viewAllButton}
                   hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
@@ -323,6 +371,57 @@ export default function DashboardScreen({ navigation }: any) {
                   <Text style={styles.emptyStateTitle}>No drafts saved</Text>
                   <Text style={styles.emptyStateText}>
                     Start a CMVR report and save as draft to continue later
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+
+
+            {!loading && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <Edit3 size={18} color={theme.colors.warning} />
+                <Text style={styles.sectionTitle}>ECC Draft Reports</Text>
+              </View>
+              {haseccDrafts && (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("ECCDraftScreen")}
+                  style={styles.viewAllButton}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Text style={styles.viewAllText}>View All</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={styles.summaryContainer}>
+              {haseccDrafts ? (
+                <View style={styles.reportsContainer}>
+
+
+                   {eccdrafts.map((draft, index) => (
+                  <React.Fragment key={draft.id}>
+                      <EccDraftCard draft={draft} navigation={navigation} />
+                    {index < eccdrafts.length - 1 && (
+                      <View style={styles.divider} />
+                    )}
+                  </React.Fragment>
+                ))}
+                </View>
+              ) : (
+                <View style={styles.emptyState}>
+                  <Edit3
+                    color={theme.colors.textLight}
+                    size={48}
+                    strokeWidth={1.5}
+                  />
+                  <Text style={styles.emptyStateTitle}>No drafts saved</Text>
+                  <Text style={styles.emptyStateText}>
+                    Start a ECC report and save as draft to continue later
                   </Text>
                 </View>
               )}
@@ -529,7 +628,7 @@ function CreateReportModal({ visible, onClose, navigation }: any) {
                     onClose();
                     setTimeout(() => {
                       clearSelectedReport();
-                      navigation.navigate("ECCMonitoring");
+                      navigation.navigate("ECCMonitoring",{id:''});
                     }, 120);
                   }}
                 />
@@ -619,7 +718,7 @@ function ReportCard({ report, navigation }: any) {
   );
 }
 
-function DraftCard({ draft, navigation }: any) {
+function DraftCard({ draft, navigation}: any) {
   const { setFileName } = useFileName();
 
   const handleOpenDraft = async () => {
@@ -665,6 +764,45 @@ function DraftCard({ draft, navigation }: any) {
     }
   };
 
+  return (
+    <TouchableOpacity
+      style={[styles.reportCard, styles.draftCard]}
+      activeOpacity={0.8}
+      onPress={handleOpenDraft}
+    >
+      <View style={styles.reportContent}>
+        <View style={styles.reportHeader}>
+          <Text style={styles.reportTitle} numberOfLines={1}>
+            {draft.title}
+          </Text>
+          <View style={[styles.reportTypeBadge, styles.draftBadge]}>
+            <Edit3 size={10} color={theme.colors.warning} />
+            <Text style={[styles.reportTypeText, styles.draftBadgeText]}>
+              Draft
+            </Text>
+          </View>
+        </View>
+        <View style={styles.reportMeta}>
+          <Calendar color={theme.colors.textLight} size={12} />
+          <Text style={styles.reportMetaText}>Last edited: {draft.date}</Text>
+        </View>
+      </View>
+      <ChevronRight color={theme.colors.textLight} size={18} />
+    </TouchableOpacity>
+  );
+}
+
+
+function EccDraftCard({ draft, navigation}: any) {
+
+    const {loadDraftById} = useEccDraftStore();
+    const {setSelectedReport} = useEccStore();
+
+  const handleOpenDraft = async () => {
+  const data = await loadDraftById(draft.id);
+  setSelectedReport(data);
+  navigation.navigate("ECCMonitoring",{id:draft.id});
+};
   return (
     <TouchableOpacity
       style={[styles.reportCard, styles.draftCard]}

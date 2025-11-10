@@ -17,7 +17,7 @@ import {
   
   
 } from "./types/eccMonitoring";
-
+import { Feather } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../theme/theme";
@@ -30,10 +30,16 @@ import * as FileSystem from 'expo-file-system/legacy'; // Correct
 import * as Sharing from 'expo-sharing';
 import {useEccStore} from "../../store/eccStore.js"
 import { useAuth } from "../../contexts/AuthContext";
+import { useEccDraftStore } from "../../store/eccDraftStore"
+import * as Location from 'expo-location';
+import { supabase } from "../../lib/supabase";
 
 export default function ECCMonitoringScreen({ navigation, route }: any) {
-  const { user } = useAuth();
-  const existingReport = route?.params?.report;
+  const { id } = route.params || {};
+   const { saveDraft,updateDraft } = useEccDraftStore();
+  const { user,session  } = useAuth();
+  const token = session?.access_token;
+
 const { selectedReport, isLoading, clearSelectedReport } = useEccStore(state => state);
 
   const {addReport,createAndDownloadReport}= useEccStore();
@@ -58,12 +64,10 @@ const { selectedReport, isLoading, clearSelectedReport } = useEccStore(state => 
     setTelNo(report.mmtInfo?.telNo || "");
     setFaxNo(report.mmtInfo?.faxNo || "");
     setEmailAddress(report.mmtInfo?.emailAddress || "");
-    if (report.monitoringData) {
-          setMonitoringState(report.monitoringData); // Assuming monitoringData contains the StoredState structure
-      }
+   
     // Permit Holders
     setPermitHolders(report.permit_holders || []);
-    console.log("permit holdersasadasdasdasdasdas",permit_holders)
+    // console.log("permit holdersasadasdasdasdasdas",permit_holders)
     // Recommendations
     // Ensure recommendations is an array of strings, defaulting to [""]
     setRecommendations(report.recommendations || [""]);
@@ -75,7 +79,7 @@ const handleGenerateAndDownload = async (
 ) => {
     // 1. Initiate the report creation and download.
     // Pass the loading callback down to the API function (createAndDownloadReport)
-    const result = await createAndDownloadReport(reportData, onLoadingChange);
+    const result = await createAndDownloadReport(reportData,token);
 
     if (result.success && result.fileBlob) {
         const { fileBlob, filename } = result;
@@ -219,6 +223,11 @@ remarks_list: permit_holders.reduce((acc, holder, index) => {
 
 
   const [showDatePicker, setShowDatePicker] = useState(false);
+  // Location state
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  const [location, setLocation] = useState<string>("");
+  // Auto-populate state
+  const [isAutoPopulating, setIsAutoPopulating] = useState(false);
 
 
 
@@ -297,14 +306,152 @@ remarks_list: permit_holders.reduce((acc, holder, index) => {
     });
   };
 
+
   
-  
+const saveToDraft = async () => {
+    // console.log("Save button clicked, starting draft save process."); 
+    
+    // --- START of Local Error Handling ---
+    try {
+       
+
+        const draftData = getMonitoringData();
+        let result = null;
+        if (id !== undefined) {
+          // If 'id' exists, update the existing draft.
+          result = await updateDraft(id, draftData);
+        } else {
+          // If 'id' is empty/new, save a new draft.
+          result = await saveDraft(draftData);
+        }
+
+        console.log("MONITORING DATAs:", id, "save result:", result);
+
+        // Defensive checks for the result shape
+        if (!result || typeof result !== 'object') {
+          console.error('Unexpected saveDraft/updateDraft return value:', result);
+          alert('Failed to save draft (unexpected response). See console for details.');
+          return;
+        }
+
+        if (result.success) {
+          alert('Draft saved successfully!');
+        } else {
+          const errMsg = result.error || 'Failed to save draft.';
+          console.warn('Draft save failed:', result);
+          alert(errMsg);
+        }
+    } catch (error) {
+        // 🚨 This will catch the crash from getMonitoringData() or any sync error
+        console.error("Critical synchronous error in saveToDraft:", error);
+        alert(" Failed to prepare data for draft. See console for details.");
+    }
+    // --- END of Local Error Handling ---
+};
+
+  const useCurrentLocation = async () => {
+    try {
+      setIsFetchingLocation(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission required",
+          "Location permission is needed to use your current location."
+        );
+        return;
+      }
+
+      const pos = await Location.getCurrentPositionAsync({});
+      let pretty = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+      try {
+        const places = await Location.reverseGeocodeAsync({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+        if (places && places[0]) {
+          const p = places[0] as any;
+          const bits = [
+            p.name,
+            p.street,
+            p.city,
+            p.region,
+            p.postalCode,
+            p.country,
+          ]
+            .filter(Boolean)
+            .join(", ");
+          if (bits) pretty = bits;
+        }
+      } catch {}
+      setLocation(pretty);
+    } catch (e: any) {
+      Alert.alert(
+        "Location error",
+        e?.message || "Failed to fetch current location"
+      );
+    } finally {
+      setIsFetchingLocation(false);
+    }
+  };
+
+  const autoPopulate = async () => {
+    if (!user) {
+      Alert.alert("Not signed in", "No user is signed in to populate data from.");
+      return;
+    }
+
+    setIsAutoPopulating(true);
+    try {
+      // Always try to fetch the latest profile row first (this ensures updated profile changes are reflected immediately)
+      let profileData: any = null;
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('first_name,last_name,full_name,mailing_address,phone_number,fax,position,email')
+          .eq('id', user.id)
+          .single();
+        if (!error && data) profileData = data;
+      } catch (e) {
+        // ignore and fall back to metadata
+        console.warn('Failed to fetch profile row for auto-populate', e);
+      }
+
+      const meta = (user as any).user_metadata || {};
+
+      if (profileData) {
+        setContactPerson(profileData.full_name || [profileData.first_name, profileData.last_name].filter(Boolean).join(' ') || user.email?.split('@')[0] || '');
+        setMmtPosition(profileData.position || '');
+        setMailingAddress(profileData.mailing_address || '');
+        setTelNo(profileData.phone_number || '');
+        setFaxNo(profileData.fax || '');
+        setEmailAddress(profileData.email || user.email || '');
+        return;
+      }
+
+      // Fallback to metadata if profile row not available
+      const fullName = meta.full_name || [meta.first_name,meta.last_name].filter(Boolean).join(' ');
+      setContactPerson(fullName || user.email?.split('@')[0] || '');
+      setMmtPosition(meta.position || '');
+      setMailingAddress(meta.mailing_address || '');
+      setTelNo(meta.phone_number || '');
+      setFaxNo(meta.fax || '');
+      setEmailAddress(user.email || '');
+    } catch (err) {
+      console.warn('Auto-populate failed', err);
+      Alert.alert('Auto-populate error', 'Could not fetch profile data.');
+    } finally {
+      setIsAutoPopulating(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeContainer}>
       <CustomHeader
+       onSave={saveToDraft}
   showSave={true}
+  saveDisabled={false}
   showFileName={true}
-  filename={filename}
+  fileName={filename}
   onChangeFileName={setFileName}
 />
       <ScrollView
@@ -353,18 +500,31 @@ remarks_list: permit_holders.reduce((acc, holder, index) => {
                 placeholder="Enter location"
                 placeholderTextColor="#C0C0C0"
                 style={styles.input}
+                value={location}
+                onChangeText={setLocation}
               />
             </View>
             <TouchableOpacity
-              style={[styles.gpsButton, styles.inputContainer]}
-              onPress={() => alert("Capture GPS Location")}
+              onPress={useCurrentLocation}
+              disabled={isFetchingLocation}
+              style={{
+                marginBottom: 12,
+                alignSelf: "flex-end",
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+              activeOpacity={0.8}
             >
-              <Ionicons
-                name="location-outline"
-                size={moderateScale(18)}
-                color="#fff"
+              <Feather
+                name="navigation"
+                size={16}
+                color={theme.colors.primaryDark}
               />
-              <Text style={styles.gpsButtonText}>Capture GPS Location</Text>
+              <Text style={{ marginLeft: 6, color: theme.colors.primaryDark }}>
+                {isFetchingLocation
+                  ? "Getting current location..."
+                  : "Use current location"}
+              </Text>
             </TouchableOpacity>
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Status</Text>
@@ -438,9 +598,6 @@ remarks_list: permit_holders.reduce((acc, holder, index) => {
         </View>
 
         {/* === Multipartite Monitoring Team === */}
-        {/* <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Multipartite Monitoring Team</Text> */}
-         {/* === Multipartite Monitoring Team === */}
 <View style={styles.section}>
   <Text style={styles.sectionTitle}>Multipartite Monitoring Team</Text>
   <View style={styles.card}>
@@ -498,14 +655,19 @@ remarks_list: permit_holders.reduce((acc, holder, index) => {
             onChangeText={setter}
           />
           {label === "Email Address" && (
-            <TouchableOpacity style={styles.autoPopulateButton}>
+            <TouchableOpacity
+              style={styles.autoPopulateButton}
+              onPress={autoPopulate}
+              disabled={isAutoPopulating}
+              activeOpacity={0.8}
+            >
               <Ionicons
-                name="sync"
+                name={isAutoPopulating ? "refresh" : "sync"}
                 size={16}
                 color={theme.colors.primaryDark}
               />
               <Text style={styles.autoPopulateText}>
-                Auto-populate with your saved info
+                {isAutoPopulating ? "Populating..." : "Auto-populate with your saved info"}
               </Text>
             </TouchableOpacity>
           )}
@@ -514,7 +676,6 @@ remarks_list: permit_holders.reduce((acc, holder, index) => {
     })}
   </View>
 </View>
-        {/* </View> */}
 
         {/* === Permit Holders === */}
         <View style={styles.section}>

@@ -31,10 +31,14 @@ import RecommendationsScreen from "../screens/CMVRPAGE/recommendations/Recommend
 import ECCMonitoringScreen from "../screens/ecc/ECCMonitoringScreen";
 import ECCMonitoringScreen2 from "../screens/ecc/conditions";
 import CMVRDocumentExportScreen from "../screens/CMVRPAGE/CMVRDocumentExportScreen";
+import CMVRAttachmentsScreen from "../screens/CMVRPAGE/CMVRAttachmentsScreen";
 import ExportReportScreen from "../screens/CMVRPAGE/ExportReportScreen";
 import CMVRDraftsScreen from "../screens/CMVRPAGE/CMVRDraftsScreen";
 import GuestDashboardScreen from "../screens/dashboard/GuestDashboardScreen";
 import EPEPScreen from "../screens/EPEP/epepScreen";
+import ECCDraftsScreen from "../screens/ecc/ECCDraftsScreen";
+
+
 
 const RootStack = createStackNavigator();
 
@@ -94,6 +98,12 @@ const AppNavigator = () => {
                 component={CMVRDraftsScreen}
                 options={{ headerShown: false }}
               />
+            <RootStack.Screen
+                name="ECCDraftScreen"
+                component={ECCDraftsScreen}
+                options={{ headerShown: false }}
+              />
+            
               <RootStack.Screen
                 name="GuestDashboard"
                 component={GuestDashboardScreen}
@@ -157,6 +167,11 @@ const AppNavigator = () => {
               <RootStack.Screen
                 name="Recommendations"
                 component={RecommendationsScreen}
+                options={{ headerShown: false }}
+              />
+              <RootStack.Screen
+                name="CMVRAttachments"
+                component={CMVRAttachmentsScreen}
                 options={{ headerShown: false }}
               />
               <RootStack.Screen

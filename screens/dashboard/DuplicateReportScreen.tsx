@@ -25,6 +25,7 @@ import { styles } from "./styles/DuplicateReportScreen.styles";
 import {useEccStore} from "../../store/eccStore"
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
+import { useAuth } from "../../contexts/AuthContext";
 
 // Mock data for attendance records
 
@@ -105,6 +106,8 @@ const mockCMVRReports = [
 type RecordType = "all" | "attendance" | "cmvr"|"ecc";
 
 export default function DuplicateReportScreen({ navigation }: any) {
+    const { user,session  } = useAuth();
+    const token = session?.access_token;
   
   const {getReportById, selectedReport,reports} = useEccStore();
   const [selectedType, setSelectedType] = useState<RecordType>("all");
@@ -145,8 +148,8 @@ export default function DuplicateReportScreen({ navigation }: any) {
               });
             }
             else if (record.type === "ecc") {
-               await getReportById(record.id);
-                navigation.navigate("ECCMonitoring",selectedReport); // ECCMonitoring will read selectedReport from store
+               await getReportById(record.id,token);
+                navigation.navigate("ECCMonitoring"); // ECCMonitoring will read selectedReport from store
             }else {
                 navigation.navigate("CMVRReport", {
                 submissionId: null,
@@ -213,7 +216,7 @@ export default function DuplicateReportScreen({ navigation }: any) {
             />
               <FilterTab
               label="ECC"
-              count={mockECCReports.length}
+              count={reports?.length}
               isActive={selectedType === "ecc"}
               onPress={() => setSelectedType("ecc")}
               isTablet={isTablet}
