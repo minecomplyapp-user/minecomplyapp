@@ -58,7 +58,7 @@ export default function DuplicateReportScreen({ navigation }: any) {
   const { getReportById: getEccReport, selectedReport: selectedEccReport, reports: eccReports } = useEccStore();
   const { 
     fetchReports: fetchCmvrReports, 
-    getReportById: getCmvrReport, 
+    duplicateReport: duplicateCmvrReport,
     selectedReport: selectedCmvrReport, 
     reports: cmvrReports,
     isLoading: cmvrLoading 
@@ -122,32 +122,18 @@ export default function DuplicateReportScreen({ navigation }: any) {
                 navigation.navigate("ECCMonitoring", selectedEccReport);
               }
               else if (record.type === "cmvr") {
-                // Fetch the original report data
-                const result = await getCmvrReport(record.id);
+                const result = await duplicateCmvrReport(record.id);
                 
-                if (result.success && result.report) {
-                  // Create a duplicate with modified data
-                  const duplicateData = {
-                    ...result.report,
-                    id: undefined, // Remove ID so a new one is created
-                    projectName: `${result.report.projectName || result.report.title} (Copy)`,
-                    title: `${result.report.title || result.report.projectName} (Copy)`,
-                    status: 'Draft',
-                    createdAt: new Date().toISOString(),
-                  };
-                  
+                if (result.success) {
                   setIsLoading(false);
                   setSelectedRecord(null);
                   navigation.navigate("CMVRReport", {
-                    submissionId: null,
-                    projectId: null,
-                    projectName: duplicateData.projectName,
-                    duplicateFrom: record.id,
-                    reportData: duplicateData,
+                    reportId: result.report.id,
+                    reportData: result.report,
                     isDuplicate: true,
                   });
                 } else {
-                  throw new Error('Failed to fetch report data');
+                  throw new Error('Failed to duplicate CMVR report');
                 }
               }
             } catch (error) {
