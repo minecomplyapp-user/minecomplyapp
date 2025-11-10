@@ -8,13 +8,13 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  TextInput,
 } from "react-native";
 import { CustomHeader } from "../../components/CustomHeader";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { theme } from "../../theme/theme";
 import styles from "./styles/profileScreen";
-import { FloatingLabelInput } from "../auth/components/FloatingLabelInput";
 
 const EditProfileScreen = ({ navigation }: any) => {
   const { user } = useAuth();
@@ -120,37 +120,126 @@ const EditProfileScreen = ({ navigation }: any) => {
                 <Text style={styles.sectionTitle}>Edit Profile</Text>
               </View>
 
-              <FloatingLabelInput
-                label="First Name"
-                value={firstName}
-                onChangeText={setFirstName}
-              />
-              <FloatingLabelInput
-                label="Last Name"
-                value={lastName}
-                onChangeText={setLastName}
-              />
-              <FloatingLabelInput
-                label="Position"
-                value={position}
-                onChangeText={setPosition}
-              />
-              <FloatingLabelInput
-                label="Mailing Address"
-                value={mailingAddress}
-                onChangeText={setMailingAddress}
-              />
-              <FloatingLabelInput
-                label="Phone Number"
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                keyboardType="phone-pad"
-              />
-              <FloatingLabelInput
-                label="Fax"
-                value={fax}
-                onChangeText={setFax}
-              />
+              <View style={styles.fieldContainer}>
+                <Text style={styles.fieldLabel}>First Name</Text>
+                <TextInput
+                  placeholder="Enter first name"
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  placeholderTextColor="#9CA3AF"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#E0E0E0',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    backgroundColor: theme.colors.surface,
+                    color: theme.colors.text,
+                    fontFamily: theme.typography.regular,
+                  }}
+                />
+              </View>
+
+              <View style={styles.fieldContainer}>
+                <Text style={styles.fieldLabel}>Last Name</Text>
+                <TextInput
+                  placeholder="Enter last name"
+                  value={lastName}
+                  onChangeText={setLastName}
+                  placeholderTextColor="#9CA3AF"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#E0E0E0',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    backgroundColor: theme.colors.surface,
+                    color: theme.colors.text,
+                    fontFamily: theme.typography.regular,
+                  }}
+                />
+              </View>
+
+              <View style={styles.fieldContainer}>
+                <Text style={styles.fieldLabel}>Position</Text>
+                <TextInput
+                  placeholder="Enter position"
+                  value={position}
+                  onChangeText={setPosition}
+                  placeholderTextColor="#9CA3AF"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#E0E0E0',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    backgroundColor: theme.colors.surface,
+                    color: theme.colors.text,
+                    fontFamily: theme.typography.regular,
+                  }}
+                />
+              </View>
+
+              <View style={styles.fieldContainer}>
+                <Text style={styles.fieldLabel}>Mailing Address</Text>
+                <TextInput
+                  placeholder="Enter mailing address"
+                  value={mailingAddress}
+                  onChangeText={setMailingAddress}
+                  placeholderTextColor="#9CA3AF"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#E0E0E0',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    backgroundColor: theme.colors.surface,
+                    color: theme.colors.text,
+                    fontFamily: theme.typography.regular,
+                  }}
+                />
+              </View>
+
+              <View style={styles.fieldContainer}>
+                <Text style={styles.fieldLabel}>Phone Number</Text>
+                <TextInput
+                  placeholder="Enter phone number"
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  keyboardType="phone-pad"
+                  placeholderTextColor="#9CA3AF"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#E0E0E0',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    backgroundColor: theme.colors.surface,
+                    color: theme.colors.text,
+                    fontFamily: theme.typography.regular,
+                  }}
+                />
+              </View>
+
+              <View style={styles.fieldContainer}>
+                <Text style={styles.fieldLabel}>Fax</Text>
+                <TextInput
+                  placeholder="Enter fax"
+                  value={fax}
+                  onChangeText={setFax}
+                  placeholderTextColor="#9CA3AF"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#E0E0E0',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    backgroundColor: theme.colors.surface,
+                    color: theme.colors.text,
+                    fontFamily: theme.typography.regular,
+                  }}
+                />
+              </View>
             </View>
           </View>
         </ScrollView>

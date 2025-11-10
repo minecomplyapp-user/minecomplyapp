@@ -254,8 +254,8 @@ export const createAttendanceStyles = StyleSheet.create({
     borderColor: theme.colors.error,
   },
   signatureModalSaveButton: {
-    backgroundColor: theme.colors.success,
-    borderColor: theme.colors.success,
+    backgroundColor: theme.colors.primaryDark,
+    borderColor: theme.colors.primaryDark,
   },
   signatureModalButtonText: {
     fontSize: 14,
@@ -264,6 +264,23 @@ export const createAttendanceStyles = StyleSheet.create({
   },
   signatureModalSaveText: {
     color: "#fff",
+  },
+  signatureModalCanvas: {
+    flex: 1,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 0,
+    borderRadius: moderateScale(theme.radii.md),
+    overflow: "hidden",
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  signatureModalFooter: {
+    padding: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
   },
   removeIconButton: {
     width: moderateScale(30),
