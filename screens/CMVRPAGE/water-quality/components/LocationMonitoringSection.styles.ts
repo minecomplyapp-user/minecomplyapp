@@ -2,18 +2,17 @@ import { StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
   container: {
-    marginTop: 24,
-    marginBottom: 24,
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#3B82F6",
     padding: 16,
-    shadowColor: "#000",
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 10,
+    shadowColor: "#02217C",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
   },
   locationHeader: {
     flexDirection: "row",

@@ -1,5 +1,5 @@
 // RecommendationsScreen.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -172,7 +172,6 @@ const RecommendationItemComponent: React.FC<{
             onPress={handleRemoveWithConfirmation}
             style={styles.removeButton}
           >
-
             <Ionicons name="trash-outline" size={16} color="#DC2626" />
           </TouchableOpacity>
         )}
@@ -279,8 +278,10 @@ const RecommendationsScreen: React.FC = () => {
   const allPreviousParams = route.params || {};
   const [prevYear, setPrevYear] = useState("");
   const [prevQuarter, setPrevQuarter] = useState("1st");
-  
-  const [currentSections, setCurrentSections] = useState<Record<SectionKey, SectionData>>({
+
+  const [currentSections, setCurrentSections] = useState<
+    Record<SectionKey, SectionData>
+  >({
     plant: {
       isNA: false,
       items: [{ recommendation: "", commitment: "", status: "" }],
@@ -294,8 +295,10 @@ const RecommendationsScreen: React.FC = () => {
       items: [{ recommendation: "", commitment: "", status: "" }],
     },
   });
-  
-  const [previousSections, setPreviousSections] = useState<Record<SectionKey, SectionData>>({
+
+  const [previousSections, setPreviousSections] = useState<
+    Record<SectionKey, SectionData>
+  >({
     plant: {
       isNA: false,
       items: [{ recommendation: "", commitment: "", status: "" }],
@@ -309,6 +312,36 @@ const RecommendationsScreen: React.FC = () => {
       items: [{ recommendation: "", commitment: "", status: "" }],
     },
   });
+
+  // Hydrate from route params when coming from a draft or summary
+  useEffect(() => {
+    const params: any = allPreviousParams || {};
+
+    // Check for data from draftData first (coming from summary), then from direct params
+    const draftData = params.draftData;
+    const savedRecommendations =
+      draftData?.recommendationsData || params.recommendationsData;
+
+    if (savedRecommendations) {
+      console.log(
+        "Hydrating Recommendations with saved data:",
+        savedRecommendations
+      );
+
+      if (savedRecommendations.prevYear) {
+        setPrevYear(savedRecommendations.prevYear);
+      }
+      if (savedRecommendations.prevQuarter) {
+        setPrevQuarter(savedRecommendations.prevQuarter);
+      }
+      if (savedRecommendations.currentRecommendations) {
+        setCurrentSections(savedRecommendations.currentRecommendations);
+      }
+      if (savedRecommendations.previousRecommendations) {
+        setPreviousSections(savedRecommendations.previousRecommendations);
+      }
+    }
+  }, [allPreviousParams]);
 
   const updateCurrentSection = (sectionKey: SectionKey, data: SectionData) =>
     setCurrentSections({ ...currentSections, [sectionKey]: data });

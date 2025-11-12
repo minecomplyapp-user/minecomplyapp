@@ -6,12 +6,10 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Alert,
-  TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
 import { CMSHeader } from "../../../components/CMSHeader";
-import { Checkbox } from "../../../components/CheckBox";
 import { saveDraft } from "../../../lib/drafts";
 import { LocationSection } from "./components/LocationSection";
 import { ParameterForm } from "./components/ParameterForm";
@@ -30,23 +28,20 @@ import {
 import { styles } from "../styles/WaterQualityScreen.styles";
 
 export default function WaterQualityScreen({ navigation, route }: any) {
-  // Location checkboxes for enabling/disabling inputs
-  const [quarryEnabled, setQuarryEnabled] = useState<boolean>(false);
-  const [plantEnabled, setPlantEnabled] = useState<boolean>(false);
-  const [quarryPlantEnabled, setQuarryPlantEnabled] = useState<boolean>(false);
+  const [selectedLocations, setSelectedLocations] = useState<LocationState>({
+    quarry: false,
+    plant: false,
+    quarryPlant: false,
+  });
 
-  // Location description text inputs
-  const [quarryInput, setQuarryInput] = useState<string>("");
-  const [plantInput, setPlantInput] = useState<string>("");
-  const [quarryPlantInput, setQuarryPlantInput] = useState<string>("");
-
-  // Main water quality data (unified table)
-  const [waterQualityData, setWaterQualityData] = useState<LocationData>(
+  // Separate state for each location
+  const [quarryData, setQuarryData] = useState<LocationData>(
     createEmptyLocationData()
   );
-
-  // Port data (separate section)
-  const [portData, setPortData] = useState<LocationData>(
+  const [plantData, setPlantData] = useState<LocationData>(
+    createEmptyLocationData()
+  );
+  const [quarryPlantData, setQuarryPlantData] = useState<LocationData>(
     createEmptyLocationData()
   );
 
@@ -87,41 +82,16 @@ export default function WaterQualityScreen({ navigation, route }: any) {
       params.waterQualityImpactAssessment;
 
     if (saved) {
-      console.log("Hydrating WaterQuality with saved data", saved);
+      console.log("Hydrating WaterQuality with saved data");
+      if (saved.selectedLocations)
+        setSelectedLocations(saved.selectedLocations);
 
-      // New structure - location text inputs
-      if (typeof saved.quarry === "string") {
-        setQuarryInput(saved.quarry);
-        setQuarryEnabled(saved.quarry.length > 0); // Enable if has content
-      }
-      if (typeof saved.plant === "string") {
-        setPlantInput(saved.plant);
-        setPlantEnabled(saved.plant.length > 0); // Enable if has content
-      }
-      if (typeof saved.quarryPlant === "string") {
-        setQuarryPlantInput(saved.quarryPlant);
-        setQuarryPlantEnabled(saved.quarryPlant.length > 0); // Enable if has content
-      }
+      // Load location-specific data
+      if (saved.quarryData) setQuarryData(saved.quarryData);
+      if (saved.plantData) setPlantData(saved.plantData);
+      if (saved.quarryPlantData) setQuarryPlantData(saved.quarryPlantData);
 
-      // Restore checkbox states if explicitly saved
-      if (typeof saved.quarryEnabled === "boolean")
-        setQuarryEnabled(saved.quarryEnabled);
-      if (typeof saved.plantEnabled === "boolean")
-        setPlantEnabled(saved.plantEnabled);
-      if (typeof saved.quarryPlantEnabled === "boolean")
-        setQuarryPlantEnabled(saved.quarryPlantEnabled);
-
-      // New structure - unified waterQuality table
-      if (saved.waterQuality) setWaterQualityData(saved.waterQuality);
-
-      // New structure - port data
-      if (saved.port) setPortData(saved.port);
-
-      // Legacy support - try to map old structure to new
-      if (saved.quarryData) {
-        // Old structure had separate tables, merge into unified waterQuality
-        setWaterQualityData(saved.quarryData);
-      }
+      // Legacy support
       if (saved.data) setData((prev) => ({ ...prev, ...saved.data }));
       if (Array.isArray(saved.parameters)) setParameters(saved.parameters);
       if (Array.isArray(saved.ports)) setPorts(saved.ports);
@@ -133,18 +103,14 @@ export default function WaterQualityScreen({ navigation, route }: any) {
       const prevPageData: any = route.params || {};
 
       const waterQualityImpactAssessment = {
-        quarry: quarryInput,
-        plant: plantInput,
-        quarryPlant: quarryPlantInput,
-        quarryEnabled,
-        plantEnabled,
-        quarryPlantEnabled,
-        waterQuality: waterQualityData,
-        port: portData,
+        selectedLocations,
+        quarryData,
+        plantData,
+        quarryPlantData,
+        ports,
         // Legacy support
         data,
         parameters,
-        ports,
       };
 
       const draftData = {
@@ -204,15 +170,10 @@ export default function WaterQualityScreen({ navigation, route }: any) {
       const prevPageData: any = route.params || {};
 
       const waterQualityImpactAssessment = {
-        quarry: quarryInput,
-        plant: plantInput,
-        quarryPlant: quarryPlantInput,
-        quarryEnabled,
-        plantEnabled,
-        quarryPlantEnabled,
-        waterQuality: waterQualityData,
-        port: portData,
-        // Legacy support
+        selectedLocations,
+        quarryData,
+        plantData,
+        quarryPlantData,
         data,
         parameters,
         ports,
@@ -283,18 +244,13 @@ export default function WaterQualityScreen({ navigation, route }: any) {
 
       // Prepare current page data
       const waterQualityImpactAssessment = {
-        quarry: quarryInput,
-        plant: plantInput,
-        quarryPlant: quarryPlantInput,
-        quarryEnabled,
-        plantEnabled,
-        quarryPlantEnabled,
-        waterQuality: waterQualityData,
-        port: portData,
-        // Legacy support
+        selectedLocations,
+        quarryData,
+        plantData,
+        quarryPlantData,
+        ports,
         data,
         parameters,
-        ports,
       };
 
       // Prepare complete snapshot with all sections
@@ -352,25 +308,36 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     }
   };
 
-  // ============ UNIFIED WATER QUALITY HANDLERS ============
-  const handleWaterQualityMainParameterUpdate = (
+  const handleLocationToggle = (location: keyof LocationState) => {
+    setSelectedLocations((prev) => ({
+      ...prev,
+      [location]: !prev[location],
+    }));
+  };
+
+  // ============ QUARRY HANDLERS ============
+  const handleQuarryLocationInputChange = (value: string) => {
+    setQuarryData((prev) => ({ ...prev, locationInput: value }));
+  };
+
+  const handleQuarryMainParameterUpdate = (
     field: keyof Omit<Parameter, "id">,
     value: string | boolean
   ) => {
-    setWaterQualityData((prev) => ({ ...prev, [field]: value }));
+    setQuarryData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleWaterQualityMMTInputChange = (field: string, value: string) => {
-    setWaterQualityData((prev) => ({ ...prev, [field]: value }));
+  const handleQuarryMMTInputChange = (field: string, value: string) => {
+    setQuarryData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleWaterQualityMMTNAToggle = () => {
-    setWaterQualityData((prev) => ({ ...prev, isMMTNA: !prev.isMMTNA }));
+  const handleQuarryMMTNAToggle = () => {
+    setQuarryData((prev) => ({ ...prev, isMMTNA: !prev.isMMTNA }));
   };
 
-  const addWaterQualityParameter = () => {
-    const newId = `water-quality-param-${Date.now()}`;
-    setWaterQualityData((prev) => ({
+  const addQuarryParameter = () => {
+    const newId = `quarry-param-${Date.now()}`;
+    setQuarryData((prev) => ({
       ...prev,
       parameters: [
         ...prev.parameters,
@@ -392,12 +359,12 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     }));
   };
 
-  const updateWaterQualityParameter = (
+  const updateQuarryParameter = (
     id: string,
     field: keyof Omit<Parameter, "id">,
     value: string | boolean
   ) => {
-    setWaterQualityData((prev) => ({
+    setQuarryData((prev) => ({
       ...prev,
       parameters: prev.parameters.map((param) =>
         param.id === id ? { ...param, [field]: value } : param
@@ -405,7 +372,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     }));
   };
 
-  const deleteWaterQualityParameter = (id: string) => {
+  const deleteQuarryParameter = (id: string) => {
     Alert.alert(
       "Remove Parameter",
       "Are you sure you want to remove this parameter?",
@@ -415,7 +382,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
           text: "Remove",
           style: "destructive",
           onPress: () => {
-            setWaterQualityData((prev) => ({
+            setQuarryData((prev) => ({
               ...prev,
               parameters: prev.parameters.filter((param) => param.id !== id),
             }));
@@ -425,39 +392,43 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     );
   };
 
-  const handleWaterQualitySamplingDetailsChange = (
+  const handleQuarrySamplingDetailsChange = (
     field: string,
     value: string | boolean
   ) => {
-    setWaterQualityData((prev) => ({ ...prev, [field]: value }));
+    setQuarryData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleWaterQualityExplanationNAToggle = () => {
-    setWaterQualityData((prev) => ({
+  const handleQuarryExplanationNAToggle = () => {
+    setQuarryData((prev) => ({
       ...prev,
       isExplanationNA: !prev.isExplanationNA,
     }));
   };
 
-  // ============ PORT HANDLERS ============
-  const handlePortMainParameterUpdate = (
+  // ============ PLANT HANDLERS ============
+  const handlePlantLocationInputChange = (value: string) => {
+    setPlantData((prev) => ({ ...prev, locationInput: value }));
+  };
+
+  const handlePlantMainParameterUpdate = (
     field: keyof Omit<Parameter, "id">,
     value: string | boolean
   ) => {
-    setPortData((prev) => ({ ...prev, [field]: value }));
+    setPlantData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handlePortMMTInputChange = (field: string, value: string) => {
-    setPortData((prev) => ({ ...prev, [field]: value }));
+  const handlePlantMMTInputChange = (field: string, value: string) => {
+    setPlantData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handlePortMMTNAToggle = () => {
-    setPortData((prev) => ({ ...prev, isMMTNA: !prev.isMMTNA }));
+  const handlePlantMMTNAToggle = () => {
+    setPlantData((prev) => ({ ...prev, isMMTNA: !prev.isMMTNA }));
   };
 
-  const addPortParameter = () => {
-    const newId = `port-param-${Date.now()}`;
-    setPortData((prev) => ({
+  const addPlantParameter = () => {
+    const newId = `plant-param-${Date.now()}`;
+    setPlantData((prev) => ({
       ...prev,
       parameters: [
         ...prev.parameters,
@@ -479,12 +450,12 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     }));
   };
 
-  const updatePortParameter = (
+  const updatePlantParameter = (
     id: string,
     field: keyof Omit<Parameter, "id">,
     value: string | boolean
   ) => {
-    setPortData((prev) => ({
+    setPlantData((prev) => ({
       ...prev,
       parameters: prev.parameters.map((param) =>
         param.id === id ? { ...param, [field]: value } : param
@@ -492,7 +463,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     }));
   };
 
-  const deletePortParameter = (id: string) => {
+  const deletePlantParameter = (id: string) => {
     Alert.alert(
       "Remove Parameter",
       "Are you sure you want to remove this parameter?",
@@ -502,7 +473,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
           text: "Remove",
           style: "destructive",
           onPress: () => {
-            setPortData((prev) => ({
+            setPlantData((prev) => ({
               ...prev,
               parameters: prev.parameters.filter((param) => param.id !== id),
             }));
@@ -512,15 +483,106 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     );
   };
 
-  const handlePortSamplingDetailsChange = (
+  const handlePlantSamplingDetailsChange = (
     field: string,
     value: string | boolean
   ) => {
-    setPortData((prev) => ({ ...prev, [field]: value }));
+    setPlantData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handlePortExplanationNAToggle = () => {
-    setPortData((prev) => ({
+  const handlePlantExplanationNAToggle = () => {
+    setPlantData((prev) => ({
+      ...prev,
+      isExplanationNA: !prev.isExplanationNA,
+    }));
+  };
+
+  // ============ QUARRY & PLANT HANDLERS ============
+  const handleQuarryPlantLocationInputChange = (value: string) => {
+    setQuarryPlantData((prev) => ({ ...prev, locationInput: value }));
+  };
+
+  const handleQuarryPlantMainParameterUpdate = (
+    field: keyof Omit<Parameter, "id">,
+    value: string | boolean
+  ) => {
+    setQuarryPlantData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleQuarryPlantMMTInputChange = (field: string, value: string) => {
+    setQuarryPlantData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleQuarryPlantMMTNAToggle = () => {
+    setQuarryPlantData((prev) => ({ ...prev, isMMTNA: !prev.isMMTNA }));
+  };
+
+  const addQuarryPlantParameter = () => {
+    const newId = `quarryplant-param-${Date.now()}`;
+    setQuarryPlantData((prev) => ({
+      ...prev,
+      parameters: [
+        ...prev.parameters,
+        {
+          id: newId,
+          parameter: "",
+          resultType: "Month",
+          tssCurrent: "",
+          tssPrevious: "",
+          mmtCurrent: "",
+          mmtPrevious: "",
+          isMMTNA: false,
+          eqplRedFlag: "",
+          action: "",
+          limit: "",
+          remarks: "",
+        },
+      ],
+    }));
+  };
+
+  const updateQuarryPlantParameter = (
+    id: string,
+    field: keyof Omit<Parameter, "id">,
+    value: string | boolean
+  ) => {
+    setQuarryPlantData((prev) => ({
+      ...prev,
+      parameters: prev.parameters.map((param) =>
+        param.id === id ? { ...param, [field]: value } : param
+      ),
+    }));
+  };
+
+  const deleteQuarryPlantParameter = (id: string) => {
+    Alert.alert(
+      "Remove Parameter",
+      "Are you sure you want to remove this parameter?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            setQuarryPlantData((prev) => ({
+              ...prev,
+              parameters: prev.parameters.filter((param) => param.id !== id),
+            }));
+          },
+        },
+      ]
+    );
+  };
+
+  const handleQuarryPlantSamplingDetailsChange = (
+    field: string,
+    value: string | boolean
+  ) => {
+    setQuarryPlantData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleQuarryPlantExplanationNAToggle = () => {
+    setQuarryPlantData((prev) => ({
       ...prev,
       isExplanationNA: !prev.isExplanationNA,
     }));
@@ -642,74 +704,6 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     );
   };
 
-  const addLegacyPortParameter = (portId: string) => {
-    const newParamId = `param-${Date.now()}`;
-    setPorts(
-      ports.map((port) =>
-        port.id === portId
-          ? {
-              ...port,
-              additionalParameters: [
-                ...port.additionalParameters,
-                {
-                  id: newParamId,
-                  parameter: "",
-                  resultType: "Month",
-                  tssCurrent: "",
-                  tssPrevious: "",
-                  mmtCurrent: "",
-                  mmtPrevious: "",
-                  isMMTNA: false,
-                  eqplRedFlag: "",
-                  action: "",
-                  limit: "",
-                  remarks: "",
-                },
-              ],
-            }
-          : port
-      )
-    );
-  };
-
-  const updateLegacyPortParameter = (
-    portId: string,
-    parameterId: string,
-    field: keyof Omit<Parameter, "id">,
-    value: string | boolean
-  ) => {
-    setPorts(
-      ports.map((port) =>
-        port.id === portId
-          ? {
-              ...port,
-              additionalParameters: port.additionalParameters.map((param) =>
-                param.id === parameterId ? { ...param, [field]: value } : param
-              ),
-            }
-          : port
-      )
-    );
-  };
-
-  const deleteLegacyPortParameter = (
-    portId: string,
-    parameterIndex: number
-  ) => {
-    setPorts(
-      ports.map((port) =>
-        port.id === portId
-          ? {
-              ...port,
-              additionalParameters: port.additionalParameters.filter(
-                (_, index) => index !== parameterIndex
-              ),
-            }
-          : port
-      )
-    );
-  };
-
   const deletePort = (portId: string) => {
     Alert.alert(
       "Delete Port",
@@ -724,6 +718,87 @@ export default function WaterQualityScreen({ navigation, route }: any) {
           style: "destructive",
           onPress: () => {
             setPorts((prev) => prev.filter((port) => port.id !== portId));
+          },
+        },
+      ]
+    );
+  };
+
+  const addPortParameter = (portId: string) => {
+    setPorts(
+      ports.map((port) => {
+        if (port.id === portId) {
+          const newId = `param-${Date.now()}`;
+          return {
+            ...port,
+            additionalParameters: [
+              ...port.additionalParameters,
+              {
+                id: newId,
+                parameter: "",
+                resultType: "Month",
+                tssCurrent: "",
+                tssPrevious: "",
+                eqplRedFlag: "",
+                action: "",
+                limit: "",
+                remarks: "",
+              },
+            ],
+          };
+        }
+        return port;
+      })
+    );
+  };
+
+  const updatePortParameter = (
+    portId: string,
+    parameterId: string,
+    field: keyof Omit<Parameter, "id">,
+    value: string | boolean
+  ) => {
+    setPorts(
+      ports.map((port) => {
+        if (port.id === portId) {
+          return {
+            ...port,
+            additionalParameters: port.additionalParameters.map((param) =>
+              param.id === parameterId ? { ...param, [field]: value } : param
+            ),
+          };
+        }
+        return port;
+      })
+    );
+  };
+
+  const deletePortParameter = (portId: string, parameterIndex: number) => {
+    Alert.alert(
+      "Delete Parameter",
+      "Are you sure you want to delete this parameter?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            setPorts((prevPorts) =>
+              prevPorts.map((port) => {
+                if (port.id === portId) {
+                  return {
+                    ...port,
+                    additionalParameters: port.additionalParameters.filter(
+                      (_, i) => i !== parameterIndex
+                    ),
+                  };
+                }
+                return port;
+              })
+            );
           },
         },
       ]
@@ -753,88 +828,6 @@ export default function WaterQualityScreen({ navigation, route }: any) {
   };
 
   const fillTestData = () => {
-    // Enable all checkboxes
-    setQuarryEnabled(true);
-    setPlantEnabled(true);
-    setQuarryPlantEnabled(true);
-
-    // Fill location descriptions
-    setQuarryInput("Station WQ-01 (Quarry settling pond effluent)");
-    setPlantInput("Station WQ-02 (Plant wastewater treatment outlet)");
-    setQuarryPlantInput(
-      "Mobile crusher operations with temporary water management"
-    );
-
-    // Fill Water Quality Data (unified table)
-    setWaterQualityData({
-      locationInput: "",
-      parameter: "TSS",
-      resultType: "Month",
-      tssCurrent: "18",
-      tssPrevious: "6.2",
-      mmtCurrent: "-",
-      mmtPrevious: "-",
-      isMMTNA: true,
-      eqplRedFlag: "-",
-      action: "-",
-      limit: "150",
-      remarks: "All monitoring stations within acceptable limits",
-      dateTime: "June 27, 2025",
-      weatherWind: "Sunny, light breeze from Northeast",
-      explanation:
-        "Confirmatory sampling conducted for validation of internal monitoring results",
-      isExplanationNA: false,
-      overallCompliance:
-        "All water quality parameters are within DENR Class C standards",
-      parameters: [
-        {
-          id: "wq-1",
-          parameter: "pH",
-          resultType: "Month",
-          tssCurrent: "7.2",
-          tssPrevious: "7.1",
-          mmtCurrent: "7.25",
-          mmtPrevious: "7.15",
-          isMMTNA: false,
-          eqplRedFlag: "-",
-          action: "-",
-          limit: "6.5-8.5",
-          remarks: "pH levels stable and within range",
-        },
-      ],
-    });
-
-    // Fill Port Data
-    setPortData({
-      locationInput: "",
-      parameter: "Turbidity",
-      resultType: "Month",
-      tssCurrent: "12",
-      tssPrevious: "14",
-      mmtCurrent: "13",
-      mmtPrevious: "15",
-      isMMTNA: false,
-      eqplRedFlag: "No",
-      action: "Maintain dust suppression during loading",
-      limit: "20",
-      remarks: "Below threshold",
-      dateTime: "June 29, 2025",
-      weatherWind: "Clear, Light breeze",
-      explanation: "Minor turbidity from loading activities",
-      isExplanationNA: false,
-      overallCompliance:
-        "All port water quality parameters are within DENR standards",
-      parameters: [],
-    });
-
-    Alert.alert(
-      "Test Data Loaded",
-      "Water Quality filled with test data:\n• All location descriptions enabled\n• Water Quality: TSS + pH parameter\n• Port: Turbidity data"
-    );
-  };
-
-  /* Old fillTestData - kept for reference
-  const fillTestDataOld = () => {
     // Set locations
     setSelectedLocations({
       quarry: true,
@@ -1012,7 +1005,6 @@ export default function WaterQualityScreen({ navigation, route }: any) {
       "Water Quality filled with test data:\n• Quarry: pH + 2 parameters\n• Plant: BOD + 2 parameters\n• 2 Ports with sampling details"
     );
   };
-  */
 
   return (
     <SafeAreaView style={styles.container}>
@@ -1037,179 +1029,153 @@ export default function WaterQualityScreen({ navigation, route }: any) {
           </Text>
         </View>
 
-        {/* Location Description Text Inputs */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Location Descriptions</Text>
-
-          <View style={styles.inputGroup}>
-            <View style={styles.checkboxRow}>
-              <Checkbox
-                value={quarryEnabled}
-                onToggle={() => setQuarryEnabled(!quarryEnabled)}
-                label="Quarry"
-              />
-            </View>
-            <TextInput
-              style={[
-                styles.textInput,
-                !quarryEnabled && styles.textInputDisabled,
-              ]}
-              value={quarryInput}
-              onChangeText={setQuarryInput}
-              placeholder="Enter quarry location description"
-              multiline
-              editable={quarryEnabled}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <View style={styles.checkboxRow}>
-              <Checkbox
-                value={plantEnabled}
-                onToggle={() => setPlantEnabled(!plantEnabled)}
-                label="Plant"
-              />
-            </View>
-            <TextInput
-              style={[
-                styles.textInput,
-                !plantEnabled && styles.textInputDisabled,
-              ]}
-              value={plantInput}
-              onChangeText={setPlantInput}
-              placeholder="Enter plant location description"
-              multiline
-              editable={plantEnabled}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <View style={styles.checkboxRow}>
-              <Checkbox
-                value={quarryPlantEnabled}
-                onToggle={() => setQuarryPlantEnabled(!quarryPlantEnabled)}
-                label="Quarry & Plant"
-              />
-            </View>
-            <TextInput
-              style={[
-                styles.textInput,
-                !quarryPlantEnabled && styles.textInputDisabled,
-              ]}
-              value={quarryPlantInput}
-              onChangeText={setQuarryPlantInput}
-              placeholder="Enter quarry & plant location description"
-              multiline
-              editable={quarryPlantEnabled}
-            />
-          </View>
-        </View>
-
-        {/* Water Quality Monitoring Section */}
-        <LocationMonitoringSection
-          locationName="Water Quality"
-          locationInput=""
-          mainParameter={{
-            id: "water-quality-main",
-            parameter: waterQualityData.parameter,
-            resultType: waterQualityData.resultType,
-            tssCurrent: waterQualityData.tssCurrent,
-            tssPrevious: waterQualityData.tssPrevious,
-            eqplRedFlag: waterQualityData.eqplRedFlag,
-            action: waterQualityData.action,
-            limit: waterQualityData.limit,
-            remarks: waterQualityData.remarks,
-            mmtCurrent: waterQualityData.mmtCurrent,
-            mmtPrevious: waterQualityData.mmtPrevious,
-            isMMTNA: waterQualityData.isMMTNA,
-          }}
-          parameters={waterQualityData.parameters}
-          mmtCurrent={waterQualityData.mmtCurrent}
-          mmtPrevious={waterQualityData.mmtPrevious}
-          isMMTNA={waterQualityData.isMMTNA}
-          dateTime={waterQualityData.dateTime}
-          weatherWind={waterQualityData.weatherWind}
-          explanation={waterQualityData.explanation}
-          isExplanationNA={waterQualityData.isExplanationNA}
-          overallCompliance={waterQualityData.overallCompliance}
-          onLocationInputChange={() => {}}
-          onMainParameterUpdate={handleWaterQualityMainParameterUpdate}
-          onMMTInputChange={handleWaterQualityMMTInputChange}
-          onMMTNAToggle={handleWaterQualityMMTNAToggle}
-          onAddParameter={addWaterQualityParameter}
-          onUpdateParameter={updateWaterQualityParameter}
-          onDeleteParameter={deleteWaterQualityParameter}
-          onSamplingDetailsChange={handleWaterQualitySamplingDetailsChange}
-          onExplanationNAToggle={handleWaterQualityExplanationNAToggle}
+        <LocationSection
+          selectedLocations={selectedLocations}
+          quarryInput={data.quarryInput}
+          plantInput={data.plantInput}
+          quarryPlantInput={data.quarryPlantInput}
+          onLocationToggle={handleLocationToggle}
+          onInputChange={handleLocationInputChange}
         />
 
-        {/* Port Section Header */}
-        <View style={styles.sectionHeader}>
-          <View style={styles.sectionNumberBadge}>
-            <Text style={styles.sectionNumber}>PORT</Text>
-          </View>
-          <Text style={styles.sectionTitle}>Port Monitoring</Text>
-        </View>
+        {/* Quarry Monitoring Section */}
+        {selectedLocations.quarry && (
+          <LocationMonitoringSection
+            locationName="Quarry"
+            locationInput={quarryData.locationInput}
+            mainParameter={{
+              id: "quarry-main",
+              parameter: quarryData.parameter,
+              resultType: quarryData.resultType,
+              tssCurrent: quarryData.tssCurrent,
+              tssPrevious: quarryData.tssPrevious,
+              eqplRedFlag: quarryData.eqplRedFlag,
+              action: quarryData.action,
+              limit: quarryData.limit,
+              remarks: quarryData.remarks,
+              mmtCurrent: quarryData.mmtCurrent,
+              mmtPrevious: quarryData.mmtPrevious,
+              isMMTNA: quarryData.isMMTNA,
+            }}
+            parameters={quarryData.parameters}
+            mmtCurrent={quarryData.mmtCurrent}
+            mmtPrevious={quarryData.mmtPrevious}
+            isMMTNA={quarryData.isMMTNA}
+            dateTime={quarryData.dateTime}
+            weatherWind={quarryData.weatherWind}
+            explanation={quarryData.explanation}
+            isExplanationNA={quarryData.isExplanationNA}
+            overallCompliance={quarryData.overallCompliance}
+            onLocationInputChange={handleQuarryLocationInputChange}
+            onMainParameterUpdate={handleQuarryMainParameterUpdate}
+            onMMTInputChange={handleQuarryMMTInputChange}
+            onMMTNAToggle={handleQuarryMMTNAToggle}
+            onAddParameter={addQuarryParameter}
+            onUpdateParameter={updateQuarryParameter}
+            onDeleteParameter={deleteQuarryParameter}
+            onSamplingDetailsChange={handleQuarrySamplingDetailsChange}
+            onExplanationNAToggle={handleQuarryExplanationNAToggle}
+          />
+        )}
 
-        {/* Port Monitoring Section */}
-        <LocationMonitoringSection
-          locationName="Port"
-          locationInput=""
-          mainParameter={{
-            id: "port-main",
-            parameter: portData.parameter,
-            resultType: portData.resultType,
-            tssCurrent: portData.tssCurrent,
-            tssPrevious: portData.tssPrevious,
-            eqplRedFlag: portData.eqplRedFlag,
-            action: portData.action,
-            limit: portData.limit,
-            remarks: portData.remarks,
-            mmtCurrent: portData.mmtCurrent,
-            mmtPrevious: portData.mmtPrevious,
-            isMMTNA: portData.isMMTNA,
-          }}
-          parameters={portData.parameters}
-          mmtCurrent={portData.mmtCurrent}
-          mmtPrevious={portData.mmtPrevious}
-          isMMTNA={portData.isMMTNA}
-          dateTime={portData.dateTime}
-          weatherWind={portData.weatherWind}
-          explanation={portData.explanation}
-          isExplanationNA={portData.isExplanationNA}
-          overallCompliance={portData.overallCompliance}
-          onLocationInputChange={() => {}}
-          onMainParameterUpdate={handlePortMainParameterUpdate}
-          onMMTInputChange={handlePortMMTInputChange}
-          onMMTNAToggle={handlePortMMTNAToggle}
-          onAddParameter={addPortParameter}
-          onUpdateParameter={updatePortParameter}
-          onDeleteParameter={deletePortParameter}
-          onSamplingDetailsChange={handlePortSamplingDetailsChange}
-          onExplanationNAToggle={handlePortExplanationNAToggle}
-        />
+        {/* Plant Monitoring Section */}
+        {selectedLocations.plant && (
+          <LocationMonitoringSection
+            locationName="Plant"
+            locationInput={plantData.locationInput}
+            mainParameter={{
+              id: "plant-main",
+              parameter: plantData.parameter,
+              resultType: plantData.resultType,
+              tssCurrent: plantData.tssCurrent,
+              tssPrevious: plantData.tssPrevious,
+              eqplRedFlag: plantData.eqplRedFlag,
+              action: plantData.action,
+              limit: plantData.limit,
+              remarks: plantData.remarks,
+              mmtCurrent: plantData.mmtCurrent,
+              mmtPrevious: plantData.mmtPrevious,
+              isMMTNA: plantData.isMMTNA,
+            }}
+            parameters={plantData.parameters}
+            mmtCurrent={plantData.mmtCurrent}
+            mmtPrevious={plantData.mmtPrevious}
+            isMMTNA={plantData.isMMTNA}
+            dateTime={plantData.dateTime}
+            weatherWind={plantData.weatherWind}
+            explanation={plantData.explanation}
+            isExplanationNA={plantData.isExplanationNA}
+            overallCompliance={plantData.overallCompliance}
+            onLocationInputChange={handlePlantLocationInputChange}
+            onMainParameterUpdate={handlePlantMainParameterUpdate}
+            onMMTInputChange={handlePlantMMTInputChange}
+            onMMTNAToggle={handlePlantMMTNAToggle}
+            onAddParameter={addPlantParameter}
+            onUpdateParameter={updatePlantParameter}
+            onDeleteParameter={deletePlantParameter}
+            onSamplingDetailsChange={handlePlantSamplingDetailsChange}
+            onExplanationNAToggle={handlePlantExplanationNAToggle}
+          />
+        )}
 
-        {/* Legacy Port Sections (for multiple ports) */}
-        {ports.map((port, index) => (
+        {/* Quarry & Plant Monitoring Section */}
+        {selectedLocations.quarryPlant && (
+          <LocationMonitoringSection
+            locationName="Quarry & Plant"
+            locationInput={quarryPlantData.locationInput}
+            mainParameter={{
+              id: "quarryplant-main",
+              parameter: quarryPlantData.parameter,
+              resultType: quarryPlantData.resultType,
+              tssCurrent: quarryPlantData.tssCurrent,
+              tssPrevious: quarryPlantData.tssPrevious,
+              eqplRedFlag: quarryPlantData.eqplRedFlag,
+              action: quarryPlantData.action,
+              limit: quarryPlantData.limit,
+              remarks: quarryPlantData.remarks,
+              mmtCurrent: quarryPlantData.mmtCurrent,
+              mmtPrevious: quarryPlantData.mmtPrevious,
+              isMMTNA: quarryPlantData.isMMTNA,
+            }}
+            parameters={quarryPlantData.parameters}
+            mmtCurrent={quarryPlantData.mmtCurrent}
+            mmtPrevious={quarryPlantData.mmtPrevious}
+            isMMTNA={quarryPlantData.isMMTNA}
+            dateTime={quarryPlantData.dateTime}
+            weatherWind={quarryPlantData.weatherWind}
+            explanation={quarryPlantData.explanation}
+            isExplanationNA={quarryPlantData.isExplanationNA}
+            overallCompliance={quarryPlantData.overallCompliance}
+            onLocationInputChange={handleQuarryPlantLocationInputChange}
+            onMainParameterUpdate={handleQuarryPlantMainParameterUpdate}
+            onMMTInputChange={handleQuarryPlantMMTInputChange}
+            onMMTNAToggle={handleQuarryPlantMMTNAToggle}
+            onAddParameter={addQuarryPlantParameter}
+            onUpdateParameter={updateQuarryPlantParameter}
+            onDeleteParameter={deleteQuarryPlantParameter}
+            onSamplingDetailsChange={handleQuarryPlantSamplingDetailsChange}
+            onExplanationNAToggle={handleQuarryPlantExplanationNAToggle}
+          />
+        )}
+
+        {ports.map((port, idx) => (
           <PortSection
             key={port.id}
+            index={idx}
             port={port}
-            index={index}
             onUpdate={updatePort}
             onDelete={deletePort}
-            onAddParameter={addLegacyPortParameter}
-            onUpdateParameter={updateLegacyPortParameter}
-            onDeleteParameter={deleteLegacyPortParameter}
+            onAddParameter={addPortParameter}
+            onUpdateParameter={updatePortParameter}
+            onDeleteParameter={deletePortParameter}
           />
         ))}
 
-        {/* Add More Port Button */}
-        <TouchableOpacity style={styles.addButton} onPress={addPort}>
-          <Ionicons name="add-circle-outline" size={20} color="#02217C" />
-          <Text style={styles.addButtonText}>Add More Port</Text>
+        <TouchableOpacity style={styles.addPortButton} onPress={addPort}>
+          <Ionicons name="add" size={20} color="#02217C" />
+          <Text style={styles.addPortText}>Add PORT</Text>
         </TouchableOpacity>
 
-        {/* Fill Test Data Button (Dev Only) */}
         {__DEV__ && (
           <TouchableOpacity
             style={[
@@ -1218,15 +1184,31 @@ export default function WaterQualityScreen({ navigation, route }: any) {
             ]}
             onPress={fillTestData}
           >
-            <Text style={styles.saveNextText}>🧪 Fill Test Data</Text>
+            <Text style={styles.saveNextText}>Fill Test Data</Text>
           </TouchableOpacity>
         )}
 
         <TouchableOpacity
           style={styles.saveNextButton}
-          onPress={async () => {
-            await handleSave();
-            navigation.navigate("NoiseQuality", route.params);
+          onPress={() => {
+            const waterQualityImpactAssessment = {
+              selectedLocations,
+              quarryData,
+              plantData,
+              quarryPlantData,
+              data,
+              parameters,
+              ports,
+            };
+            const nextParams = {
+              ...(route?.params || {}),
+              waterQualityImpactAssessment,
+            } as any;
+            console.log(
+              "Navigating with WaterQuality params keys:",
+              Object.keys(nextParams)
+            );
+            navigation.navigate("NoiseQuality", nextParams);
           }}
         >
           <Text style={styles.saveNextText}>Save & Next</Text>

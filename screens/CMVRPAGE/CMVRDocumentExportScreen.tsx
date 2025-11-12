@@ -891,12 +891,100 @@ const hasAirParameterValues = (param: AirParameterData) => {
 const transformAirQualityForPayload = (raw: any) => {
   if (!raw) return undefined;
 
-  // NEW STRUCTURE: Check if we have location-based data (quarryData, plantData, etc.)
-  const hasNewStructure =
+  // NEW STRUCTURE: Handle unified airQuality object with checkbox states
+  if (raw.airQuality) {
+    const result: any = {};
+
+    // Handle location descriptions (strings) with checkbox states
+    if (raw.quarryEnabled && raw.quarry) {
+      result.quarry = raw.quarry; // String description
+      result.quarryEnabled = true;
+    }
+    if (raw.plantEnabled && raw.plant) {
+      result.plant = raw.plant; // String description
+      result.plantEnabled = true;
+    }
+    if (raw.quarryPlantEnabled && raw.quarryPlant) {
+      result.quarryPlant = raw.quarryPlant; // String description
+      result.quarryPlantEnabled = true;
+    }
+    if (raw.portEnabled && raw.port) {
+      result.port = raw.port; // String description
+      result.portEnabled = true;
+    }
+
+    // Transform unified airQuality data
+    const airQualityParams = [];
+
+    // Add main parameter if exists
+    if (raw.airQuality.parameter?.trim()) {
+      airQualityParams.push({
+        name: sanitizeString(raw.airQuality.parameter),
+        results: {
+          inSMR: {
+            current: sanitizeString(raw.airQuality.currentSMR),
+            previous: sanitizeString(raw.airQuality.previousSMR),
+          },
+          mmtConfirmatorySampling: {
+            current: sanitizeString(raw.airQuality.currentMMT),
+            previous: sanitizeString(raw.airQuality.previousMMT),
+          },
+        },
+        eqpl: {
+          redFlag: sanitizeString(raw.airQuality.eqplRedFlag),
+          action: sanitizeString(raw.airQuality.action),
+          limit: sanitizeString(raw.airQuality.limitPM25),
+        },
+        remarks: sanitizeString(raw.airQuality.remarks),
+      });
+    }
+
+    // Add additional parameters
+    if (Array.isArray(raw.airQuality.parameters)) {
+      raw.airQuality.parameters.forEach((param: any) => {
+        if (param.parameter?.trim()) {
+          airQualityParams.push({
+            name: sanitizeString(param.parameter),
+            results: {
+              inSMR: {
+                current: sanitizeString(param.currentSMR),
+                previous: sanitizeString(param.previousSMR),
+              },
+              mmtConfirmatorySampling: {
+                current: sanitizeString(param.currentMMT),
+                previous: sanitizeString(param.previousMMT),
+              },
+            },
+            eqpl: {
+              redFlag: sanitizeString(param.eqplRedFlag),
+              action: sanitizeString(param.action),
+              limit: sanitizeString(param.limitPM25),
+            },
+            remarks: sanitizeString(param.remarks),
+          });
+        }
+      });
+    }
+
+    result.airQuality = {
+      parameters: airQualityParams,
+      samplingDate: sanitizeString(raw.airQuality.dateTime),
+      weatherAndWind: sanitizeString(raw.airQuality.weatherWind),
+      explanationForConfirmatorySampling: sanitizeString(
+        raw.airQuality.explanation
+      ),
+      overallAssessment: sanitizeString(raw.airQuality.overallCompliance),
+    };
+
+    return result;
+  }
+
+  // OLD STRUCTURE: Check if we have location-based data (quarryData, plantData, etc.)
+  const hasOldLocationStructure =
     raw.quarryData || raw.plantData || raw.portData || raw.quarryPlantData;
 
-  if (hasNewStructure) {
-    // Transform new location-based structure
+  if (hasOldLocationStructure) {
+    // Transform old location-based structure
     const result: any = {};
 
     const transformLocationData = (locationData: any) => {
@@ -961,7 +1049,7 @@ const transformAirQualityForPayload = (raw: any) => {
       }
 
       return {
-        locationDescription: sanitizeString(locationData.locationInput),
+        locationInput: sanitizeString(locationData.locationInput),
         parameters: allParameters,
         samplingDate: sanitizeString(locationData?.dateTime),
         weatherAndWind: sanitizeString(locationData?.weatherWind),
@@ -993,10 +1081,10 @@ const transformAirQualityForPayload = (raw: any) => {
     return Object.keys(result).length > 0 ? result : undefined;
   }
 
-  // LEGACY STRUCTURE: Old format with data object - NO LONGER SUPPORTED
+  // OLDEST LEGACY STRUCTURE: Old format with data object - NO LONGER SUPPORTED
   // Return undefined to prevent invalid data structure from being sent
   console.warn(
-    "Legacy air quality format detected but not supported. Please use location-based structure (quarryData, plantData, portData)."
+    "Oldest legacy air quality format detected but not supported. Please use unified or location-based structure."
   );
   return undefined;
 };
@@ -1004,6 +1092,193 @@ const transformAirQualityForPayload = (raw: any) => {
 const transformWaterQualityForPayload = (raw: any) => {
   if (!raw) return undefined;
 
+  // NEW STRUCTURE: Handle waterQuality unified object with checkbox states
+  if (raw.waterQuality || raw.port) {
+    const result: any = {};
+
+    // Handle location descriptions (strings) with checkbox states
+    if (raw.quarryEnabled && raw.quarry) {
+      result.quarry = raw.quarry; // String description
+    }
+    if (raw.plantEnabled && raw.plant) {
+      result.plant = raw.plant; // String description
+    }
+    if (raw.quarryPlantEnabled && raw.quarryPlant) {
+      result.quarryPlant = raw.quarryPlant; // String description
+    }
+
+    // Add checkbox states
+    result.quarryEnabled = raw.quarryEnabled || false;
+    result.plantEnabled = raw.plantEnabled || false;
+    result.quarryPlantEnabled = raw.quarryPlantEnabled || false;
+
+    // Transform unified waterQuality data
+    if (raw.waterQuality) {
+      const waterQualityParams = [];
+
+      // Add main parameter if exists
+      if (raw.waterQuality.parameter?.trim()) {
+        waterQualityParams.push({
+          name: sanitizeString(raw.waterQuality.parameter),
+          result: {
+            internalMonitoring: {
+              month: sanitizeString(raw.waterQuality.resultType),
+              readings: [
+                {
+                  label: sanitizeString(raw.waterQuality.parameter),
+                  current_mgL: parseFirstNumber(raw.waterQuality.tssCurrent),
+                  previous_mgL: parseFirstNumber(raw.waterQuality.tssPrevious),
+                },
+              ],
+            },
+            mmtConfirmatorySampling: {
+              current: sanitizeString(raw.waterQuality.mmtCurrent),
+              previous: sanitizeString(raw.waterQuality.mmtPrevious),
+            },
+          },
+          denrStandard: {
+            redFlag: sanitizeString(raw.waterQuality.eqplRedFlag),
+            action: sanitizeString(raw.waterQuality.action),
+            limit_mgL: parseFirstNumber(raw.waterQuality.limit),
+          },
+          remark: sanitizeString(raw.waterQuality.remarks),
+        });
+      }
+
+      // Add additional parameters
+      if (Array.isArray(raw.waterQuality.parameters)) {
+        raw.waterQuality.parameters.forEach((param: any) => {
+          if (param.parameter?.trim()) {
+            waterQualityParams.push({
+              name: sanitizeString(param.parameter),
+              result: {
+                internalMonitoring: {
+                  month: sanitizeString(param.resultType),
+                  readings: [
+                    {
+                      label: sanitizeString(param.parameter),
+                      current_mgL: parseFirstNumber(param.tssCurrent),
+                      previous_mgL: parseFirstNumber(param.tssPrevious),
+                    },
+                  ],
+                },
+                mmtConfirmatorySampling: {
+                  current: sanitizeString(param.mmtCurrent),
+                  previous: sanitizeString(param.mmtPrevious),
+                },
+              },
+              denrStandard: {
+                redFlag: sanitizeString(param.eqplRedFlag),
+                action: sanitizeString(param.action),
+                limit_mgL: parseFirstNumber(param.limit),
+              },
+              remark: sanitizeString(param.remarks),
+            });
+          }
+        });
+      }
+
+      if (waterQualityParams.length > 0) {
+        result.waterQuality = {
+          parameters: waterQualityParams,
+          samplingDate: sanitizeString(raw.waterQuality.dateTime),
+          weatherAndWind: sanitizeString(raw.waterQuality.weatherWind),
+          explanationForConfirmatorySampling: sanitizeString(
+            raw.waterQuality.isExplanationNA
+              ? "N/A"
+              : raw.waterQuality.explanation
+          ),
+          overallAssessment: sanitizeString(raw.waterQuality.overallCompliance),
+        };
+      }
+    }
+
+    // Transform port data (separate from waterQuality)
+    if (raw.port) {
+      const portParams = [];
+
+      // Add main parameter if exists
+      if (raw.port.parameter?.trim()) {
+        portParams.push({
+          name: sanitizeString(raw.port.parameter),
+          result: {
+            internalMonitoring: {
+              month: sanitizeString(raw.port.resultType),
+              readings: [
+                {
+                  label: sanitizeString(raw.port.parameter),
+                  current_mgL: parseFirstNumber(raw.port.tssCurrent),
+                  previous_mgL: parseFirstNumber(raw.port.tssPrevious),
+                },
+              ],
+            },
+            mmtConfirmatorySampling: {
+              current: sanitizeString(raw.port.mmtCurrent),
+              previous: sanitizeString(raw.port.mmtPrevious),
+            },
+          },
+          denrStandard: {
+            redFlag: sanitizeString(raw.port.eqplRedFlag),
+            action: sanitizeString(raw.port.action),
+            limit_mgL: parseFirstNumber(raw.port.limit),
+          },
+          remark: sanitizeString(raw.port.remarks),
+        });
+      }
+
+      // Add additional port parameters
+      if (Array.isArray(raw.port.additionalParameters)) {
+        raw.port.additionalParameters.forEach((param: any) => {
+          if (param.parameter?.trim()) {
+            portParams.push({
+              name: sanitizeString(param.parameter),
+              result: {
+                internalMonitoring: {
+                  month: sanitizeString(param.resultType),
+                  readings: [
+                    {
+                      label: sanitizeString(param.parameter),
+                      current_mgL: parseFirstNumber(param.tssCurrent),
+                      previous_mgL: parseFirstNumber(param.tssPrevious),
+                    },
+                  ],
+                },
+                mmtConfirmatorySampling: {
+                  current: sanitizeString(param.mmtCurrent),
+                  previous: sanitizeString(param.mmtPrevious),
+                },
+              },
+              denrStandard: {
+                redFlag: sanitizeString(param.eqplRedFlag),
+                action: sanitizeString(param.action),
+                limit_mgL: parseFirstNumber(param.limit),
+              },
+              remark: sanitizeString(param.remarks),
+            });
+          }
+        });
+      }
+
+      if (portParams.length > 0) {
+        result.port = {
+          locationDescription: sanitizeString(
+            raw.port.portName || raw.port.locationInput || "Port"
+          ),
+          parameters: portParams,
+          samplingDate: sanitizeString(raw.port.dateTime),
+          weatherAndWind: sanitizeString(raw.port.weatherWind),
+          explanationForConfirmatorySampling: sanitizeString(
+            raw.port.isExplanationNA ? "N/A" : raw.port.explanation
+          ),
+          overallAssessment: sanitizeString(raw.port.overallCompliance),
+        };
+      }
+    }
+
+    return Object.keys(result).length > 0 ? result : undefined;
+  }
+
+  // OLD STRUCTURE: Handle quarryData/plantData/quarryPlantData format
   const hasLocationStructure =
     raw.quarryData ||
     raw.plantData ||
@@ -4171,17 +4446,11 @@ const CMVRDocumentExportScreen = () => {
                 {isSubmitting ? (
                   <>
                     <ActivityIndicator size="small" color="white" />
-                    <Text style={styles.submitButtonText}>
-                      Submitting...
-                    </Text>
+                    <Text style={styles.submitButtonText}>Submitting...</Text>
                   </>
                 ) : (
                   <>
-                    <Ionicons
-                      name="cloud-upload"
-                      size={20}
-                      color="white"
-                    />
+                    <Ionicons name="cloud-upload" size={20} color="white" />
                     <Text style={styles.submitButtonText}>
                       Submit to Database
                     </Text>
@@ -4191,7 +4460,8 @@ const CMVRDocumentExportScreen = () => {
               <View style={styles.infoBannerContainer}>
                 <Ionicons name="information-circle" size={18} color="#1E40AF" />
                 <Text style={styles.infoBannerText}>
-                  Submit your report to the database first to enable document generation.
+                  Submit your report to the database first to enable document
+                  generation.
                 </Text>
               </View>
             </>
@@ -4215,9 +4485,7 @@ const CMVRDocumentExportScreen = () => {
                 ) : (
                   <>
                     <Ionicons name="document-text" size={20} color="white" />
-                    <Text style={styles.generateButtonText}>
-                      Generate Docx
-                    </Text>
+                    <Text style={styles.generateButtonText}>Generate Docx</Text>
                   </>
                 )}
               </TouchableOpacity>

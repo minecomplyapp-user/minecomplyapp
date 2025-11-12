@@ -74,24 +74,24 @@ export const LocationSection: React.FC<LocationSectionProps> = ({
       <TouchableOpacity
         style={[
           styles.checkboxContainer,
-          selectedLocations.quarryAndPlant && styles.checkboxContainerActive,
+          selectedLocations.quarryPlant && styles.checkboxContainerActive,
         ]}
-        onPress={() => onLocationToggle("quarryAndPlant")}
+        onPress={() => onLocationToggle("quarryPlant")}
       >
         <View
           style={[
             styles.checkbox,
-            selectedLocations.quarryAndPlant && styles.checkboxChecked,
+            selectedLocations.quarryPlant && styles.checkboxChecked,
           ]}
         >
-          {selectedLocations.quarryAndPlant && (
+          {selectedLocations.quarryPlant && (
             <Ionicons name="checkmark" size={16} color="#FFFFFF" />
           )}
         </View>
         <Text
           style={[
             styles.checkboxLabel,
-            selectedLocations.quarryAndPlant && styles.checkboxLabelActive,
+            selectedLocations.quarryPlant && styles.checkboxLabelActive,
           ]}
         >
           Quarry & Plant
