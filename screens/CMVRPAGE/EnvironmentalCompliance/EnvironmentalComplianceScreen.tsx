@@ -664,15 +664,14 @@ export default function EnvironmentalComplianceScreen({
         onGoToSummary={handleGoToSummary}
         allowEdit={true}
       />
+      <SectionHeader
+        number="B.2."
+        title="Compliance to Environmental Compliance Certificate Conditions"
+      />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        {/* B.2 Section */}
-        <SectionHeader
-          number="B.2."
-          title="Compliance to Environmental Compliance Certificate Conditions"
-        />
 
         {/* Upload ECC Conditions File */}
         <View style={styles.uploadSection}>

@@ -30,6 +30,15 @@ export const WasteEntryCard: React.FC<WasteEntryCardProps> = ({
       </View>
 
       <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Type of Waste</Text>
+        <TextInput
+          style={styles.input}
+          value={entry.typeOfWaste}
+          onChangeText={(text) => onUpdate(entry.id, 'typeOfWaste', text)}
+          placeholder="Enter waste type"
+          placeholderTextColor="#94A3B8"
+        />
+
         <Text style={styles.label}>Handling</Text>
         <TextInput
           style={styles.input}

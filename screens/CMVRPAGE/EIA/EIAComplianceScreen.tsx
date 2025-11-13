@@ -289,8 +289,7 @@ const EIAComplianceScreen: React.FC<{
       // Save to draft before navigating
       await saveDraft(resolvedFileName, completeData);
 
-      // Navigate to summary screen with all data
-      navigation.navigate("CMVRDocumentExport", {
+      (navigation as any).navigate("CMVRDocumentExport", {
         ...prevPageData,
         fileName: resolvedFileName,
         complianceToImpactManagementCommitments,
@@ -540,20 +539,20 @@ const EIAComplianceScreen: React.FC<{
           allowEdit={true}
         />
       </View>
+      <View style={styles.titleContainer}>
+        <View style={styles.titleAccent}>
+          <Text style={styles.titleAccentText}>2.</Text>
+        </View>
+        <Text style={styles.titleText}>
+          Compliance to Impact Management Commitments in EIA report & EPEP
+        </Text>
+      </View>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.titleContainer}>
-          <View style={styles.titleAccent}>
-            <Text style={styles.titleAccentText}>2.</Text>
-          </View>
-          <Text style={styles.titleText}>
-            Compliance to Impact Management Commitments in EIA report & EPEP
-          </Text>
-        </View>
         <ProjectImpacts
           preConstruction={preConstruction}
           construction={construction}
@@ -631,7 +630,6 @@ const EIAComplianceScreen: React.FC<{
           <Text style={styles.saveNextButtonText}>Save & Next</Text>
           <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
-        {/* filler gap ts not advisable tbh*/}   
         <View style={{ height: 40 }} />
       </ScrollView>
     </KeyboardAvoidingView>

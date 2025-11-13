@@ -87,23 +87,32 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
         <View style={styles.middleSection}>
           {subFields ? (
             <>
-              {subFields.map((subField, index) => (
-                <View key={index} style={styles.subFieldRow}>
-                  <View style={styles.subFieldLabel}>
-                    <View style={styles.bullet} />
-                    <Text style={styles.subFieldLabelText}>
-                      {subField.label}
-                    </Text>
+              {subFields.map((subField, index) => {
+                const isMultiLine = /plant|port/i.test(subField.label);
+                return (
+                  <View key={index} style={styles.subFieldRow}>
+                    <View style={styles.subFieldLabel}>
+                      <View style={styles.bullet} />
+                      <Text style={styles.subFieldLabelText}>
+                        {subField.label}
+                      </Text>
+                    </View>
+                    <TextInput
+                      style={[styles.input, isMultiLine ? styles.textArea : null]}
+                      placeholder={isMultiLine ? "Enter items (comma or newline to separate)" : "Specification Type here..."}
+                      placeholderTextColor="#94A3B8"
+                      value={subField.specification}
+                      onChangeText={(text) => {
+                        // If this is a Plant/Port field, convert commas to new lines for readability
+                        const processed = isMultiLine ? text.replace(/,\s*/g, "\n") : text;
+                        onSubFieldChange?.(index, processed);
+                      }}
+                      multiline={isMultiLine}
+                      numberOfLines={isMultiLine ? 2 : 1}
+                    />
                   </View>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Specification Type here..."
-                    placeholderTextColor="#94A3B8"
-                    value={subField.specification}
-                    onChangeText={(text) => onSubFieldChange?.(index, text)}
-                  />
-                </View>
-              ))}
+                );
+              })}
             </>
           ) : (
             <TextInput

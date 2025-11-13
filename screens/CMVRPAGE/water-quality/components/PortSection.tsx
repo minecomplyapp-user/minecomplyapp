@@ -102,7 +102,7 @@ export const PortSection: React.FC<PortSectionProps> = ({
         <ParameterForm
           key={param.id}
           parameter={param}
-          index={idx}
+          index={idx + 1}
           isMain={false}
           onUpdate={(field, value) =>
             onUpdateParameter(port.id, param.id, field, value)

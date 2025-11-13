@@ -368,17 +368,6 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
             </View>
             
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Project Name in the ECC</Text>
-              <TextInput
-                style={styles.input}
-                value={isagInfo.nameInECC}
-                onChangeText={(text) => updateISAGInfo("nameInECC", text)}
-                placeholder="Enter ECC project name"
-                placeholderTextColor="#9CA3AF"
-              />
-            </View>
-            
-            <View style={styles.fieldGroup}>
               <Text style={styles.label}>Project Status</Text>
               <TextInput
                 style={styles.input}
