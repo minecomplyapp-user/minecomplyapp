@@ -73,4 +73,24 @@ export const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: "top",
   },
+   container: {
+    marginVertical: 8,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+ 
+ 
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 8,
+    backgroundColor: "#FFF",
+    marginBottom: 12,
+  },
+  picker: {
+    color: "#0F172A",
+  },
 });

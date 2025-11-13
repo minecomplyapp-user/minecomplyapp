@@ -7,6 +7,7 @@ export type TSSItem = {
 };
 
 export type ResultMonitoringProps = {
+  parameter:string;
   resultType: string;
   tssCurrent: string;
   tssPrevious: string;

@@ -8,6 +8,7 @@ import { MMTSection } from "./MMTSection";
 import { Parameter } from "../../types/WaterQualityScreen.types";
 import { ParameterFormProps } from "../types/ParameterForm.types";
 import { styles } from "../styles/ParameterForm.styles";
+import { Picker } from "@react-native-picker/picker";
 
 export const ParameterForm: React.FC<ParameterFormProps> = ({
   parameter,
@@ -40,15 +41,35 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
         </Text>
       </View>
 
-      <TextInput
-        style={styles.parameterInput}
-        value={parameter.parameter}
-        onChangeText={(text) => onUpdate("parameter", text)}
-        placeholder="Type here..."
-        placeholderTextColor="#94A3B8"
-      />
+        {/* Picker dropdown */}
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={parameter.parameter}
+            onValueChange={(value) => {
+
+            if (value.toLowerCase().includes("oil")) {
+                onUpdate("parameter", "OG"); // Set resultType to OG if parameter contains "oil"
+              } else if (value.toLowerCase().includes("tss")) {
+                onUpdate("parameter", "TSS"); // Optional: set TSS if parameter contains TSS
+              } else {
+                onUpdate("parameter", ""); // Reset if neither
+              }
+
+            }
+    }
+          
+          style={styles.picker}
+          dropdownIconColor="#0F172A"
+        >
+          <Picker.Item label="Select Parameter..." value="" />
+          <Picker.Item label="TSS" value="TSS" />
+          <Picker.Item label="Oil & Grease" value="Oil & Grease" />
+        </Picker>
+      </View>
+
 
       <ResultMonitoring
+        parameter={parameter.parameter}
         resultType={parameter.resultType}
         tssCurrent={parameter.tssCurrent}
         tssPrevious={parameter.tssPrevious}
