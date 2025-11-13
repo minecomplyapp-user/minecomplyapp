@@ -554,20 +554,20 @@ export default function NoiseQualityScreen({ navigation, route }: any) {
             allowEdit={false}
           />
         </View>
+        <View style={styles.sectionHeaderContainer}>
+          <View style={styles.sectionHeaderContent}>
+            <View style={styles.sectionBadge}>
+              <Text style={styles.sectionBadgeText}>B.4</Text>
+            </View>
+            <Text style={styles.sectionTitle}>
+              Noise Quality Impact Assessment
+            </Text>
+          </View>
+        </View>
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.sectionHeaderContainer}>
-            <View style={styles.sectionHeaderContent}>
-              <View style={styles.sectionBadge}>
-                <Text style={styles.sectionBadgeText}>B.4</Text>
-              </View>
-              <Text style={styles.sectionTitle}>
-                Noise Quality Impact Assessment
-              </Text>
-            </View>
-          </View>
           <FileUploadSection
             uploadedFiles={uploadedFiles}
             uploadingFiles={uploadingFiles}

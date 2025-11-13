@@ -14,4 +14,12 @@ export type ParameterFormProps = {
   isMMTNA?: boolean;
   onMMTInputChange?: (field: string, value: string) => void;
   onMMTNAToggle?: () => void;
+  samplingDetails?: {
+    dateTime?: string;
+    weatherWind?: string;
+    explanation?: string;
+    isExplanationNA?: boolean;
+  };
+  onSamplingDetailsChange?: (field: string, value: string) => void;
+  onExplanationNAToggle?: () => void;
 };

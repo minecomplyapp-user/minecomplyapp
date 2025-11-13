@@ -84,7 +84,7 @@ export const LocationMonitoringSection: React.FC<
         <ParameterForm
           key={param.id}
           parameter={param}
-          index={index + 2}
+          index={index + 1}
           isMain={false}
           onUpdate={(field, value) => onUpdateParameter(param.id, field, value)}
           onDelete={() => onDeleteParameter(param.id)}

@@ -19,7 +19,7 @@ export const NoiseParameterCard: React.FC<NoiseParameterCardProps> = ({
           <View style={styles.badge}>
             <Text style={styles.badgeText}>#{index + 1}</Text>
           </View>
-          <Text style={styles.title}>Parameter</Text>
+          <Text style={styles.title}>Sampling Location</Text>
         </View>
         {canDelete && (
           <TouchableOpacity style={styles.deleteButton} onPress={() => onDelete(parameter.id)}>
@@ -31,7 +31,7 @@ export const NoiseParameterCard: React.FC<NoiseParameterCardProps> = ({
       {/* Parameter Name with N/A */}
       <View style={styles.fieldGroup}>
         <View style={styles.labelWithAction}>
-          <Text style={styles.label}>Parameter Name</Text>
+          <Text style={styles.label}>Sampling Location</Text>
           <TouchableOpacity
             style={styles.naButton}
             onPress={() => onUpdate(parameter.id, 'isParameterNA', !parameter.isParameterNA)}
@@ -46,7 +46,7 @@ export const NoiseParameterCard: React.FC<NoiseParameterCardProps> = ({
           style={[styles.input, parameter.isParameterNA && styles.disabledInput]}
           value={parameter.parameter}
           onChangeText={(text) => onUpdate(parameter.id, 'parameter', text)}
-          placeholder="Enter parameter name"
+          placeholder="Enter sampling location"
           placeholderTextColor="#94A3B8"
           editable={!parameter.isParameterNA}
         />

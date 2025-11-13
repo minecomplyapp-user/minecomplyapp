@@ -1,5 +1,6 @@
 export type WasteEntry = {
   id: string;
+  typeOfWaste: string;
   handling: string;
   storage: string;
   disposal: string;

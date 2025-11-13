@@ -1024,18 +1024,18 @@ export default function WaterQualityScreen({ navigation, route }: any) {
         onDiscard={handleDiscard}
         onGoToSummary={handleGoToSummary}
       />
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionNumberBadge}>
+          <Text style={styles.sectionNumber}>B.4.</Text>
+        </View>
+        <Text style={styles.sectionTitle}>
+          Water Quality Impact Assessment
+        </Text>
+      </View>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.sectionHeader}>
-          <View style={styles.sectionNumberBadge}>
-            <Text style={styles.sectionNumber}>B.4.</Text>
-          </View>
-          <Text style={styles.sectionTitle}>
-            Water Quality Impact Assessment
-          </Text>
-        </View>
 
         {/* Location Description Text Inputs */}
         <View style={styles.card}>

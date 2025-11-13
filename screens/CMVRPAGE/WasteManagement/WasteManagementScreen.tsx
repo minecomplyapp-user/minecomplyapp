@@ -55,6 +55,7 @@ export default function WasteManagementScreen({ navigation, route }: any) {
     eccEpepCommitments: [
       {
         id: `waste-${Date.now()}-quarry`,
+        typeOfWaste: "",
         handling: "",
         storage: "",
         disposal: "",
@@ -68,7 +69,7 @@ export default function WasteManagementScreen({ navigation, route }: any) {
   const [plantData, setPlantData] = useState<PlantPortSectionData>({
     typeOfWaste: "",
     eccEpepCommitments: [
-      { id: `waste-${Date.now()}-1`, handling: "", storage: "", disposal: "" },
+      { id: `waste-${Date.now()}-1`, typeOfWaste: "", handling: "", storage: "", disposal: "" },
     ],
     isAdequate: null,
     previousRecord: "",
@@ -84,7 +85,7 @@ export default function WasteManagementScreen({ navigation, route }: any) {
   const [portPlantData, setPortPlantData] = useState<PlantPortSectionData>({
     typeOfWaste: "",
     eccEpepCommitments: [
-      { id: `waste-${Date.now()}-2`, handling: "", storage: "", disposal: "" },
+      { id: `waste-${Date.now()}-2`, typeOfWaste: "", handling: "", storage: "", disposal: "" },
     ],
     isAdequate: null,
     previousRecord: "",
@@ -198,8 +199,17 @@ export default function WasteManagementScreen({ navigation, route }: any) {
   };
 
   const addWasteEntry = (section: "quarry" | "plant" | "port") => {
+    // include the section-level typeOfWaste value when creating a new entry
+    const sectionType =
+      section === "quarry"
+        ? quarryPlantData.typeOfWaste
+        : section === "plant"
+        ? plantData.typeOfWaste
+        : portPlantData.typeOfWaste;
+
     const newEntry = {
       id: `waste-${Date.now()}-${section}`,
+      typeOfWaste: sectionType ?? "",
       handling: "",
       storage: "",
       disposal: "",
@@ -592,18 +602,21 @@ export default function WasteManagementScreen({ navigation, route }: any) {
       eccEpepCommitments: [
         {
           id: "1",
+          typeOfWaste: "Overburden, Topsoil, Mine Tailings",
           handling: "Segregated handling by type",
           storage: "Designated stockpile areas with erosion control",
           disposal: "Progressive backfilling and rehabilitation",
         },
         {
           id: "2",
+          typeOfWaste: "Overburden, Topsoil, Mine Tailings",
           handling: "Use of covered trucks for transport",
           storage: "Temporary storage in lined containment",
           disposal: "Treatment before disposal",
         },
         {
           id: "3",
+          typeOfWaste: "Overburden, Topsoil, Mine Tailings",
           handling: "Immediate containment of spills",
           storage: "Bunded storage areas",
           disposal: "Licensed disposal facility",
@@ -626,18 +639,21 @@ export default function WasteManagementScreen({ navigation, route }: any) {
       eccEpepCommitments: [
         {
           id: "1",
+          typeOfWaste: "Used oil, Filters, Scrap metal, Office waste",
           handling: "Segregation at source",
           storage: "Designated waste storage shed",
           disposal: "Accredited TSD facility",
         },
         {
           id: "2",
+          typeOfWaste: "Used oil, Filters, Scrap metal, Office waste",
           handling: "Containerized collection",
           storage: "Roofed and secured area",
           disposal: "Recycling facility",
         },
         {
           id: "3",
+          typeOfWaste: "Used oil, Filters, Scrap metal, Office waste",
           handling: "Regular collection schedule",
           storage: "Separate biodegradable and non-biodegradable bins",
           disposal: "Municipal waste collection",
@@ -660,18 +676,21 @@ export default function WasteManagementScreen({ navigation, route }: any) {
       eccEpepCommitments: [
         {
           id: "1",
+          typeOfWaste: "Bilge water, Oily rags, Packaging materials",
           handling: "Spill containment protocols",
           storage: "Sealed drums in designated area",
           disposal: "Authorized waste hauler",
         },
         {
           id: "2",
+          typeOfWaste: "Bilge water, Oily rags, Packaging materials",
           handling: "Immediate bagging and labeling",
           storage: "Secured hazmat storage",
           disposal: "TSD facility",
         },
         {
           id: "3",
+          typeOfWaste: "Bilge water, Oily rags, Packaging materials",
           handling: "Segregation and compaction",
           storage: "Covered waste bins",
           disposal: "Recycling or proper disposal",

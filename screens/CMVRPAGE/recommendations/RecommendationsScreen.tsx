@@ -608,12 +608,12 @@ const RecommendationsScreen: React.FC = () => {
         onDiscard={handleDiscard}
         allowEdit={false}
       />
+      <SectionHeader title="PREVIOUS RECOMMENDATIONS" />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <SectionHeader title="PREVIOUS RECOMMENDATIONS" />
         <QuarterSelector
           selectedQuarter={prevQuarter}
           onQuarterChange={setPrevQuarter}
