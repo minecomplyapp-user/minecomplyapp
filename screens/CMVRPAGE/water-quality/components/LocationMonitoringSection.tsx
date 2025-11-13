@@ -64,25 +64,6 @@ export const LocationMonitoringSection: React.FC<
 }) => {
   return (
     <View style={styles.container}>
-      {/* Location Header */}
-      <View style={styles.locationHeader}>
-        <View style={styles.locationBadge}>
-          <Ionicons name="location" size={16} color="#FFFFFF" />
-        </View>
-        <Text style={styles.locationTitle}>{locationName}</Text>
-      </View>
-      {/* Location Input */}
-      <View style={styles.locationInputContainer}>
-        <Text style={styles.locationInputLabel}>Location Description:</Text>
-        <TextInput
-          style={styles.locationInput}
-          value={locationInput}
-          onChangeText={onLocationInputChange}
-          placeholder={`e.g., Station WQ-01 (${locationName} monitoring area)`}
-          placeholderTextColor="#94A3B8"
-          multiline
-        />
-      </View>
       {/* Internal Monitoring Section */}
       <View style={styles.internalMonitoringContainer}>
         <Text style={styles.internalMonitoringTitle}>Internal Monitoring</Text>

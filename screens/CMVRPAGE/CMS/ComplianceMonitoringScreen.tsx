@@ -142,7 +142,10 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
     Record<string, boolean>
   >({});
 
-  const pickImage = async (fieldKey: string) => {
+  const pickImage = async (
+    fieldKey: string,
+    source: "camera" | "gallery" = "gallery"
+  ) => {
     if (fieldKey !== "projectLocation") {
       console.warn(
         `Image uploads are currently supported only for projectLocation. Ignoring field: ${fieldKey}`
@@ -150,22 +153,46 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
       return;
     }
 
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        "Permission needed",
-        "Sorry, we need camera roll permissions to upload images."
-      );
-      return;
+    // Request appropriate permissions based on source
+    if (source === "camera") {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission needed",
+          "Sorry, we need camera permissions to take photos."
+        );
+        return;
+      }
+    } else {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission needed",
+          "Sorry, we need camera roll permissions to upload images."
+        );
+        return;
+      }
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-      presentationStyle: ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN,
-    });
+    // Launch appropriate picker based on source
+    const result =
+      source === "camera"
+        ? await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.8,
+            presentationStyle:
+              ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.8,
+            presentationStyle:
+              ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN,
+          });
 
     if (result.canceled || !result.assets?.length) {
       return;
@@ -753,7 +780,7 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
               onSubFieldChange={(index, value) =>
                 updateSubField(key as keyof FormData, index, value)
               }
-              onUploadImage={() => pickImage(key)}
+              onUploadImage={(source) => pickImage(key, source)}
               onRemoveImage={() => removeImage(key)}
             />
           ))}

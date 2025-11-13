@@ -47,6 +47,11 @@ export default function AttendanceListScreen({ navigation, route }: any) {
   const isSelectionMode = route.params?.fromRecommendations || false;
   const previousParams = route.params || {};
 
+  // Selected attendance state
+  const [selectedAttendanceId, setSelectedAttendanceId] = useState<
+    string | null
+  >(null);
+
   const fmtDate = (d?: string | null): string => {
     if (!d) return "";
     if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
@@ -151,22 +156,41 @@ export default function AttendanceListScreen({ navigation, route }: any) {
 
   const handleSelectRecord = (record: AttendanceRecordItem) => {
     if (isSelectionMode) {
-      // Navigate to attachments screen instead of directly to export
-      navigation.navigate("CMVRAttachments", {
-        ...previousParams,
-        selectedAttendanceId: record.id,
-        selectedAttendanceTitle: record.title || record.fileName,
-        // Also pass attendanceUrl for payload inclusion
-        attendanceUrl: record.id,
-      });
+      // Toggle selection
+      setSelectedAttendanceId((prev) =>
+        prev === record.id ? null : record.id
+      );
     }
+  };
+
+  const handleConfirmSelection = () => {
+    if (!selectedAttendanceId) {
+      Alert.alert("No Selection", "Please select an attendance record first.");
+      return;
+    }
+
+    const selectedRecord = attendanceRecords.find(
+      (r) => r.id === selectedAttendanceId
+    );
+    if (!selectedRecord) {
+      Alert.alert("Error", "Selected record not found.");
+      return;
+    }
+
+    // Navigate to attachments screen with selected attendance
+    navigation.navigate("CMVRAttachments", {
+      ...previousParams,
+      selectedAttendanceId: selectedRecord.id,
+      selectedAttendanceTitle: selectedRecord.title || selectedRecord.fileName,
+      attendanceUrl: selectedRecord.id,
+    });
   };
 
   const handleOpenRecord = (
     record: AttendanceRecordItem & { date?: string }
   ) => {
     if (isSelectionMode) {
-      // In selection mode, directly select and navigate back
+      // In selection mode, toggle selection instead of opening detail
       handleSelectRecord(record);
     } else {
       // Normal mode - open detail screen
@@ -192,9 +216,13 @@ export default function AttendanceListScreen({ navigation, route }: any) {
   };
 
   const handleSave = () => {
-    // In selection mode, user taps record directly to select
-    // Save button just goes back
-    navigation.goBack();
+    if (isSelectionMode) {
+      // Confirm selection and navigate
+      handleConfirmSelection();
+    } else {
+      // Normal mode - just go back
+      navigation.goBack();
+    }
   };
 
   return (
@@ -301,6 +329,9 @@ export default function AttendanceListScreen({ navigation, route }: any) {
                   onDownload={handleDownload}
                   onOpen={handleOpenRecord}
                   isSelectionMode={isSelectionMode}
+                  isSelected={
+                    isSelectionMode && selectedAttendanceId === record.id
+                  }
                 />
               ))
             ) : (
@@ -316,6 +347,23 @@ export default function AttendanceListScreen({ navigation, route }: any) {
             )}
           </View>
         </View>
+
+        {/* Select Button for Selection Mode */}
+        {isSelectionMode && (
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              { marginTop: 20, marginBottom: 20 },
+              !selectedAttendanceId && { opacity: 0.5 },
+            ]}
+            onPress={handleConfirmSelection}
+            disabled={!selectedAttendanceId}
+          >
+            <Text style={styles.actionButtonText}>
+              {selectedAttendanceId ? "Select Attendance" : "No Selection"}
+            </Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -328,6 +376,7 @@ function AnimatedRecordCard({
   onDownload,
   onOpen,
   isSelectionMode,
+  isSelected = false,
 }: any) {
   const [scaleAnim] = useState(new Animated.Value(1));
 
@@ -355,7 +404,15 @@ function AnimatedRecordCard({
 
   return (
     <Animated.View
-      style={[styles.recordCard, { transform: [{ scale: scaleAnim }] }]}
+      style={[
+        styles.recordCard,
+        { transform: [{ scale: scaleAnim }] },
+        isSelected && {
+          borderWidth: 3,
+          borderColor: theme.colors.primaryDark,
+          backgroundColor: "#EFF6FF",
+        },
+      ]}
     >
       <TouchableOpacity
         activeOpacity={0.9}
@@ -374,37 +431,55 @@ function AnimatedRecordCard({
           </View>
         </View>
 
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={[styles.iconButton, styles.downloadButton]}
-            onPress={(e) => {
-              e.stopPropagation();
-              onDownload(record.id);
-            }}
-          >
-            <Download size={18} color={theme.colors.primaryDark} />
-          </TouchableOpacity>
+        {!isSelectionMode && (
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={[styles.iconButton, styles.downloadButton]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onDownload(record.id);
+              }}
+            >
+              <Download size={18} color={theme.colors.primaryDark} />
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.iconButton, styles.editButton]}
-            onPress={(e) => {
-              e.stopPropagation();
-              handleEdit(e);
-            }}
-          >
-            <Edit size={18} color="#F59E0B" />
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.iconButton, styles.editButton]}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleEdit(e);
+              }}
+            >
+              <Edit size={18} color="#F59E0B" />
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.iconButton, styles.deleteButton]}
-            onPress={(e) => {
-              e.stopPropagation();
-              onDelete(record.id);
-            }}
-          >
-            <Trash2 size={18} color={theme.colors.error} />
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={[styles.iconButton, styles.deleteButton]}
+              onPress={(e) => {
+                e.stopPropagation();
+                onDelete(record.id);
+              }}
+            >
+              <Trash2 size={18} color={theme.colors.error} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {isSelectionMode && isSelected && (
+          <View style={styles.selectedIndicator}>
+            <View
+              style={{
+                backgroundColor: theme.colors.primaryDark,
+                borderRadius: 12,
+                padding: 6,
+              }}
+            >
+              <Text style={{ color: "white", fontSize: 10, fontWeight: "600" }}>
+                SELECTED
+              </Text>
+            </View>
+          </View>
+        )}
       </TouchableOpacity>
     </Animated.View>
   );

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,8 +6,10 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Modal,
+  Pressable,
 } from "react-native";
-import { Upload, X } from "lucide-react-native";
+import { Upload, X, Camera, Image as ImageIcon } from "lucide-react-native";
 import { CMSFormFieldProps } from "../types/CMSFormField.types";
 import { styles } from "../styles/CMSFormField.styles";
 
@@ -27,6 +29,16 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
   onUploadImage,
   onRemoveImage,
 }) => {
+  const [showImageOptions, setShowImageOptions] = useState(false);
+
+  const handleImageOptionPress = (option: "camera" | "gallery") => {
+    setShowImageOptions(false);
+    if (onUploadImage) {
+      // Pass the option to the parent handler
+      onUploadImage(option);
+    }
+  };
+
   return (
     <View style={styles.formField}>
       <View style={styles.fieldRow}>
@@ -41,7 +53,9 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
                   styles.uploadButton,
                   isUploadingImage ? { opacity: 0.6 } : null,
                 ]}
-                onPress={isUploadingImage ? undefined : onUploadImage}
+                onPress={
+                  isUploadingImage ? undefined : () => setShowImageOptions(true)
+                }
                 disabled={isUploadingImage}
               >
                 {isUploadingImage ? (
@@ -141,6 +155,43 @@ export const CMSFormField: React.FC<CMSFormFieldProps> = ({
           </View>
         </View>
       </View>
+
+      {/* Image Source Options Modal */}
+      <Modal
+        visible={showImageOptions}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowImageOptions(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowImageOptions(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Image Source</Text>
+            <TouchableOpacity
+              style={styles.modalOption}
+              onPress={() => handleImageOptionPress("camera")}
+            >
+              <Camera size={20} color="#1E3A8A" />
+              <Text style={styles.modalOptionText}>Take Photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalOption}
+              onPress={() => handleImageOptionPress("gallery")}
+            >
+              <ImageIcon size={20} color="#1E3A8A" />
+              <Text style={styles.modalOptionText}>Choose from Gallery</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setShowImageOptions(false)}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 };

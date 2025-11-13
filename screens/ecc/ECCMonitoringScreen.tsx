@@ -15,6 +15,8 @@ import {
   CondID,
 } from "./types/eccMonitoring";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Linking } from "react-native";
+
 import { Feather } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
@@ -138,6 +140,44 @@ export default function ECCMonitoringScreen({ navigation, route }: any) {
       // Loading state is handled by createAndDownloadReport in this error path
     }
   };
+   // ... inside handleGenerateAndDownload ...
+
+// 1. Initiate the report creation and download.
+const result = await createAndDownloadReport(reportData, token);
+
+if (result.success && result.download_url) {
+    const { download_url } = result; // Extract the full URL
+
+    // We only need to show loading during the API call, so we turn it off here.
+    // The device handles the download in the background.
+    onLoadingChange(false); 
+
+    try {
+        // Check if the device can handle the URL scheme
+        const supported = await Linking.canOpenURL(download_url);
+        
+        if (!supported) {
+            throw new Error("Unable to open download URL in browser");
+        }
+    
+        // 2. Open the URL to trigger the download
+        await Linking.openURL(download_url);
+        
+        // Optional: Show a success message to the user
+        alert("Report download successfully initiated.");
+
+    } catch (error) {
+        console.error("Error opening download URL:", error);
+        alert(`Failed to start download: ${(error as Error).message}`);
+    }
+
+} else if (result.error) {
+    alert(`Error: ${result.error}`);
+    onLoadingChange(false); // Ensure loading stops on API error
+} else {
+    onLoadingChange(false);
+}
+};
 
   const getMonitoringData = () => {
     const permit_holder_with_conditions = { permit_holders };

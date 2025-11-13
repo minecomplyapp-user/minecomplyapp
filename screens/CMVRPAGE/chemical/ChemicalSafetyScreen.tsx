@@ -51,18 +51,33 @@ export default function ChemicalSafetyScreen({ navigation, route }: any) {
   // Hydrate from route params when coming from a draft
   useEffect(() => {
     const params: any = route?.params || {};
-    if (params.complianceWithGoodPracticeInChemicalSafetyManagement) {
-      const cs = params.complianceWithGoodPracticeInChemicalSafetyManagement;
-      setChemicalSafety((prev) => ({ ...prev, ...(cs.chemicalSafety || {}) }));
-      if (typeof cs.healthSafetyChecked === "boolean") {
-        setHealthSafetyChecked(cs.healthSafetyChecked);
+
+    // Check for data from draftData first (coming from summary), then from direct params
+    const draftData = params.draftData;
+    const savedChemical =
+      draftData?.complianceWithGoodPracticeInChemicalSafetyManagement ||
+      params.complianceWithGoodPracticeInChemicalSafetyManagement;
+    const savedComplaints =
+      draftData?.complaintsVerificationAndManagement ||
+      params.complaintsVerificationAndManagement;
+
+    if (savedChemical) {
+      console.log("Hydrating Chemical Safety with saved data:", savedChemical);
+      setChemicalSafety((prev) => ({
+        ...prev,
+        ...(savedChemical.chemicalSafety || {}),
+      }));
+      if (typeof savedChemical.healthSafetyChecked === "boolean") {
+        setHealthSafetyChecked(savedChemical.healthSafetyChecked);
       }
-      if (typeof cs.socialDevChecked === "boolean") {
-        setSocialDevChecked(cs.socialDevChecked);
+      if (typeof savedChemical.socialDevChecked === "boolean") {
+        setSocialDevChecked(savedChemical.socialDevChecked);
       }
     }
-    if (Array.isArray(params.complaintsVerificationAndManagement)) {
-      setComplaints(params.complaintsVerificationAndManagement);
+
+    if (Array.isArray(savedComplaints) && savedComplaints.length > 0) {
+      console.log("Hydrating Complaints with saved data:", savedComplaints);
+      setComplaints(savedComplaints);
     }
   }, [route?.params]);
 

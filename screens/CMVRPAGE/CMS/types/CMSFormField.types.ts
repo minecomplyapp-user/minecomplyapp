@@ -16,6 +16,6 @@ export interface CMSFormFieldProps {
   onRemarksChange: (text: string) => void;
   onWithinSpecsChange: (value: boolean) => void;
   onSubFieldChange?: (index: number, value: string) => void;
-  onUploadImage?: () => void | Promise<void>;
+  onUploadImage?: (source: "camera" | "gallery") => void | Promise<void>;
   onRemoveImage?: () => void | Promise<void>;
 }

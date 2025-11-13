@@ -31,7 +31,7 @@ export const CMSOtherComponents: React.FC<CMSOtherComponentsProps> = ({
                 <Text style={styles.labelText}>Other Component {index + 1}</Text>
               </View>
               <Text style={styles.remarksLabel}>
-                Remarks - Description of{'\n'}Actual Implementation
+                Remarks - Description of Actual Implementation
               </Text>
             </View>
             <View style={styles.middleSection}>

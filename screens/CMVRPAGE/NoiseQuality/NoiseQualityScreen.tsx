@@ -62,8 +62,15 @@ export default function NoiseQualityScreen({ navigation, route }: any) {
   // Hydrate from route params when coming from a draft
   useEffect(() => {
     const params: any = route?.params || {};
-    const saved = params.noiseQualityImpactAssessment;
+
+    // Check for data from draftData first (coming from summary), then from direct params
+    const draftData = params.draftData;
+    const saved =
+      draftData?.noiseQualityImpactAssessment ||
+      params.noiseQualityImpactAssessment;
+
     if (saved) {
+      console.log("Hydrating NoiseQuality with saved data");
       if (typeof saved.hasInternalNoise === "boolean")
         setHasInternalNoise(saved.hasInternalNoise);
       if (Array.isArray(saved.uploadedFiles))

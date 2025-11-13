@@ -162,6 +162,10 @@ export const attendanceRecordStyles = StyleSheet.create({
   deleteButton: {
     backgroundColor: theme.colors.error + "20",
   },
+  selectedIndicator: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
   emptyStateCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: moderateScale(20),
