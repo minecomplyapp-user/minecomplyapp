@@ -33,6 +33,8 @@ import {
 } from "../../lib/storage";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import * as FileSystem from "expo-file-system/legacy";
+import useSafeAreaWeb from "../../hooks/useSafeAreaWeb";
+import { verticalScale } from "../../utils/responsive";
 
 // RadioButton component (gi tapol ko ug separate gamay rakayo sila bitaw)
 const RadioButton = ({
@@ -116,6 +118,16 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
       if (sub && typeof sub.remove === "function") sub.remove();
     };
   }, []);
+
+  // For web/PC mode we compute an extra bottom inset in case the OS taskbar
+  // or other overlays hide the bottom of the viewport. The hook returns 0
+  // on native platforms so this is a no-op there.
+  const { bottom: viewportBottom } = useSafeAreaWeb();
+  const scrollPaddingBottom = Math.max(
+    verticalScale(theme.spacing.xl),
+    viewportBottom ? viewportBottom + verticalScale(theme.spacing.md) : verticalScale(theme.spacing.xl)
+  );
+  const footerPaddingBottom = viewportBottom ? viewportBottom + verticalScale(theme.spacing.md) : verticalScale(theme.spacing.md);
 
   // Load existing attendance record if in edit mode
   useEffect(() => {
@@ -605,7 +617,7 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
       />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollPaddingBottom }]}
         scrollEnabled={!isSigning}
       >
         {/* Header */}
@@ -912,7 +924,7 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
         </View>
 
         {/* Add Person Button */}
-        <View style={styles.bottomButtonsContainer}>
+  <View style={[styles.bottomButtonsContainer, { paddingBottom: footerPaddingBottom }] }>
           <TouchableOpacity
             activeOpacity={0.9}
             onPressIn={handlePressIn}
@@ -943,6 +955,7 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
             </Text>
           </TouchableOpacity>
         </View>
+        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* Signature Modal */}
@@ -1002,7 +1015,7 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
           </View>
 
           {/* Footer with only Cancel and Save */}
-          <View style={styles.signatureModalFooter}>
+          <View style={[styles.signatureModalFooter, { paddingBottom: footerPaddingBottom }]}>
             <View style={styles.signatureModalButtons}>
               <TouchableOpacity
                 style={[
@@ -1038,6 +1051,7 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
             </View>
           </View>
         </SafeAreaView>
+         <View style={{ height: 40 }} />
       </Modal>
     </SafeAreaView>
   );

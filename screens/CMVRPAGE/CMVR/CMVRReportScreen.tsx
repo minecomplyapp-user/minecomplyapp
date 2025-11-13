@@ -755,7 +755,8 @@ const CMVRReportScreen: React.FC = () => {
           <Text style={styles.saveNextButtonText}>Save & Next</Text>
           <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
-        <View style={{ height: 20 }} />
+        {/* filler gap ts not advisable tbh*/}   
+        <View style={{ height: 40 }} />
       </ScrollView>
       <ConfirmationDialog
         visible={showBackDialog}

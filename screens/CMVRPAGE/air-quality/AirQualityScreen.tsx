@@ -672,6 +672,8 @@ export default function AirQualityScreen({ navigation, route }: any) {
           <Text style={styles.saveNextText}>Save & Next</Text>
           <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
+        {/* filler gap ts not advisable tbh*/}   
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
