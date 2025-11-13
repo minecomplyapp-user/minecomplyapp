@@ -891,6 +891,10 @@ const hasAirParameterValues = (param: AirParameterData) => {
 const transformAirQualityForPayload = (raw: any) => {
   if (!raw) return undefined;
 
+  console.log("=== transformAirQualityForPayload DEBUG ===");
+  console.log("Raw airQuality data keys:", Object.keys(raw));
+  console.log("Raw airQuality data:", JSON.stringify(raw, null, 2));
+
   // NEW STRUCTURE: Handle unified airQuality object with checkbox states
   if (raw.airQuality) {
     const result: any = {};
@@ -981,7 +985,11 @@ const transformAirQualityForPayload = (raw: any) => {
 
   // OLD STRUCTURE: Check if we have location-based data (quarryData, plantData, etc.)
   const hasOldLocationStructure =
-    raw.quarryData || raw.plantData || raw.portData || raw.quarryPlantData;
+    raw.quarryData ||
+    raw.plantData ||
+    raw.portData ||
+    raw.quarryPlantData ||
+    raw.quarryAndPlantData;
 
   if (hasOldLocationStructure) {
     // Transform old location-based structure
@@ -1021,25 +1029,8 @@ const transformAirQualityForPayload = (raw: any) => {
         remarks: mergeRemarks(param),
       });
 
-      // Build main parameter
-      const mainParameter = {
-        parameter: sanitizeString(locationData?.parameter),
-        currentSMR: sanitizeString(locationData?.currentSMR),
-        previousSMR: sanitizeString(locationData?.previousSMR),
-        currentMMT: sanitizeString(locationData?.currentMMT),
-        previousMMT: sanitizeString(locationData?.previousMMT),
-        thirdPartyTesting: sanitizeString(locationData?.thirdPartyTesting),
-        eqplRedFlag: sanitizeString(locationData?.eqplRedFlag),
-        action: sanitizeString(locationData?.action),
-        limitPM25: sanitizeString(locationData?.limitPM25),
-        remarks: sanitizeString(locationData?.remarks),
-      };
-
-      // Gather all parameters (main + additional)
+      // Gather all parameters from the parameters array
       const allParameters = [];
-      if (mainParameter.parameter) {
-        allParameters.push(mapParameter(mainParameter));
-      }
       if (Array.isArray(locationData.parameters)) {
         locationData.parameters.forEach((param: any) => {
           if (param.parameter) {
@@ -1051,12 +1042,12 @@ const transformAirQualityForPayload = (raw: any) => {
       return {
         locationInput: sanitizeString(locationData.locationInput),
         parameters: allParameters,
-        samplingDate: sanitizeString(locationData?.dateTime),
-        weatherAndWind: sanitizeString(locationData?.weatherWind),
+        samplingDate: sanitizeString(locationData?.samplingDate),
+        weatherAndWind: sanitizeString(locationData?.weatherAndWind),
         explanationForConfirmatorySampling: sanitizeString(
-          locationData?.explanation
+          locationData?.explanationForConfirmatorySampling
         ),
-        overallAssessment: sanitizeString(locationData?.overallCompliance),
+        overallAssessment: sanitizeString(locationData?.overallAssessment),
       };
     };
 
@@ -1073,10 +1064,16 @@ const transformAirQualityForPayload = (raw: any) => {
       const transformed = transformLocationData(raw.portData);
       if (transformed) result.port = transformed;
     }
-    if (raw.quarryPlantData) {
-      const transformed = transformLocationData(raw.quarryPlantData);
+    // Handle both quarryPlantData and quarryAndPlantData naming variations
+    if (raw.quarryPlantData || raw.quarryAndPlantData) {
+      const transformed = transformLocationData(
+        raw.quarryPlantData || raw.quarryAndPlantData
+      );
       if (transformed) result.quarryAndPlant = transformed;
     }
+
+    console.log("=== Transformed airQuality result (OLD structure) ===");
+    console.log(JSON.stringify(result, null, 2));
 
     return Object.keys(result).length > 0 ? result : undefined;
   }
