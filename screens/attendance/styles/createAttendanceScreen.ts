@@ -239,10 +239,15 @@ export const createAttendanceStyles = StyleSheet.create({
     color: theme.colors.primaryDark,
   },
 
+  signatureCanvasContainer: {
+    flex: 1,
+    marginHorizontal: scale(theme.spacing.md),
+  },
+
   // Modal Canvas Area
   signatureModalCanvas: {
-    flex: 1, // allow canvas to fill available middle space
-    paddingHorizontal: scale(theme.spacing.md), // scaled padding so it looks proportional on tablet
+    flex: 1, 
+    paddingHorizontal: scale(theme.spacing.md), 
     paddingTop: verticalScale(theme.spacing.sm),
     paddingBottom: verticalScale(theme.spacing.sm),
   },
@@ -359,3 +364,4 @@ export const createAttendanceStyles = StyleSheet.create({
     fontSize: normalizeFont(isTablet() ? 18 : theme.typography.sizes.md),
   },
 });
+

@@ -11,8 +11,12 @@ import {
   Image,
   Modal,
   ActivityIndicator,
+  Dimensions,
 } from "react-native";
 import SignatureScreen from "react-native-signature-canvas";
+// react-native-signature-canvas doesn't ship strong TSX types for JSX usage in some setups.
+// Create a loose-typed alias to satisfy TypeScript when rendering the component.
+const SignatureScreenAny: any = SignatureScreen;
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as Location from "expo-location";
 import { Feather } from "@expo/vector-icons";
@@ -99,6 +103,19 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
 
   const signatureCanvasRef = useRef<any>(null);
   const [scaleAnim] = useState(new Animated.Value(1));
+
+  const [windowSize, setWindowSize] = useState(Dimensions.get("window"));
+
+  useEffect(() => {
+    const handler = ({ window }: any) => setWindowSize(window);
+    const sub: any = Dimensions.addEventListener
+      ? Dimensions.addEventListener("change", handler)
+      : null;
+
+    return () => {
+      if (sub && typeof sub.remove === "function") sub.remove();
+    };
+  }, []);
 
   // Load existing attendance record if in edit mode
   useEffect(() => {
@@ -299,50 +316,70 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
   const handleSignatureOK = async (signature: string) => {
     if (currentAttendeeId === null) return;
 
+    // Immediately set a preview (the base64 data uri) and close the modal so UX is snappy.
     try {
       setUploadingSignature(true);
-      const base64Data = signature.replace(/^data:image\/\w+;base64,/, "");
-      const tempFilePath = `${
-        FileSystem.cacheDirectory
-      }temp-signature-${Date.now()}.png`;
 
-      await FileSystem.writeAsStringAsync(tempFilePath, base64Data, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      const dataUri = signature; // signature is already a data URI (data:image/png;base64,...)
 
-      const manipulatedImage = await manipulateAsync(
-        tempFilePath,
-        [{ resize: { width: 400 } }],
-        { compress: 0.5, format: SaveFormat.PNG }
-      );
-
-      const { path } = await uploadSignature(manipulatedImage.uri);
-
-      // Get a signed URL for immediate preview
-      const { url } = await createSignedDownloadUrl(path, 60);
-
-      // Track the newly uploaded path for potential cleanup
-      setNewlyUploadedPaths((prev) => [...prev, path]);
-
-      // Update the attendee with the signature path for submission and the URL for preview
       const currentId = currentAttendeeId;
+
+      // Show immediate preview using the data URI while we upload in background
       setAttendees((prev) =>
-        prev.map((a) =>
-          a.id === currentId
-            ? { ...a, signatureUrl: url, signaturePath: path }
-            : a
-        )
+        prev.map((a) => (a.id === currentId ? { ...a, signatureUrl: dataUri } : a))
       );
 
-      await FileSystem.deleteAsync(tempFilePath, { idempotent: true });
-
+      // Close modal and clear current attendee selection immediately
       setSignatureModalVisible(false);
       setCurrentAttendeeId(null);
-      Alert.alert("Success", "Signature added successfully.");
+
+      // Background upload: write temp file and upload, then replace preview with signed URL
+      (async () => {
+        try {
+          const base64Data = signature.replace(/^data:image\/\w+;base64,/, "");
+          const tempFilePath = `${FileSystem.cacheDirectory}temp-signature-${Date.now()}.png`;
+
+          await FileSystem.writeAsStringAsync(tempFilePath, base64Data, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+
+          const manipulatedImage = await manipulateAsync(
+            tempFilePath,
+            [{ resize: { width: 400 } }],
+            { compress: 0.5, format: SaveFormat.PNG }
+          );
+
+          const { path } = await uploadSignature(manipulatedImage.uri);
+
+          // Get a signed URL for immediate preview
+          const { url } = await createSignedDownloadUrl(path, 60);
+
+          // Track the newly uploaded path for potential cleanup
+          setNewlyUploadedPaths((prev) => [...prev, path]);
+
+          // Update the attendee with the signature path and replace preview with signed URL
+          setAttendees((prev) =>
+            prev.map((a) =>
+              a.id === currentId ? { ...a, signatureUrl: url, signaturePath: path } : a
+            )
+          );
+
+          await FileSystem.deleteAsync(tempFilePath, { idempotent: true });
+
+          // Optionally notify success (silent is also fine)
+          // Alert.alert("Success", "Signature uploaded successfully.");
+        } catch (uploadError: any) {
+          console.error("Signature upload failed:", uploadError);
+          Alert.alert("Error", uploadError?.message || "Failed to upload signature.");
+        } finally {
+          setUploadingSignature(false);
+          setIsSigning(false);
+        }
+      })();
     } catch (error: any) {
-      Alert.alert("Error", error?.message || "Failed to upload signature.");
-    } finally {
+      Alert.alert("Error", error?.message || "Failed to process signature.");
       setUploadingSignature(false);
+      setIsSigning(false);
     }
   };
 
@@ -376,8 +413,12 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
     signatureCanvasRef.current?.clearSignature();
   };
 
-  const handleSignatureEnd = () => {
-    signatureCanvasRef.current?.readSignature();
+  const handleSignatureSave = () => {
+    try {
+      setIsSigning(true);
+      signatureCanvasRef.current?.readSignature();
+    } finally {
+    }
   };
 
   // --- Validation and Save ---
@@ -905,96 +946,99 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
       </ScrollView>
 
       {/* Signature Modal */}
-<Modal
-  visible={signatureModalVisible}
-  animationType="slide"
-  transparent={false}
-  onRequestClose={() => setSignatureModalVisible(false)}
->
-  <SafeAreaView style={styles.signatureModalContainer}>
-    <View style={styles.signatureModalHeader}>
-      <Text style={styles.signatureModalTitle}>Add Signature</Text>
-      <TouchableOpacity onPress={() => setSignatureModalVisible(false)}>
-        <Feather name="x" size={24} color={theme.colors.primaryDark} />
-      </TouchableOpacity>
-    </View>
-
-    {/* Canvas */}
-    <View style={styles.signatureModalCanvas}>
-      <SignatureScreen
-        ref={signatureCanvasRef}
-        onOK={handleSignatureOK}
-        onEmpty={() => Alert.alert("Error", "Please draw a signature")}
-        descriptionText="Sign above"
-        clearText="Clear"
-        confirmText="Save"
-        style={{ flex: 1, width: "100%" }}
-        webStyle={`
-          .m-signature-pad {
-            box-shadow: none;
-            border: 2px solid ${theme.colors.border};
-            border-radius: ${theme.radii.md}px; /* 12px */
-            height: 100%;
-          }
-          .m-signature-pad--body { height: 100%; }
-          .m-signature-pad--body canvas {
-            width: 100% !important;
-            height: 100% !important;
-          }
-          .m-signature-pad--footer { display: none; }
-        `}
-      />
-    </View>
-
-    {/* --- NEW CLEAR BUTTON --- */}
-    <View style={styles.clearButtonContainer}>
-      <TouchableOpacity
-        style={styles.clearButton}
-        onPress={handleSignatureClear}
+      <Modal
+        visible={signatureModalVisible}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setSignatureModalVisible(false)}
       >
-        <Feather name="trash-2" size={18} color={theme.colors.primaryDark} />
-        <Text style={styles.clearButtonText}>Clear</Text>
-      </TouchableOpacity>
-    </View>
+        <SafeAreaView style={styles.signatureModalContainer}>
+          <View style={styles.signatureModalHeader}>
+            <Text style={styles.signatureModalTitle}>Add Signature</Text>
+            <TouchableOpacity onPress={() => setSignatureModalVisible(false)}>
+              <Feather name="x" size={24} color={theme.colors.primaryDark} />
+            </TouchableOpacity>
+          </View>
 
-    {/* Footer with only Cancel and Save */}
-    <View style={styles.signatureModalFooter}>
-      <View style={styles.signatureModalButtons}>
-        <TouchableOpacity
-          style={[
-            styles.signatureModalButton,
-            styles.signatureModalCancelButton,
-          ]}
-          onPress={() => setSignatureModalVisible(false)}
-          disabled={uploadingSignature}
-        >
-          <Text style={styles.signatureModalButtonText}>Cancel</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.signatureModalButton,
-            styles.signatureModalSaveButton,
-          ]}
-          onPress={handleSignatureEnd}
-          disabled={uploadingSignature}
-        >
-          {uploadingSignature ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text
-              style={[
-                styles.signatureModalButtonText,
-                styles.signatureModalSaveText,
-              ]}
+          {/* Canvas */}
+          <View style={styles.signatureCanvasContainer}>
+            <SignatureScreenAny
+              ref={signatureCanvasRef}
+              onOK={handleSignatureOK}
+              /* don't auto-read on stroke end; user will press Save to upload */
+              webStyle={`.m-signature-pad--body {
+                box-shadow: none;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+              }
+              .m-signature-pad {
+                box-shadow: none;
+                border: none;
+              }
+              /* hide the built-in footer buttons because we provide our own */
+              .m-signature-pad--footer { display: none !important; }
+              `}
+              backgroundColor="rgba(255, 255, 255, 0)"
+              penColor="#000000"
+              descriptionText=""
+              clearText="Clear"
+              confirmText="Save"
+            />
+          </View>
+
+          {/* --- NEW CLEAR BUTTON --- */}
+          <View style={styles.clearButtonContainer}>
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={handleSignatureClear}
             >
-              Save
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </View>
-  </SafeAreaView>
-</Modal>
+              <Feather
+                name="trash-2"
+                size={18}
+                color={theme.colors.primaryDark}
+              />
+              <Text style={styles.clearButtonText}>Clear</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Footer with only Cancel and Save */}
+          <View style={styles.signatureModalFooter}>
+            <View style={styles.signatureModalButtons}>
+              <TouchableOpacity
+                style={[
+                  styles.signatureModalButton,
+                  styles.signatureModalCancelButton,
+                ]}
+                onPress={() => setSignatureModalVisible(false)}
+                disabled={uploadingSignature}
+              >
+                <Text style={styles.signatureModalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.signatureModalButton,
+                  styles.signatureModalSaveButton,
+                ]}
+                onPress={handleSignatureSave}
+                disabled={uploadingSignature}
+              >
+                {uploadingSignature ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text
+                    style={[
+                      styles.signatureModalButtonText,
+                      styles.signatureModalSaveText,
+                    ]}
+                  >
+                    Save
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
