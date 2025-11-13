@@ -1084,6 +1084,8 @@ export default function ECCMonitoringScreen({ navigation, route }: any) {
             color="#fff"
           />
         </TouchableOpacity>
+                {/* filler gap ts not advisable tbh*/}   
+                <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
