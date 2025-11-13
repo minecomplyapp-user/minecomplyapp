@@ -814,6 +814,8 @@ export default function WasteManagementScreen({ navigation, route }: any) {
           <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
         <View style={styles.bottomSpacing} />
+        {/* filler gap ts not advisable tbh*/}   
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );

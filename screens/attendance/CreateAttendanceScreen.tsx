@@ -11,8 +11,12 @@ import {
   Image,
   Modal,
   ActivityIndicator,
+  Dimensions,
 } from "react-native";
 import SignatureScreen from "react-native-signature-canvas";
+// react-native-signature-canvas doesn't ship strong TSX types for JSX usage in some setups.
+// Create a loose-typed alias to satisfy TypeScript when rendering the component.
+const SignatureScreenAny: any = SignatureScreen;
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as Location from "expo-location";
 import { Feather } from "@expo/vector-icons";
@@ -29,6 +33,8 @@ import {
 } from "../../lib/storage";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import * as FileSystem from "expo-file-system/legacy";
+import useSafeAreaWeb from "../../hooks/useSafeAreaWeb";
+import { verticalScale } from "../../utils/responsive";
 
 // RadioButton component (gi tapol ko ug separate gamay rakayo sila bitaw)
 const RadioButton = ({
@@ -99,6 +105,29 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
 
   const signatureCanvasRef = useRef<any>(null);
   const [scaleAnim] = useState(new Animated.Value(1));
+
+  const [windowSize, setWindowSize] = useState(Dimensions.get("window"));
+
+  useEffect(() => {
+    const handler = ({ window }: any) => setWindowSize(window);
+    const sub: any = Dimensions.addEventListener
+      ? Dimensions.addEventListener("change", handler)
+      : null;
+
+    return () => {
+      if (sub && typeof sub.remove === "function") sub.remove();
+    };
+  }, []);
+
+  // For web/PC mode we compute an extra bottom inset in case the OS taskbar
+  // or other overlays hide the bottom of the viewport. The hook returns 0
+  // on native platforms so this is a no-op there.
+  const { bottom: viewportBottom } = useSafeAreaWeb();
+  const scrollPaddingBottom = Math.max(
+    verticalScale(theme.spacing.xl),
+    viewportBottom ? viewportBottom + verticalScale(theme.spacing.md) : verticalScale(theme.spacing.xl)
+  );
+  const footerPaddingBottom = viewportBottom ? viewportBottom + verticalScale(theme.spacing.md) : verticalScale(theme.spacing.md);
 
   // Load existing attendance record if in edit mode
   useEffect(() => {
@@ -299,50 +328,70 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
   const handleSignatureOK = async (signature: string) => {
     if (currentAttendeeId === null) return;
 
+    // Immediately set a preview (the base64 data uri) and close the modal so UX is snappy.
     try {
       setUploadingSignature(true);
-      const base64Data = signature.replace(/^data:image\/\w+;base64,/, "");
-      const tempFilePath = `${
-        FileSystem.cacheDirectory
-      }temp-signature-${Date.now()}.png`;
 
-      await FileSystem.writeAsStringAsync(tempFilePath, base64Data, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      const dataUri = signature; // signature is already a data URI (data:image/png;base64,...)
 
-      const manipulatedImage = await manipulateAsync(
-        tempFilePath,
-        [{ resize: { width: 400 } }],
-        { compress: 0.5, format: SaveFormat.PNG }
-      );
-
-      const { path } = await uploadSignature(manipulatedImage.uri);
-
-      // Get a signed URL for immediate preview
-      const { url } = await createSignedDownloadUrl(path, 60);
-
-      // Track the newly uploaded path for potential cleanup
-      setNewlyUploadedPaths((prev) => [...prev, path]);
-
-      // Update the attendee with the signature path for submission and the URL for preview
       const currentId = currentAttendeeId;
+
+      // Show immediate preview using the data URI while we upload in background
       setAttendees((prev) =>
-        prev.map((a) =>
-          a.id === currentId
-            ? { ...a, signatureUrl: url, signaturePath: path }
-            : a
-        )
+        prev.map((a) => (a.id === currentId ? { ...a, signatureUrl: dataUri } : a))
       );
 
-      await FileSystem.deleteAsync(tempFilePath, { idempotent: true });
-
+      // Close modal and clear current attendee selection immediately
       setSignatureModalVisible(false);
       setCurrentAttendeeId(null);
-      Alert.alert("Success", "Signature added successfully.");
+
+      // Background upload: write temp file and upload, then replace preview with signed URL
+      (async () => {
+        try {
+          const base64Data = signature.replace(/^data:image\/\w+;base64,/, "");
+          const tempFilePath = `${FileSystem.cacheDirectory}temp-signature-${Date.now()}.png`;
+
+          await FileSystem.writeAsStringAsync(tempFilePath, base64Data, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+
+          const manipulatedImage = await manipulateAsync(
+            tempFilePath,
+            [{ resize: { width: 400 } }],
+            { compress: 0.5, format: SaveFormat.PNG }
+          );
+
+          const { path } = await uploadSignature(manipulatedImage.uri);
+
+          // Get a signed URL for immediate preview
+          const { url } = await createSignedDownloadUrl(path, 60);
+
+          // Track the newly uploaded path for potential cleanup
+          setNewlyUploadedPaths((prev) => [...prev, path]);
+
+          // Update the attendee with the signature path and replace preview with signed URL
+          setAttendees((prev) =>
+            prev.map((a) =>
+              a.id === currentId ? { ...a, signatureUrl: url, signaturePath: path } : a
+            )
+          );
+
+          await FileSystem.deleteAsync(tempFilePath, { idempotent: true });
+
+          // Optionally notify success (silent is also fine)
+          // Alert.alert("Success", "Signature uploaded successfully.");
+        } catch (uploadError: any) {
+          console.error("Signature upload failed:", uploadError);
+          Alert.alert("Error", uploadError?.message || "Failed to upload signature.");
+        } finally {
+          setUploadingSignature(false);
+          setIsSigning(false);
+        }
+      })();
     } catch (error: any) {
-      Alert.alert("Error", error?.message || "Failed to upload signature.");
-    } finally {
+      Alert.alert("Error", error?.message || "Failed to process signature.");
       setUploadingSignature(false);
+      setIsSigning(false);
     }
   };
 
@@ -376,8 +425,12 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
     signatureCanvasRef.current?.clearSignature();
   };
 
-  const handleSignatureEnd = () => {
-    signatureCanvasRef.current?.readSignature();
+  const handleSignatureSave = () => {
+    try {
+      setIsSigning(true);
+      signatureCanvasRef.current?.readSignature();
+    } finally {
+    }
   };
 
   // --- Validation and Save ---
@@ -564,7 +617,7 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
       />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollPaddingBottom }]}
         scrollEnabled={!isSigning}
       >
         {/* Header */}
@@ -871,7 +924,7 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
         </View>
 
         {/* Add Person Button */}
-        <View style={styles.bottomButtonsContainer}>
+  <View style={[styles.bottomButtonsContainer, { paddingBottom: footerPaddingBottom }] }>
           <TouchableOpacity
             activeOpacity={0.9}
             onPressIn={handlePressIn}
@@ -902,6 +955,7 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
             </Text>
           </TouchableOpacity>
         </View>
+        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* Signature Modal */}
@@ -915,46 +969,54 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
           <View style={styles.signatureModalHeader}>
             <Text style={styles.signatureModalTitle}>Add Signature</Text>
             <TouchableOpacity onPress={() => setSignatureModalVisible(false)}>
-              <Feather name="x" size={20} color={theme.colors.text} />
+              <Feather name="x" size={24} color={theme.colors.primaryDark} />
             </TouchableOpacity>
           </View>
-          <View style={styles.signatureModalCanvas}>
-            <SignatureScreen
+
+          {/* Canvas */}
+          <View style={styles.signatureCanvasContainer}>
+            <SignatureScreenAny
               ref={signatureCanvasRef}
               onOK={handleSignatureOK}
-              onEmpty={() => Alert.alert("Error", "Please draw a signature")}
-              descriptionText="Sign above"
+              /* don't auto-read on stroke end; user will press Save to upload */
+              webStyle={`.m-signature-pad--body {
+                box-shadow: none;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+              }
+              .m-signature-pad {
+                box-shadow: none;
+                border: none;
+              }
+              /* hide the built-in footer buttons because we provide our own */
+              .m-signature-pad--footer { display: none !important; }
+              `}
+              backgroundColor="rgba(255, 255, 255, 0)"
+              penColor="#000000"
+              descriptionText=""
               clearText="Clear"
               confirmText="Save"
-              style={{ flex: 1, width: "100%" }}
-              webStyle={`
-                .m-signature-pad {
-                  box-shadow: none;
-                  border: 2px solid ${theme.colors.border};
-                  border-radius: 8px;
-                  height: 100%;
-                }
-                .m-signature-pad--body {
-                  height: 100%;
-                }
-                .m-signature-pad--body canvas {
-                  width: 100% !important;
-                  height: 100% !important;
-                }
-                .m-signature-pad--footer {
-                  display: none;
-                }
-              `}
             />
           </View>
-          <View style={styles.signatureModalFooter}>
+
+          {/* --- NEW CLEAR BUTTON --- */}
+          <View style={styles.clearButtonContainer}>
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={handleSignatureClear}
+            >
+              <Feather
+                name="trash-2"
+                size={18}
+                color={theme.colors.primaryDark}
+              />
+              <Text style={styles.clearButtonText}>Clear</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Footer with only Cancel and Save */}
+          <View style={[styles.signatureModalFooter, { paddingBottom: footerPaddingBottom }]}>
             <View style={styles.signatureModalButtons}>
-              <TouchableOpacity
-                style={styles.signatureModalButton}
-                onPress={handleSignatureClear}
-              >
-                <Text style={styles.signatureModalButtonText}>Clear</Text>
-              </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.signatureModalButton,
@@ -970,7 +1032,7 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
                   styles.signatureModalButton,
                   styles.signatureModalSaveButton,
                 ]}
-                onPress={handleSignatureEnd}
+                onPress={handleSignatureSave}
                 disabled={uploadingSignature}
               >
                 {uploadingSignature ? (
@@ -989,6 +1051,7 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
             </View>
           </View>
         </SafeAreaView>
+         <View style={{ height: 40 }} />
       </Modal>
     </SafeAreaView>
   );

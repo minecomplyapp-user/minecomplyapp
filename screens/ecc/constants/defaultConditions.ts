@@ -4,7 +4,7 @@ import { BaseCondition } from "../types/eccMonitoring";
 export const DEFAULTS: BaseCondition[] = [
   {
     id: "1",
-    title: "Condition 1: Secure all necessary Permits from concerned agencies",
+    title: "Secure all necessary Permits from concerned agencies",
     descriptions: {
       complied: "All necessary permits are secured.",
       partial:
@@ -16,7 +16,7 @@ export const DEFAULTS: BaseCondition[] = [
   {
     id: "1.1",
     title:
-      "Condition 1.1: That this Certificate shall cover the extraction and processing of 70,000 cu. m. sand, gravel and boulders annually and the installation of 2 units of sand and gravel classifiers with a production capacity of 80 cu. m./ hr; confined within an applied area of 19.9999 ha.",
+      "That this Certificate shall cover the extraction and processing of 70,000 cu. m. sand, gravel and boulders annually and the installation of 2 units of sand and gravel classifiers with a production capacity of 80 cu. m./ hr; confined within an applied area of 19.9999 ha.",
     descriptions: {
       complied:
         "The project complies with the approved extraction and processing limit of 70,000 cu. m. annually and ensures that only 2 units of sand and gravel classifiers with a maximum production capacity of 80 cu. m./hr are installed and operated within the applied area of 19.9999 hectares.",
@@ -30,7 +30,7 @@ export const DEFAULTS: BaseCondition[] = [
   {
     id: "1.2",
     title:
-      "Condition 1.2: Submission of semi-annual Compliance Monitoring Report (CMR)",
+      "Submission of semi-annual Compliance Monitoring Report (CMR)",
     descriptions: {
       complied: "CMRs are regularly submitted.",
       partial: "CMRs are submitted with occasional delay or minor deficiency.",
@@ -42,7 +42,7 @@ export const DEFAULTS: BaseCondition[] = [
   {
     id: "2",
     title:
-      "Condition 2: Provision of adequate drainage system and soil erosion control measures",
+      "Provision of adequate drainage system and soil erosion control measures",
     descriptions: {
       complied: "Adequate drainage system is constructed.",
       partial:
@@ -54,7 +54,7 @@ export const DEFAULTS: BaseCondition[] = [
   {
     id: "3",
     title:
-      "Condition 3: Implementation of regular sanitary housekeeping practices, proper collection of solid and hazardous waste",
+      "Implementation of regular sanitary housekeeping practices, proper collection of solid and hazardous waste",
     descriptions: {
       complied:
         "Permit to transport application is in process. The permittee attended the Technical Conference on May 19, 2025 regarding NOV issued for non-compliance with the provisions of RA 6969 and commitments will be undertaken until June 15, 2025.",
@@ -67,7 +67,7 @@ export const DEFAULTS: BaseCondition[] = [
   {
     id: "4",
     title:
-      "Condition 4: Conduct of Tree Planting and submission of annual report (if applicable)",
+      "Conduct of Tree Planting and submission of annual report (if applicable)",
     descriptions: {
       complied:
         "Tree planting is regularly conducted and annual report is submitted",
@@ -79,7 +79,7 @@ export const DEFAULTS: BaseCondition[] = [
   },
   {
     id: "5",
-    title: "Condition 5: Secure Tree Cutting Permit",
+    title: "Secure Tree Cutting Permit",
     descriptions: {
       complied: "Tree Cutting Permit is secured",
       partial: "Application for Tree Cutting Permit is in process",
@@ -90,7 +90,7 @@ export const DEFAULTS: BaseCondition[] = [
   {
     id: "6",
     title:
-      "Condition 6: Conduct of Information, Education & Communication (IEC) Campaign and submission of annual report of compliance (if applicable)",
+      "Conduct of Information, Education & Communication (IEC) Campaign and submission of annual report of compliance (if applicable)",
     descriptions: {
       complied:
         "IEC is regularly conducted with report submitted to this Office",
@@ -109,7 +109,7 @@ export const DEFAULTS: BaseCondition[] = [
   },
   {
     id: "7a",
-    title: "Condition 7a: Secure a PTO and Discharge Permit",
+    title: "Secure a PTO and Discharge Permit",
     descriptions: {
       complied:
         "PTO-OL-R01-2021-02801-R valid until 05/06/2026 and DP-R01-20-02099 valid until 09/01/2025. WWDP requirements for domestic wastewater are in process. The permittee attended the Technical Conference on May 19, 2025 regarding NOV issued for non-compliance with the provisions of RA 9275 and commitments will be undertaken until June 15, 2025",
@@ -122,7 +122,7 @@ export const DEFAULTS: BaseCondition[] = [
   },
   {
     id: "7b",
-    title: "Condition 7b: Designate a PCO",
+    title: "Designate a PCO",
     descriptions: {
       complied: "With designated PCO. PCO accreditation renewal is in process",
       partial:
@@ -134,7 +134,7 @@ export const DEFAULTS: BaseCondition[] = [
   },
   {
     id: "7c",
-    title: "Condition 7c: Registration as a HW Generator",
+    title: "Registration as a HW Generator",
     descriptions: {
       complied: "OL-GR-R1-28-012653 issued on 12-14-2024",
       partial:
@@ -146,7 +146,7 @@ export const DEFAULTS: BaseCondition[] = [
   },
   {
     id: "7d",
-    title: "Condition 7d: Submission of SMR (if applicable)",
+    title: "Submission of SMR (if applicable)",
     descriptions: {
       complied: "SMRs are regularly and timely submitted",
       partial:
@@ -158,7 +158,7 @@ export const DEFAULTS: BaseCondition[] = [
   },
   {
     id: "7e",
-    title: "Condition 7e: Submission of ROLA (if applicable)",
+    title: "Submission of ROLA (if applicable)",
     descriptions: {
       complied:
         "ROLA is regularly submitted and passed the DENR Effluent Standards",
@@ -172,7 +172,7 @@ export const DEFAULTS: BaseCondition[] = [
   {
     id: "7f",
     title:
-      "Condition 7f: Secure Permit to Transport (PTT) and submission of HW-Manifest and Certificate of Treatment (COT) (if applicable)",
+      "Secure Permit to Transport (PTT) and submission of HW-Manifest and Certificate of Treatment (COT) (if applicable)",
     descriptions: {
       complied:
         "PTT requirements are still in process. The permittee attended the Technical Conference on May 19, 2025 regarding NOV issued for non-compliance with the provisions of RA 9275 and commitments will be undertaken until June 15, 2025",
@@ -186,7 +186,7 @@ export const DEFAULTS: BaseCondition[] = [
   {
     id: "8",
     title:
-      "Condition 8: Submission of report on the implemented mitigating measures and the corresponding cost of such activities",
+      "Submission of report on the implemented mitigating measures and the corresponding cost of such activities",
     descriptions: {
       complied: "Included in the submitted CMRs",
       partial:
@@ -198,7 +198,7 @@ export const DEFAULTS: BaseCondition[] = [
   {
     id: "9",
     title:
-      "Condition 9: Conduct of Information, Education & Communication (IEC) Campaign and submission of annual report of compliance (if applicable)",
+      "Conduct of Information, Education & Communication (IEC) Campaign and submission of annual report of compliance (if applicable)",
     descriptions: {
       complied:
         "IEC is regularly conducted with report submitted to this Office",
@@ -211,7 +211,7 @@ export const DEFAULTS: BaseCondition[] = [
   {
     id: "10",
     title:
-      "Condition 10: Creation of Environmental Unit and designation of PCO",
+      "Creation of Environmental Unit and designation of PCO",
     descriptions: {
       complied: "With designated PCO. PCO accreditation renewal is in process",
       partial:
@@ -223,7 +223,7 @@ export const DEFAULTS: BaseCondition[] = [
   {
     id: "11",
     title:
-      "Condition 11: Submit abandonment plan in case of abandonment, 3 months prior abandonment",
+      "Submit abandonment plan in case of abandonment, 3 months prior abandonment",
     descriptions: {
       complied:
         "Abandonment plan is prepared and submitted 3 months prior to project abandonment",
@@ -235,7 +235,7 @@ export const DEFAULTS: BaseCondition[] = [
   {
     id: "12",
     title:
-      "Condition 12: Project expansion and/or construction of additional structures, change in location shall be subject to a new EIA",
+      "Project expansion and/or construction of additional structures, change in location shall be subject to a new EIA",
     descriptions: {
       complied:
         "Still in the process of securing the necessary requirements for ECC EIS category application for MPSA Contract",
@@ -247,7 +247,7 @@ export const DEFAULTS: BaseCondition[] = [
   },
   {
     id: "13",
-    title: "Condition 13: Land clearing within the project description",
+    title: "Land clearing within the project description",
     descriptions: {
       complied: "Land area developed is within the project description",
       partial:
@@ -259,7 +259,7 @@ export const DEFAULTS: BaseCondition[] = [
   {
     id: "14",
     title:
-      "Condition 14: Notify EMB in case of transfer of ownership within 15 days from the date of transfer",
+      "Notify EMB in case of transfer of ownership within 15 days from the date of transfer",
     descriptions: {
       complied: "No transfer of ownership",
       partial:

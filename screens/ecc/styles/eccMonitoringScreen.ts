@@ -205,7 +205,24 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.colors.primaryDark,
   },
-
+  // --- New Noticeable "Note" Pill Style ---
+  notePill: {
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: theme.colors.warning, 
+    borderRadius: theme.radii.sm,
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm, 
+  },
+  noteText: {
+    fontFamily: theme.typography.medium, 
+    fontSize: theme.typography.sizes.sm,
+    color: theme.colors.text, 
+    flex: 1,
+    lineHeight: 20,
+  },
   /* ===== CONDITION CARDS ===== */
   conditionCard: {
     backgroundColor: theme.colors.surface,

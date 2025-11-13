@@ -3,13 +3,10 @@ import { Dimensions, PixelRatio, Platform } from "react-native";
 
 const { width, height } = Dimensions.get("window");
 
-// Base design dimensions (iPhone 11 / Pixel 6 baseline)
 const BASE_WIDTH = 375;
 const BASE_HEIGHT = 812;
 
-// ----------------------------
-// 🔍 Device classification
-// ----------------------------
+//  Device classification
 export const isIPad = (): boolean =>
   Platform.OS === "ios" &&
   ((Platform as any).isPad !== undefined && (Platform as any).isPad);
@@ -35,18 +32,17 @@ export const isSmallIPhone = (): boolean =>
 export const isLargeIPhone = (): boolean =>
   Platform.OS === "ios" && width > 430;
 
-// ----------------------------
-// 📏 Scaling factors
-// ----------------------------
+// Scaling factors
 const horizontalScaleFactor = width / BASE_WIDTH;
 const verticalScaleFactor = height / BASE_HEIGHT;
 
-// Cap scaling so layout doesn’t blow up on tablets
+// Cap scaling so layout doesn’t blow up on tablets.
+// Keep tablet scaling conservative so UI doesn't appear "zoomed in" on large screens.
 const LIMITS = {
-  PHONE: 1.2,
-  LARGE_PHONE: 1.3,
-  TABLET: 1.5,
-  LARGE_TABLET: 1.8,
+  PHONE: 1.0, // no upscaling on most phones by default
+  LARGE_PHONE: 1.05,
+  TABLET: 1.08,
+  LARGE_TABLET: 1.12,
 };
 
 let limit = LIMITS.PHONE;
@@ -54,11 +50,11 @@ if (isLargeAndroidPhone() || isLargeIPhone()) limit = LIMITS.LARGE_PHONE;
 if (isTablet()) limit = LIMITS.TABLET;
 if (isLargeTablet()) limit = LIMITS.LARGE_TABLET;
 
+// Use the smaller of the horizontal scale and our conservative limit.
+// This prevents huge multipliers on high-resolution tablets (keeps elements readable but not oversized).
 const scaleFactor = Math.min(horizontalScaleFactor, limit);
 
-// ----------------------------
-// 🧮 Core utilities
-// ----------------------------
+
 export const scale = (size: number) => scaleFactor * size;
 
 export const verticalScale = (size: number) =>
@@ -67,9 +63,8 @@ export const verticalScale = (size: number) =>
 export const moderateScale = (size: number, factor = 0.5) =>
   size + (scale(size) - size) * factor;
 
-// ----------------------------
-// 🔠 Font & icons
-// ----------------------------
+
+// Font & icons
 export const normalizeFont = (size: number) => {
   const newSize = scale(size);
   return Math.round(PixelRatio.roundToNearestPixel(newSize));
@@ -78,9 +73,8 @@ export const normalizeFont = (size: number) => {
 export const responsiveIconSize = (size: number) =>
   Math.round(PixelRatio.roundToNearestPixel(scale(size)));
 
-// ----------------------------
-// 📐 Layout spacing
-// ----------------------------
+
+// Layout spacing
 export const layoutScale = (size: number) => {
   if (isLargeTablet()) return scale(size * 1.15);
   if (isTablet()) return scale(size * 1.08);
@@ -88,9 +82,7 @@ export const layoutScale = (size: number) => {
   return scale(size);
 };
 
-// ----------------------------
-// 📝 Text scaling
-// ----------------------------
+// Text scaling
 export const textScale = (size: number) => {
   if (isLargeTablet()) return size * 1.15;
   if (isTablet()) return size * 1.08;
@@ -99,9 +91,8 @@ export const textScale = (size: number) => {
   return size;
 };
 
-// ----------------------------
-// 🧰 Debug Helper
-// ----------------------------
+
+// Debug Helper
 export const logDeviceInfo = () => {
   console.log("Device Info:", {
     width,
