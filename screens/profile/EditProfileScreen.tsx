@@ -117,7 +117,7 @@ const EditProfileScreen = ({ navigation }: any) => {
           <View style={styles.section}>
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Text style={styles.sectionTitle}>Edit Profile</Text>
+                <Text style={styles.sectionTitle}>Edit Profile Information</Text>
               </View>
 
               <View style={styles.fieldContainer}>

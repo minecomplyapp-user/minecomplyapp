@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../theme/theme";
 import { CustomHeader } from "../../components/CustomHeader";
@@ -240,6 +241,11 @@ export default function ECCMonitoringScreen({ navigation, route }: any) {
     const currentDate = selectedDate || date || new Date();
     if (Platform.OS === "android") setShowDatePicker(false);
     setDate(currentDate);
+  };
+
+  const handleConfirmDate = (selectedDate: Date) => {
+    setDate(selectedDate || date || new Date());
+    setShowDatePicker(false);
   };
 
   // === Multipartite Monitoring Team ===
@@ -606,32 +612,15 @@ export default function ECCMonitoringScreen({ navigation, route }: any) {
                 </Text>
               </TouchableOpacity>
 
-              {showDatePicker && Platform.OS === "ios" && (
-                <View style={styles.datePickerWrapper}>
-                  <DateTimePicker
-                    value={date || new Date()}
-                    mode="date"
-                    display="inline"
-                    onChange={onChangeDate}
-                    style={styles.datePicker}
-                  />
-                  <TouchableOpacity
-                    onPress={() => setShowDatePicker(false)}
-                    style={styles.datePickerDoneButton}
-                  >
-                    <Text style={styles.datePickerDoneText}>Done</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {showDatePicker && Platform.OS === "android" && (
-                <DateTimePicker
-                  value={date || new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={onChangeDate}
-                />
-              )}
+              {/* Use modal date picker for both platforms for a consistent pop-up UX */}
+              <DateTimePickerModal
+                isVisible={showDatePicker}
+                mode="date"
+                date={date || new Date()}
+                onConfirm={handleConfirmDate}
+                onCancel={() => setShowDatePicker(false)}
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+              />
             </View>
           </View>
         </View>
@@ -808,41 +797,7 @@ export default function ECCMonitoringScreen({ navigation, route }: any) {
                     </Text>
                   </TouchableOpacity>
 
-                  {/* iOS Inline Picker */}
-                  {showPermitDatePicker.show &&
-                    showPermitDatePicker.id === holder.id &&
-                    Platform.OS === "ios" && (
-                      <View style={styles.datePickerWrapper}>
-                        <DateTimePicker
-                          value={
-                            holder.issuanceDate
-                              ? new Date(holder.issuanceDate)
-                              : new Date()
-                          }
-                          mode="date"
-                          display="inline"
-                          onChange={(_e, d) => {
-                            if (d)
-                              setPermitHolders((p) =>
-                                p.map((h) =>
-                                  h.id === holder.id
-                                    ? { ...h, issuanceDate: d.toISOString() }
-                                    : h
-                                )
-                              );
-                          }}
-                          style={styles.datePicker}
-                        />
-                        <TouchableOpacity
-                          onPress={() =>
-                            setShowPermitDatePicker({ id: null, show: false })
-                          }
-                          style={styles.datePickerDoneButton}
-                        >
-                          <Text style={styles.datePickerDoneText}>Done</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
+                  {/* date picker uses centralized modal (rendered after list) */}
                 </View>
 
                 {/* Monitoring Section */}
@@ -1012,10 +967,12 @@ export default function ECCMonitoringScreen({ navigation, route }: any) {
             </View>
           </View>
 
-          {/* === Android Global Date Picker === */}
-          {showPermitDatePicker.show && Platform.OS === "android" && (
-            <DateTimePicker
-              value={
+          {/* Centralized Date Picker Modal for permit issuance (both platforms) */}
+          {showPermitDatePicker.show && (
+            <DateTimePickerModal
+              isVisible={showPermitDatePicker.show}
+              mode="date"
+              date={
                 permit_holders.find((h) => h.id === showPermitDatePicker.id)
                   ?.issuanceDate
                   ? new Date(
@@ -1025,9 +982,7 @@ export default function ECCMonitoringScreen({ navigation, route }: any) {
                     )
                   : new Date()
               }
-              mode="date"
-              display="default"
-              onChange={(_e, d) => {
+              onConfirm={(d) => {
                 setShowPermitDatePicker({ id: null, show: false });
                 if (d) {
                   setPermitHolders((p) =>
@@ -1039,6 +994,8 @@ export default function ECCMonitoringScreen({ navigation, route }: any) {
                   );
                 }
               }}
+              onCancel={() => setShowPermitDatePicker({ id: null, show: false })}
+              display={Platform.OS === "ios" ? "spinner" : "default"}
             />
           )}
         </View>
