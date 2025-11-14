@@ -23,6 +23,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFileName } from "../../../contexts/FileNameContext";
 import { createCMVRReport } from "../../../lib/cmvr";
 import { saveDraft } from "../../../lib/drafts";
+
 import {
   CMVRReportScreenNavigationProp,
   CMVRReportScreenRouteProp,
@@ -245,7 +246,7 @@ const CMVRReportScreen: React.FC = () => {
       }));
     }
   };
-
+const [permitHolderList, setPermitHolderList] = useState<string[]>([]); // ✅ Must be defined!
   const [eccInfo, setEccInfo] = useState<ECCInfo>({
     isNA: draftData?.eccInfo?.isNA ?? false,
     permitHolder: draftData?.eccInfo?.permitHolder || "",
@@ -723,6 +724,8 @@ const CMVRReportScreen: React.FC = () => {
           setIsagInfo={setIsagInfo}
           isagAdditionalForms={isagAdditionalForms}
           setIsagAdditionalForms={setIsagAdditionalForms}
+          permitHolderList={permitHolderList}
+          setPermitHolderList={setPermitHolderList}
         />
         <View style={styles.divider} />
         <EPEPSection
@@ -730,6 +733,9 @@ const CMVRReportScreen: React.FC = () => {
           setEpepInfo={setEpepInfo}
           epepAdditionalForms={epepAdditionalForms}
           setEpepAdditionalForms={setEpepAdditionalForms}
+          permitHolderList={permitHolderList}
+          setPermitHolderList={setPermitHolderList}
+
         />
         <View style={styles.divider} />
         <RCFSection
@@ -745,6 +751,8 @@ const CMVRReportScreen: React.FC = () => {
           setFmrdfInfo={setFmrdfInfo}
           fmrdfAdditionalForms={fmrdfAdditionalForms}
           setFmrdfAdditionalForms={setFmrdfAdditionalForms}
+          permitHolderList={permitHolderList}
+
         />
         <View style={styles.divider} />
         <MMTSection mmtInfo={mmtInfo} setMmtInfo={setMmtInfo} />

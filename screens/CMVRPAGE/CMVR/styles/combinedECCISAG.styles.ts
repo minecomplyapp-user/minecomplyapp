@@ -341,4 +341,72 @@ export const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#6B7280",
   },
+   pickerContainer: {
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 8,
+    backgroundColor: "#FFF",
+    marginBottom: 12,
+  },
+  picker: {
+    color: "#0F172A",
+  },
+  // Inside styles/combinedECCISAG.styles.ts
+
+holderListContainer: {
+    marginTop: 15,
+    paddingHorizontal: 0,
+},
+holderScrollView: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+},
+holderBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E5E7EB', // Light gray background
+    borderRadius: 15,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+},pickerInput: {
+    // This style is applied directly to the Picker component itself
+    height: 50, // Match the wrapper height
+    width: '100%',
+    color: '#1F2937', // Text color
+    fontSize: 16, // Ensure font is legible
+    paddingHorizontal: 12, // Add some padding if needed
+},
+holderText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1F2937',
+    marginRight: 6,
+},
+holderRemoveIcon: {
+    marginLeft: 4,
+},
+emptyListText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    paddingVertical: 10,
+    fontStyle: 'italic',
+},
+pickerWrapper: {
+  // Use styles that match your normal TextInput
+  height: 50,              // 👈 Set a fixed height
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: '#E2E8F0',  // Example border color
+  backgroundColor: '#FFFFFF',
+  overflow: 'hidden',      // Critical for Android to contain the Picker
+  justifyContent: 'center',
+},
+
+
 });

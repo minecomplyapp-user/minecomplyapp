@@ -43,4 +43,7 @@ export type CombinedSectionProps = {
   setIsagInfo: React.Dispatch<React.SetStateAction<ISAGInfo>>;
   isagAdditionalForms: ISAGAdditionalForm[];
   setIsagAdditionalForms: React.Dispatch<React.SetStateAction<ISAGAdditionalForm[]>>;
+  permitHolderList: string[];
+  setPermitHolderList: React.Dispatch<React.SetStateAction<string[]>>;
+
 };

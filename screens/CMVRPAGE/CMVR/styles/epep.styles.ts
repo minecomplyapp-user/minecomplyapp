@@ -199,4 +199,34 @@ export const styles = StyleSheet.create({
   deleteButton: {
     padding: 6,
   },
+  pickerWrapper: {
+  // Use styles that match your normal TextInput
+  height: 50,              // 👈 Set a fixed height
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: '#E2E8F0',  // Example border color
+  backgroundColor: '#FFFFFF',
+  overflow: 'hidden',      // Critical for Android to contain the Picker
+  justifyContent: 'center',
+},
+
+   pickerContainer: {
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 8,
+    backgroundColor: "#FFF",
+    marginBottom: 12,
+  },
+  picker: {
+    color: "#0F172A",
+  },
+  pickerInput: {
+    // This style is applied directly to the Picker component itself
+    height: 50, // Match the wrapper height
+    width: '100%',
+    color: '#1F2937', // Text color
+    fontSize: 16, // Ensure font is legible
+    paddingHorizontal: 12, // Add some padding if needed
+},
+
 });

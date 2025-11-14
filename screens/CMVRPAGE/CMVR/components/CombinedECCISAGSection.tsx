@@ -1,7 +1,10 @@
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { View, Text, TextInput, TouchableOpacity,ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../styles/combinedECCISAG.styles";
+import  { useState } from 'react';
+import { Picker } from "@react-native-picker/picker";
+
 import type {
   ECCInfo,
   ECCAdditionalForm,
@@ -19,11 +22,28 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
   setIsagInfo,
   isagAdditionalForms,
   setIsagAdditionalForms,
+  permitHolderList,
+  setPermitHolderList
 }) => {
   const updateECCInfo = (field: keyof ECCInfo, value: string | boolean) => {
     setEccInfo((prev) => ({ ...prev, [field]: value }));
   };
-  
+  const [newHolderName, setNewHolderName] = useState('');
+const updatePermitHolderList = (newHolder: string) => {
+  setPermitHolderList((prevList) => 
+    // If the new holder is NOT in the list, spread the previous list and add the new holder.
+    // Otherwise, return the previous list (prevList).
+    prevList.includes(newHolder) ? prevList : [...prevList, newHolder]
+  );
+};
+const handleRemoveHolder = (index: number) => {
+    if (typeof setPermitHolderList !== 'function') return; 
+
+    setPermitHolderList((prevList) => 
+      // Filter out the element whose index (i) matches the index passed in
+      prevList.filter((_, i) => i !== index) 
+    );
+};
   const updateISAGInfo = (field: keyof ISAGInfo, value: string | boolean) => {
     setIsagInfo((prev) => ({ ...prev, [field]: value }));
   };
@@ -73,6 +93,83 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
   return (
     <View style={styles.container}>
       {/* Header */}
+
+      <View style={styles.headerSection}>
+      <View style={styles.headerLeft}>
+        <View style={styles.iconContainer}>
+          <Ionicons name="people-circle" size={24} color='#02217C' />
+        </View>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.sectionTitle}>Permit Holder List Management</Text>
+          <Text style={styles.sectionSubtitle}>
+            Add and view available permit holders for forms below.
+          </Text>
+        </View>
+      </View>
+
+      {/* Input Field to Add New Holder */}
+     
+    
+    </View>
+     <View style={[styles.fieldGroup, { marginTop: 15 }]}>
+        <Text style={styles.label}>Add New Holder</Text>
+        <View style={styles.inputWithButton}>
+          <TextInput
+            style={[styles.input, styles.flexInput]}
+            value={newHolderName}
+            onChangeText={setNewHolderName}
+            placeholder="Type new permit holder name"
+            placeholderTextColor="#94A3B8"
+          />
+        
+          <TouchableOpacity 
+          style={styles.submitButton} // Re-using submitButton style
+          onPress={() => {
+            // 1. Pass the current state value (newHolderName) to the update function
+
+            if(newHolderName.trim() === '') return; // Prevent adding empty names
+            updatePermitHolderList(newHolderName); 
+        
+            setNewHolderName(''); 
+          }}
+        >
+        <Ionicons name="add" size={24} color="white" />
+
+        </TouchableOpacity>
+        </View>
+
+
+      
+      </View>
+
+      <View style={styles.holderListContainer}>
+      {permitHolderList.length === 0 ? (
+        <Text style={styles.emptyListText}>
+            No permit holders added yet. Use the field above to add one.
+        </Text>
+      ) : (
+        <ScrollView horizontal={true} contentContainerStyle={styles.holderScrollView}>
+          {permitHolderList.map((holder,index) => (
+            <TouchableOpacity 
+              key={index} 
+              style={styles.holderBadge}
+              onPress={() => handleRemoveHolder(index)}
+            >
+              <Text style={styles.holderText}>{holder}</Text>
+              <Ionicons 
+                name="close-circle" 
+                size={16} 
+                color="#DC2626" 
+                style={styles.holderRemoveIcon} 
+              />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+    </View>
+
+
+      
       <View style={styles.headerSection}>
         <View style={styles.headerLeft}>
           <View style={styles.iconContainer}>
@@ -111,18 +208,27 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
           <View style={styles.formContainer}>
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Name of Permit Holder</Text>
-              <View style={styles.inputWithButton}>
-                <TextInput
-                  style={[styles.input, styles.flexInput]}
-                  value={eccInfo.permitHolder}
-                  onChangeText={(text) => updateECCInfo("permitHolder", text)}
-                  placeholder="Enter permit holder name"
-                  placeholderTextColor="#94A3B8"
-                />
-                <TouchableOpacity style={styles.submitButton}>
-                  <Ionicons name="checkmark-circle" size={18} color="white" />
-                </TouchableOpacity>
-              </View>
+             <View style={styles.pickerWrapper}>
+      <Picker
+        selectedValue={eccInfo.permitHolder}
+        onValueChange={(value) => {
+          updateECCInfo("permitHolder", value);
+        }}
+        
+        // 🟢 Apply explicit input styles here for size/font
+        style={styles.pickerInput} 
+        dropdownIconColor="#0F172A"
+      >
+        <Picker.Item label="Select Permit Holder..." value="" enabled={false} />
+        {permitHolderList.map((holder, index) => (
+          <Picker.Item 
+            key={index} 
+            label={holder} 
+            value={holder} 
+          />
+        ))}
+      </Picker>
+    </View>
             </View>
             
             <View style={styles.fieldGroup}>
@@ -172,7 +278,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Name of Permit Holder</Text>
                   <View style={styles.inputWithButton}>
-                    <TextInput
+                    {/* <TextInput
                       style={[styles.input, styles.flexInput]}
                       value={form.permitHolder}
                       onChangeText={(text) =>
@@ -180,7 +286,27 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
                       }
                       placeholder="Enter permit holder name"
                       placeholderTextColor="#94A3B8"
-                    />
+                    /> */}
+
+                      <Picker
+                    selectedValue={form.permitHolder}
+                    onValueChange={(value) => {
+                      updateEccAdditionalForm(index, "permitHolder", value);
+                    }}
+                    
+                    // 🟢 Apply explicit input styles here for size/font
+                    style={styles.pickerInput} 
+                    dropdownIconColor="#0F172A"
+                  >
+                    <Picker.Item label="Select Permit Holder..." value="" enabled={false} />
+                    {permitHolderList.map((holder, index) => (
+                      <Picker.Item 
+                        key={index} 
+                        label={holder} 
+                        value={holder} 
+                      />
+                    ))}
+                  </Picker>
                     <TouchableOpacity style={styles.submitButton}>
                       <Ionicons name="checkmark-circle" size={18} color="white" />
                     </TouchableOpacity>
@@ -244,13 +370,33 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Name of Permit Holder</Text>
               <View style={styles.inputWithButton}>
-                <TextInput
+                {/* <TextInput
                   style={[styles.input, styles.flexInput]}
                   value={isagInfo.permitHolder}
                   onChangeText={(text) => updateISAGInfo("permitHolder", text)}
                   placeholder="Enter permit holder name"
                   placeholderTextColor="#9CA3AF"
-                />
+                /> */}
+                
+                      <Picker
+                    selectedValue={isagInfo.permitHolder}
+                    onValueChange={(value) => {
+                      updateISAGInfo("permitHolder", value);
+                    }}
+                    
+                    // 🟢 Apply explicit input styles here for size/font
+                    style={styles.pickerInput} 
+                    dropdownIconColor="#0F172A"
+                  >
+                    <Picker.Item label="Select Permit Holder..." value="" enabled={false} />
+                    {permitHolderList.map((holder, index) => (
+                      <Picker.Item 
+                        key={index} 
+                        label={holder} 
+                        value={holder} 
+                      />
+                    ))}
+                  </Picker>
                 <TouchableOpacity style={styles.submitButtonISAG}>
                   <Ionicons name="checkmark-circle" size={18} color="white" />
                 </TouchableOpacity>
@@ -306,7 +452,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Name of Permit Holder</Text>
                   <View style={styles.inputWithButton}>
-                    <TextInput
+                    {/* <TextInput
                       style={[styles.input, styles.flexInput]}
                       value={form.permitHolder}
                       onChangeText={(text) =>
@@ -314,7 +460,27 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
                       }
                       placeholder="Enter permit holder name"
                       placeholderTextColor="#9CA3AF"
-                    />
+                    /> */}
+
+                        <Picker
+                    selectedValue={form.permitHolder}
+                    onValueChange={(value) => {
+                      updateIsagAdditionalForm(index,"permitHolder", value);
+                    }}
+                    
+                    // 🟢 Apply explicit input styles here for size/font
+                    style={styles.pickerInput} 
+                    dropdownIconColor="#0F172A"
+                  >
+                    <Picker.Item label="Select Permit Holder..." value="" enabled={false} />
+                    {permitHolderList.map((holder, index) => (
+                      <Picker.Item 
+                        key={index} 
+                        label={holder} 
+                        value={holder} 
+                      />
+                    ))}
+                  </Picker>
                     <TouchableOpacity style={styles.submitButtonISAG}>
                       <Ionicons name="checkmark-circle" size={18} color="white" />
                     </TouchableOpacity>

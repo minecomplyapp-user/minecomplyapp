@@ -16,4 +16,6 @@ export type EPEPSectionProps = {
   setEpepInfo: React.Dispatch<React.SetStateAction<EPEPInfo>>;
   epepAdditionalForms: EPEPAdditionalForm[];
   setEpepAdditionalForms: React.Dispatch<React.SetStateAction<EPEPAdditionalForm[]>>;
+    permitHolderList: string[];
+  setPermitHolderList: React.Dispatch<React.SetStateAction<string[]>>;
 };

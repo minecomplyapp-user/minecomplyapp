@@ -48,11 +48,11 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
             onValueChange={(value) => {
 
             if (value.toLowerCase().includes("oil")) {
-                onUpdate("parameter", "OG"); // Set resultType to OG if parameter contains "oil"
+                onUpdate("parameter", "OG");
               } else if (value.toLowerCase().includes("tss")) {
-                onUpdate("parameter", "TSS"); // Optional: set TSS if parameter contains TSS
+                onUpdate("parameter", "TSS"); 
               } else {
-                onUpdate("parameter", ""); // Reset if neither
+                onUpdate("parameter", ""); 
               }
 
             }

@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../styles/rcf.styles";
 import type { FundInfo, FundAdditionalForm, RCFSectionProps } from "../types/rcf.types";
+import { Picker } from "@react-native-picker/picker";
 
 const RCFSection: React.FC<RCFSectionProps> = ({
   rcfInfo,
@@ -17,6 +18,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
   setFmrdfInfo,
   fmrdfAdditionalForms,
   setFmrdfAdditionalForms,
+  permitHolderList
 }) => {
   const updateRCFInfo = (field: keyof FundInfo, value: string | boolean) => {
     setRcfInfo((prev) => ({ ...prev, [field]: value }));
@@ -195,14 +197,34 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Name of Permit Holder</Text>
               <View style={styles.inputWithButton}>
-                <TextInput
+                {/* <TextInput
                   style={[styles.input, styles.flexInput]}
                   value={rcfInfo.permitHolder}
                   onChangeText={(text) => updateRCFInfo("permitHolder", text)}
                   placeholder="Enter name"
                   placeholderTextColor="#94A3B8"
                   editable={!rcfInfo.isNA}
-                />
+                /> */}
+
+                  <Picker
+                  selectedValue={rcfInfo.permitHolder}
+                  onValueChange={(value) => {
+                    updateRCFInfo("permitHolder", value);
+                  }}
+                    
+                    // 🟢 Apply explicit input styles here for size/font
+                    style={styles.pickerInput} 
+                    dropdownIconColor="#0F172A"
+                  >
+                    <Picker.Item label="Select Permit Holder..." value="" enabled={false} />
+                    {permitHolderList.map((holder, index) => (
+                      <Picker.Item 
+                        key={index} 
+                        label={holder} 
+                        value={holder} 
+                      />
+                    ))}
+                </Picker>
                 <TouchableOpacity
                   style={[styles.submitButton, rcfInfo.isNA && styles.disabledButton]}
                   disabled={rcfInfo.isNA}
@@ -271,14 +293,35 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Name of Permit Holder</Text>
                   <View style={styles.inputWithButton}>
-                    <TextInput
+                    {/* <TextInput
                       style={[styles.input, styles.flexInput]}
                       value={form.permitHolder}
                       onChangeText={(text) => updateRcfAdditionalForm(index, "permitHolder", text)}
                       placeholder="Enter name"
                       placeholderTextColor="#94A3B8"
                       editable={!rcfInfo.isNA}
-                    />
+                    /> */}
+
+                    
+                  <Picker
+                  selectedValue={form.permitHolder}
+                  onValueChange={(value) => {
+                    updateRcfAdditionalForm(index,"permitHolder", value);
+                  }}
+                    
+                    // 🟢 Apply explicit input styles here for size/font
+                    style={styles.pickerInput} 
+                    dropdownIconColor="#0F172A"
+                  >
+                    <Picker.Item label="Select Permit Holder..." value="" enabled={false} />
+                    {permitHolderList.map((holder, index) => (
+                      <Picker.Item 
+                        key={index} 
+                        label={holder} 
+                        value={holder} 
+                      />
+                    ))}
+                </Picker>
                     <TouchableOpacity
                       style={[styles.submitButton, rcfInfo.isNA && styles.disabledButton]}
                       disabled={rcfInfo.isNA}
@@ -348,14 +391,34 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Name of Permit Holder</Text>
               <View style={styles.inputWithButton}>
-                <TextInput
+                {/* <TextInput
                   style={[styles.input, styles.flexInput]}
                   value={mtfInfo.permitHolder}
                   onChangeText={(text) => updateMTFInfo("permitHolder", text)}
                   placeholder="Enter name"
                   placeholderTextColor="#94A3B8"
                   editable={!mtfInfo.isNA}
-                />
+                /> */}
+
+                <Picker
+              selectedValue={mtfInfo.permitHolder}
+              onValueChange={(value) => {
+                updateMTFInfo("permitHolder", value);
+              }}
+                  
+                  // 🟢 Apply explicit input styles here for size/font
+                  style={styles.pickerInput} 
+                  dropdownIconColor="#0F172A"
+                >
+                  <Picker.Item label="Select Permit Holder..." value="" enabled={false} />
+                  {permitHolderList.map((holder, index) => (
+                    <Picker.Item 
+                      key={index} 
+                      label={holder} 
+                      value={holder} 
+                    />
+                  ))}
+            </Picker>
                 <TouchableOpacity
                   style={[styles.submitButton, mtfInfo.isNA && styles.disabledButton]}
                   disabled={mtfInfo.isNA}
@@ -424,14 +487,34 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Name of Permit Holder</Text>
                   <View style={styles.inputWithButton}>
-                    <TextInput
+                    {/* <TextInput
                       style={[styles.input, styles.flexInput]}
                       value={form.permitHolder}
                       onChangeText={(text) => updateMtfAdditionalForm(index, "permitHolder", text)}
                       placeholder="Enter name"
                       placeholderTextColor="#94A3B8"
                       editable={!mtfInfo.isNA}
-                    />
+                    /> */}
+
+                      <Picker
+                    selectedValue={form.permitHolder}
+                    onValueChange={(value) => {
+                      updateMtfAdditionalForm(index,"permitHolder", value);
+                    }}
+                    
+                    // 🟢 Apply explicit input styles here for size/font
+                    style={styles.pickerInput} 
+                    dropdownIconColor="#0F172A"
+                  >
+                    <Picker.Item label="Select Permit Holder..." value="" enabled={false} />
+                    {permitHolderList.map((holder, index) => (
+                      <Picker.Item 
+                        key={index} 
+                        label={holder} 
+                        value={holder} 
+                      />
+                    ))}
+                                      </Picker>
                     <TouchableOpacity
                       style={[styles.submitButton, mtfInfo.isNA && styles.disabledButton]}
                       disabled={mtfInfo.isNA}
@@ -501,14 +584,34 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Name of Permit Holder</Text>
               <View style={styles.inputWithButton}>
-                <TextInput
+                {/* <TextInput
                   style={[styles.input, styles.flexInput]}
                   value={fmrdfInfo.permitHolder}
                   onChangeText={(text) => updateFMRDFInfo("permitHolder", text)}
                   placeholder="Enter name"
                   placeholderTextColor="#94A3B8"
                   editable={!fmrdfInfo.isNA}
-                />
+                /> */}
+
+                                      <Picker
+                                    selectedValue={fmrdfInfo.permitHolder}
+                                    onValueChange={(value) => {
+                                      updateFMRDFInfo("permitHolder", value);
+                                    }}
+                                    
+                                    // 🟢 Apply explicit input styles here for size/font
+                                    style={styles.pickerInput} 
+                                    dropdownIconColor="#0F172A"
+                                  >
+                                    <Picker.Item label="Select Permit Holder..." value="" enabled={false} />
+                                    {permitHolderList.map((holder, index) => (
+                                      <Picker.Item 
+                                        key={index} 
+                                        label={holder} 
+                                        value={holder} 
+                                      />
+                                    ))}
+                                  </Picker>
                 <TouchableOpacity
                   style={[styles.submitButton, fmrdfInfo.isNA && styles.disabledButton]}
                   disabled={fmrdfInfo.isNA}
@@ -577,14 +680,34 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Name of Permit Holder</Text>
                   <View style={styles.inputWithButton}>
-                    <TextInput
+                    {/* <TextInput
                       style={[styles.input, styles.flexInput]}
                       value={form.permitHolder}
                       onChangeText={(text) => updateFmrdfAdditionalForm(index, "permitHolder", text)}
                       placeholder="Enter name"
                       placeholderTextColor="#94A3B8"
                       editable={!fmrdfInfo.isNA}
-                    />
+                    /> */}
+
+                                          <Picker
+                                        selectedValue={form.permitHolder}
+                                        onValueChange={(value) => {
+                                          updateFmrdfAdditionalForm(index,"permitHolder", value);
+                                        }}
+                                        
+                                        // 🟢 Apply explicit input styles here for size/font
+                                        style={styles.pickerInput} 
+                                        dropdownIconColor="#0F172A"
+                                      >
+                                        <Picker.Item label="Select Permit Holder..." value="" enabled={false} />
+                                        {permitHolderList.map((holder, index) => (
+                                          <Picker.Item 
+                                            key={index} 
+                                            label={holder} 
+                                            value={holder} 
+                                          />
+                                        ))}
+                                      </Picker>
                     <TouchableOpacity
                       style={[styles.submitButton, fmrdfInfo.isNA && styles.disabledButton]}
                       disabled={fmrdfInfo.isNA}
