@@ -1,0 +1,206 @@
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Modal,
+  Pressable,
+} from "react-native";
+import { Upload, X, Camera, Image as ImageIcon } from "lucide-react-native";
+import { CMSFormFieldProps } from "../types/CMSFormField.types";
+import { styles } from "../styles/CMSFormField.styles";
+
+export const CMSFormField: React.FC<CMSFormFieldProps> = ({
+  label,
+  specification,
+  remarks,
+  withinSpecs,
+  subFields,
+  showUploadImage = false,
+  uploadedImage,
+  isUploadingImage,
+  onSpecificationChange,
+  onRemarksChange,
+  onWithinSpecsChange,
+  onSubFieldChange,
+  onUploadImage,
+  onRemoveImage,
+}) => {
+  const [showImageOptions, setShowImageOptions] = useState(false);
+
+  const handleImageOptionPress = (option: "camera" | "gallery") => {
+    setShowImageOptions(false);
+    if (onUploadImage) {
+      // Pass the option to the parent handler
+      onUploadImage(option);
+    }
+  };
+
+  return (
+    <View style={styles.formField}>
+      <View style={styles.fieldRow}>
+        <View style={styles.leftSection}>
+          <View style={styles.labelRow}>
+            <View style={styles.labelPill}>
+              <Text style={styles.labelText}>{label}</Text>
+            </View>
+            {showUploadImage && (
+              <TouchableOpacity
+                style={[
+                  styles.uploadButton,
+                  isUploadingImage ? { opacity: 0.6 } : null,
+                ]}
+                onPress={
+                  isUploadingImage ? undefined : () => setShowImageOptions(true)
+                }
+                disabled={isUploadingImage}
+              >
+                {isUploadingImage ? (
+                  <ActivityIndicator size="small" color="#1E3A8A" />
+                ) : (
+                  <Upload size={16} color="#1E3A8A" />
+                )}
+                <Text style={styles.uploadText}>
+                  {isUploadingImage ? "Uploading..." : "Upload Image"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          {showUploadImage && uploadedImage && (
+            <View style={styles.imagePreviewContainer}>
+              <Image
+                source={{ uri: uploadedImage }}
+                style={styles.imagePreview}
+              />
+              <TouchableOpacity
+                style={styles.removeImageButton}
+                onPress={onRemoveImage}
+              >
+                <X size={16} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+        <View style={styles.middleSection}>
+          {subFields ? (
+            <>
+              {subFields.map((subField, index) => {
+                const isMultiLine = /plant|port/i.test(subField.label);
+                return (
+                  <View key={index} style={styles.subFieldRow}>
+                    <View style={styles.subFieldLabel}>
+                      <View style={styles.bullet} />
+                      <Text style={styles.subFieldLabelText}>
+                        {subField.label}
+                      </Text>
+                    </View>
+                    <TextInput
+                      style={[styles.input, isMultiLine ? styles.textArea : null]}
+                      placeholder={isMultiLine ? "Enter items (comma or newline to separate)" : "Specification Type here..."}
+                      placeholderTextColor="#94A3B8"
+                      value={subField.specification}
+                      onChangeText={(text) => {
+                        // If this is a Plant/Port field, convert commas to new lines for readability
+                        const processed = isMultiLine ? text.replace(/,\s*/g, "\n") : text;
+                        onSubFieldChange?.(index, processed);
+                      }}
+                      multiline={isMultiLine}
+                      numberOfLines={isMultiLine ? 2 : 1}
+                    />
+                  </View>
+                );
+              })}
+            </>
+          ) : (
+            <TextInput
+              style={styles.input}
+              placeholder="Specification"
+              placeholderTextColor="#94A3B8"
+              value={specification}
+              onChangeText={onSpecificationChange}
+            />
+          )}
+          <View style={styles.remarksContainer}>
+            <View style={styles.remarksLabelWrapper}>
+              <Text style={styles.remarksLabel}>
+                Remarks - Description of{"\n"}Actual Implementation
+              </Text>
+            </View>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Type here..."
+              placeholderTextColor="#94A3B8"
+              value={remarks}
+              onChangeText={onRemarksChange}
+              multiline
+              numberOfLines={2}
+            />
+          </View>
+        </View>
+        <View style={styles.rightSection}>
+          <Text style={styles.radioLabel}>Within specs?</Text>
+          <View style={styles.radioRow}>
+            <TouchableOpacity
+              style={styles.radioOption}
+              onPress={() => onWithinSpecsChange(true)}
+            >
+              <View style={styles.radioOuter}>
+                {withinSpecs === true && <View style={styles.radioInner} />}
+              </View>
+              <Text style={styles.radioText}>Yes</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.radioOption}
+              onPress={() => onWithinSpecsChange(false)}
+            >
+              <View style={styles.radioOuter}>
+                {withinSpecs === false && <View style={styles.radioInner} />}
+              </View>
+              <Text style={styles.radioText}>No</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {/* Image Source Options Modal */}
+      <Modal
+        visible={showImageOptions}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowImageOptions(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowImageOptions(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Image Source</Text>
+            <TouchableOpacity
+              style={styles.modalOption}
+              onPress={() => handleImageOptionPress("camera")}
+            >
+              <Camera size={20} color="#1E3A8A" />
+              <Text style={styles.modalOptionText}>Take Photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalOption}
+              onPress={() => handleImageOptionPress("gallery")}
+            >
+              <ImageIcon size={20} color="#1E3A8A" />
+              <Text style={styles.modalOptionText}>Choose from Gallery</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setShowImageOptions(false)}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+};

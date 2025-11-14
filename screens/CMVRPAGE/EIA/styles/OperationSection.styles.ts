@@ -1,0 +1,93 @@
+import { StyleSheet } from 'react-native';
+
+export const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    marginBottom: 16,
+    padding: 16,
+    shadowColor: '#02217C',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  titleBadge: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#93C5FD',
+  },
+  titleText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color:'#02217C',
+  },
+  naContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  naText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#475569',
+  },
+  subsectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 14,
+    color: '#1E293B',
+    textDecorationLine: 'underline',
+    textDecorationColor: '#BFDBFE',
+  },
+  measureContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    gap: 8,
+  },
+  measureContent: {
+    flex: 1,
+  },
+  deleteButton: {
+    padding: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#DC2626',
+    borderRadius: 16,
+  },
+  addButton: {
+    alignSelf: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  addButtonText: {
+    fontSize: 13,
+    color: '#02217C',
+    fontWeight: '700',
+  },
+  addButtonTextDisabled: {
+    color: '#CBD5E1',
+  },
+});

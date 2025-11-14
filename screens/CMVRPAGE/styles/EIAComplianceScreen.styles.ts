@@ -1,0 +1,110 @@
+// EIAComplianceScreen.styles.ts
+import { StyleSheet, Platform } from "react-native";
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F1F5F9",
+  },
+  headerContainer: {
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "ios" ? 12 : 12,
+    paddingBottom: 12,
+    backgroundColor: "white",
+    zIndex: 1,
+    shadowColor: "#02217C",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  
+  // Updated to match Water Quality design
+  titleContainer: {
+    backgroundColor: "#EFF6FF",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    borderRadius: 10,
+    gap: 12,
+    shadowColor: "#02217C",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  titleAccent: {
+    backgroundColor: "#02217C",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    minWidth: 40,
+    alignItems: "center",
+  },
+  titleAccentText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  titleText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#02217C",
+    flex: 1,
+  },
+  
+  divider: {
+    height: 1.5,
+    backgroundColor: "#BFDBFE",
+    marginVertical: 24,
+  },
+  dividerSmall: {
+    height: 8,
+    backgroundColor: "transparent",
+    marginVertical: 8,
+  },
+  mainTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#02217C",
+    textAlign: "center",
+    marginBottom: 18,
+    marginTop: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  saveNextButton: {
+    backgroundColor: "#02217C",
+    paddingVertical: 16,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 24,
+    marginBottom: 16,
+    marginHorizontal: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+    shadowColor: "#02217C",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  saveNextButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+});

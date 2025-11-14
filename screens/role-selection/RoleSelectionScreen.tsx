@@ -1,0 +1,124 @@
+import React, { useState } from "react";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  Animated,
+  ScrollView,
+} from "react-native";
+import { Users, UserCog, User, UserPlus } from "lucide-react-native";
+import { theme } from "../../theme/theme";
+import styles from "./styles/roleSelectionScreen";
+
+const roles = [
+  { label: "MMT Chair", icon: UserCog },
+  { label: "Co-chair", icon: Users },
+  { label: "Member", icon: User },
+  { label: "Guest", icon: UserPlus },
+];
+
+function RoleCard({ role, onPress }: any) {
+  const [scaleAnim] = useState(new Animated.Value(1));
+  const Icon = role.icon;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.97,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 4,
+      tension: 50,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onPress={onPress}
+      style={styles.roleWrapper}
+      className="rounded-3xl"
+    >
+      <Animated.View
+        style={[styles.roleCard, { transform: [{ scale: scaleAnim }] }]}
+        className="bg-white items-center justify-center shadow-sm"
+      >
+        <View
+          style={styles.iconCircle}
+          className="bg-blue-100 items-center justify-center"
+        >
+          <Icon color={theme.colors.primaryDark} strokeWidth={2.2} />
+        </View>
+        <Text
+          style={styles.roleLabel}
+          className="text-primaryDark font-semibold text-center"
+        >
+          {role.label}
+        </Text>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
+
+export default function RoleSelectionScreen({ navigation }: any) {
+  const handleRoleSelect = (roleLabel: string) => {
+    if (roleLabel === "MMT Chair" || roleLabel === "Co-chair") {
+      navigation.replace("Dashboard", { role: roleLabel });
+    } else if (roleLabel === "Member" || roleLabel === "Guest") {
+      navigation.replace("GuestDashboard", { role: roleLabel });
+    }
+  };
+
+  return (
+    <SafeAreaProvider style={styles.safeArea} className="bg-background flex-1">
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header} className="items-center">
+          <Image
+            source={require("../../assets/images/mc-logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text
+            style={styles.title}
+            className="text-gray-900 font-extrabold text-center"
+          >
+            Select Your Role
+          </Text>
+          <Text
+            style={styles.subtitle}
+            className="text-gray-500 text-center font-medium"
+          >
+            Choose how you’ll use MineComply
+          </Text>
+        </View>
+
+        {/* Role Cards */}
+        <View
+          style={styles.rolesContainer}
+          className="flex-row flex-wrap justify-between w-full"
+        >
+          {roles.map((role) => (
+            <RoleCard
+              key={role.label}
+              role={role}
+              onPress={() => handleRoleSelect(role.label)}
+            />
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaProvider>
+  );
+}
