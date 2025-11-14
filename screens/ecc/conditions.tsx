@@ -427,7 +427,7 @@ export default function ECCMonitoringScreen2() {
     const id = `custom-${Date.now()}`;
     const base: BaseCondition = {
       id,
-      title: `Condition ${id}: Untitled`,
+      title: ``,
       descriptions: { complied: "", partial: "", not: "" },
       isDefault: false,
     };
@@ -789,7 +789,7 @@ export default function ECCMonitoringScreen2() {
                     }
                   />
 
-                  <Text style={styles.modalLabel}>Complied (description)</Text>
+                  {/* <Text style={styles.modalLabel}>Complied (description)</Text>
                   <TextInput
                     style={[styles.modalInput, { height: verticalScale(80) }]}
                     placeholder="Complied description"
@@ -806,9 +806,9 @@ export default function ECCMonitoringScreen2() {
                       )
                     }
                     multiline
-                  />
+                  /> */}
 
-                  <Text style={styles.modalLabel}>
+                  {/* <Text style={styles.modalLabel}>
                     Partially Complied (description)
                   </Text>
                   <TextInput
@@ -827,9 +827,9 @@ export default function ECCMonitoringScreen2() {
                       )
                     }
                     multiline
-                  />
+                  /> */}
 
-                  <Text style={styles.modalLabel}>
+                  {/* <Text style={styles.modalLabel}>
                     Not Complied (description)
                   </Text>
                   <TextInput
@@ -848,7 +848,7 @@ export default function ECCMonitoringScreen2() {
                       )
                     }
                     multiline
-                  />
+                  /> */}
 
                   <View style={styles.modalActions}>
                     <TouchableOpacity

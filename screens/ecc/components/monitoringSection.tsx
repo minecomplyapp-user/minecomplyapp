@@ -48,6 +48,10 @@ export const ECCMonitoringSection = ({
   const [selections, setSelections] = useState<
     Record<CondID, ChoiceKey | null>
   >(initialState.selections || {});
+
+   const [remarks, setRemarks] = useState<
+    Record<CondID, string | null>
+  >(initialState.remarks || {});
   const [removedDefaults, setRemovedDefaults] = useState<CondID[]>([]);
   const [collapsed, setCollapsed] = useState(false);
 
@@ -61,11 +65,7 @@ export const ECCMonitoringSection = ({
   const toConditionOutput = () => {
     const conditions = currentList.map((cond, index) => {
       const status = selections[cond.id] || "";
-      const remarks =
-        status && cond.descriptions[status]
-          ? cond.descriptions[status]
-          : "No remarks.";
-
+      const remark = remarks[cond.id] || "";
       section += 1; // increment section count
 
       return {
@@ -74,9 +74,9 @@ export const ECCMonitoringSection = ({
           : undefined,
         section,
         condition_number: index + 1,
-        condition: cond.title,
+        condition: `Condition ${cond.id}: ${cond.title}`,
         status,
-        remarks,
+        remarks:remark,
         remark_list: [
           cond.descriptions.complied,
           cond.descriptions.partial,
@@ -88,12 +88,15 @@ export const ECCMonitoringSection = ({
     return { conditions };
   };
 
-  useEffect(() => {
-    const formatted = toConditionOutput();
-    console.log(currentList);
+useEffect(() => {
+    const formatted = toConditionOutput();
+    console.log(formatted);
 
-    onChange({ edits, customs, selections, formatted });
-  }, [edits, customs, selections]);
+    // 🟢 ADD 'remarks' to the saved state object
+    onChange({ edits, customs, selections, remarks, formatted }); 
+    
+  // 🟢 ADD 'remarks' to the dependency array
+  }, [edits, customs, selections, remarks]);
 
   const currentList = useMemo(() => {
     // Apply edits over DEFAULTS
@@ -228,6 +231,11 @@ export const ECCMonitoringSection = ({
     setSelections((s) => ({ ...s, [id]: choice }));
   };
 
+  const setRemark = (id: CondID, text: string) => {
+    setRemarks((r) => ({ ...r, [id]: text }));
+    console.log(remarks);
+  }
+
   return (
     <View>
       <TouchableOpacity
@@ -357,9 +365,10 @@ export const ECCMonitoringSection = ({
                                         ? "Partially Complied"
                                         : "Not Complied"}
                                   </Text>
-                                  <Text style={styles.radioDescription}>
+                                  {/* <Text style={styles.radioDescription}>
                                     {cond.descriptions[k]}
-                                  </Text>
+                                  </Text> */}
+
                                 </View>
                               </TouchableOpacity>
                             </View>
@@ -369,6 +378,37 @@ export const ECCMonitoringSection = ({
                     </View>
                   </>
                 )}
+                
+                                 <TextInput
+                                  style={{
+                                      // Base Input Styles (from your existing styles.input)
+                                      height: 50, // This will be overridden by minHeight/padding
+                                      paddingHorizontal: 15,
+                                      paddingVertical: 10,
+                                      borderColor: '#CCC',
+                                      borderWidth: 1,
+                                      borderRadius: 8,
+                                      fontSize: 18,
+                                      backgroundColor: 'white',
+                                      
+                                      // 🟢 Long Text (styles.textArea) Specific Styles
+                                      minHeight: 120, // Defines the minimum visible height
+                                      textAlignVertical: 'top', // Ensures text starts at the top (Crucial for Android multiline)
+                                      
+                                      // Note: For long text, you typically remove the fixed 'height: 50'
+                                      // If 'styles.input' is passed first, minHeight will override a fixed height.
+                                  }}
+                                 value={remarks[cond.id] ?? ""}   // <-- k = complied | partial | not
+                                 onChangeText={(text) => setRemark(cond.id,text )}
+                                  placeholder="Enter remarks here..."
+                                  keyboardType="default"
+                                  autoCapitalize="sentences"
+                                  
+                                  // Multi-line functionality props
+                                  multiline={true}
+                                  scrollEnabled={true} 
+                                  numberOfLines={4}
+                              />
               </View>
             );
           })}
