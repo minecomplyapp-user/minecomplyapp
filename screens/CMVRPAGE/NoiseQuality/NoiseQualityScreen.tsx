@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
 import * as DocumentPicker from "expo-document-picker";
 import { CMSHeader } from "../../../components/CMSHeader";
-import { saveDraft } from "../../../lib/drafts";
+import { useCmvrStore } from "../../../store/cmvrStore";
 import { uploadNoiseQualityFile } from "../../../lib/storage";
 import { NoiseParameterCard } from "./components/NoiseParameterCard";
 import { FileUploadSection } from "./components/FileUploadSection";
@@ -21,73 +21,96 @@ import { UploadedFile, QuarterData, NoiseParameter } from "./types";
 import { noiseQualityScreenStyles as styles } from "./styles";
 
 export default function NoiseQualityScreen({ navigation, route }: any) {
-  const [hasInternalNoise, setHasInternalNoise] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  // **ZUSTAND STORE** - Single source of truth
+  const {
+    currentReport,
+    fileName: storeFileName,
+    submissionId: storeSubmissionId,
+    projectId: storeProjectId,
+    projectName: storeProjectName,
+    updateSection,
+    saveDraft,
+  } = useCmvrStore();
+
+  // Initialize from store
+  const storedNoiseQuality = currentReport?.noiseQualityImpactAssessment;
+
+  const [hasInternalNoise, setHasInternalNoise] = useState(
+    storedNoiseQuality?.hasInternalNoise || false
+  );
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>(
+    storedNoiseQuality?.uploadedFiles || []
+  );
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>(
     {}
   );
-  const [parameters, setParameters] = useState<NoiseParameter[]>([
-    {
-      id: `param-${Date.now()}`,
-      parameter: "",
-      isParameterNA: false,
-      currentInSMR: "",
-      previousInSMR: "",
-      mmtCurrent: "",
-      mmtPrevious: "",
-      redFlag: "",
-      isRedFlagChecked: false,
-      action: "",
-      isActionChecked: false,
-      limit: "",
-      isLimitChecked: false,
-    },
-  ]);
-  const [remarks, setRemarks] = useState("");
-  const [dateTime, setDateTime] = useState("");
-  const [weatherWind, setWeatherWind] = useState("");
-  const [explanation, setExplanation] = useState("");
-  const [explanationNA, setExplanationNA] = useState(false);
-  const [quarters, setQuarters] = useState<QuarterData>({
-    first: "",
-    isFirstChecked: false,
-    second: "",
-    isSecondChecked: false,
-    third: "",
-    isThirdChecked: false,
-    fourth: "",
-    isFourthChecked: false,
-  });
-
-  // Hydrate from route params when coming from a draft
-  useEffect(() => {
-    const params: any = route?.params || {};
-
-    // Check for data from draftData first (coming from summary), then from direct params
-    const draftData = params.draftData;
-    const saved =
-      draftData?.noiseQualityImpactAssessment ||
-      params.noiseQualityImpactAssessment;
-
-    if (saved) {
-      console.log("Hydrating NoiseQuality with saved data");
-      if (typeof saved.hasInternalNoise === "boolean")
-        setHasInternalNoise(saved.hasInternalNoise);
-      if (Array.isArray(saved.uploadedFiles))
-        setUploadedFiles(saved.uploadedFiles);
-      if (Array.isArray(saved.parameters)) setParameters(saved.parameters);
-      if (typeof saved.remarks === "string") setRemarks(saved.remarks);
-      if (typeof saved.dateTime === "string") setDateTime(saved.dateTime);
-      if (typeof saved.weatherWind === "string")
-        setWeatherWind(saved.weatherWind);
-      if (typeof saved.explanation === "string")
-        setExplanation(saved.explanation);
-      if (typeof saved.explanationNA === "boolean")
-        setExplanationNA(saved.explanationNA);
-      if (saved.quarters)
-        setQuarters((prev) => ({ ...prev, ...saved.quarters }));
+  const [parameters, setParameters] = useState<NoiseParameter[]>(
+    storedNoiseQuality?.parameters || [
+      {
+        id: `param-${Date.now()}`,
+        parameter: "",
+        isParameterNA: false,
+        currentInSMR: "",
+        previousInSMR: "",
+        mmtCurrent: "",
+        mmtPrevious: "",
+        redFlag: "",
+        isRedFlagChecked: false,
+        action: "",
+        isActionChecked: false,
+        limit: "",
+        isLimitChecked: false,
+      },
+    ]
+  );
+  const [remarks, setRemarks] = useState(storedNoiseQuality?.remarks || "");
+  const [dateTime, setDateTime] = useState(storedNoiseQuality?.dateTime || "");
+  const [weatherWind, setWeatherWind] = useState(
+    storedNoiseQuality?.weatherWind || ""
+  );
+  const [explanation, setExplanation] = useState(
+    storedNoiseQuality?.explanation || ""
+  );
+  const [explanationNA, setExplanationNA] = useState(
+    storedNoiseQuality?.explanationNA || false
+  );
+  const [quarters, setQuarters] = useState<QuarterData>(
+    storedNoiseQuality?.quarters || {
+      first: "",
+      isFirstChecked: false,
+      second: "",
+      isSecondChecked: false,
+      third: "",
+      isThirdChecked: false,
+      fourth: "",
+      isFourthChecked: false,
     }
-  }, [route?.params]);
+  );
+
+  // Auto-sync to store
+  useEffect(() => {
+    updateSection("noiseQualityImpactAssessment", {
+      hasInternalNoise,
+      uploadedFiles,
+      parameters,
+      remarks,
+      dateTime,
+      weatherWind,
+      explanation,
+      explanationNA,
+      quarters,
+    });
+  }, [
+    hasInternalNoise,
+    uploadedFiles,
+    parameters,
+    remarks,
+    dateTime,
+    weatherWind,
+    explanation,
+    explanationNA,
+    quarters,
+  ]);
 
   // Handle file changes with Supabase upload
   const handleFilesChange = async (newFiles: UploadedFile[]) => {
@@ -158,63 +181,14 @@ export default function NoiseQualityScreen({ navigation, route }: any) {
 
   const handleSave = async () => {
     try {
-      const prevPageData: any = route.params || {};
-
-      const noiseQualityImpactAssessment = {
-        hasInternalNoise,
-        uploadedFiles,
-        parameters,
-        remarks,
-        dateTime,
-        weatherWind,
-        explanation,
-        explanationNA,
-        quarters,
-      };
-
-      const draftData = {
-        ...prevPageData.generalInfo,
-        ...prevPageData.eccInfo,
-        ...prevPageData.eccAdditionalForms,
-        ...prevPageData.isagInfo,
-        ...prevPageData.isagAdditionalForms,
-        ...prevPageData.epepInfo,
-        ...prevPageData.epepAdditionalForms,
-        ...prevPageData.rcfInfo,
-        ...prevPageData.rcfAdditionalForms,
-        ...prevPageData.mtfInfo,
-        ...prevPageData.mtfAdditionalForms,
-        ...prevPageData.fmrdfInfo,
-        ...prevPageData.fmrdfAdditionalForms,
-        ...prevPageData.mmtInfo,
-        fileName: prevPageData.fileName || "Untitled",
-        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken:
-          prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits:
-          prevPageData.complianceToProjectLocationAndCoverageLimits,
-        complianceToImpactManagementCommitments:
-          prevPageData.complianceToImpactManagementCommitments,
-        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
-        waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
-        noiseQualityImpactAssessment,
-        savedAt: new Date().toISOString(),
-      };
-
-      const fileName = prevPageData.fileName || "Untitled";
-      const success = await saveDraft(fileName, draftData);
-
-      if (success) {
-        Alert.alert("Success", "Draft saved successfully");
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: "Dashboard" }],
-          })
-        );
-      } else {
-        Alert.alert("Error", "Failed to save draft. Please try again.");
-      }
+      await saveDraft();
+      Alert.alert("Success", "Draft saved successfully");
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
     } catch (error) {
       console.error("Error saving draft:", error);
       Alert.alert("Error", "Failed to save draft. Please try again.");
@@ -227,63 +201,14 @@ export default function NoiseQualityScreen({ navigation, route }: any) {
 
   const handleSaveToDraft = async () => {
     try {
-      const prevPageData: any = route.params || {};
-
-      const noiseQualityImpactAssessment = {
-        hasInternalNoise,
-        uploadedFiles,
-        parameters,
-        remarks,
-        dateTime,
-        weatherWind,
-        explanation,
-        explanationNA,
-        quarters,
-      };
-
-      const draftData = {
-        ...prevPageData.generalInfo,
-        ...prevPageData.eccInfo,
-        ...prevPageData.eccAdditionalForms,
-        ...prevPageData.isagInfo,
-        ...prevPageData.isagAdditionalForms,
-        ...prevPageData.epepInfo,
-        ...prevPageData.epepAdditionalForms,
-        ...prevPageData.rcfInfo,
-        ...prevPageData.rcfAdditionalForms,
-        ...prevPageData.mtfInfo,
-        ...prevPageData.mtfAdditionalForms,
-        ...prevPageData.fmrdfInfo,
-        ...prevPageData.fmrdfAdditionalForms,
-        ...prevPageData.mmtInfo,
-        fileName: prevPageData.fileName || "Untitled",
-        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken:
-          prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits:
-          prevPageData.complianceToProjectLocationAndCoverageLimits,
-        complianceToImpactManagementCommitments:
-          prevPageData.complianceToImpactManagementCommitments,
-        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
-        waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
-        noiseQualityImpactAssessment,
-        savedAt: new Date().toISOString(),
-      };
-
-      const fileName = prevPageData.fileName || "Untitled";
-      const success = await saveDraft(fileName, draftData);
-
-      if (success) {
-        Alert.alert("Success", "Draft saved successfully");
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: "Dashboard" }],
-          })
-        );
-      } else {
-        Alert.alert("Error", "Failed to save draft. Please try again.");
-      }
+      await saveDraft();
+      Alert.alert("Success", "Draft saved successfully");
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
     } catch (error) {
       console.error("Error saving draft:", error);
       Alert.alert("Error", "Failed to save draft. Please try again.");

@@ -27,6 +27,18 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
     onUpdate(field as keyof Omit<Parameter, "id">, value);
   };
 
+  const handleParameterSelect = (value: string | number) => {
+    const selection = String(value).toLowerCase();
+
+    if (selection.includes("oil")) {
+      onUpdate("parameter", "OG");
+    } else if (selection.includes("tss")) {
+      onUpdate("parameter", "TSS");
+    } else {
+      onUpdate("parameter", "");
+    }
+  };
+
   return (
     <View style={!isMain && styles.additionalContainer}>
       {!isMain && onDelete && (
@@ -41,23 +53,11 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
         </Text>
       </View>
 
-        {/* Picker dropdown */}
+      {/* Picker dropdown */}
       <View style={styles.pickerContainer}>
         <Picker
           selectedValue={parameter.parameter}
-            onValueChange={(value) => {
-
-            if (value.toLowerCase().includes("oil")) {
-                onUpdate("parameter", "OG");
-              } else if (value.toLowerCase().includes("tss")) {
-                onUpdate("parameter", "TSS"); 
-              } else {
-                onUpdate("parameter", ""); 
-              }
-
-            }
-    }
-          
+          onValueChange={handleParameterSelect}
           style={styles.picker}
           dropdownIconColor="#0F172A"
         >
@@ -66,7 +66,6 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
           <Picker.Item label="Oil & Grease" value="Oil & Grease" />
         </Picker>
       </View>
-
 
       <ResultMonitoring
         parameter={parameter.parameter}

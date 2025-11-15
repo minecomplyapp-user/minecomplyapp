@@ -11,7 +11,7 @@ import { CommonActions } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { CMSHeader } from "../../../components/CMSHeader";
-import { saveDraft } from "../../../lib/drafts";
+import { useCmvrStore } from "../../../store/cmvrStore";
 import { ChemicalSafetySection } from "./components/ChemicalSafetySection";
 import { ComplianceCheckboxSection } from "./components/ComplianceCheckboxSection";
 import { ComplaintsSection } from "./components/ComplaintsSection";
@@ -24,62 +24,68 @@ import {
 import { styles } from "../styles/ChemicalSafetyScreen.styles";
 
 export default function ChemicalSafetyScreen({ navigation, route }: any) {
-  const [chemicalSafety, setChemicalSafety] = useState<ChemicalSafetyData>({
-    isNA: false,
-    riskManagement: null,
-    training: null,
-    handling: null,
-    emergencyPreparedness: null,
-    remarks: "",
-    chemicalCategory: null,
-    othersSpecify: "",
-  });
-  const [healthSafetyChecked, setHealthSafetyChecked] = useState(false);
-  const [socialDevChecked, setSocialDevChecked] = useState(false);
-  const [complaints, setComplaints] = useState<Complaint[]>([
-    {
-      id: `complaint-${Date.now()}`,
+  // **ZUSTAND STORE** - Single source of truth
+  const {
+    currentReport,
+    fileName: storeFileName,
+    submissionId: storeSubmissionId,
+    projectId: storeProjectId,
+    projectName: storeProjectName,
+    updateMultipleSections,
+    saveDraft,
+  } = useCmvrStore();
+
+  // Initialize from store
+  const storedChemicalSafety =
+    currentReport?.complianceWithGoodPracticeInChemicalSafetyManagement;
+  const storedComplaints = currentReport?.complaintsVerificationAndManagement;
+
+  const [chemicalSafety, setChemicalSafety] = useState<ChemicalSafetyData>(
+    storedChemicalSafety?.chemicalSafety || {
       isNA: false,
-      dateFiled: "",
-      filedLocation: null,
+      riskManagement: null,
+      training: null,
+      handling: null,
+      emergencyPreparedness: null,
+      remarks: "",
+      chemicalCategory: null,
       othersSpecify: "",
-      nature: "",
-      resolutions: "",
-    },
-  ]);
+    }
+  );
 
-  // Hydrate from route params when coming from a draft
+  const [healthSafetyChecked, setHealthSafetyChecked] = useState(
+    storedChemicalSafety?.healthSafetyChecked || false
+  );
+
+  const [socialDevChecked, setSocialDevChecked] = useState(
+    storedChemicalSafety?.socialDevChecked || false
+  );
+
+  const [complaints, setComplaints] = useState<Complaint[]>(
+    storedComplaints || [
+      {
+        id: `complaint-${Date.now()}`,
+        isNA: false,
+        dateFiled: "",
+        filedLocation: null,
+        othersSpecify: "",
+        nature: "",
+        resolutions: "",
+      },
+    ]
+  );
+
+  // Auto-sync to store
   useEffect(() => {
-    const params: any = route?.params || {};
-
-    // Check for data from draftData first (coming from summary), then from direct params
-    const draftData = params.draftData;
-    const savedChemical =
-      draftData?.complianceWithGoodPracticeInChemicalSafetyManagement ||
-      params.complianceWithGoodPracticeInChemicalSafetyManagement;
-    const savedComplaints =
-      draftData?.complaintsVerificationAndManagement ||
-      params.complaintsVerificationAndManagement;
-
-    if (savedChemical) {
-      console.log("Hydrating Chemical Safety with saved data:", savedChemical);
-      setChemicalSafety((prev) => ({
-        ...prev,
-        ...(savedChemical.chemicalSafety || {}),
-      }));
-      if (typeof savedChemical.healthSafetyChecked === "boolean") {
-        setHealthSafetyChecked(savedChemical.healthSafetyChecked);
-      }
-      if (typeof savedChemical.socialDevChecked === "boolean") {
-        setSocialDevChecked(savedChemical.socialDevChecked);
-      }
-    }
-
-    if (Array.isArray(savedComplaints) && savedComplaints.length > 0) {
-      console.log("Hydrating Complaints with saved data:", savedComplaints);
-      setComplaints(savedComplaints);
-    }
-  }, [route?.params]);
+    updateMultipleSections({
+      complianceWithGoodPracticeInChemicalSafetyManagement: {
+        chemicalSafety,
+        healthSafetyChecked,
+        socialDevChecked,
+      },
+      complaintsVerificationAndManagement: complaints,
+    });
+  }, [chemicalSafety, healthSafetyChecked, socialDevChecked, complaints]);
 
   const updateChemicalSafety = (
     field: keyof ChemicalSafetyData,
@@ -179,62 +185,18 @@ export default function ChemicalSafetyScreen({ navigation, route }: any) {
   };
 
   const handleSave = async () => {
-    console.log("Saving Chemical Safety data...");
-
-    // Collect all previous page data from route.params
-    const prevPageData: any = route.params || {};
-
-    // Prepare chemical safety data
-    const complianceWithGoodPracticeInChemicalSafetyManagement = {
-      chemicalSafety,
-      healthSafetyChecked,
-      socialDevChecked,
-    };
-    const complaintsVerificationAndManagement = complaints;
-
-    // Combine all data from previous pages + current page
-    const draftData = {
-      generalInfo: prevPageData.generalInfo,
-      eccInfo: prevPageData.eccInfo,
-      eccAdditionalForms: prevPageData.eccAdditionalForms,
-      isagInfo: prevPageData.isagInfo,
-      isagAdditionalForms: prevPageData.isagAdditionalForms,
-      epepInfo: prevPageData.epepInfo,
-      epepAdditionalForms: prevPageData.epepAdditionalForms,
-      rcfInfo: prevPageData.rcfInfo,
-      rcfAdditionalForms: prevPageData.rcfAdditionalForms,
-      mtfInfo: prevPageData.mtfInfo,
-      mtfAdditionalForms: prevPageData.mtfAdditionalForms,
-      fmrdfInfo: prevPageData.fmrdfInfo,
-      fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
-      mmtInfo: prevPageData.mmtInfo,
-      executiveSummary: prevPageData.executiveSummary,
-      processDocumentation: prevPageData.processDocumentation,
-      complianceToProjectLocationAndCoverageLimits:
-        prevPageData.complianceToProjectLocationAndCoverageLimits,
-      eiaCompliance: prevPageData.eiaCompliance,
-      wasteManagement: prevPageData.wasteManagement,
-      complianceWithGoodPracticeInChemicalSafetyManagement,
-      complaintsVerificationAndManagement,
-      savedAt: new Date().toISOString(),
-    };
-
-    const fileName = prevPageData.fileName || "Untitled";
-
-    // Save draft to AsyncStorage
-    const success = await saveDraft(fileName, draftData);
-
-    if (success) {
+    try {
+      await saveDraft();
       Alert.alert("Success", "Draft saved successfully");
-      // Navigate to Dashboard using CommonActions.reset
       navigation.dispatch(
         CommonActions.reset({
           index: 0,
           routes: [{ name: "Dashboard" }],
         })
       );
-    } else {
-      Alert.alert("Error", "Failed to save draft");
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      Alert.alert("Error", "Failed to save draft. Please try again.");
     }
   };
 
@@ -243,62 +205,18 @@ export default function ChemicalSafetyScreen({ navigation, route }: any) {
   };
 
   const handleSaveToDraft = async () => {
-    console.log("Saving Chemical Safety data...");
-
-    // Collect all previous page data from route.params
-    const prevPageData: any = route.params || {};
-
-    // Prepare chemical safety data
-    const complianceWithGoodPracticeInChemicalSafetyManagement = {
-      chemicalSafety,
-      healthSafetyChecked,
-      socialDevChecked,
-    };
-    const complaintsVerificationAndManagement = complaints;
-
-    // Combine all data from previous pages + current page
-    const draftData = {
-      generalInfo: prevPageData.generalInfo,
-      eccInfo: prevPageData.eccInfo,
-      eccAdditionalForms: prevPageData.eccAdditionalForms,
-      isagInfo: prevPageData.isagInfo,
-      isagAdditionalForms: prevPageData.isagAdditionalForms,
-      epepInfo: prevPageData.epepInfo,
-      epepAdditionalForms: prevPageData.epepAdditionalForms,
-      rcfInfo: prevPageData.rcfInfo,
-      rcfAdditionalForms: prevPageData.rcfAdditionalForms,
-      mtfInfo: prevPageData.mtfInfo,
-      mtfAdditionalForms: prevPageData.mtfAdditionalForms,
-      fmrdfInfo: prevPageData.fmrdfInfo,
-      fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
-      mmtInfo: prevPageData.mmtInfo,
-      executiveSummary: prevPageData.executiveSummary,
-      processDocumentation: prevPageData.processDocumentation,
-      complianceToProjectLocationAndCoverageLimits:
-        prevPageData.complianceToProjectLocationAndCoverageLimits,
-      eiaCompliance: prevPageData.eiaCompliance,
-      wasteManagement: prevPageData.wasteManagement,
-      complianceWithGoodPracticeInChemicalSafetyManagement,
-      complaintsVerificationAndManagement,
-      savedAt: new Date().toISOString(),
-    };
-
-    const fileName = prevPageData.fileName || "Untitled";
-
-    // Save draft to AsyncStorage
-    const success = await saveDraft(fileName, draftData);
-
-    if (success) {
+    try {
+      await saveDraft();
       Alert.alert("Success", "Draft saved successfully");
-      // Navigate to Dashboard using CommonActions.reset
       navigation.dispatch(
         CommonActions.reset({
           index: 0,
           routes: [{ name: "Dashboard" }],
         })
       );
-    } else {
-      Alert.alert("Error", "Failed to save draft");
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      Alert.alert("Error", "Failed to save draft. Please try again.");
     }
   };
 
@@ -514,7 +432,7 @@ export default function ChemicalSafetyScreen({ navigation, route }: any) {
           <Text style={styles.saveButtonText}>Save & Next</Text>
           <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
-        {/* filler gap ts not advisable tbh*/}   
+        {/* filler gap ts not advisable tbh*/}
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>

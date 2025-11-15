@@ -15,7 +15,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
 import { CMSHeader } from "../../../components/CMSHeader";
-import { saveDraft } from "../../../lib/drafts";
+import { useCmvrStore } from "../../../store/cmvrStore";
 import { supabase } from "../../../lib/supabase";
 import { SectionHeader } from "./components/SectionHeader";
 import { FormInputField } from "./components/FormInputField";
@@ -30,111 +30,86 @@ export default function EnvironmentalComplianceScreen({
   navigation,
   route,
 }: any) {
-  const [uploadedEccFile, setUploadedEccFile] = useState<any>(null);
+  // Zustand store
+  const { currentReport, updateSection, saveDraft } = useCmvrStore();
+
+  // Initialize from store
+  const storedAirQuality = currentReport?.airQualityImpactAssessment;
+
+  const [uploadedEccFile, setUploadedEccFile] = useState<any>(
+    storedAirQuality?.uploadedEccFile || null
+  );
   const [isUploadingEcc, setIsUploadingEcc] = useState(false);
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(
+    storedAirQuality?.uploadedImage || null
+  );
 
   // Simple location description strings
-  const [quarry, setQuarry] = useState("");
-  const [plant, setPlant] = useState("");
-  const [port, setPort] = useState("");
-  const [quarryPlant, setQuarryPlant] = useState("");
+  const [quarry, setQuarry] = useState(storedAirQuality?.quarry || "");
+  const [plant, setPlant] = useState(storedAirQuality?.plant || "");
+  const [port, setPort] = useState(storedAirQuality?.port || "");
+  const [quarryPlant, setQuarryPlant] = useState(
+    storedAirQuality?.quarryPlant || ""
+  );
 
   // Checkbox states to enable/disable location inputs
-  const [quarryEnabled, setQuarryEnabled] = useState(false);
-  const [plantEnabled, setPlantEnabled] = useState(false);
-  const [portEnabled, setPortEnabled] = useState(false);
-  const [quarryPlantEnabled, setQuarryPlantEnabled] = useState(false);
+  const [quarryEnabled, setQuarryEnabled] = useState(
+    !!storedAirQuality?.quarry
+  );
+  const [plantEnabled, setPlantEnabled] = useState(!!storedAirQuality?.plant);
+  const [portEnabled, setPortEnabled] = useState(!!storedAirQuality?.port);
+  const [quarryPlantEnabled, setQuarryPlantEnabled] = useState(
+    !!storedAirQuality?.quarryPlant
+  );
 
   // Simple air quality table data (matches backend controller)
-  const [tableData, setTableData] = useState({
-    parameters: [
-      {
-        id: `param-${Date.now()}`,
-        parameter: "",
-        currentSMR: "",
-        previousSMR: "",
-        currentMMT: "",
-        previousMMT: "",
-        thirdPartyTesting: "",
-        eqplRedFlag: "",
-        action: "",
-        limitPM25: "",
-        remarks: "",
-      },
-    ] as ParameterData[],
-    dateTime: "",
-    weatherWind: "",
-    explanation: "",
-    overallCompliance: "",
-  });
-
-  // Hydrate from route params when coming from a draft or summary
-  useEffect(() => {
-    const params: any = route?.params || {};
-
-    // Check for data from draftData first (coming from summary), then from direct params
-    const draftData = params.draftData;
-    const saved =
-      draftData?.airQualityImpactAssessment ||
-      params.airQualityImpactAssessment;
-
-    if (saved) {
-      console.log("Hydrating EnvironmentalCompliance with saved data:", saved);
-
-      // Load location strings
-      if (saved.quarry && typeof saved.quarry === "string") {
-        setQuarry(saved.quarry);
-        setQuarryEnabled(true);
-      }
-      if (saved.plant && typeof saved.plant === "string") {
-        setPlant(saved.plant);
-        setPlantEnabled(true);
-      }
-      if (saved.port && typeof saved.port === "string") {
-        setPort(saved.port);
-        setPortEnabled(true);
-      }
-      if (saved.quarryPlant && typeof saved.quarryPlant === "string") {
-        setQuarryPlant(saved.quarryPlant);
-        setQuarryPlantEnabled(true);
-      }
-
-      // Load table data
-      if (saved.table) {
-        setTableData({
-          parameters:
-            saved.table.parameters && saved.table.parameters.length > 0
-              ? saved.table.parameters
-              : [
-                  {
-                    id: `param-${Date.now()}`,
-                    parameter: "",
-                    currentSMR: "",
-                    previousSMR: "",
-                    currentMMT: "",
-                    previousMMT: "",
-                    thirdPartyTesting: "",
-                    eqplRedFlag: "",
-                    action: "",
-                    limitPM25: "",
-                    remarks: "",
-                  },
-                ],
-          dateTime: saved.table.dateTime || "",
-          weatherWind: saved.table.weatherWind || "",
-          explanation: saved.table.explanation || "",
-          overallCompliance: saved.table.overallCompliance || "",
-        });
-      }
-
-      if (saved.uploadedEccFile) setUploadedEccFile(saved.uploadedEccFile);
-      if (saved.uploadedImage) setUploadedImage(saved.uploadedImage);
+  const [tableData, setTableData] = useState(
+    storedAirQuality?.table || {
+      parameters: [
+        {
+          id: `param-${Date.now()}`,
+          parameter: "",
+          currentSMR: "",
+          previousSMR: "",
+          currentMMT: "",
+          previousMMT: "",
+          thirdPartyTesting: "",
+          eqplRedFlag: "",
+          action: "",
+          limitPM25: "",
+          remarks: "",
+        },
+      ] as ParameterData[],
+      dateTime: "",
+      weatherWind: "",
+      explanation: "",
+      overallCompliance: "",
     }
-  }, [route?.params]);
+  );
+
+  // Auto-sync to store
+  useEffect(() => {
+    updateSection("airQualityImpactAssessment", {
+      quarry,
+      plant,
+      port,
+      quarryPlant,
+      table: tableData,
+      uploadedEccFile,
+      uploadedImage,
+    });
+  }, [
+    quarry,
+    plant,
+    port,
+    quarryPlant,
+    tableData,
+    uploadedEccFile,
+    uploadedImage,
+  ]);
 
   const updateTableField = (field: string, value: string) => {
-    setTableData((prev) => ({ ...prev, [field]: value }));
+    setTableData((prev: any) => ({ ...prev, [field]: value }));
   };
 
   // Additional parameter management functions
@@ -153,7 +128,7 @@ export default function EnvironmentalComplianceScreen({
       limitPM25: "",
       remarks: "",
     };
-    setTableData((prev) => ({
+    setTableData((prev: any) => ({
       ...prev,
       parameters: [...prev.parameters, newParameter],
     }));
@@ -164,9 +139,9 @@ export default function EnvironmentalComplianceScreen({
     field: keyof Omit<ParameterData, "id">,
     value: string
   ) => {
-    setTableData((prev) => ({
+    setTableData((prev: any) => ({
       ...prev,
-      parameters: prev.parameters.map((param) =>
+      parameters: prev.parameters.map((param: any) =>
         param.id === id ? { ...param, [field]: value } : param
       ),
     }));
@@ -182,9 +157,11 @@ export default function EnvironmentalComplianceScreen({
           text: "Remove",
           style: "destructive",
           onPress: () => {
-            setTableData((prev) => ({
+            setTableData((prev: any) => ({
               ...prev,
-              parameters: prev.parameters.filter((param) => param.id !== id),
+              parameters: prev.parameters.filter(
+                (param: any) => param.id !== id
+              ),
             }));
           },
         },
@@ -367,59 +344,14 @@ export default function EnvironmentalComplianceScreen({
 
   const handleSave = async () => {
     try {
-      const prevPageData: any = route.params || {};
-
-      const airQualityImpactAssessment = {
-        quarry,
-        plant,
-        port,
-        quarryPlant,
-        table: tableData,
-        uploadedEccFile,
-        uploadedImage,
-      };
-
-      const draftData = {
-        ...prevPageData.generalInfo,
-        ...prevPageData.eccInfo,
-        ...prevPageData.eccAdditionalForms,
-        ...prevPageData.isagInfo,
-        ...prevPageData.isagAdditionalForms,
-        ...prevPageData.epepInfo,
-        ...prevPageData.epepAdditionalForms,
-        ...prevPageData.rcfInfo,
-        ...prevPageData.rcfAdditionalForms,
-        ...prevPageData.mtfInfo,
-        ...prevPageData.mtfAdditionalForms,
-        ...prevPageData.fmrdfInfo,
-        ...prevPageData.fmrdfAdditionalForms,
-        ...prevPageData.mmtInfo,
-        fileName: prevPageData.fileName || "Untitled",
-        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken:
-          prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits:
-          prevPageData.complianceToProjectLocationAndCoverageLimits,
-        complianceToImpactManagementCommitments:
-          prevPageData.complianceToImpactManagementCommitments,
-        airQualityImpactAssessment,
-        savedAt: new Date().toISOString(),
-      };
-
-      const fileName = prevPageData.fileName || "Untitled";
-      const success = await saveDraft(fileName, draftData);
-
-      if (success) {
-        Alert.alert("Success", "Draft saved successfully");
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: "Dashboard" }],
-          })
-        );
-      } else {
-        Alert.alert("Error", "Failed to save draft. Please try again.");
-      }
+      await saveDraft();
+      Alert.alert("Success", "Draft saved successfully");
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
     } catch (error) {
       console.error("Error saving draft:", error);
       Alert.alert("Error", "Failed to save draft. Please try again.");
@@ -432,59 +364,14 @@ export default function EnvironmentalComplianceScreen({
 
   const handleSaveToDraft = async () => {
     try {
-      const prevPageData: any = route.params || {};
-
-      const airQualityImpactAssessment = {
-        quarry,
-        plant,
-        port,
-        quarryPlant,
-        table: tableData,
-        uploadedEccFile,
-        uploadedImage,
-      };
-
-      const draftData = {
-        ...prevPageData.generalInfo,
-        ...prevPageData.eccInfo,
-        ...prevPageData.eccAdditionalForms,
-        ...prevPageData.isagInfo,
-        ...prevPageData.isagAdditionalForms,
-        ...prevPageData.epepInfo,
-        ...prevPageData.epepAdditionalForms,
-        ...prevPageData.rcfInfo,
-        ...prevPageData.rcfAdditionalForms,
-        ...prevPageData.mtfInfo,
-        ...prevPageData.mtfAdditionalForms,
-        ...prevPageData.fmrdfInfo,
-        ...prevPageData.fmrdfAdditionalForms,
-        ...prevPageData.mmtInfo,
-        fileName: prevPageData.fileName || "Untitled",
-        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken:
-          prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits:
-          prevPageData.complianceToProjectLocationAndCoverageLimits,
-        complianceToImpactManagementCommitments:
-          prevPageData.complianceToImpactManagementCommitments,
-        airQualityImpactAssessment,
-        savedAt: new Date().toISOString(),
-      };
-
-      const fileName = prevPageData.fileName || "Untitled";
-      const success = await saveDraft(fileName, draftData);
-
-      if (success) {
-        Alert.alert("Success", "Draft saved successfully");
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: "Dashboard" }],
-          })
-        );
-      } else {
-        Alert.alert("Error", "Failed to save draft. Please try again.");
-      }
+      await saveDraft();
+      Alert.alert("Success", "Draft saved successfully");
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
     } catch (error) {
       console.error("Error saving draft:", error);
       Alert.alert("Error", "Failed to save draft. Please try again.");
@@ -633,24 +520,8 @@ export default function EnvironmentalComplianceScreen({
   };
 
   const handleSaveNext = () => {
-    const airQualityImpactAssessment = {
-      quarry,
-      plant,
-      port,
-      quarryPlant,
-      table: tableData,
-      uploadedEccFile,
-      uploadedImage,
-    };
-    const nextParams = {
-      ...(route?.params || {}),
-      airQualityImpactAssessment,
-    } as any;
-    console.log(
-      "Navigating with EnvironmentalCompliance params keys:",
-      Object.keys(nextParams)
-    );
-    navigation.navigate("WaterQuality", nextParams);
+    console.log("Navigating to next page");
+    navigation.navigate("WaterQuality");
   };
 
   return (
@@ -672,7 +543,6 @@ export default function EnvironmentalComplianceScreen({
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-
         {/* Upload ECC Conditions File */}
         <View style={styles.uploadSection}>
           <Text style={styles.uploadLabel}>Upload ECC Conditions Document</Text>
@@ -889,7 +759,7 @@ export default function EnvironmentalComplianceScreen({
           </Text>
 
           {/* Parameters List */}
-          {tableData.parameters.map((param, index) => (
+          {tableData.parameters.map((param: any, index: number) => (
             <View key={param.id} style={styles.parameterCard}>
               <View style={styles.parameterCardHeader}>
                 <Text style={styles.parameterCardTitle}>
@@ -1099,7 +969,7 @@ export default function EnvironmentalComplianceScreen({
           <Text style={styles.saveNextText}>Save & Next</Text>
           <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
-          {/* filler gap ts not advisable tbh*/}        
+        {/* filler gap ts not advisable tbh*/}
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>

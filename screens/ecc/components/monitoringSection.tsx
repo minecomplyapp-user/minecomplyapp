@@ -49,9 +49,9 @@ export const ECCMonitoringSection = ({
     Record<CondID, ChoiceKey | null>
   >(initialState.selections || {});
 
-   const [remarks, setRemarks] = useState<
-    Record<CondID, string | null>
-  >(initialState.remarks || {});
+  const [remarks, setRemarks] = useState<Record<CondID, string | null>>(
+    initialState.remarks || {}
+  );
   const [removedDefaults, setRemovedDefaults] = useState<CondID[]>([]);
   const [collapsed, setCollapsed] = useState(false);
 
@@ -67,16 +67,18 @@ export const ECCMonitoringSection = ({
       const status = selections[cond.id] || "";
       const remark = remarks[cond.id] || "";
       section += 1; // increment section count
+      const nestedTo =
+        cond.nested_to !== undefined && cond.nested_to !== null
+          ? String(cond.nested_to)
+          : undefined;
 
       return {
-        nested_to: cond.nested_to
-          ? parseInt(cond.nested_to as string, 10)
-          : undefined,
+        nested_to: nestedTo,
         section,
         condition_number: index + 1,
         condition: `Condition ${cond.id}: ${cond.title}`,
         status,
-        remarks:remark,
+        remarks: remark,
         remark_list: [
           cond.descriptions.complied,
           cond.descriptions.partial,
@@ -88,15 +90,12 @@ export const ECCMonitoringSection = ({
     return { conditions };
   };
 
-useEffect(() => {
-    const formatted = toConditionOutput();
-    console.log(formatted);
+  useEffect(() => {
+    const formatted = toConditionOutput();
+    console.log(formatted); // 🟢 ADD 'remarks' to the saved state object
 
-    // 🟢 ADD 'remarks' to the saved state object
-    onChange({ edits, customs, selections, remarks, formatted }); 
-    
-  // 🟢 ADD 'remarks' to the dependency array
-  }, [edits, customs, selections, remarks]);
+    onChange({ edits, customs, selections, remarks, formatted }); // 🟢 ADD 'remarks' to the dependency array
+  }, [edits, customs, selections, remarks]);
 
   const currentList = useMemo(() => {
     // Apply edits over DEFAULTS
@@ -234,7 +233,7 @@ useEffect(() => {
   const setRemark = (id: CondID, text: string) => {
     setRemarks((r) => ({ ...r, [id]: text }));
     console.log(remarks);
-  }
+  };
 
   return (
     <View>
@@ -368,7 +367,6 @@ useEffect(() => {
                                   {/* <Text style={styles.radioDescription}>
                                     {cond.descriptions[k]}
                                   </Text> */}
-
                                 </View>
                               </TouchableOpacity>
                             </View>
@@ -378,37 +376,36 @@ useEffect(() => {
                     </View>
                   </>
                 )}
-                
-                                 <TextInput
-                                  style={{
-                                      // Base Input Styles (from your existing styles.input)
-                                      height: 50, // This will be overridden by minHeight/padding
-                                      paddingHorizontal: 15,
-                                      paddingVertical: 10,
-                                      borderColor: '#CCC',
-                                      borderWidth: 1,
-                                      borderRadius: 8,
-                                      fontSize: 18,
-                                      backgroundColor: 'white',
-                                      
-                                      // 🟢 Long Text (styles.textArea) Specific Styles
-                                      minHeight: 120, // Defines the minimum visible height
-                                      textAlignVertical: 'top', // Ensures text starts at the top (Crucial for Android multiline)
-                                      
-                                      // Note: For long text, you typically remove the fixed 'height: 50'
-                                      // If 'styles.input' is passed first, minHeight will override a fixed height.
-                                  }}
-                                 value={remarks[cond.id] ?? ""}   // <-- k = complied | partial | not
-                                 onChangeText={(text) => setRemark(cond.id,text )}
-                                  placeholder="Enter remarks here..."
-                                  keyboardType="default"
-                                  autoCapitalize="sentences"
-                                  
-                                  // Multi-line functionality props
-                                  multiline={true}
-                                  scrollEnabled={true} 
-                                  numberOfLines={4}
-                              />
+
+                <TextInput
+                  style={{
+                    // Base Input Styles (from your existing styles.input)
+                    height: 50, // This will be overridden by minHeight/padding
+                    paddingHorizontal: 15,
+                    paddingVertical: 10,
+                    borderColor: "#CCC",
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    fontSize: 18,
+                    backgroundColor: "white",
+
+                    // 🟢 Long Text (styles.textArea) Specific Styles
+                    minHeight: 120, // Defines the minimum visible height
+                    textAlignVertical: "top", // Ensures text starts at the top (Crucial for Android multiline)
+
+                    // Note: For long text, you typically remove the fixed 'height: 50'
+                    // If 'styles.input' is passed first, minHeight will override a fixed height.
+                  }}
+                  value={remarks[cond.id] ?? ""} // <-- k = complied | partial | not
+                  onChangeText={(text) => setRemark(cond.id, text)}
+                  placeholder="Enter remarks here..."
+                  keyboardType="default"
+                  autoCapitalize="sentences"
+                  // Multi-line functionality props
+                  multiline={true}
+                  scrollEnabled={true}
+                  numberOfLines={4}
+                />
               </View>
             );
           })}

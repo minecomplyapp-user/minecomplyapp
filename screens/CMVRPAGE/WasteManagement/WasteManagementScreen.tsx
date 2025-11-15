@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
 import RNPickerSelect from "react-native-picker-select";
 import { CMSHeader } from "../../../components/CMSHeader";
-import { saveDraft } from "../../../lib/drafts";
+import { useCmvrStore } from "../../../store/cmvrStore";
 import { QuarrySection } from "./components/QuarrySection";
 import { PlantSection } from "./components/PlantSection";
 import { PlantPortSection } from "./components/PlantPortSection";
@@ -29,19 +29,40 @@ import {
 } from "../styles/WasteManagementScreen.styles";
 
 export default function WasteManagementScreen({ navigation, route }: any) {
-  const [quarryData, setQuarryData] = useState<QuarrySectionData>({
-    noSignificantImpact: false,
-    generateTable: false,
-    N_A: false,
-  });
+  // **ZUSTAND STORE** - Single source of truth
+  const {
+    currentReport,
+    fileName: storeFileName,
+    submissionId: storeSubmissionId,
+    projectId: storeProjectId,
+    projectName: storeProjectName,
+    updateSection,
+    saveDraft,
+  } = useCmvrStore();
 
-  const [plantSimpleData, setPlantSimpleData] = useState<PlantSectionData>({
-    noSignificantImpact: false,
-    generateTable: false,
-    N_A: false,
-  });
+  // Initialize from store
+  const storedWasteManagement =
+    currentReport?.complianceWithGoodPracticeInSolidAndHazardousWasteManagement;
 
-  const [selectedQuarter, setSelectedQuarter] = useState("Q2");
+  const [quarryData, setQuarryData] = useState<QuarrySectionData>(
+    storedWasteManagement?.quarryData || {
+      noSignificantImpact: false,
+      generateTable: false,
+      N_A: false,
+    }
+  );
+
+  const [plantSimpleData, setPlantSimpleData] = useState<PlantSectionData>(
+    storedWasteManagement?.plantSimpleData || {
+      noSignificantImpact: false,
+      generateTable: false,
+      N_A: false,
+    }
+  );
+
+  const [selectedQuarter, setSelectedQuarter] = useState(
+    storedWasteManagement?.selectedQuarter || "Q2"
+  );
 
   const quarterItems = [
     { label: "Q1", value: "Q1" },
@@ -50,70 +71,91 @@ export default function WasteManagementScreen({ navigation, route }: any) {
     { label: "Q4", value: "Q4" },
   ];
 
-  const [quarryPlantData, setQuarryPlantData] = useState<PlantPortSectionData>({
-    typeOfWaste: "",
-    eccEpepCommitments: [
-      {
-        id: `waste-${Date.now()}-quarry`,
-        typeOfWaste: "",
-        handling: "",
-        storage: "",
-        disposal: "",
-      },
-    ],
-    isAdequate: null,
-    previousRecord: "",
-    currentQuarterWaste: "",
-  });
-
-  const [plantData, setPlantData] = useState<PlantPortSectionData>({
-    typeOfWaste: "",
-    eccEpepCommitments: [
-      { id: `waste-${Date.now()}-1`, typeOfWaste: "", handling: "", storage: "", disposal: "" },
-    ],
-    isAdequate: null,
-    previousRecord: "",
-    currentQuarterWaste: "",
-  });
-
-  const [portData, setPortData] = useState<PortSectionData>({
-    noSignificantImpact: false,
-    generateTable: false,
-    N_A: false,
-  });
-
-  const [portPlantData, setPortPlantData] = useState<PlantPortSectionData>({
-    typeOfWaste: "",
-    eccEpepCommitments: [
-      { id: `waste-${Date.now()}-2`, typeOfWaste: "", handling: "", storage: "", disposal: "" },
-    ],
-    isAdequate: null,
-    previousRecord: "",
-    currentQuarterWaste: "",
-  });
-
-  // Hydrate from route params when coming from a draft
-  React.useEffect(() => {
-    const params: any = route?.params || {};
-    const saved =
-      params.complianceWithGoodPracticeInSolidAndHazardousWasteManagement;
-    if (saved) {
-      if (typeof saved.selectedQuarter === "string")
-        setSelectedQuarter(saved.selectedQuarter);
-      if (saved.quarryData)
-        setQuarryData((prev) => ({ ...prev, ...saved.quarryData }));
-      if (saved.quarryPlantData)
-        setQuarryPlantData((prev) => ({ ...prev, ...saved.quarryPlantData }));
-      if (saved.plantSimpleData)
-        setPlantSimpleData((prev) => ({ ...prev, ...saved.plantSimpleData }));
-      if (saved.plantData)
-        setPlantData((prev) => ({ ...prev, ...saved.plantData }));
-      if (saved.portData)
-        setPortData((prev) => ({ ...prev, ...saved.portData }));
-      if (saved.portPlantData)
-        setPortPlantData((prev) => ({ ...prev, ...saved.portPlantData }));
+  const [quarryPlantData, setQuarryPlantData] = useState<PlantPortSectionData>(
+    storedWasteManagement?.quarryPlantData || {
+      typeOfWaste: "",
+      eccEpepCommitments: [
+        {
+          id: `waste-${Date.now()}-quarry`,
+          typeOfWaste: "",
+          handling: "",
+          storage: "",
+          disposal: "",
+        },
+      ],
+      isAdequate: null,
+      previousRecord: "",
+      currentQuarterWaste: "",
     }
-  }, [route?.params]);
+  );
+
+  const [plantData, setPlantData] = useState<PlantPortSectionData>(
+    storedWasteManagement?.plantData || {
+      typeOfWaste: "",
+      eccEpepCommitments: [
+        {
+          id: `waste-${Date.now()}-1`,
+          typeOfWaste: "",
+          handling: "",
+          storage: "",
+          disposal: "",
+        },
+      ],
+      isAdequate: null,
+      previousRecord: "",
+      currentQuarterWaste: "",
+    }
+  );
+
+  const [portData, setPortData] = useState<PortSectionData>(
+    storedWasteManagement?.portData || {
+      noSignificantImpact: false,
+      generateTable: false,
+      N_A: false,
+    }
+  );
+
+  const [portPlantData, setPortPlantData] = useState<PlantPortSectionData>(
+    storedWasteManagement?.portPlantData || {
+      typeOfWaste: "",
+      eccEpepCommitments: [
+        {
+          id: `waste-${Date.now()}-2`,
+          typeOfWaste: "",
+          handling: "",
+          storage: "",
+          disposal: "",
+        },
+      ],
+      isAdequate: null,
+      previousRecord: "",
+      currentQuarterWaste: "",
+    }
+  );
+
+  // Auto-sync to store
+  useEffect(() => {
+    updateSection(
+      "complianceWithGoodPracticeInSolidAndHazardousWasteManagement",
+      {
+        selectedQuarter,
+        quarryData,
+        quarryPlantData,
+        plantSimpleData,
+        plantData,
+        portData,
+        portPlantData,
+      }
+    );
+  }, [
+    selectedQuarter,
+    quarryData,
+    quarryPlantData,
+    plantSimpleData,
+    plantData,
+    portData,
+    portPlantData,
+  ]);
 
   const updateQuarryData = (field: keyof QuarrySectionData, value: boolean) => {
     setQuarryData((prev) => {
@@ -204,8 +246,8 @@ export default function WasteManagementScreen({ navigation, route }: any) {
       section === "quarry"
         ? quarryPlantData.typeOfWaste
         : section === "plant"
-        ? plantData.typeOfWaste
-        : portPlantData.typeOfWaste;
+          ? plantData.typeOfWaste
+          : portPlantData.typeOfWaste;
 
     const newEntry = {
       id: `waste-${Date.now()}-${section}`,
@@ -348,62 +390,14 @@ export default function WasteManagementScreen({ navigation, route }: any) {
 
   const handleSave = async () => {
     try {
-      const prevPageData: any = route.params || {};
-
-      const complianceWithGoodPracticeInSolidAndHazardousWasteManagement = {
-        quarryData,
-        plantSimpleData,
-        selectedQuarter,
-        quarryPlantData,
-        plantData,
-        portData,
-        portPlantData,
-      };
-
-      const draftData = {
-        ...prevPageData.generalInfo,
-        ...prevPageData.eccInfo,
-        ...prevPageData.eccAdditionalForms,
-        ...prevPageData.isagInfo,
-        ...prevPageData.isagAdditionalForms,
-        ...prevPageData.epepInfo,
-        ...prevPageData.epepAdditionalForms,
-        ...prevPageData.rcfInfo,
-        ...prevPageData.rcfAdditionalForms,
-        ...prevPageData.mtfInfo,
-        ...prevPageData.mtfAdditionalForms,
-        ...prevPageData.fmrdfInfo,
-        ...prevPageData.fmrdfAdditionalForms,
-        ...prevPageData.mmtInfo,
-        fileName: prevPageData.fileName || "Untitled",
-        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken:
-          prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits:
-          prevPageData.complianceToProjectLocationAndCoverageLimits,
-        complianceToImpactManagementCommitments:
-          prevPageData.complianceToImpactManagementCommitments,
-        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
-        waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
-        noiseQualityImpactAssessment: prevPageData.noiseQualityImpactAssessment,
-        complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
-        savedAt: new Date().toISOString(),
-      };
-
-      const fileName = prevPageData.fileName || "Untitled";
-      const success = await saveDraft(fileName, draftData);
-
-      if (success) {
-        Alert.alert("Success", "Draft saved successfully");
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: "Dashboard" }],
-          })
-        );
-      } else {
-        Alert.alert("Error", "Failed to save draft. Please try again.");
-      }
+      await saveDraft();
+      Alert.alert("Success", "Draft saved successfully");
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
     } catch (error) {
       console.error("Error saving draft:", error);
       Alert.alert("Error", "Failed to save draft. Please try again.");
@@ -416,62 +410,14 @@ export default function WasteManagementScreen({ navigation, route }: any) {
 
   const handleSaveToDraft = async () => {
     try {
-      const prevPageData: any = route.params || {};
-
-      const complianceWithGoodPracticeInSolidAndHazardousWasteManagement = {
-        quarryData,
-        plantSimpleData,
-        selectedQuarter,
-        quarryPlantData,
-        plantData,
-        portData,
-        portPlantData,
-      };
-
-      const draftData = {
-        ...prevPageData.generalInfo,
-        ...prevPageData.eccInfo,
-        ...prevPageData.eccAdditionalForms,
-        ...prevPageData.isagInfo,
-        ...prevPageData.isagAdditionalForms,
-        ...prevPageData.epepInfo,
-        ...prevPageData.epepAdditionalForms,
-        ...prevPageData.rcfInfo,
-        ...prevPageData.rcfAdditionalForms,
-        ...prevPageData.mtfInfo,
-        ...prevPageData.mtfAdditionalForms,
-        ...prevPageData.fmrdfInfo,
-        ...prevPageData.fmrdfAdditionalForms,
-        ...prevPageData.mmtInfo,
-        fileName: prevPageData.fileName || "Untitled",
-        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken:
-          prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits:
-          prevPageData.complianceToProjectLocationAndCoverageLimits,
-        complianceToImpactManagementCommitments:
-          prevPageData.complianceToImpactManagementCommitments,
-        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
-        waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
-        noiseQualityImpactAssessment: prevPageData.noiseQualityImpactAssessment,
-        complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
-        savedAt: new Date().toISOString(),
-      };
-
-      const fileName = prevPageData.fileName || "Untitled";
-      const success = await saveDraft(fileName, draftData);
-
-      if (success) {
-        Alert.alert("Success", "Draft saved successfully");
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: "Dashboard" }],
-          })
-        );
-      } else {
-        Alert.alert("Error", "Failed to save draft. Please try again.");
-      }
+      await saveDraft();
+      Alert.alert("Success", "Draft saved successfully");
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
     } catch (error) {
       console.error("Error saving draft:", error);
       Alert.alert("Error", "Failed to save draft. Please try again.");
@@ -833,7 +779,7 @@ export default function WasteManagementScreen({ navigation, route }: any) {
           <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
         <View style={styles.bottomSpacing} />
-        {/* filler gap ts not advisable tbh*/}   
+        {/* filler gap ts not advisable tbh*/}
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>

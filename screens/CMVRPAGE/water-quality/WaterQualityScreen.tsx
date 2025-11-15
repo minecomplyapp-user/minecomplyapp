@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
 import { CMSHeader } from "../../../components/CMSHeader";
 import { Checkbox } from "../../../components/CheckBox";
-import { saveDraft } from "../../../lib/drafts";
+import { useCmvrStore } from "../../../store/cmvrStore";
 import { LocationSection } from "./components/LocationSection";
 import { ParameterForm } from "./components/ParameterForm";
 import { SamplingDetailsSection } from "./components/SamplingDetailsSection";
@@ -30,236 +30,140 @@ import {
 import { styles } from "../styles/WaterQualityScreen.styles";
 
 export default function WaterQualityScreen({ navigation, route }: any) {
-  // Location checkboxes for enabling/disabling inputs
-  const [quarryEnabled, setQuarryEnabled] = useState<boolean>(false);
-  const [plantEnabled, setPlantEnabled] = useState<boolean>(false);
-  const [quarryPlantEnabled, setQuarryPlantEnabled] = useState<boolean>(false);
+  // **ZUSTAND STORE** - Single source of truth
+  const {
+    currentReport,
+    updateSection,
+    saveDraft,
+    fileName: storeFileName,
+  } = useCmvrStore();
 
-  // Location description text inputs
-  const [quarryInput, setQuarryInput] = useState<string>("");
-  const [plantInput, setPlantInput] = useState<string>("");
-  const [quarryPlantInput, setQuarryPlantInput] = useState<string>("");
+  // Get current water quality data from store
+  const waterQualitySection = currentReport?.waterQualityImpactAssessment || {
+    quarry: "",
+    plant: "",
+    quarryPlant: "",
+    quarryEnabled: false,
+    plantEnabled: false,
+    quarryPlantEnabled: false,
+    waterQuality: createEmptyLocationData(),
+    port: createEmptyLocationData(),
+    data: {
+      quarryInput: "",
+      plantInput: "",
+      quarryPlantInput: "",
+      parameter: "",
+      resultType: "Month",
+      tssCurrent: "",
+      tssPrevious: "",
+      mmtCurrent: "",
+      mmtPrevious: "",
+      isMMTNA: false,
+      eqplRedFlag: "",
+      action: "",
+      limit: "",
+      remarks: "",
+      dateTime: "",
+      weatherWind: "",
+      explanation: "",
+      isExplanationNA: false,
+      overallCompliance: "",
+    },
+    parameters: [],
+    ports: [],
+  };
 
-  // Main water quality data (unified table)
+  // Local state for UI (derived from store)
+  const [quarryEnabled, setQuarryEnabled] = useState<boolean>(
+    waterQualitySection.quarryEnabled
+  );
+  const [plantEnabled, setPlantEnabled] = useState<boolean>(
+    waterQualitySection.plantEnabled
+  );
+  const [quarryPlantEnabled, setQuarryPlantEnabled] = useState<boolean>(
+    waterQualitySection.quarryPlantEnabled
+  );
+
+  const [quarryInput, setQuarryInput] = useState<string>(
+    waterQualitySection.quarry
+  );
+  const [plantInput, setPlantInput] = useState<string>(
+    waterQualitySection.plant
+  );
+  const [quarryPlantInput, setQuarryPlantInput] = useState<string>(
+    waterQualitySection.quarryPlant
+  );
+
   const [waterQualityData, setWaterQualityData] = useState<LocationData>(
-    createEmptyLocationData()
+    waterQualitySection.waterQuality || createEmptyLocationData()
   );
 
-  // Port data (separate section)
   const [portData, setPortData] = useState<LocationData>(
-    createEmptyLocationData()
+    waterQualitySection.port || createEmptyLocationData()
   );
 
-  // Legacy state for backward compatibility (will be removed after migration)
-  const [data, setData] = useState<WaterQualityData>({
-    quarryInput: "",
-    plantInput: "",
-    quarryPlantInput: "",
-    parameter: "",
-    resultType: "Month",
-    tssCurrent: "",
-    tssPrevious: "",
-    mmtCurrent: "",
-    mmtPrevious: "",
-    isMMTNA: false,
-    eqplRedFlag: "",
-    action: "",
-    limit: "",
-    remarks: "",
-    dateTime: "",
-    weatherWind: "",
-    explanation: "",
-    isExplanationNA: false,
-    overallCompliance: "",
-  });
+  const [data, setData] = useState<WaterQualityData>(waterQualitySection.data);
+  const [parameters, setParameters] = useState<Parameter[]>(
+    waterQualitySection.parameters
+  );
+  const [ports, setPorts] = useState<PortData[]>(waterQualitySection.ports);
 
-  const [parameters, setParameters] = useState<Parameter[]>([]);
-  const [ports, setPorts] = useState<PortData[]>([]);
-
-  // Hydrate from route params when coming from a draft
+  // **SYNC TO STORE** - Update store whenever local state changes
   useEffect(() => {
-    const params: any = route?.params || {};
+    const currentData = {
+      quarry: quarryInput,
+      plant: plantInput,
+      quarryPlant: quarryPlantInput,
+      quarryEnabled,
+      plantEnabled,
+      quarryPlantEnabled,
+      waterQuality: waterQualityData,
+      port: portData,
+      data,
+      parameters,
+      ports,
+    };
 
-    // Check for data from draftData first (coming from summary), then from direct params
-    const draftData = params.draftData;
-    const saved =
-      draftData?.waterQualityImpactAssessment ||
-      params.waterQualityImpactAssessment;
+    updateSection("waterQualityImpactAssessment", currentData);
+  }, [
+    quarryInput,
+    plantInput,
+    quarryPlantInput,
+    quarryEnabled,
+    plantEnabled,
+    quarryPlantEnabled,
+    waterQualityData,
+    portData,
+    data,
+    parameters,
+    ports,
+  ]);
 
-    if (saved) {
-      console.log("Hydrating WaterQuality with saved data", saved);
-
-      // New structure - location text inputs
-      if (typeof saved.quarry === "string") {
-        setQuarryInput(saved.quarry);
-        setQuarryEnabled(saved.quarry.length > 0); // Enable if has content
-      }
-      if (typeof saved.plant === "string") {
-        setPlantInput(saved.plant);
-        setPlantEnabled(saved.plant.length > 0); // Enable if has content
-      }
-      if (typeof saved.quarryPlant === "string") {
-        setQuarryPlantInput(saved.quarryPlant);
-        setQuarryPlantEnabled(saved.quarryPlant.length > 0); // Enable if has content
-      }
-
-      // Restore checkbox states if explicitly saved
-      if (typeof saved.quarryEnabled === "boolean")
-        setQuarryEnabled(saved.quarryEnabled);
-      if (typeof saved.plantEnabled === "boolean")
-        setPlantEnabled(saved.plantEnabled);
-      if (typeof saved.quarryPlantEnabled === "boolean")
-        setQuarryPlantEnabled(saved.quarryPlantEnabled);
-
-      // New structure - unified waterQuality table
-      if (saved.waterQuality) setWaterQualityData(saved.waterQuality);
-
-      // New structure - port data
-      if (saved.port) setPortData(saved.port);
-
-      // Legacy support - try to map old structure to new
-      if (saved.quarryData) {
-        // Old structure had separate tables, merge into unified waterQuality
-        setWaterQualityData(saved.quarryData);
-      }
-      if (saved.data) setData((prev) => ({ ...prev, ...saved.data }));
-      if (Array.isArray(saved.parameters)) setParameters(saved.parameters);
-      if (Array.isArray(saved.ports)) setPorts(saved.ports);
-    }
-  }, [route?.params]);
+  // Note: Data hydration now handled by store initialization in CMVRReportScreen
+  // No need for complex route.params hydration logic
 
   const handleSave = async () => {
-    try {
-      const prevPageData: any = route.params || {};
-
-      const waterQualityImpactAssessment = {
-        quarry: quarryInput,
-        plant: plantInput,
-        quarryPlant: quarryPlantInput,
-        quarryEnabled,
-        plantEnabled,
-        quarryPlantEnabled,
-        waterQuality: waterQualityData,
-        port: portData,
-        // Legacy support
-        data,
-        parameters,
-        ports,
-      };
-
-      const draftData = {
-        ...prevPageData.generalInfo,
-        ...prevPageData.eccInfo,
-        ...prevPageData.eccAdditionalForms,
-        ...prevPageData.isagInfo,
-        ...prevPageData.isagAdditionalForms,
-        ...prevPageData.epepInfo,
-        ...prevPageData.epepAdditionalForms,
-        ...prevPageData.rcfInfo,
-        ...prevPageData.rcfAdditionalForms,
-        ...prevPageData.mtfInfo,
-        ...prevPageData.mtfAdditionalForms,
-        ...prevPageData.fmrdfInfo,
-        ...prevPageData.fmrdfAdditionalForms,
-        ...prevPageData.mmtInfo,
-        fileName: prevPageData.fileName || "Untitled",
-        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken:
-          prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits:
-          prevPageData.complianceToProjectLocationAndCoverageLimits,
-        complianceToImpactManagementCommitments:
-          prevPageData.complianceToImpactManagementCommitments,
-        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
-        waterQualityImpactAssessment,
-        savedAt: new Date().toISOString(),
-      };
-
-      const fileName = prevPageData.fileName || "Untitled";
-      const success = await saveDraft(fileName, draftData);
-
-      if (success) {
-        Alert.alert("Success", "Draft saved successfully");
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: "Dashboard" }],
-          })
-        );
-      } else {
-        Alert.alert("Error", "Failed to save draft. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error saving draft:", error);
-      Alert.alert("Error", "Failed to save draft. Please try again.");
-    }
+    // Data already in store via useEffect above
+    // No need to do anything - store has the current data
+    console.log("Water quality data already synced to store");
   };
 
   const handleStay = () => {
     console.log("User chose to stay");
   };
 
-  const handleSaveToDraft = async () => {
+  const handleSaveToDraft = async (): Promise<void> => {
     try {
-      const prevPageData: any = route.params || {};
+      // Save entire report to AsyncStorage using store
+      await saveDraft();
 
-      const waterQualityImpactAssessment = {
-        quarry: quarryInput,
-        plant: plantInput,
-        quarryPlant: quarryPlantInput,
-        quarryEnabled,
-        plantEnabled,
-        quarryPlantEnabled,
-        waterQuality: waterQualityData,
-        port: portData,
-        // Legacy support
-        data,
-        parameters,
-        ports,
-      };
-
-      const draftData = {
-        ...prevPageData.generalInfo,
-        ...prevPageData.eccInfo,
-        ...prevPageData.eccAdditionalForms,
-        ...prevPageData.isagInfo,
-        ...prevPageData.isagAdditionalForms,
-        ...prevPageData.epepInfo,
-        ...prevPageData.epepAdditionalForms,
-        ...prevPageData.rcfInfo,
-        ...prevPageData.rcfAdditionalForms,
-        ...prevPageData.mtfInfo,
-        ...prevPageData.mtfAdditionalForms,
-        ...prevPageData.fmrdfInfo,
-        ...prevPageData.fmrdfAdditionalForms,
-        ...prevPageData.mmtInfo,
-        fileName: prevPageData.fileName || "Untitled",
-        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken:
-          prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits:
-          prevPageData.complianceToProjectLocationAndCoverageLimits,
-        complianceToImpactManagementCommitments:
-          prevPageData.complianceToImpactManagementCommitments,
-        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
-        waterQualityImpactAssessment,
-        savedAt: new Date().toISOString(),
-      };
-
-      const fileName = prevPageData.fileName || "Untitled";
-      const success = await saveDraft(fileName, draftData);
-
-      if (success) {
-        Alert.alert("Success", "Draft saved successfully");
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: "Dashboard" }],
-          })
-        );
-      } else {
-        Alert.alert("Error", "Failed to save draft. Please try again.");
-      }
+      Alert.alert("Success", "Draft saved successfully");
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
     } catch (error) {
       console.error("Error saving draft:", error);
       Alert.alert("Error", "Failed to save draft. Please try again.");
@@ -277,74 +181,16 @@ export default function WaterQualityScreen({ navigation, route }: any) {
 
   const handleGoToSummary = async () => {
     try {
-      console.log("Navigating to summary with current water quality data");
+      console.log("Navigating to summary - store has all data");
 
-      const prevPageData: any = route.params || {};
+      // Data already in store, just navigate with metadata
+      const params: any = route?.params || {};
 
-      // Prepare current page data
-      const waterQualityImpactAssessment = {
-        quarry: quarryInput,
-        plant: plantInput,
-        quarryPlant: quarryPlantInput,
-        quarryEnabled,
-        plantEnabled,
-        quarryPlantEnabled,
-        waterQuality: waterQualityData,
-        port: portData,
-        // Legacy support
-        data,
-        parameters,
-        ports,
-      };
-
-      // Prepare complete snapshot with all sections
-      const completeData = {
-        generalInfo: prevPageData.generalInfo,
-        eccInfo: prevPageData.eccInfo,
-        eccAdditionalForms: prevPageData.eccAdditionalForms,
-        isagInfo: prevPageData.isagInfo,
-        isagAdditionalForms: prevPageData.isagAdditionalForms,
-        epepInfo: prevPageData.epepInfo,
-        epepAdditionalForms: prevPageData.epepAdditionalForms,
-        rcfInfo: prevPageData.rcfInfo,
-        rcfAdditionalForms: prevPageData.rcfAdditionalForms,
-        mtfInfo: prevPageData.mtfInfo,
-        mtfAdditionalForms: prevPageData.mtfAdditionalForms,
-        fmrdfInfo: prevPageData.fmrdfInfo,
-        fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
-        mmtInfo: prevPageData.mmtInfo,
-        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken:
-          prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits:
-          prevPageData.complianceToProjectLocationAndCoverageLimits,
-        complianceToImpactManagementCommitments:
-          prevPageData.complianceToImpactManagementCommitments,
-        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
-        waterQualityImpactAssessment, // Current page data
-        noiseQualityImpactAssessment: prevPageData.noiseQualityImpactAssessment,
-        complianceWithGoodPracticeInSolidAndHazardousWasteManagement:
-          prevPageData.complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
-        complianceWithGoodPracticeInChemicalSafetyManagement:
-          prevPageData.complianceWithGoodPracticeInChemicalSafetyManagement,
-        complaintsVerificationAndManagement:
-          prevPageData.complaintsVerificationAndManagement,
-        recommendationsData: prevPageData.recommendationsData,
-        attendanceUrl: prevPageData.attendanceUrl,
-        savedAt: new Date().toISOString(),
-      };
-
-      const resolvedFileName = prevPageData.fileName || "Untitled";
-
-      // Save to draft before navigating
-      await saveDraft(resolvedFileName, completeData);
-
-      // Navigate to summary screen with all data
       navigation.navigate("CMVRDocumentExport", {
-        ...prevPageData,
-        fileName: resolvedFileName,
-        waterQualityImpactAssessment,
-        draftData: completeData,
+        submissionId: params.submissionId,
+        projectId: params.projectId,
+        projectName: params.projectName,
+        fileName: storeFileName || params.fileName || "Untitled",
       });
     } catch (error) {
       console.error("Error navigating to summary:", error);
@@ -1028,15 +874,12 @@ export default function WaterQualityScreen({ navigation, route }: any) {
         <View style={styles.sectionNumberBadge}>
           <Text style={styles.sectionNumber}>B.4.</Text>
         </View>
-        <Text style={styles.sectionTitle}>
-          Water Quality Impact Assessment
-        </Text>
+        <Text style={styles.sectionTitle}>Water Quality Impact Assessment</Text>
       </View>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-
         {/* Location Description Text Inputs */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Location Descriptions</Text>
@@ -1225,14 +1068,14 @@ export default function WaterQualityScreen({ navigation, route }: any) {
         <TouchableOpacity
           style={styles.saveNextButton}
           onPress={async () => {
-            await handleSave();
-            navigation.navigate("NoiseQuality", route.params);
+            const updatedParams = await handleSave();
+            navigation.navigate("NoiseQuality", updatedParams);
           }}
         >
           <Text style={styles.saveNextText}>Save & Next</Text>
           <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
-        {/* filler gap ts not advisable tbh*/}   
+        {/* filler gap ts not advisable tbh*/}
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>

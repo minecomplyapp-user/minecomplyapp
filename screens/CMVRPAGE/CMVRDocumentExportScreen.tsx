@@ -22,6 +22,7 @@ import * as ImagePicker from "expo-image-picker";
 import { uploadFileFromUri, deleteFilesFromStorage } from "../../lib/storage";
 
 import { useFileName } from "../../contexts/FileNameContext";
+import { useCmvrStore } from "../../store/cmvrStore";
 import {
   createCMVRReport,
   generateCMVRDocx,
@@ -82,6 +83,7 @@ import type {
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const isTablet = SCREEN_WIDTH >= 768;
 const isSmallPhone = SCREEN_WIDTH < 375;
+const DRAFT_KEY = "@cmvr_document_export_draft";
 
 type RecommendationItemShape = {
   recommendation?: string;
@@ -138,6 +140,7 @@ type CMVRDocumentExportParams = {
   recommendationForNextQuarter?: any;
   attendanceUrl?: string;
   documentation?: any;
+  complianceMonitoringReport?: Partial<DraftSnapshot>;
 };
 
 type RootStackParamList = {
@@ -176,6 +179,7 @@ type DraftSnapshot = {
   recommendationForNextQuarter?: any;
   attendanceUrl?: string;
   documentation?: any;
+  complianceMonitoringReport?: Partial<DraftSnapshot>;
 };
 
 const defaultGeneralInfo: GeneralInfo = {
@@ -1030,7 +1034,7 @@ const transformAirQualityForPayload = (raw: any) => {
       });
 
       // Gather all parameters from the parameters array
-      const allParameters = [];
+      const allParameters: ReturnType<typeof mapParameter>[] = [];
       if (Array.isArray(locationData.parameters)) {
         locationData.parameters.forEach((param: any) => {
           if (param.parameter) {
@@ -1349,7 +1353,12 @@ const transformWaterQualityForPayload = (raw: any) => {
       const extraParams = Array.isArray(locationData.parameters)
         ? locationData.parameters
             .map((param: any) => mapLocationParam(param, locationData))
-            .filter((param): param is NonNullable<typeof param> => !!param)
+            .filter(
+              (
+                param: ReturnType<typeof mapLocationParam> | null | undefined
+              ): param is NonNullable<ReturnType<typeof mapLocationParam>> =>
+                !!param
+            )
         : [];
       const parameters = [...(mainParam ? [mainParam] : []), ...extraParams];
       if (!parameters.length) {
@@ -1375,7 +1384,12 @@ const transformWaterQualityForPayload = (raw: any) => {
       const extraParams = Array.isArray(portData.additionalParameters)
         ? portData.additionalParameters
             .map((param: any) => mapLocationParam(param, portData))
-            .filter((param): param is NonNullable<typeof param> => !!param)
+            .filter(
+              (
+                param: ReturnType<typeof mapLocationParam> | null | undefined
+              ): param is NonNullable<ReturnType<typeof mapLocationParam>> =>
+                !!param
+            )
         : [];
       const parameters = [...(mainParam ? [mainParam] : []), ...extraParams];
       if (!parameters.length) {
@@ -1712,7 +1726,13 @@ const createHydrationId = (() => {
 const normalizeLabelKey = (value: string) =>
   value.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-const COMPLIANCE_FORM_FIELD_DEFS = [
+type ComplianceFormFieldDefinition = {
+  key: string;
+  label: string;
+  subFields?: readonly string[];
+};
+
+const COMPLIANCE_FORM_FIELD_DEFS: readonly ComplianceFormFieldDefinition[] = [
   { key: "projectLocation", label: "Project Location" },
   { key: "projectArea", label: "Project Area (ha)" },
   { key: "capitalCost", label: "Capital Cost (Php)" },
@@ -1747,9 +1767,9 @@ const buildDefaultComplianceFormData = (): FormData => {
       specification: "",
       remarks: "",
       withinSpecs: null,
-      ...(def.subFields
+      ...(Array.isArray(def.subFields)
         ? {
-            subFields: def.subFields.map((label) => ({
+            subFields: def.subFields.map((label: string) => ({
               label: `${label}:`,
               specification: "",
             })),
@@ -2621,6 +2641,7 @@ const createEmptyWasteSection = (prefix: string): PlantPortSectionData => ({
   eccEpepCommitments: [
     {
       id: createHydrationId(`${prefix}-waste`, 0),
+      typeOfWaste: "",
       handling: "",
       storage: "",
       disposal: "",
@@ -2699,7 +2720,8 @@ const normalizeWasteManagementFromApi = (
       generateTable: boolean;
       N_A: boolean;
     },
-    key: "quarryPlantData" | "plantData" | "portPlantData"
+    sectionTarget: PlantPortSectionData,
+    sectionKey: "quarry" | "plant" | "port"
   ) => {
     if (!source) {
       return;
@@ -2708,31 +2730,30 @@ const normalizeWasteManagementFromApi = (
       target.noSignificantImpact = false;
       target.N_A = false;
       target.generateTable = true;
-      const sectionTarget = (result as Record<string, PlantPortSectionData>)[
-        key
-      ];
-      if (!sectionTarget) {
-        return;
-      }
       if (!source.length) {
         return;
       }
-      const formatted = source.map((entry: any, index: number) => ({
-        id: createHydrationId(`${key}-entry`, index),
-        handling: sanitizeString(
-          entry?.eccEpepCommitments?.handling ?? entry?.handling
-        ),
-        storage: sanitizeString(
-          entry?.eccEpepCommitments?.storage ?? entry?.storage
-        ),
-        disposal: sanitizeString(
-          entry?.eccEpepCommitments?.disposal == null
-            ? ""
-            : entry.eccEpepCommitments.disposal
-              ? "Yes"
-              : "No"
-        ),
-      }));
+      const formatted: WasteEntry[] = source.map(
+        (entry: any, index: number) => ({
+          id: createHydrationId(`${sectionKey}-entry`, index),
+          typeOfWaste: sanitizeString(
+            entry?.typeOfWaste ?? sectionTarget.typeOfWaste
+          ),
+          handling: sanitizeString(
+            entry?.eccEpepCommitments?.handling ?? entry?.handling
+          ),
+          storage: sanitizeString(
+            entry?.eccEpepCommitments?.storage ?? entry?.storage
+          ),
+          disposal: sanitizeString(
+            entry?.eccEpepCommitments?.disposal == null
+              ? ""
+              : entry.eccEpepCommitments.disposal
+                ? "Yes"
+                : "No"
+          ),
+        })
+      );
       sectionTarget.typeOfWaste = sanitizeString(
         source[0]?.typeOfWaste ?? sectionTarget.typeOfWaste
       );
@@ -2764,9 +2785,9 @@ const normalizeWasteManagementFromApi = (
       }
     }
   };
-  assignFlags(raw.quarry, result.quarryData, "quarryPlantData");
-  assignFlags(raw.plant, result.plantSimpleData, "plantData");
-  assignFlags(raw.port, result.portData, "portPlantData");
+  assignFlags(raw.quarry, result.quarryData, result.quarryPlantData, "quarry");
+  assignFlags(raw.plant, result.plantSimpleData, result.plantData, "plant");
+  assignFlags(raw.port, result.portData, result.portPlantData, "port");
   return result;
 };
 
@@ -3183,8 +3204,8 @@ const buildCreateCMVRPayload = (
 };
 
 type CMVRDocumentExportScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  "CMVRDocumentExport"
+  Record<string, object | undefined>,
+  string
 >;
 
 type CMVRDocumentExportScreenRouteProp = RouteProp<
@@ -3197,71 +3218,60 @@ const CMVRDocumentExportScreen = () => {
   const route = useRoute<CMVRDocumentExportScreenRouteProp>();
   const { user } = useAuth();
   const { fileName: contextFileName } = useFileName();
+
+  // **ZUSTAND STORE** - Single source of truth for CMVR data
+  const {
+    currentReport,
+    fileName: storeFileName,
+    submissionId: storeSubmissionId,
+    projectId: storeProjectId,
+    submitReport,
+    updateSubmittedReport,
+    deleteDraft,
+    markAsClean,
+    saveDraft,
+    updateMetadata,
+    setCreatedById,
+    updateMultipleSections,
+    fillAllTestData,
+  } = useCmvrStore();
+
   const routeParams = route.params ?? {};
   const {
     cmvrReportId: routeReportId,
-    generalInfo: routeGeneralInfo,
-    eccInfo: routeEccInfo,
-    eccAdditionalForms: routeEccAdditionalForms,
-    isagInfo: routeIsagInfo,
-    isagAdditionalForms: routeIsagAdditionalForms,
-    epepInfo: routeEpepInfo,
-    epepAdditionalForms: routeEpepAdditionalForms,
-    rcfInfo: routeRcfInfo,
-    rcfAdditionalForms: routeRcfAdditionalForms,
-    mtfInfo: routeMtfInfo,
-    mtfAdditionalForms: routeMtfAdditionalForms,
-    fmrdfInfo: routeFmrdfInfo,
-    fmrdfAdditionalForms: routeFmrdfAdditionalForms,
-    mmtInfo: routeMmtInfo,
-    recommendationsData: routeRecommendationsData,
     fileName: routeFileName,
-    executiveSummaryOfCompliance: routeExecutiveSummaryOfCompliance,
-    processDocumentationOfActivitiesUndertaken:
-      routeProcessDocumentationOfActivitiesUndertaken,
-    complianceToProjectLocationAndCoverageLimits:
-      routeComplianceToProjectLocationAndCoverageLimits,
-    complianceToImpactManagementCommitments:
-      routeComplianceToImpactManagementCommitments,
-    airQualityImpactAssessment: routeAirQualityImpactAssessment,
-    waterQualityImpactAssessment: routeWaterQualityImpactAssessment,
-    noiseQualityImpactAssessment: routeNoiseQualityImpactAssessment,
-    complianceWithGoodPracticeInSolidAndHazardousWasteManagement:
-      routeComplianceWithGoodPracticeInSolidAndHazardousWasteManagement,
-    complianceWithGoodPracticeInChemicalSafetyManagement:
-      routeComplianceWithGoodPracticeInChemicalSafetyManagement,
-    complaintsVerificationAndManagement:
-      routeComplaintsVerificationAndManagement,
-    recommendationFromPrevQuarter: routeRecommendationFromPrevQuarter,
-    recommendationForNextQuarter: routeRecommendationForNextQuarter,
-    attendanceUrl: routeAttendanceUrl,
     selectedAttendanceId: routeSelectedAttendanceId,
     selectedAttendanceTitle: routeSelectedAttendanceTitle,
-    documentation: routeDocumentation,
-    attachments: routeAttachments,
-    newlyUploadedPaths: routeNewlyUploadedPaths,
   } = routeParams;
+  const routeDraftUpdate = useMemo(
+    () =>
+      ((routeParams as any)?.draftData &&
+      typeof (routeParams as any).draftData === "object"
+        ? ((routeParams as any).draftData as Partial<DraftSnapshot>)
+        : {}) ?? {},
+    [routeParams]
+  );
+
+  // Extract attachments safely
+  const routeAttachments = (routeParams as any).attachments;
+  const routeNewlyUploadedPaths = (routeParams as any).newlyUploadedPaths;
 
   const resolvedFileName = useMemo(
-    () => routeFileName?.trim() || contextFileName?.trim() || "CMVR_Report",
-    [routeFileName, contextFileName]
+    () =>
+      storeFileName ||
+      routeFileName?.trim() ||
+      contextFileName?.trim() ||
+      "CMVR_Report",
+    [storeFileName, routeFileName, contextFileName]
   );
 
-  const DRAFT_KEY = useMemo(
-    () => `cmvr_draft_${resolvedFileName || "temp"}`,
-    [resolvedFileName]
-  );
-
-  const [draftSnapshot, setDraftSnapshot] = useState<DraftSnapshot | null>(
-    null
-  );
+  // Local UI state only (not data state)
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isSavingDraft, setIsSavingDraft] = useState(false);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(!!storeSubmissionId);
   const [submittedReportId, setSubmittedReportId] = useState<string | null>(
-    null
+    storeSubmissionId
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -3269,6 +3279,29 @@ const CMVRDocumentExportScreen = () => {
     { uri: string; path?: string; uploading?: boolean; caption?: string }[]
   >([]);
   const [newlyUploadedPaths, setNewlyUploadedPaths] = useState<string[]>([]);
+  const [draftSnapshot, setDraftSnapshot] = useState<DraftSnapshot | null>(
+    null
+  );
+  const [autoFillTriggered, setAutoFillTriggered] = useState(false);
+
+  const loadStoredDraft =
+    useCallback(async (): Promise<DraftSnapshot | null> => {
+      try {
+        const stored = await AsyncStorage.getItem(DRAFT_KEY);
+        return stored ? (JSON.parse(stored) as DraftSnapshot) : null;
+      } catch (error) {
+        console.warn("Failed to load CMVR draft snapshot:", error);
+        return null;
+      }
+    }, []);
+
+  const persistSnapshot = useCallback(async (snapshot: DraftSnapshot) => {
+    try {
+      await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(snapshot));
+    } catch (error) {
+      console.warn("Failed to persist CMVR draft snapshot:", error);
+    }
+  }, []);
 
   // Handle incoming attachments from CMVRAttachmentsScreen
   useEffect(() => {
@@ -3287,127 +3320,11 @@ const CMVRDocumentExportScreen = () => {
     }
   }, [routeAttachments, routeNewlyUploadedPaths]);
 
-  const loadStoredDraft =
-    useCallback(async (): Promise<DraftSnapshot | null> => {
-      try {
-        const raw = await AsyncStorage.getItem(DRAFT_KEY);
-        if (!raw) {
-          return null;
-        }
-        return JSON.parse(raw) as DraftSnapshot;
-      } catch (error) {
-        console.error("Failed to load CMVR draft:", error);
-        return null;
-      }
-    }, [DRAFT_KEY]);
-
-  const persistSnapshot = useCallback(
-    async (snapshot: DraftSnapshot) => {
-      await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(snapshot));
-      console.log("Draft saved locally:", DRAFT_KEY);
-    },
-    [DRAFT_KEY]
-  );
-
-  const routeDraftUpdate = useMemo<Partial<DraftSnapshot>>(() => {
-    const update: Partial<DraftSnapshot> = {};
-    if (routeGeneralInfo) update.generalInfo = routeGeneralInfo;
-    if (routeEccInfo) update.eccInfo = routeEccInfo;
-    if (routeEccAdditionalForms !== undefined)
-      update.eccAdditionalForms = routeEccAdditionalForms;
-    if (routeIsagInfo) update.isagInfo = routeIsagInfo;
-    if (routeIsagAdditionalForms !== undefined)
-      update.isagAdditionalForms = routeIsagAdditionalForms;
-    if (routeEpepInfo) update.epepInfo = routeEpepInfo;
-    if (routeEpepAdditionalForms !== undefined)
-      update.epepAdditionalForms = routeEpepAdditionalForms;
-    if (routeRcfInfo) update.rcfInfo = routeRcfInfo;
-    if (routeRcfAdditionalForms !== undefined)
-      update.rcfAdditionalForms = routeRcfAdditionalForms;
-    if (routeMtfInfo) update.mtfInfo = routeMtfInfo;
-    if (routeMtfAdditionalForms !== undefined)
-      update.mtfAdditionalForms = routeMtfAdditionalForms;
-    if (routeFmrdfInfo) update.fmrdfInfo = routeFmrdfInfo;
-    if (routeFmrdfAdditionalForms !== undefined)
-      update.fmrdfAdditionalForms = routeFmrdfAdditionalForms;
-    if (routeMmtInfo) update.mmtInfo = routeMmtInfo;
-    if (routeRecommendationsData !== undefined)
-      update.recommendationsData = routeRecommendationsData;
-    if (routeExecutiveSummaryOfCompliance !== undefined)
-      update.executiveSummaryOfCompliance = routeExecutiveSummaryOfCompliance;
-    if (routeProcessDocumentationOfActivitiesUndertaken !== undefined)
-      update.processDocumentationOfActivitiesUndertaken =
-        routeProcessDocumentationOfActivitiesUndertaken;
-    if (routeComplianceToProjectLocationAndCoverageLimits !== undefined)
-      update.complianceToProjectLocationAndCoverageLimits =
-        routeComplianceToProjectLocationAndCoverageLimits;
-    if (routeComplianceToImpactManagementCommitments !== undefined)
-      update.complianceToImpactManagementCommitments =
-        routeComplianceToImpactManagementCommitments;
-    if (routeAirQualityImpactAssessment !== undefined)
-      update.airQualityImpactAssessment = routeAirQualityImpactAssessment;
-    if (routeWaterQualityImpactAssessment !== undefined)
-      update.waterQualityImpactAssessment = routeWaterQualityImpactAssessment;
-    if (routeNoiseQualityImpactAssessment !== undefined)
-      update.noiseQualityImpactAssessment = routeNoiseQualityImpactAssessment;
-    if (
-      routeComplianceWithGoodPracticeInSolidAndHazardousWasteManagement !==
-      undefined
-    )
-      update.complianceWithGoodPracticeInSolidAndHazardousWasteManagement =
-        routeComplianceWithGoodPracticeInSolidAndHazardousWasteManagement;
-    if (routeComplianceWithGoodPracticeInChemicalSafetyManagement !== undefined)
-      update.complianceWithGoodPracticeInChemicalSafetyManagement =
-        routeComplianceWithGoodPracticeInChemicalSafetyManagement;
-    if (routeComplaintsVerificationAndManagement !== undefined)
-      update.complaintsVerificationAndManagement =
-        routeComplaintsVerificationAndManagement;
-    if (routeRecommendationFromPrevQuarter !== undefined)
-      update.recommendationFromPrevQuarter = routeRecommendationFromPrevQuarter;
-    if (routeRecommendationForNextQuarter !== undefined)
-      update.recommendationForNextQuarter = routeRecommendationForNextQuarter;
-    if (routeAttendanceUrl !== undefined)
-      update.attendanceUrl = routeAttendanceUrl;
-    if (routeDocumentation !== undefined)
-      update.documentation = routeDocumentation;
-    return update;
-  }, [
-    routeGeneralInfo,
-    routeEccInfo,
-    routeEccAdditionalForms,
-    routeIsagInfo,
-    routeIsagAdditionalForms,
-    routeEpepInfo,
-    routeEpepAdditionalForms,
-    routeRcfInfo,
-    routeRcfAdditionalForms,
-    routeMtfInfo,
-    routeMtfAdditionalForms,
-    routeFmrdfInfo,
-    routeFmrdfAdditionalForms,
-    routeMmtInfo,
-    routeRecommendationsData,
-    routeExecutiveSummaryOfCompliance,
-    routeProcessDocumentationOfActivitiesUndertaken,
-    routeComplianceToProjectLocationAndCoverageLimits,
-    routeComplianceToImpactManagementCommitments,
-    routeAirQualityImpactAssessment,
-    routeWaterQualityImpactAssessment,
-    routeNoiseQualityImpactAssessment,
-    routeComplianceWithGoodPracticeInSolidAndHazardousWasteManagement,
-    routeComplianceWithGoodPracticeInChemicalSafetyManagement,
-    routeComplaintsVerificationAndManagement,
-    routeRecommendationFromPrevQuarter,
-    routeRecommendationForNextQuarter,
-    routeAttendanceUrl,
-    routeDocumentation,
-  ]);
-
   useEffect(() => {
     let isActive = true;
     const hydrateDraft = async () => {
-      let routeUpdate = routeDraftUpdate;
-      if (routeReportId && Object.keys(routeDraftUpdate).length === 0) {
+      let updates: Partial<DraftSnapshot> = {};
+      if (routeReportId) {
         try {
           console.log("Fetching CMVR report from API:", routeReportId);
           const { getCMVRReportById } = await import("../../lib/cmvr");
@@ -3489,7 +3406,7 @@ const CMVRDocumentExportScreen = () => {
                     barangay: reportData.location,
                   }
                 : reportData.location || {};
-            routeUpdate = {
+            const normalizedUpdate: Partial<DraftSnapshot> = {
               generalInfo: {
                 companyName:
                   (sourceGeneralInfo?.companyName as string) ||
@@ -3570,7 +3487,7 @@ const CMVRDocumentExportScreen = () => {
                 reportData.cmvrData?.executiveSummaryOfCompliance
             );
             if (normalizedExecutiveSummary) {
-              routeUpdate.executiveSummaryOfCompliance =
+              normalizedUpdate.executiveSummaryOfCompliance =
                 normalizedExecutiveSummary;
             }
 
@@ -3579,7 +3496,7 @@ const CMVRDocumentExportScreen = () => {
                 reportData.cmvrData?.processDocumentationOfActivitiesUndertaken
             );
             if (normalizedProcessDoc) {
-              routeUpdate.processDocumentationOfActivitiesUndertaken =
+              normalizedUpdate.processDocumentationOfActivitiesUndertaken =
                 normalizedProcessDoc;
             }
 
@@ -3588,7 +3505,7 @@ const CMVRDocumentExportScreen = () => {
                 reportData.complianceMonitoringReport
               );
             if (normalizedComplianceSections) {
-              Object.assign(routeUpdate, normalizedComplianceSections);
+              Object.assign(normalizedUpdate, normalizedComplianceSections);
             }
 
             // Load attachments if they exist
@@ -3613,50 +3530,44 @@ const CMVRDocumentExportScreen = () => {
             }
 
             console.log("Successfully loaded report data from API");
+            updates = normalizedUpdate;
           }
         } catch (error) {
           console.error("Error fetching CMVR report:", error);
         }
       }
       const stored = await loadStoredDraft();
-      const merged = mergeDraftData(stored, routeUpdate, resolvedFileName);
       if (!isActive) {
         return;
       }
+      if (!stored && Object.keys(updates).length === 0) {
+        return;
+      }
+      const merged = mergeDraftData(stored, updates, resolvedFileName);
       setDraftSnapshot(merged);
       await persistSnapshot(merged);
-      if (routeReportId && isActive) {
+      if (routeReportId) {
         setSubmittedReportId(routeReportId);
         setHasSubmitted(true);
       }
     };
-    hydrateDraft().catch((error) => {
-      console.error("Failed to prepare CMVR draft snapshot:", error);
-    });
+
+    hydrateDraft();
+
     return () => {
       isActive = false;
     };
   }, [
-    loadStoredDraft,
-    routeDraftUpdate,
-    resolvedFileName,
-    persistSnapshot,
     routeReportId,
+    loadStoredDraft,
+    persistSnapshot,
+    resolvedFileName,
+    setHasSubmitted,
+    setSubmittedReportId,
   ]);
 
-  const saveDraftToLocal = useCallback(async (): Promise<DraftSnapshot> => {
-    if (!draftSnapshot) {
-      throw new Error("No CMVR data available to save.");
-    }
-    const snapshotToPersist: DraftSnapshot = {
-      ...draftSnapshot,
-      fileName: resolvedFileName,
-      savedAt: new Date().toISOString(),
-    };
-    setDraftSnapshot(snapshotToPersist);
-    await persistSnapshot(snapshotToPersist);
-    return snapshotToPersist;
-  }, [draftSnapshot, persistSnapshot, resolvedFileName]);
+  // **LEGACY FUNCTION REMOVED** - saveDraftToLocal no longer needed
+  // Draft management now handled by store.saveDraft()
 
   const handleExit = async () => {
     try {
@@ -3833,20 +3744,21 @@ const CMVRDocumentExportScreen = () => {
   };
 
   const handleSaveDraft = async () => {
-    if (!draftSnapshot) {
+    if (!currentReport) {
       Alert.alert(
-        "Preparing Draft",
-        "Please wait while we load your CMVR report data.",
+        "No Data",
+        "Please complete the CMVR report before saving draft.",
         [{ text: "OK" }]
       );
       return;
     }
-    setIsSavingDraft(true);
+
     try {
-      await saveDraftToLocal();
+      // Use store's saveDraft function
+      await saveDraft();
       Alert.alert(
         "Draft Saved",
-        "Your CMVR report has been saved as a draft locally.",
+        "Your CMVR report has been saved as a draft.",
         [{ text: "OK" }]
       );
     } catch (error) {
@@ -3854,90 +3766,92 @@ const CMVRDocumentExportScreen = () => {
       Alert.alert("Save Failed", "Failed to save draft. Please try again.", [
         { text: "OK" },
       ]);
-    } finally {
-      setIsSavingDraft(false);
     }
   };
 
   const handleSubmitToSupabase = async () => {
-    if (!draftSnapshot) {
+    if (!currentReport) {
       Alert.alert(
-        "Preparing Data",
-        "Please wait while we prepare your CMVR report data.",
+        "No Data",
+        "Please complete the CMVR report before submitting.",
         [{ text: "OK" }]
       );
       return;
     }
+
     setIsSubmitting(true);
     setSubmitError(null);
-    try {
-      const snapshotForSubmission = mergeDraftData(
-        draftSnapshot,
-        routeDraftUpdate,
-        resolvedFileName
-      );
-      setDraftSnapshot(snapshotForSubmission);
-      console.log("=== DEBUG: Snapshot for submission ===");
-      console.log(
-        "Has executiveSummaryOfCompliance:",
-        !!snapshotForSubmission.executiveSummaryOfCompliance
-      );
-      console.log(
-        "Has processDocumentationOfActivitiesUndertaken:",
-        !!snapshotForSubmission.processDocumentationOfActivitiesUndertaken
-      );
-      console.log(
-        "Has waterQualityImpactAssessment:",
-        !!snapshotForSubmission.waterQualityImpactAssessment
-      );
-      console.log(
-        "Has airQualityImpactAssessment:",
-        !!snapshotForSubmission.airQualityImpactAssessment
-      );
-      console.log(
-        "Has noiseQualityImpactAssessment:",
-        !!snapshotForSubmission.noiseQualityImpactAssessment
-      );
-      console.log("Full snapshot keys:", Object.keys(snapshotForSubmission));
-      const payload = buildCreateCMVRPayload(
-        snapshotForSubmission,
-        {
-          recommendationsData: snapshotForSubmission.recommendationsData,
-          attendanceId: routeSelectedAttendanceId,
-        },
-        user?.id
-      );
 
-      // Add attachments to payload
-      console.log("=== DEBUG: Attachments state ===", attachments);
-      if (attachments.length > 0) {
-        const formattedAttachments = attachments
-          .filter((a) => !!a.path)
-          .map((a) => ({ path: a.path!, caption: a.caption || undefined }));
-        console.log(
-          "=== DEBUG: Formatted attachments ===",
-          formattedAttachments
-        );
-        payload.attachments = formattedAttachments;
+    try {
+      console.log("=== DEBUG: Submitting from store ===");
+      console.log("Current report sections:", Object.keys(currentReport));
+
+      // Sync local generalInfo to store before submission
+      updateMultipleSections({
+        generalInfo,
+        eccInfo,
+        eccAdditionalForms,
+        isagInfo,
+        isagAdditionalForms,
+        epepInfo,
+        epepAdditionalForms,
+        rcfInfo,
+        rcfAdditionalForms,
+        mtfInfo,
+        mtfAdditionalForms,
+        fmrdfInfo,
+        fmrdfAdditionalForms,
+        mmtInfo,
+        executiveSummaryOfCompliance: executiveSummary,
+        processDocumentationOfActivitiesUndertaken: processDocumentation,
+        complianceToProjectLocationAndCoverageLimits: complianceProjectLocation,
+        complianceToImpactManagementCommitments: complianceImpactCommitments,
+        airQualityImpactAssessment: airQualityAssessment,
+        waterQualityImpactAssessment: waterQualityAssessment,
+        noiseQualityImpactAssessment: noiseQualityAssessment,
+        complianceWithGoodPracticeInSolidAndHazardousWasteManagement:
+          wasteManagementData,
+        complianceWithGoodPracticeInChemicalSafetyManagement:
+          chemicalSafetyData,
+        complaintsVerificationAndManagement: complaintsData,
+        recommendationsData,
+        recommendationFromPrevQuarter: recommendationPrev,
+        recommendationForNextQuarter: recommendationNext,
+        attendanceUrl,
+        documentation,
+      });
+
+      // Ensure fileName and createdById are set before submission
+      updateMetadata({ fileName: resolvedFileName });
+      if (user?.id) {
+        setCreatedById(user.id);
       }
 
-      console.log("=== DEBUG: Payload attachments ===", payload.attachments);
-      console.log("=== DEBUG: Payload being sent ===");
-      console.log(JSON.stringify(payload, null, 2));
-      const fileNameForSubmission =
-        sanitizeString(snapshotForSubmission.fileName) ||
-        sanitizeString(snapshotForSubmission.generalInfo?.projectName) ||
-        "CMVR_Report";
-      const created = await createCMVRReport(payload, fileNameForSubmission);
-      const newId = created?.id || created?.data?.id || null;
-      setSubmittedReportId(newId);
-      setHasSubmitted(true);
-      await AsyncStorage.removeItem(DRAFT_KEY);
-      Alert.alert(
-        "Submitted",
-        "Your CMVR report has been saved to the database. You can now generate a document.",
-        [{ text: "OK" }]
-      );
+      const result = await submitReport();
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to submit CMVR report");
+      }
+
+      if (result.report && result.report.id) {
+        const newId = result.report.id;
+        setSubmittedReportId(newId);
+        setHasSubmitted(true);
+
+        // Delete draft after successful submission
+        await deleteDraft();
+        markAsClean();
+
+        Alert.alert(
+          "Submitted",
+          "Your CMVR report has been saved to the database. You can now generate a document.",
+          [{ text: "OK" }]
+        );
+
+        return;
+      }
+
+      throw new Error("Submission failed - no ID returned");
     } catch (error: any) {
       console.error("Error submitting CMVR report:", error);
       const errorMessage =
@@ -3950,7 +3864,9 @@ const CMVRDocumentExportScreen = () => {
   };
 
   const handleGenerateDocument = async () => {
-    if (!hasSubmitted || !submittedReportId) {
+    const reportId = submittedReportId || storeSubmissionId;
+
+    if (!hasSubmitted || !reportId) {
       Alert.alert(
         "Submit Required",
         "Please submit your report to the database first.",
@@ -3958,9 +3874,10 @@ const CMVRDocumentExportScreen = () => {
       );
       return;
     }
+
     setIsGenerating(true);
     try {
-      await generateCMVRDocx(submittedReportId, resolvedFileName);
+      await generateCMVRDocx(reportId, resolvedFileName);
       Alert.alert(
         "Download Started",
         "Your browser will open to download the DOCX file.",
@@ -3979,80 +3896,48 @@ const CMVRDocumentExportScreen = () => {
   };
 
   const fileName = resolvedFileName;
-  const generalInfo =
-    draftSnapshot?.generalInfo ?? routeGeneralInfo ?? defaultGeneralInfo;
-  const eccInfo = draftSnapshot?.eccInfo ?? routeEccInfo ?? defaultEccInfo;
+
+  // **READ FROM STORE** - All data comes from currentReport
+  const generalInfo = currentReport?.generalInfo ?? defaultGeneralInfo;
+  const eccInfo = currentReport?.eccInfo ?? defaultEccInfo;
   const eccAdditionalForms =
-    draftSnapshot?.eccAdditionalForms ??
-    routeEccAdditionalForms ??
-    ([] as ECCAdditionalForm[]);
-  const isagInfo = draftSnapshot?.isagInfo ?? routeIsagInfo ?? defaultIsagInfo;
+    currentReport?.eccAdditionalForms ?? ([] as ECCAdditionalForm[]);
+  const isagInfo = currentReport?.isagInfo ?? defaultIsagInfo;
   const isagAdditionalForms =
-    draftSnapshot?.isagAdditionalForms ??
-    routeIsagAdditionalForms ??
-    ([] as ISAGAdditionalForm[]);
-  const epepInfo = draftSnapshot?.epepInfo ?? routeEpepInfo ?? defaultEpepInfo;
+    currentReport?.isagAdditionalForms ?? ([] as ISAGAdditionalForm[]);
+  const epepInfo = currentReport?.epepInfo ?? defaultEpepInfo;
   const epepAdditionalForms =
-    draftSnapshot?.epepAdditionalForms ??
-    routeEpepAdditionalForms ??
-    ([] as EpepAdditionalForm[]);
-  const rcfInfo = draftSnapshot?.rcfInfo ?? routeRcfInfo ?? defaultFundInfo;
+    currentReport?.epepAdditionalForms ?? ([] as EpepAdditionalForm[]);
+  const rcfInfo = currentReport?.rcfInfo ?? defaultFundInfo;
   const rcfAdditionalForms =
-    draftSnapshot?.rcfAdditionalForms ??
-    routeRcfAdditionalForms ??
-    ([] as FundAdditionalForm[]);
-  const mtfInfo = draftSnapshot?.mtfInfo ?? routeMtfInfo ?? defaultFundInfo;
+    currentReport?.rcfAdditionalForms ?? ([] as FundAdditionalForm[]);
+  const mtfInfo = currentReport?.mtfInfo ?? defaultFundInfo;
   const mtfAdditionalForms =
-    draftSnapshot?.mtfAdditionalForms ??
-    routeMtfAdditionalForms ??
-    ([] as FundAdditionalForm[]);
-  const fmrdfInfo =
-    draftSnapshot?.fmrdfInfo ?? routeFmrdfInfo ?? defaultFundInfo;
+    currentReport?.mtfAdditionalForms ?? ([] as FundAdditionalForm[]);
+  const fmrdfInfo = currentReport?.fmrdfInfo ?? defaultFundInfo;
   const fmrdfAdditionalForms =
-    draftSnapshot?.fmrdfAdditionalForms ??
-    routeFmrdfAdditionalForms ??
-    ([] as FundAdditionalForm[]);
-  const mmtInfo = draftSnapshot?.mmtInfo ?? routeMmtInfo ?? defaultMmtInfo;
-  const executiveSummary =
-    draftSnapshot?.executiveSummaryOfCompliance ??
-    routeExecutiveSummaryOfCompliance;
+    currentReport?.fmrdfAdditionalForms ?? ([] as FundAdditionalForm[]);
+  const mmtInfo = currentReport?.mmtInfo ?? defaultMmtInfo;
+  const executiveSummary = currentReport?.executiveSummaryOfCompliance;
   const processDocumentation =
-    draftSnapshot?.processDocumentationOfActivitiesUndertaken ??
-    routeProcessDocumentationOfActivitiesUndertaken;
+    currentReport?.processDocumentationOfActivitiesUndertaken;
   const complianceProjectLocation =
-    draftSnapshot?.complianceToProjectLocationAndCoverageLimits ??
-    routeComplianceToProjectLocationAndCoverageLimits;
+    currentReport?.complianceToProjectLocationAndCoverageLimits;
   const complianceImpactCommitments =
-    draftSnapshot?.complianceToImpactManagementCommitments ??
-    routeComplianceToImpactManagementCommitments;
-  const airQualityAssessment =
-    draftSnapshot?.airQualityImpactAssessment ??
-    routeAirQualityImpactAssessment;
-  const waterQualityAssessment =
-    draftSnapshot?.waterQualityImpactAssessment ??
-    routeWaterQualityImpactAssessment;
-  const noiseQualityAssessment =
-    draftSnapshot?.noiseQualityImpactAssessment ??
-    routeNoiseQualityImpactAssessment;
+    currentReport?.complianceToImpactManagementCommitments;
+  const airQualityAssessment = currentReport?.airQualityImpactAssessment;
+  const waterQualityAssessment = currentReport?.waterQualityImpactAssessment;
+  const noiseQualityAssessment = currentReport?.noiseQualityImpactAssessment;
   const wasteManagementData =
-    draftSnapshot?.complianceWithGoodPracticeInSolidAndHazardousWasteManagement ??
-    routeComplianceWithGoodPracticeInSolidAndHazardousWasteManagement;
+    currentReport?.complianceWithGoodPracticeInSolidAndHazardousWasteManagement;
   const chemicalSafetyData =
-    draftSnapshot?.complianceWithGoodPracticeInChemicalSafetyManagement ??
-    routeComplianceWithGoodPracticeInChemicalSafetyManagement;
-  const complaintsData =
-    draftSnapshot?.complaintsVerificationAndManagement ??
-    routeComplaintsVerificationAndManagement;
-  const recommendationsData =
-    draftSnapshot?.recommendationsData ?? routeRecommendationsData;
-  const recommendationPrev =
-    draftSnapshot?.recommendationFromPrevQuarter ??
-    routeRecommendationFromPrevQuarter;
-  const recommendationNext =
-    draftSnapshot?.recommendationForNextQuarter ??
-    routeRecommendationForNextQuarter;
-  const attendanceUrl = draftSnapshot?.attendanceUrl ?? routeAttendanceUrl;
-  const documentation = draftSnapshot?.documentation ?? routeDocumentation;
+    currentReport?.complianceWithGoodPracticeInChemicalSafetyManagement;
+  const complaintsData = currentReport?.complaintsVerificationAndManagement;
+  const recommendationsData = currentReport?.recommendationsData;
+  const recommendationPrev = currentReport?.recommendationFromPrevQuarter;
+  const recommendationNext = currentReport?.recommendationForNextQuarter;
+  const attendanceUrl = currentReport?.attendanceUrl;
+  const documentation = currentReport?.documentation;
 
   const baseNavParams = {
     fileName,
@@ -4073,11 +3958,8 @@ const CMVRDocumentExportScreen = () => {
   };
 
   const draftPayload = {
-    ...(draftSnapshot ?? {}),
+    ...currentReport,
     fileName,
-    generalInfo,
-    eccInfo,
-    eccAdditionalForms,
     isagInfo,
     isagAdditionalForms,
     epepInfo,
@@ -4106,6 +3988,66 @@ const CMVRDocumentExportScreen = () => {
     attendanceUrl,
     documentation,
   } as DraftSnapshot;
+
+  const saveDraftToLocal = useCallback(async () => {
+    try {
+      await persistSnapshot(draftPayload);
+      setDraftSnapshot(draftPayload);
+    } catch (error) {
+      console.warn("Failed to save CMVR draft snapshot:", error);
+    }
+  }, [draftPayload, persistSnapshot]);
+
+  useEffect(() => {
+    if (autoFillTriggered) {
+      return;
+    }
+    if (routeReportId || storeSubmissionId) {
+      setAutoFillTriggered(true);
+      return;
+    }
+
+    const hasCurrentReportData =
+      currentReport && Object.keys(currentReport || {}).length > 0;
+
+    if (hasCurrentReportData) {
+      setAutoFillTriggered(true);
+      return;
+    }
+
+    let isActive = true;
+
+    const autoFill = async () => {
+      try {
+        fillAllTestData();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        try {
+          await saveDraft();
+        } catch (error) {
+          console.warn("Auto-fill draft save failed:", error);
+        }
+      } catch (error) {
+        console.warn("Automatic CMVR test data fill failed:", error);
+      } finally {
+        if (isActive) {
+          setAutoFillTriggered(true);
+        }
+      }
+    };
+
+    autoFill();
+
+    return () => {
+      isActive = false;
+    };
+  }, [
+    autoFillTriggered,
+    currentReport,
+    fillAllTestData,
+    routeReportId,
+    saveDraft,
+    storeSubmissionId,
+  ]);
 
   const navigateToGeneralInfo = () => {
     navigation.navigate("CMVRReport", {
@@ -4418,14 +4360,11 @@ const CMVRDocumentExportScreen = () => {
                 : "No attachments"
             }
             onPress={() =>
-              navigation.navigate(
-                "CMVRAttachments" as never,
-                {
-                  ...baseNavParams,
-                  existingAttachments: attachments,
-                  fileName,
-                } as never
-              )
+              navigation.navigate("CMVRAttachments", {
+                ...baseNavParams,
+                existingAttachments: attachments,
+                fileName,
+              })
             }
           />
         </View>

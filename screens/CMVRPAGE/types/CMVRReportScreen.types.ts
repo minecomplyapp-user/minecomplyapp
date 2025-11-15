@@ -163,4 +163,14 @@ export type CreateCMVRDto = {
   complianceMonitoringReport?: any;
   createdById?: string;
   attendanceId?: string;
+  eccConditionsAttachment?: {
+    fileName: string;
+    fileUrl: string | null;
+    mimeType: string | null;
+    storagePath: string | null;
+  };
+  attachments?: Array<{
+    path: string;
+    caption?: string;
+  }>;
 };
