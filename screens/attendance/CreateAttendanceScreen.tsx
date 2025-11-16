@@ -395,6 +395,65 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
     }
   };
 
+  const handleUploadSignature = async (id: number) => {
+    try {
+      setCurrentAttendeeId(id);
+      setUploadingSignature(true);
+
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permission.status !== "granted") {
+        Alert.alert("Permission required", "Permission to access photos is required to upload a signature.");
+        setUploadingSignature(false);
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: true,
+      });
+
+      // Handle different ImagePickerResult shapes across SDK versions
+      const wasCancelled = (result as any).cancelled || (result as any).canceled;
+      const pickedUri = (result as any).uri || (result as any).assets?.[0]?.uri;
+
+      if (wasCancelled || !pickedUri) {
+        setUploadingSignature(false);
+        setCurrentAttendeeId(null);
+        return;
+      }
+
+      // Resize/compress for upload
+      const manipulated = await manipulateAsync(pickedUri, [{ resize: { width: 800 } }], { compress: 0.7, format: SaveFormat.PNG });
+
+      // Show immediate preview using local uri while uploading
+      setAttendees((prev) => prev.map((a) => (a.id === id ? { ...a, signatureUrl: manipulated.uri } : a)));
+
+      // Upload to storage (signatures folder)
+      try {
+        const { path } = await uploadSignature(manipulated.uri);
+        const { url } = await createSignedDownloadUrl(path, 60);
+
+        setNewlyUploadedPaths((prev) => [...prev, path]);
+
+        setAttendees((prev) =>
+          prev.map((a) => (a.id === id ? { ...a, signatureUrl: url, signaturePath: path } : a))
+        );
+      } catch (uploadErr: any) {
+        console.error("Upload failed:", uploadErr);
+        Alert.alert("Error", uploadErr?.message || "Failed to upload signature image.");
+        // clear preview on failure
+        setAttendees((prev) => prev.map((a) => (a.id === id ? { ...a, signatureUrl: "", signaturePath: "" } : a)));
+      }
+    } catch (err: any) {
+      console.error("handleUploadSignature error:", err);
+      Alert.alert("Error", err?.message || "Failed to pick signature image.");
+    } finally {
+      setUploadingSignature(false);
+      setCurrentAttendeeId(null);
+    }
+  };
+
   const handleRemoveSignature = async (id: number) => {
     const attendee = attendees.find((a) => a.id === id);
     const signaturePath =
@@ -903,17 +962,36 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <TouchableOpacity
-                    style={styles.addSignatureButton}
-                    onPress={() => handleAddSignature(attendee.id)}
-                  >
-                    <Feather
-                      name="edit-3"
-                      size={18}
-                      color={theme.colors.primaryDark}
-                    />
-                    <Text style={styles.addSignatureText}>Add Signature</Text>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: "column", alignItems: "flex-start" }}>
+                    <TouchableOpacity
+                      style={[styles.addSignatureButton, { width: "100%" }]}
+                      onPress={() => handleAddSignature(attendee.id)}
+                    >
+                      <Feather
+                        name="edit-3"
+                        size={18}
+                        color={theme.colors.primaryDark}
+                      />
+                      <Text style={styles.addSignatureText}>Add Signature</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.addSignatureButton, { marginTop: 10, width: "100%" }]}
+                      onPress={() => handleUploadSignature(attendee.id)}
+                      disabled={uploadingSignature}
+                    >
+                      {uploadingSignature && currentAttendeeId === attendee.id ? (
+                        <ActivityIndicator size="small" color={theme.colors.primaryDark} />
+                      ) : (
+                        <Feather
+                          name="upload"
+                          size={18}
+                          color={theme.colors.primaryDark}
+                        />
+                      )}
+                      <Text style={styles.addSignatureText}>Upload Signature</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
                 {errors.attendees?.[attendee.id]?.signatureUrl && (
                   <Text style={styles.errorText}>Signature is required</Text>

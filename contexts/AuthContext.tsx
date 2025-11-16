@@ -7,6 +7,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  profile: any | null;
   signIn: (email: string, password: string) => Promise<any>;
   signUp: (
     email: string,
@@ -21,6 +22,8 @@ interface AuthContextType {
     }
   ) => Promise<any>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+  updateLocalProfile: (patch: Partial<any>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,11 +41,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<any | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
+      // attempt to load profile for the initial session
+      if (session?.user?.id) {
+        refreshProfile().catch(() => {});
+      }
     });
 
     const {
@@ -50,6 +58,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setLoading(false);
+      if (session?.user?.id) {
+        refreshProfile().catch(() => {});
+      } else {
+        setProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -170,6 +183,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           },
           { onConflict: "id" }
         );
+        // refresh cached profile after signup
+        try {
+          await refreshProfile();
+        } catch (e) {}
       }
     } catch (err) {
       console.error("Failed to create profile row after signup", err);
@@ -182,13 +199,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     await supabase.auth.signOut();
   };
 
+  const refreshProfile = async () => {
+    try {
+      const uid = session?.user?.id;
+      if (!uid) return;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", uid)
+        .single();
+      if (error && (error as any).code !== "PGRST116") throw error;
+      let final = data || null;
+      // If no first/last but user metadata is available, derive them for display
+      const u = session?.user as any;
+      if (final) {
+        if ((!final.first_name || !final.last_name) && u) {
+          const meta = u.user_metadata || {};
+          const derivedFirst = final.first_name || meta.first_name || null;
+          const derivedLast = final.last_name || meta.last_name || null;
+          final = { ...final, first_name: derivedFirst, last_name: derivedLast };
+        }
+      } else if (u) {
+        const meta = u.user_metadata || {};
+        const derivedFirst = meta.first_name || null;
+        const derivedLast = meta.last_name || null;
+        final = {
+          id: u.id,
+          email: u.email || null,
+          first_name: derivedFirst,
+          last_name: derivedLast,
+        };
+      }
+      setProfile(final || null);
+    } catch (e) {
+      console.warn("Failed to refresh profile", e);
+    }
+  };
+
+  const updateLocalProfile = (patch: Partial<any>) => {
+    setProfile((prev) => ({ ...(prev || {}), ...(patch || {}) }));
+  };
+
   const value = {
     session,
     user: session?.user ?? null,
+    profile,
     loading,
     signIn,
     signUp,
     signOut,
+    refreshProfile,
+    updateLocalProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
