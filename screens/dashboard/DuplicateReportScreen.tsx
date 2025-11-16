@@ -65,7 +65,7 @@ export default function DuplicateReportScreen({ navigation }: any) {
 
     try {
       setIsLoading(true);
-      
+
       // Fetch attendance records (will be filtered by createdById)
       const attendanceData = await apiGet<any[]>(`/attendance`);
       setAttendanceRecords(attendanceData || []);
