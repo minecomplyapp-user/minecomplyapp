@@ -10,138 +10,177 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
 import { CMSHeader } from "../../../components/CMSHeader";
-import { saveDraft } from "../../../lib/drafts";
+import { useCmvrStore } from "../../../store/cmvrStore";
 import { LocationSection } from "./components/LocationSection";
 import { AirQualityLocationMonitoringSection } from "./components/AirQualityLocationMonitoringSection";
 import {
   LocationState,
   AirQualityLocationData,
+  AirQualityParameter,
   createEmptyAirQualityLocationData,
 } from "../types/AirQualityScreen.types";
 import { styles } from "../styles/AirQualityScreen.styles";
 
+type LegacyLocationState = Partial<LocationState> & {
+  quarryAndPlant?: boolean;
+};
+
+type RawAirQualityParameter = Partial<AirQualityParameter> &
+  Record<string, unknown>;
+
+type AirQualityParameterField = keyof Omit<AirQualityParameter, "id">;
+
+const generateParameterId = (prefix: string) =>
+  `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+const normalizeLocationState = (raw?: LegacyLocationState): LocationState => ({
+  quarry: !!raw?.quarry,
+  plant: !!raw?.plant,
+  quarryPlant: !!(raw?.quarryPlant ?? raw?.quarryAndPlant),
+  port: !!raw?.port,
+});
+
+const normalizeParameter = (
+  param: RawAirQualityParameter
+): AirQualityParameter => ({
+  id: String(param.id ?? generateParameterId("air-param")),
+  parameter:
+    typeof param.parameter === "string"
+      ? param.parameter
+      : typeof param.name === "string"
+        ? param.name
+        : "",
+  currentSMR:
+    typeof param.currentSMR === "string"
+      ? param.currentSMR
+      : typeof param.inSMR === "string"
+        ? param.inSMR
+        : "",
+  previousSMR: typeof param.previousSMR === "string" ? param.previousSMR : "",
+  currentMMT:
+    typeof param.currentMMT === "string"
+      ? param.currentMMT
+      : typeof param.mmtConfirmatorySampling === "string"
+        ? param.mmtConfirmatorySampling
+        : "",
+  previousMMT: typeof param.previousMMT === "string" ? param.previousMMT : "",
+  eqplRedFlag:
+    typeof param.eqplRedFlag === "string"
+      ? param.eqplRedFlag
+      : typeof param.redFlag === "string"
+        ? param.redFlag
+        : "",
+  action: typeof param.action === "string" ? param.action : "",
+  limitPM25:
+    typeof param.limitPM25 === "string"
+      ? param.limitPM25
+      : typeof param.limit === "string"
+        ? param.limit
+        : "",
+  remarks: typeof param.remarks === "string" ? param.remarks : "",
+});
+
+const normalizeParameters = (
+  parameters?: (AirQualityParameter | RawAirQualityParameter)[]
+): AirQualityParameter[] => {
+  if (!Array.isArray(parameters)) return [];
+  return parameters.map((param) => normalizeParameter(param));
+};
+
+const initializeLocationData = (
+  existing: AirQualityLocationData | undefined,
+  fallbackIdPrefix: string
+): AirQualityLocationData => {
+  const base = existing ? { ...existing } : createEmptyAirQualityLocationData();
+  const normalizedParams = normalizeParameters(base.parameters);
+  return {
+    ...base,
+    parameters:
+      normalizedParams.length > 0
+        ? normalizedParams
+        : [createEmptyParameter(fallbackIdPrefix)],
+  };
+};
+
+const createEmptyParameter = (prefix: string): AirQualityParameter => ({
+  id: generateParameterId(prefix),
+  parameter: "",
+  currentSMR: "",
+  previousSMR: "",
+  currentMMT: "",
+  previousMMT: "",
+  eqplRedFlag: "",
+  action: "",
+  limitPM25: "",
+  remarks: "",
+});
+
 export default function AirQualityScreen({ navigation, route }: any) {
-  const [selectedLocations, setSelectedLocations] = useState<LocationState>({
-    quarry: false,
-    plant: false,
-    quarryAndPlant: false,
-    port: false,
-  });
+  // **ZUSTAND STORE** - Single source of truth
+  const {
+    currentReport,
+    fileName: storeFileName,
+    submissionId: storeSubmissionId,
+    projectId: storeProjectId,
+    projectName: storeProjectName,
+    updateSection,
+    saveDraft,
+  } = useCmvrStore();
 
-  // Separate state for each location
-  const [quarryData, setQuarryData] = useState<AirQualityLocationData>(() => {
-    const data = createEmptyAirQualityLocationData();
-    data.parameters = [
-      {
-        id: "quarry-param-1",
-        name: "",
-        inSMR: "",
-        mmtConfirmatorySampling: "",
-        redFlag: "",
-        action: "",
-        limit: "",
-        remarks: "",
-      },
-    ];
-    return data;
-  });
-  const [plantData, setPlantData] = useState<AirQualityLocationData>(() => {
-    const data = createEmptyAirQualityLocationData();
-    data.parameters = [
-      {
-        id: "plant-param-1",
-        name: "",
-        inSMR: "",
-        mmtConfirmatorySampling: "",
-        redFlag: "",
-        action: "",
-        limit: "",
-        remarks: "",
-      },
-    ];
-    return data;
-  });
-  const [quarryAndPlantData, setQuarryAndPlantData] =
-    useState<AirQualityLocationData>(() => {
-      const data = createEmptyAirQualityLocationData();
-      data.parameters = [
-        {
-          id: "quarryplant-param-1",
-          name: "",
-          inSMR: "",
-          mmtConfirmatorySampling: "",
-          redFlag: "",
-          action: "",
-          limit: "",
-          remarks: "",
-        },
-      ];
-      return data;
-    });
-  const [portData, setPortData] = useState<AirQualityLocationData>(() => {
-    const data = createEmptyAirQualityLocationData();
-    data.parameters = [
-      {
-        id: "port-param-1",
-        name: "",
-        inSMR: "",
-        mmtConfirmatorySampling: "",
-        redFlag: "",
-        action: "",
-        limit: "",
-        remarks: "",
-      },
-    ];
-    return data;
-  });
+  // Initialize from store
+  const storedAirQuality = currentReport?.airQualityImpactAssessment;
 
-  // Hydrate from route params when coming from a draft
+  const [selectedLocations, setSelectedLocations] = useState<LocationState>(
+    () => normalizeLocationState(storedAirQuality?.selectedLocations)
+  );
+
+  // Separate state for each location - initialized from store
+  const [quarryData, setQuarryData] = useState<AirQualityLocationData>(() =>
+    initializeLocationData(storedAirQuality?.quarryData, "quarry-param")
+  );
+
+  const [plantData, setPlantData] = useState<AirQualityLocationData>(() =>
+    initializeLocationData(storedAirQuality?.plantData, "plant-param")
+  );
+
+  const [quarryPlantData, setQuarryPlantData] =
+    useState<AirQualityLocationData>(() =>
+      initializeLocationData(
+        storedAirQuality?.quarryPlantData ||
+          (storedAirQuality as Record<string, any>)?.quarryAndPlantData,
+        "quarryplant-param"
+      )
+    );
+
+  const [portData, setPortData] = useState<AirQualityLocationData>(() =>
+    initializeLocationData(storedAirQuality?.portData, "port-param")
+  );
+
+  // Auto-sync to store
   useEffect(() => {
-    const params: any = route?.params || {};
-    const saved = params.airQualityImpactAssessment;
-    if (saved) {
-      if (saved.selectedLocations)
-        setSelectedLocations(saved.selectedLocations);
-      if (saved.quarryData) setQuarryData(saved.quarryData);
-      if (saved.plantData) setPlantData(saved.plantData);
-      if (saved.quarryAndPlantData)
-        setQuarryAndPlantData(saved.quarryAndPlantData);
-      if (saved.portData) setPortData(saved.portData);
-    }
-  }, [route?.params]);
+    updateSection("airQualityImpactAssessment", {
+      selectedLocations: {
+        ...selectedLocations,
+        quarryAndPlant: selectedLocations.quarryPlant,
+      },
+      quarryData,
+      plantData,
+      quarryPlantData,
+      quarryAndPlantData: quarryPlantData,
+      portData,
+    });
+  }, [selectedLocations, quarryData, plantData, quarryPlantData, portData]);
 
   const handleSave = async () => {
     try {
-      const prevPageData: any = route.params || {};
-
-      const airQualityImpactAssessment = {
-        selectedLocations,
-        quarryData,
-        plantData,
-        quarryAndPlantData,
-        portData,
-      };
-
-      const draftData = {
-        ...prevPageData,
-        airQualityImpactAssessment,
-        savedAt: new Date().toISOString(),
-      };
-
-      const fileName = prevPageData.fileName || "Untitled";
-      const success = await saveDraft(fileName, draftData);
-
-      if (success) {
-        Alert.alert("Success", "Draft saved successfully");
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: "Dashboard" }],
-          })
-        );
-      } else {
-        Alert.alert("Error", "Failed to save draft. Please try again.");
-      }
+      await saveDraft();
+      Alert.alert("Success", "Draft saved successfully");
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
     } catch (error) {
       console.error("Error saving draft:", error);
       Alert.alert("Error", "Failed to save draft. Please try again.");
@@ -154,36 +193,14 @@ export default function AirQualityScreen({ navigation, route }: any) {
 
   const handleSaveToDraft = async () => {
     try {
-      const prevPageData: any = route.params || {};
-
-      const airQualityImpactAssessment = {
-        selectedLocations,
-        quarryData,
-        plantData,
-        quarryAndPlantData,
-        portData,
-      };
-
-      const draftData = {
-        ...prevPageData,
-        airQualityImpactAssessment,
-        savedAt: new Date().toISOString(),
-      };
-
-      const fileName = prevPageData.fileName || "Untitled";
-      const success = await saveDraft(fileName, draftData);
-
-      if (success) {
-        Alert.alert("Success", "Draft saved successfully");
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: "Dashboard" }],
-          })
-        );
-      } else {
-        Alert.alert("Error", "Failed to save draft. Please try again.");
-      }
+      await saveDraft();
+      Alert.alert("Success", "Draft saved successfully");
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
     } catch (error) {
       console.error("Error saving draft:", error);
       Alert.alert("Error", "Failed to save draft. Please try again.");
@@ -208,26 +225,17 @@ export default function AirQualityScreen({ navigation, route }: any) {
 
   // ============ QUARRY HANDLERS ============
   const addQuarryParameter = () => {
-    const newId = `quarry-param-${Date.now()}`;
     setQuarryData((prev) => ({
       ...prev,
-      parameters: [
-        ...prev.parameters,
-        {
-          id: newId,
-          name: "",
-          inSMR: "",
-          mmtConfirmatorySampling: "",
-          redFlag: "",
-          action: "",
-          limit: "",
-          remarks: "",
-        },
-      ],
+      parameters: [...prev.parameters, createEmptyParameter("quarry-param")],
     }));
   };
 
-  const updateQuarryParameter = (id: string, field: string, value: string) => {
+  const updateQuarryParameter = (
+    id: string,
+    field: AirQualityParameterField,
+    value: string
+  ) => {
     setQuarryData((prev) => ({
       ...prev,
       parameters: prev.parameters.map((param) =>
@@ -245,26 +253,17 @@ export default function AirQualityScreen({ navigation, route }: any) {
 
   // ============ PLANT HANDLERS ============
   const addPlantParameter = () => {
-    const newId = `plant-param-${Date.now()}`;
     setPlantData((prev) => ({
       ...prev,
-      parameters: [
-        ...prev.parameters,
-        {
-          id: newId,
-          name: "",
-          inSMR: "",
-          mmtConfirmatorySampling: "",
-          redFlag: "",
-          action: "",
-          limit: "",
-          remarks: "",
-        },
-      ],
+      parameters: [...prev.parameters, createEmptyParameter("plant-param")],
     }));
   };
 
-  const updatePlantParameter = (id: string, field: string, value: string) => {
+  const updatePlantParameter = (
+    id: string,
+    field: AirQualityParameterField,
+    value: string
+  ) => {
     setPlantData((prev) => ({
       ...prev,
       parameters: prev.parameters.map((param) =>
@@ -281,32 +280,22 @@ export default function AirQualityScreen({ navigation, route }: any) {
   };
 
   // ============ QUARRY & PLANT HANDLERS ============
-  const addQuarryAndPlantParameter = () => {
-    const newId = `quarryplant-param-${Date.now()}`;
-    setQuarryAndPlantData((prev) => ({
+  const addQuarryPlantParameter = () => {
+    setQuarryPlantData((prev) => ({
       ...prev,
       parameters: [
         ...prev.parameters,
-        {
-          id: newId,
-          name: "",
-          inSMR: "",
-          mmtConfirmatorySampling: "",
-          redFlag: "",
-          action: "",
-          limit: "",
-          remarks: "",
-        },
+        createEmptyParameter("quarryplant-param"),
       ],
     }));
   };
 
-  const updateQuarryAndPlantParameter = (
+  const updateQuarryPlantParameter = (
     id: string,
-    field: string,
+    field: AirQualityParameterField,
     value: string
   ) => {
-    setQuarryAndPlantData((prev) => ({
+    setQuarryPlantData((prev) => ({
       ...prev,
       parameters: prev.parameters.map((param) =>
         param.id === id ? { ...param, [field]: value } : param
@@ -314,8 +303,8 @@ export default function AirQualityScreen({ navigation, route }: any) {
     }));
   };
 
-  const deleteQuarryAndPlantParameter = (id: string) => {
-    setQuarryAndPlantData((prev) => ({
+  const deleteQuarryPlantParameter = (id: string) => {
+    setQuarryPlantData((prev) => ({
       ...prev,
       parameters: prev.parameters.filter((param) => param.id !== id),
     }));
@@ -323,26 +312,17 @@ export default function AirQualityScreen({ navigation, route }: any) {
 
   // ============ PORT HANDLERS ============
   const addPortParameter = () => {
-    const newId = `port-param-${Date.now()}`;
     setPortData((prev) => ({
       ...prev,
-      parameters: [
-        ...prev.parameters,
-        {
-          id: newId,
-          name: "",
-          inSMR: "",
-          mmtConfirmatorySampling: "",
-          redFlag: "",
-          action: "",
-          limit: "",
-          remarks: "",
-        },
-      ],
+      parameters: [...prev.parameters, createEmptyParameter("port-param")],
     }));
   };
 
-  const updatePortParameter = (id: string, field: string, value: string) => {
+  const updatePortParameter = (
+    id: string,
+    field: AirQualityParameterField,
+    value: string
+  ) => {
     setPortData((prev) => ({
       ...prev,
       parameters: prev.parameters.map((param) =>
@@ -363,7 +343,7 @@ export default function AirQualityScreen({ navigation, route }: any) {
     setSelectedLocations({
       quarry: true,
       plant: true,
-      quarryAndPlant: false,
+      quarryPlant: false,
       port: true,
     });
 
@@ -380,22 +360,26 @@ export default function AirQualityScreen({ navigation, route }: any) {
       parameters: [
         {
           id: "quarry-1",
-          name: "TSP",
-          inSMR: "120 µg/Nm³",
-          mmtConfirmatorySampling: "118 µg/Nm³",
-          redFlag: "No",
+          parameter: "TSP",
+          currentSMR: "120 µg/Nm³",
+          previousSMR: "118 µg/Nm³",
+          currentMMT: "118 µg/Nm³",
+          previousMMT: "120 µg/Nm³",
+          eqplRedFlag: "No",
           action: "Continue monitoring",
-          limit: "230 µg/Nm³",
+          limitPM25: "230 µg/Nm³",
           remarks: "Within DENR standards for TSP",
         },
         {
           id: "quarry-2",
-          name: "PM10",
-          inSMR: "65 µg/Nm³",
-          mmtConfirmatorySampling: "68 µg/Nm³",
-          redFlag: "No",
+          parameter: "PM10",
+          currentSMR: "65 µg/Nm³",
+          previousSMR: "66 µg/Nm³",
+          currentMMT: "68 µg/Nm³",
+          previousMMT: "70 µg/Nm³",
+          eqplRedFlag: "No",
           action: "Maintain dust suppression",
-          limit: "150 µg/Nm³",
+          limitPM25: "150 µg/Nm³",
           remarks: "Compliant with PM10 limits",
         },
       ],
@@ -414,12 +398,14 @@ export default function AirQualityScreen({ navigation, route }: any) {
       parameters: [
         {
           id: "plant-1",
-          name: "TSP",
-          inSMR: "95 µg/Nm³",
-          mmtConfirmatorySampling: "92 µg/Nm³",
-          redFlag: "No",
+          parameter: "TSP",
+          currentSMR: "95 µg/Nm³",
+          previousSMR: "98 µg/Nm³",
+          currentMMT: "92 µg/Nm³",
+          previousMMT: "95 µg/Nm³",
+          eqplRedFlag: "No",
           action: "No action required",
-          limit: "230 µg/Nm³",
+          limitPM25: "230 µg/Nm³",
           remarks: "Well below threshold",
         },
       ],
@@ -438,12 +424,14 @@ export default function AirQualityScreen({ navigation, route }: any) {
       parameters: [
         {
           id: "port-1",
-          name: "PM10",
-          inSMR: "72 µg/Nm³",
-          mmtConfirmatorySampling: "75 µg/Nm³",
-          redFlag: "No",
+          parameter: "PM10",
+          currentSMR: "72 µg/Nm³",
+          previousSMR: "70 µg/Nm³",
+          currentMMT: "75 µg/Nm³",
+          previousMMT: "74 µg/Nm³",
+          eqplRedFlag: "No",
           action: "Continue current protocols",
-          limit: "150 µg/Nm³",
+          limitPM25: "150 µg/Nm³",
           remarks: "Acceptable levels during operations",
         },
       ],
@@ -553,50 +541,50 @@ export default function AirQualityScreen({ navigation, route }: any) {
         )}
 
         {/* Quarry & Plant Monitoring Section */}
-        {selectedLocations.quarryAndPlant && (
+        {selectedLocations.quarryPlant && (
           <AirQualityLocationMonitoringSection
             locationName="Quarry & Plant"
-            locationInput={quarryAndPlantData.locationInput}
-            samplingDate={quarryAndPlantData.samplingDate}
-            weatherAndWind={quarryAndPlantData.weatherAndWind}
+            locationInput={quarryPlantData.locationInput}
+            samplingDate={quarryPlantData.samplingDate}
+            weatherAndWind={quarryPlantData.weatherAndWind}
             explanationForConfirmatorySampling={
-              quarryAndPlantData.explanationForConfirmatorySampling
+              quarryPlantData.explanationForConfirmatorySampling
             }
-            overallAssessment={quarryAndPlantData.overallAssessment}
-            parameters={quarryAndPlantData.parameters}
+            overallAssessment={quarryPlantData.overallAssessment}
+            parameters={quarryPlantData.parameters}
             onLocationInputChange={(value) =>
-              setQuarryAndPlantData((prev) => ({
+              setQuarryPlantData((prev) => ({
                 ...prev,
                 locationInput: value,
               }))
             }
             onSamplingDateChange={(value) =>
-              setQuarryAndPlantData((prev) => ({
+              setQuarryPlantData((prev) => ({
                 ...prev,
                 samplingDate: value,
               }))
             }
             onWeatherAndWindChange={(value) =>
-              setQuarryAndPlantData((prev) => ({
+              setQuarryPlantData((prev) => ({
                 ...prev,
                 weatherAndWind: value,
               }))
             }
             onExplanationChange={(value) =>
-              setQuarryAndPlantData((prev) => ({
+              setQuarryPlantData((prev) => ({
                 ...prev,
                 explanationForConfirmatorySampling: value,
               }))
             }
             onOverallAssessmentChange={(value) =>
-              setQuarryAndPlantData((prev) => ({
+              setQuarryPlantData((prev) => ({
                 ...prev,
                 overallAssessment: value,
               }))
             }
-            onAddParameter={addQuarryAndPlantParameter}
-            onUpdateParameter={updateQuarryAndPlantParameter}
-            onDeleteParameter={deleteQuarryAndPlantParameter}
+            onAddParameter={addQuarryPlantParameter}
+            onUpdateParameter={updateQuarryPlantParameter}
+            onDeleteParameter={deleteQuarryPlantParameter}
           />
         )}
 
@@ -652,10 +640,14 @@ export default function AirQualityScreen({ navigation, route }: any) {
           style={styles.saveNextButton}
           onPress={() => {
             const airQualityImpactAssessment = {
-              selectedLocations,
+              selectedLocations: {
+                ...selectedLocations,
+                quarryAndPlant: selectedLocations.quarryPlant,
+              },
               quarryData,
               plantData,
-              quarryAndPlantData,
+              quarryPlantData,
+              quarryAndPlantData: quarryPlantData,
               portData,
             };
             const nextParams = {
@@ -672,7 +664,7 @@ export default function AirQualityScreen({ navigation, route }: any) {
           <Text style={styles.saveNextText}>Save & Next</Text>
           <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
-        {/* filler gap ts not advisable tbh*/}   
+        {/* filler gap ts not advisable tbh*/}
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>

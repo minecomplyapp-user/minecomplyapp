@@ -37,56 +37,21 @@ const emptyProfile = {
 };
 
 const ProfileScreen = ({ navigation }: any) => {
-  const { user, signOut } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>({
-    ...emptyProfile,
-    email: user?.email || "",
-  });
+  const { user, signOut, profile: authProfile, loading: authLoading, refreshProfile } = useAuth();
+  const loading = authLoading;
+  const profile = authProfile || { ...emptyProfile, email: user?.email || "" };
+
+  const [refreshingProfile, setRefreshingProfile] = useState(false);
 
   useEffect(() => {
-    if (user?.id) {
-      fetchProfile();
-    } else {
-      setLoading(false);
+    // If we have a logged-in user but no cached profile, try to load it from the server.
+    if (user?.id && !authProfile) {
+      setRefreshingProfile(true);
+      refreshProfile()
+        .catch(() => {})
+        .finally(() => setRefreshingProfile(false));
     }
-  }, [user?.id]);
-
-  async function fetchProfile() {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user?.id)
-        .single();
-
-      if (error && (error as any).code !== "PGRST116") throw error;
-
-      if (data) {
-        const { full_name, first_name, last_name, ...restData } = data;
-        let finalFirstName = first_name;
-        let finalLastName = last_name;
-        if (full_name && !first_name && !last_name) {
-          const nameParts = full_name.split(" ");
-          finalFirstName = nameParts[0] || "";
-          finalLastName = nameParts.slice(1).join(" ") || "";
-        }
-        setProfile({
-          ...emptyProfile,
-          ...restData,
-          first_name: finalFirstName,
-          last_name: finalLastName,
-          email: user?.email || "",
-        });
-      }
-    } catch (err: any) {
-      console.error("Error fetching profile", err);
-      Alert.alert("Error", "Failed to load profile");
-    } finally {
-      setLoading(false);
-    }
-  }
+  }, [user?.id, authProfile, refreshProfile]);
 
   const handleSignOut = async () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -147,6 +112,11 @@ const ProfileScreen = ({ navigation }: any) => {
               {profile.email || "No email"}
             </Text>
           </View>
+          {refreshingProfile && (
+            <View style={{ marginLeft: 8 }}>
+              <ActivityIndicator size="small" color={theme.colors.primaryDark} />
+            </View>
+          )}
           {/* NEW Edit Profile Button */}
           <TouchableOpacity
             style={styles.editProfileButton}
@@ -180,11 +150,23 @@ const ProfileScreen = ({ navigation }: any) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Support</Text>
           <View style={styles.card}>
-            <MenuItem icon={HelpCircle} title="Help & FAQ" />
+            <MenuItem
+              icon={HelpCircle}
+              title="Help & FAQ"
+              onPress={() => Alert.alert("Coming Soon", "Support section will be implemented soon.")}
+            />
             <View style={styles.divider} />
-            <MenuItem icon={Bug} title="Report a Bug" />
+            <MenuItem
+              icon={Bug}
+              title="Report a Bug"
+              onPress={() => Alert.alert("Coming Soon", "Support section will be implemented soon.")}
+            />
             <View style={styles.divider} />
-            <MenuItem icon={FileTextIcon} title="Terms & Privacy" />
+            <MenuItem
+              icon={FileTextIcon}
+              title="Terms & Privacy"
+              onPress={() => Alert.alert("Coming Soon", "Support section will be implemented soon.")}
+            />
           </View>
         </View>
 
@@ -212,7 +194,7 @@ const ProfileScreen = ({ navigation }: any) => {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>MineComply © 2024</Text>
+          <Text style={styles.footerText}>MineComply © 2025</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -230,10 +212,11 @@ type MenuItemProps = {
   icon: React.ElementType;
   title: string;
   rightContent?: string;
+  onPress?: () => void;
 };
 
-const MenuItem = ({ icon: Icon, title, rightContent }: MenuItemProps) => (
-  <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+const MenuItem = ({ icon: Icon, title, rightContent, onPress }: MenuItemProps) => (
+  <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={onPress}>
     <View style={styles.menuItemIcon}>
       <Icon size={20} color={theme.colors.primaryDark} />
     </View>

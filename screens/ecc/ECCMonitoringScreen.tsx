@@ -309,7 +309,7 @@ if (result.success && result.download_url) {
         result = await saveDraft(draftData);
       }
 
-      console.log("MONITORING DATAs:", id, "save result:", result);
+      // console.log("MONITORING DATAs:", id, "save result:", result);
 
       // Defensive checks for the result shape
       if (!result || typeof result !== "object") {

@@ -8,12 +8,16 @@ export type BaseCondition = {
   descriptions: Record<ChoiceKey, string>;
   isDefault?: boolean;
   nested_to?: CondID | null;
+  remarks?: string;
 };
+
+
 
 export type StoredState = {
   edits: Record<CondID, Partial<BaseCondition>>;
   customs: BaseCondition[];
   selections: Record<CondID, ChoiceKey | null>;
+  remarks: Record<CondID, string | null>;
   formatted?: {
     conditions: Array<{
       nested_to?:string;

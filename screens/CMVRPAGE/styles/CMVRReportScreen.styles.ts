@@ -20,6 +20,32 @@ export const styles = StyleSheet.create({
     height: 8,
     backgroundColor: "#F8F9FA",
   },
+  statusBanner: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+  },
+  statusBannerNew: {
+    backgroundColor: "#E6F4EA",
+    borderColor: "#34A853",
+  },
+  statusBannerExisting: {
+    backgroundColor: "#FFF4E5",
+    borderColor: "#FB8C00",
+  },
+  statusBannerLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  statusBannerSubtext: {
+    fontSize: 12,
+    color: "#475569",
+    marginTop: 4,
+  },
   saveNextButton: {
     backgroundColor: "#02217C",
     paddingVertical: 16,

@@ -7,6 +7,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  profile: any | null;
   signIn: (email: string, password: string) => Promise<any>;
   signUp: (
     email: string,
@@ -21,6 +22,8 @@ interface AuthContextType {
     }
   ) => Promise<any>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+  updateLocalProfile: (patch: Partial<any>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,11 +41,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<any | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
+      // attempt to load profile for the initial session
+      if (session?.user?.id) {
+        refreshProfile().catch(() => {});
+      }
     });
 
     const {
@@ -50,6 +58,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setLoading(false);
+      if (session?.user?.id) {
+        refreshProfile().catch(() => {});
+      } else {
+        setProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -61,27 +74,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       password,
     });
     try {
-      // After login, sync metadata into profiles to ensure names/fields are present
+      // After login, sync metadata into profiles but avoid overwriting
+      // existing DB values with nulls. Fetch existing row and merge values
+      // so we only upsert fields present in metadata or already stored.
       if (!result.error) {
         const u = result?.data?.user as any;
         if (u?.id) {
           const meta = (u.user_metadata || {}) as Record<string, any>;
-          await supabase.from("profiles").upsert(
-            {
+          try {
+            const { data: existing } = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("id", u.id)
+              .maybeSingle();
+
+            const payload = {
               id: u.id,
-              email: u.email || null,
-              first_name: meta.first_name ?? null,
-              last_name: meta.last_name ?? null,
+              email: u.email || (existing?.email ?? null),
+              first_name:
+                meta.first_name ?? (existing?.first_name ?? null),
+              last_name: meta.last_name ?? (existing?.last_name ?? null),
               full_name:
-                meta.full_name ?? ((u.email || "").split("@")[0] || null),
-              mailing_address: meta.mailing_address ?? null,
-              phone_number: meta.phone_number ?? null,
-              fax: meta.fax ?? null,
-              position: meta.position ?? null,
+                meta.full_name ??
+                (existing?.full_name ?? (u.email || "").split("@")[0]),
+              mailing_address:
+                meta.mailing_address ?? (existing?.mailing_address ?? null),
+              phone_number: meta.phone_number ?? (existing?.phone_number ?? null),
+              fax: meta.fax ?? (existing?.fax ?? null),
+              position: meta.position ?? (existing?.position ?? null),
               verified: !!u.email_confirmed_at,
-            },
-            { onConflict: "id" }
-          );
+            } as Record<string, any>;
+
+            await supabase.from("profiles").upsert(payload, { onConflict: "id" });
+          } catch (e) {
+            // best-effort sync; ignore failures
+            console.warn("Post-login profile sync skipped:", e);
+          }
         }
       }
     } catch (e) {
@@ -170,6 +198,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           },
           { onConflict: "id" }
         );
+        // refresh cached profile after signup
+        try {
+          await refreshProfile();
+        } catch (e) {}
       }
     } catch (err) {
       console.error("Failed to create profile row after signup", err);
@@ -182,13 +214,89 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     await supabase.auth.signOut();
   };
 
+  const refreshProfile = async () => {
+    try {
+      const uid = session?.user?.id;
+      if (!uid) return;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", uid)
+        .single();
+      if (error && (error as any).code !== "PGRST116") throw error;
+      let final = data || null;
+      // If no first/last but user metadata is available, derive them for display
+      const u = session?.user as any;
+      const hadRow = !!final;
+      const meta = (u && u.user_metadata) || {};
+
+      // Build a persistent payload merging DB row and metadata
+      const keysToEnsure = [
+        "email",
+        "first_name",
+        "last_name",
+        "position",
+        "mailing_address",
+        "phone_number",
+        "fax",
+        "full_name",
+        "verified",
+      ];
+
+      const toPersist: Record<string, any> = { id: uid };
+      for (const k of keysToEnsure) {
+        const dbVal = final && (final as any)[k];
+        const metaVal = (meta && meta[k]) ?? null;
+        // Prefer DB value when present, otherwise fall back to metadata
+        toPersist[k] = dbVal ?? metaVal ?? null;
+      }
+
+      // If there was no DB row, or if any of the important fields are missing in DB
+      // but available from metadata, persist them so they become permanent.
+      const shouldUpsert =
+        !hadRow ||
+        keysToEnsure.some((k) => {
+          const dbVal = final && (final as any)[k];
+          const persistVal = toPersist[k];
+          // treat undefined/null equivalently
+          return (dbVal ?? null) !== (persistVal ?? null);
+        });
+
+      if (shouldUpsert) {
+        try {
+          await supabase.from("profiles").upsert(toPersist, { onConflict: "id" });
+          // reload the row we just upserted so `final` contains persisted values
+          const { data: refreshed } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", uid)
+            .maybeSingle();
+          if (refreshed) final = refreshed;
+        } catch (e) {
+          console.warn("Failed to persist profile fields during refresh", e);
+        }
+      }
+
+      setProfile(final || null);
+    } catch (e) {
+      console.warn("Failed to refresh profile", e);
+    }
+  };
+
+  const updateLocalProfile = (patch: Partial<any>) => {
+    setProfile((prev) => ({ ...(prev || {}), ...(patch || {}) }));
+  };
+
   const value = {
     session,
     user: session?.user ?? null,
+    profile,
     loading,
     signIn,
     signUp,
     signOut,
+    refreshProfile,
+    updateLocalProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

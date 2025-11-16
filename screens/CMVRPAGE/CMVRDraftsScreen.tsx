@@ -28,6 +28,7 @@ import {
   DraftMetadata,
 } from "../../lib/drafts";
 import { useFileName } from "../../contexts/FileNameContext";
+import { useCmvrStore } from "../../store/cmvrStore";
 
 interface DraftListItem extends DraftMetadata {
   displayName: string;
@@ -39,6 +40,7 @@ type Navigation = StackNavigationProp<any>;
 const CMVRDraftsScreen = () => {
   const navigation = useNavigation<Navigation>();
   const { setFileName } = useFileName();
+  const { clearReport, initializeNewReport } = useCmvrStore();
 
   const [drafts, setDrafts] = useState<DraftListItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -124,6 +126,8 @@ const CMVRDraftsScreen = () => {
     try {
       const defaultName = generateDefaultFileName();
       await setFileName(defaultName);
+      clearReport();
+      initializeNewReport(defaultName);
       navigation.navigate("CMVRReport", {
         submissionId: null,
         projectId: null,
@@ -151,6 +155,8 @@ const CMVRDraftsScreen = () => {
         item.displayName;
 
       await setFileName(resolvedName);
+
+      clearReport();
 
       navigation.navigate("CMVRReport", {
         submissionId: null,

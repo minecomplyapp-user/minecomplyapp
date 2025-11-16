@@ -236,7 +236,7 @@ export default function AttendanceRecordScreen({ navigation }: any) {
                   record={{
                     ...record,
                     // Normalize display fields
-                    title: record.title || record.fileName,
+                    title: record.fileName,
                     date: fmtDate(
                       record.meetingDate || record.createdAt || null
                     ),

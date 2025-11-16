@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../styles/epep.styles";
@@ -7,16 +7,21 @@ import type {
   EPEPAdditionalForm,
   EPEPSectionProps,
 } from "../types/epep.types";
+import { Picker } from "@react-native-picker/picker";
 
 const EPEPSection: React.FC<EPEPSectionProps> = ({
   epepInfo,
   setEpepInfo,
   epepAdditionalForms,
   setEpepAdditionalForms,
+  permitHolderList,
+  setPermitHolderList,
 }) => {
   const updateEPEPInfo = (field: keyof EPEPInfo, value: string | boolean) => {
     setEpepInfo((prev) => ({ ...prev, [field]: value }));
   };
+
+  const [newHolderName, setNewHolderName] = useState("");
 
   const addEPEPForm = () => {
     setEpepAdditionalForms([
@@ -47,34 +52,65 @@ const EPEPSection: React.FC<EPEPSectionProps> = ({
         </View>
         <View style={styles.headerTextContainer}>
           <Text style={styles.sectionTitle}>EPEP / FMRDP</Text>
-          <Text style={styles.sectionSubtitle}>Environmental Protection Plan</Text>
+          <Text style={styles.sectionSubtitle}>
+            Environmental Protection Plan
+          </Text>
         </View>
         <TouchableOpacity
           style={styles.naButton}
           onPress={() => updateEPEPInfo("isNA", !epepInfo.isNA)}
           activeOpacity={0.7}
         >
-          <View style={[styles.checkbox, epepInfo.isNA && styles.checkboxChecked]}>
-            {epepInfo.isNA && <Ionicons name="checkmark" size={16} color="white" />}
+          <View
+            style={[styles.checkbox, epepInfo.isNA && styles.checkboxChecked]}
+          >
+            {epepInfo.isNA && (
+              <Ionicons name="checkmark" size={16} color="white" />
+            )}
           </View>
           <Text style={styles.naLabel}>N/A</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={[styles.formContent, epepInfo.isNA && styles.disabledContent]}>
+      <View
+        style={[styles.formContent, epepInfo.isNA && styles.disabledContent]}
+      >
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Name of Permit Holder</Text>
           <View style={styles.inputWithButton}>
-            <TextInput
+            {/* <TextInput
               style={[styles.input, styles.flexInput]}
               value={epepInfo.permitHolder}
               onChangeText={(text) => updateEPEPInfo("permitHolder", text)}
               placeholder="Enter permit holder name"
               placeholderTextColor="#94A3B8"
               editable={!epepInfo.isNA}
-            />
+            /> */}
+
+            <Picker
+              selectedValue={epepInfo.permitHolder}
+              onValueChange={(value: string | number) => {
+                updateEPEPInfo("permitHolder", String(value));
+              }}
+              // 🟢 Apply explicit input styles here for size/font
+              style={styles.pickerInput}
+              dropdownIconColor="#0F172A"
+            >
+              <Picker.Item
+                label="Select Permit Holder..."
+                value=""
+                enabled={false}
+              />
+              {permitHolderList.map((holder, index) => (
+                <Picker.Item key={index} label={holder} value={holder} />
+              ))}
+            </Picker>
+
             <TouchableOpacity
-              style={[styles.submitButton, epepInfo.isNA && styles.disabledButton]}
+              style={[
+                styles.submitButton,
+                epepInfo.isNA && styles.disabledButton,
+              ]}
               disabled={epepInfo.isNA}
             >
               <Ionicons name="checkmark-circle" size={18} color="white" />
@@ -111,8 +147,14 @@ const EPEPSection: React.FC<EPEPSectionProps> = ({
           onPress={addEPEPForm}
           disabled={epepInfo.isNA}
         >
-          <Ionicons name="add-circle" size={20} color={epepInfo.isNA ? "#94A3B8" : "#1E40AF"} />
-          <Text style={[styles.addButtonText, epepInfo.isNA && styles.disabledText]}>
+          <Ionicons
+            name="add-circle"
+            size={20}
+            color={epepInfo.isNA ? "#94A3B8" : "#1E40AF"}
+          />
+          <Text
+            style={[styles.addButtonText, epepInfo.isNA && styles.disabledText]}
+          >
             Add More Permit Holders
           </Text>
         </TouchableOpacity>
@@ -124,9 +166,11 @@ const EPEPSection: React.FC<EPEPSectionProps> = ({
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>#{index + 2}</Text>
                 </View>
-                <Text style={styles.additionalFormTitle}>EPEP/FMRDP Permit</Text>
+                <Text style={styles.additionalFormTitle}>
+                  EPEP/FMRDP Permit
+                </Text>
               </View>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => removeEpepAdditionalForm(index)}
                 style={styles.deleteButton}
               >
@@ -137,7 +181,7 @@ const EPEPSection: React.FC<EPEPSectionProps> = ({
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Name of Permit Holder</Text>
               <View style={styles.inputWithButton}>
-                <TextInput
+                {/* <TextInput
                   style={[styles.input, styles.flexInput]}
                   value={form.permitHolder}
                   onChangeText={(text) =>
@@ -145,7 +189,31 @@ const EPEPSection: React.FC<EPEPSectionProps> = ({
                   }
                   placeholder="Enter permit holder name"
                   placeholderTextColor="#94A3B8"
-                />
+                /> */}
+
+                <Picker
+                  selectedValue={form.permitHolder}
+                  onValueChange={(value: string | number) => {
+                    updateEpepAdditionalForm(
+                      index,
+                      "permitHolder",
+                      String(value)
+                    );
+                  }}
+                  // 🟢 Apply explicit input styles here for size/font
+                  style={styles.pickerInput}
+                  dropdownIconColor="#0F172A"
+                >
+                  <Picker.Item
+                    label="Select Permit Holder..."
+                    value=""
+                    enabled={false}
+                  />
+                  {permitHolderList.map((holder, index) => (
+                    <Picker.Item key={index} label={holder} value={holder} />
+                  ))}
+                </Picker>
+
                 <TouchableOpacity style={styles.submitButton}>
                   <Ionicons name="checkmark-circle" size={18} color="white" />
                 </TouchableOpacity>

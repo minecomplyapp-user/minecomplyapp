@@ -14,6 +14,7 @@ import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
 import { CMSHeader } from "../../../components/CMSHeader";
+import { useCmvrStore } from "../../../store/cmvrStore";
 import {
   RecommendationItem,
   SectionData,
@@ -276,72 +277,89 @@ const RecommendationsScreen: React.FC = () => {
   const navigation = useNavigation<RecommendationsScreenNavigationProp>();
   const route = useRoute<RecommendationsScreenRouteProp>();
   const allPreviousParams = route.params || {};
-  const [prevYear, setPrevYear] = useState("");
-  const [prevQuarter, setPrevQuarter] = useState("1st");
+
+  // Zustand store
+  const { currentReport, updateSection, saveDraft } = useCmvrStore();
+
+  // Initialize from store
+  const storedRecommendations = currentReport?.recommendationsData;
+
+  const [prevYear, setPrevYear] = useState(
+    storedRecommendations?.prevYear || ""
+  );
+  const [prevQuarter, setPrevQuarter] = useState(
+    storedRecommendations?.prevQuarter || "1st"
+  );
 
   const [currentSections, setCurrentSections] = useState<
     Record<SectionKey, SectionData>
-  >({
-    plant: {
-      isNA: false,
-      items: [{ recommendation: "", commitment: "", status: "" }],
-    },
-    quarry: {
-      isNA: false,
-      items: [{ recommendation: "", commitment: "", status: "" }],
-    },
-    port: {
-      isNA: false,
-      items: [{ recommendation: "", commitment: "", status: "" }],
-    },
-  });
+  >(
+    storedRecommendations?.currentRecommendations || {
+      plant: {
+        isNA: false,
+        items: [{ recommendation: "", commitment: "", status: "" }],
+      },
+      quarry: {
+        isNA: false,
+        items: [{ recommendation: "", commitment: "", status: "" }],
+      },
+      port: {
+        isNA: false,
+        items: [{ recommendation: "", commitment: "", status: "" }],
+      },
+    }
+  );
 
   const [previousSections, setPreviousSections] = useState<
     Record<SectionKey, SectionData>
-  >({
-    plant: {
-      isNA: false,
-      items: [{ recommendation: "", commitment: "", status: "" }],
-    },
-    quarry: {
-      isNA: false,
-      items: [{ recommendation: "", commitment: "", status: "" }],
-    },
-    port: {
-      isNA: false,
-      items: [{ recommendation: "", commitment: "", status: "" }],
-    },
-  });
+  >(
+    storedRecommendations?.previousRecommendations || {
+      plant: {
+        isNA: false,
+        items: [{ recommendation: "", commitment: "", status: "" }],
+      },
+      quarry: {
+        isNA: false,
+        items: [{ recommendation: "", commitment: "", status: "" }],
+      },
+      port: {
+        isNA: false,
+        items: [{ recommendation: "", commitment: "", status: "" }],
+      },
+    }
+  );
 
-  // Hydrate from route params when coming from a draft or summary
+  const [hasHydratedFromStore, setHasHydratedFromStore] = useState(false);
+
+  // Hydrate from store when data becomes available
   useEffect(() => {
-    const params: any = allPreviousParams || {};
+    if (hasHydratedFromStore || !currentReport) return;
 
-    // Check for data from draftData first (coming from summary), then from direct params
-    const draftData = params.draftData;
-    const savedRecommendations =
-      draftData?.recommendationsData || params.recommendationsData;
+    if (storedRecommendations) {
+      setPrevYear(storedRecommendations.prevYear || "");
+      setPrevQuarter(storedRecommendations.prevQuarter || "1st");
 
-    if (savedRecommendations) {
-      console.log(
-        "Hydrating Recommendations with saved data:",
-        savedRecommendations
-      );
+      if (storedRecommendations.currentRecommendations) {
+        setCurrentSections(storedRecommendations.currentRecommendations);
+      }
 
-      if (savedRecommendations.prevYear) {
-        setPrevYear(savedRecommendations.prevYear);
-      }
-      if (savedRecommendations.prevQuarter) {
-        setPrevQuarter(savedRecommendations.prevQuarter);
-      }
-      if (savedRecommendations.currentRecommendations) {
-        setCurrentSections(savedRecommendations.currentRecommendations);
-      }
-      if (savedRecommendations.previousRecommendations) {
-        setPreviousSections(savedRecommendations.previousRecommendations);
+      if (storedRecommendations.previousRecommendations) {
+        setPreviousSections(storedRecommendations.previousRecommendations);
       }
     }
-  }, [allPreviousParams]);
+
+    setHasHydratedFromStore(true);
+  }, [currentReport, storedRecommendations, hasHydratedFromStore]);
+
+  // Auto-sync to store
+  useEffect(() => {
+    updateSection("recommendationsData", {
+      currentRecommendations: currentSections,
+      previousRecommendations: previousSections,
+      prevQuarter,
+      prevYear,
+    });
+  }, [currentSections, previousSections, prevQuarter, prevYear]);
 
   const updateCurrentSection = (sectionKey: SectionKey, data: SectionData) =>
     setCurrentSections({ ...currentSections, [sectionKey]: data });
@@ -514,18 +532,11 @@ const RecommendationsScreen: React.FC = () => {
   };
 
   const handleSave = () => {
-    const recommendationsData = {
-      currentRecommendations: currentSections,
-      previousRecommendations: previousSections,
-      prevQuarter,
-      prevYear,
-    };
-
+    console.log("Navigating to AttendanceList");
     // Navigate to AttendanceList in selection mode
     navigation.navigate("AttendanceList", {
       fromRecommendations: true,
-      ...allPreviousParams,
-      recommendationsData,
+      selectedAttendanceId: currentReport?.attendanceUrl || null,
     });
   };
 
@@ -534,34 +545,18 @@ const RecommendationsScreen: React.FC = () => {
   };
 
   const handleSaveToDraft = async () => {
-    const { saveDraft } = await import("../../../lib/drafts");
-    const { CommonActions } = await import("@react-navigation/native");
-
-    const recommendationsData = {
-      currentRecommendations: currentSections,
-      previousRecommendations: previousSections,
-      prevQuarter,
-      prevYear,
-    };
-
-    const draftData = {
-      ...allPreviousParams,
-      recommendationsData,
-      savedAt: new Date().toISOString(),
-    };
-
-    const fileName = allPreviousParams.fileName || "Untitled";
-    const success = await saveDraft(fileName, draftData);
-
-    if (success) {
+    try {
+      await saveDraft();
       Alert.alert("Success", "Draft saved successfully");
+      const { CommonActions } = await import("@react-navigation/native");
       navigation.dispatch(
         CommonActions.reset({
           index: 0,
           routes: [{ name: "Dashboard" }],
         })
       );
-    } else {
+    } catch (error) {
+      console.error("Error saving draft:", error);
       Alert.alert("Error", "Failed to save draft");
     }
   };

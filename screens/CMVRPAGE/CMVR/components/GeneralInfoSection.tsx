@@ -61,7 +61,7 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
 
       // Request permissions
       const { status } = await Location.requestForegroundPermissionsAsync();
-      
+
       if (status !== "granted") {
         Alert.alert(
           "Permission Denied",
@@ -82,13 +82,13 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
         distanceInterval: 0,
       });
 
-      const currentLocation = await Promise.race([
+      const currentLocation = (await Promise.race([
         locationPromise,
         timeoutPromise,
-      ]) as Location.LocationObject;
+      ])) as Location.LocationObject;
 
       const { latitude, longitude } = currentLocation.coords;
-      
+
       setMapRegion({
         latitude,
         longitude,
@@ -96,39 +96,36 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
         longitudeDelta: 0.0421,
       });
       setSelectedLocation({ latitude, longitude });
-      
     } catch (error: any) {
       console.error("Location error:", error);
-      
+
       let errorMessage = "Failed to get current location.";
-      
+
       if (error.message.includes("timeout")) {
-        errorMessage = "Location request timed out. Please try again or select location manually on the map.";
+        errorMessage =
+          "Location request timed out. Please try again or select location manually on the map.";
       } else if (error.code === "E_LOCATION_UNAVAILABLE") {
         errorMessage = "Location is currently unavailable. Please try again.";
       } else if (error.code === "E_LOCATION_SETTINGS_UNSATISFIED") {
-        errorMessage = "Location settings are not satisfied. Please check your device settings.";
+        errorMessage =
+          "Location settings are not satisfied. Please check your device settings.";
       }
-      
-      Alert.alert(
-        "Location Error",
-        errorMessage,
-        [
-          {
-            text: "Use Default Location",
-            onPress: () => {
-              // Use default Cebu location
-              setMapRegion({
-                latitude: 10.3157,
-                longitude: 123.8854,
-                latitudeDelta: 0.0922,
-                longitudeDelta: 0.0421,
-              });
-            }
+
+      Alert.alert("Location Error", errorMessage, [
+        {
+          text: "Use Default Location",
+          onPress: () => {
+            // Use default Cebu location
+            setMapRegion({
+              latitude: 10.3157,
+              longitude: 123.8854,
+              latitudeDelta: 0.0922,
+              longitudeDelta: 0.0421,
+            });
           },
-          { text: "OK" }
-        ]
-      );
+        },
+        { text: "OK" },
+      ]);
     } finally {
       setIsLoadingLocation(false);
     }
@@ -254,38 +251,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             </View>
           )}
         </View>
-        <View style={styles.multiFieldContainer}>
-          <View style={styles.multiField}>
-            <Text style={styles.label}>Region</Text>
-            <TextInput
-              style={styles.input}
-              value={region}
-              onChangeText={(text) => onChange("region", text)}
-              placeholder="Region"
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
-          <View style={styles.multiField}>
-            <Text style={styles.label}>Province</Text>
-            <TextInput
-              style={styles.input}
-              value={province}
-              onChangeText={(text) => onChange("province", text)}
-              placeholder="Province"
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
-          <View style={styles.multiField}>
-            <Text style={styles.label}>Municipality / City</Text>
-            <TextInput
-              style={styles.input}
-              value={municipality}
-              onChangeText={(text) => onChange("municipality", text)}
-              placeholder="Municipality"
-              placeholderTextColor="#94A3B8"
-            />
-          </View>
-        </View>
         <View style={styles.rowContainer}>
           <View style={styles.halfField}>
             <Text style={styles.label}>Quarter</Text>
@@ -313,7 +278,11 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
               >
                 <Picker.Item label="Select Year" value="" />
                 {Array.from({ length: 51 }, (_, i) => {
-                  const yearValue = (new Date().getFullYear() - 25 + i).toString();
+                  const yearValue = (
+                    new Date().getFullYear() -
+                    25 +
+                    i
+                  ).toString();
                   return (
                     <Picker.Item
                       key={yearValue}
@@ -385,23 +354,27 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             {selectedLocation && <Marker coordinate={selectedLocation} />}
           </MapView>
           {isLoadingLocation && (
-            <View style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              marginLeft: -25,
-              marginTop: -25,
-              backgroundColor: 'white',
-              padding: 15,
-              borderRadius: 10,
-              elevation: 5,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-            }}>
+            <View
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                marginLeft: -25,
+                marginTop: -25,
+                backgroundColor: "white",
+                padding: 15,
+                borderRadius: 10,
+                elevation: 5,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+              }}
+            >
               <ActivityIndicator size="large" color="#02217C" />
-              <Text style={{ marginTop: 10, color: '#02217C' }}>Getting location...</Text>
+              <Text style={{ marginTop: 10, color: "#02217C" }}>
+                Getting location...
+              </Text>
             </View>
           )}
           <View style={styles.mapFooter}>

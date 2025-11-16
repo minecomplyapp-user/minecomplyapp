@@ -32,11 +32,13 @@ import { styles } from "./styles/dashboardScreen";
 import { useAuth } from "../../contexts/AuthContext";
 import { useFileName } from "../../contexts/FileNameContext";
 import { getAllDraftMetadata, getDraft } from "../../lib/drafts";
+import type { DraftMetadata } from "../../lib/drafts";
 import { apiGet } from "../../lib/api";
 import { Ionicons } from "@expo/vector-icons";
 import { CustomHeader } from "../../components/CustomHeader";
-import {useEccStore} from "../../store/eccStore"
-import {useEccDraftStore} from "../../store/eccDraftStore"
+import { useEccStore } from "../../store/eccStore";
+import { useEccDraftStore } from "../../store/eccDraftStore";
+import { useCmvrStore } from "../../store/cmvrStore";
 interface Report {
   id: string;
   title: string;
@@ -56,15 +58,23 @@ interface AttendanceRecord {
   totalCount: number;
 }
 
+type EccDraftMetadata = {
+  id: string;
+  fileName: string;
+  date: string;
+  saveAt: string;
+};
+
 export default function DashboardScreen({ navigation }: any) {
-    const { user,session  } = useAuth();
-    const token = session?.access_token;
-    const {getAllReports} = useEccStore();
-    const {getDraftList, loadDraftById} =useEccDraftStore()
+  const { user, session } = useAuth();
+  const token = session?.access_token;
+  const { getAllReports } = useEccStore();
+  const { getDraftList, loadDraftById } = useEccDraftStore();
+  const { hasDraft, lastSavedAt } = useCmvrStore();
 
   const [reports, setReports] = useState<Report[]>([]);
   const [drafts, setDrafts] = useState<Report[]>([]);
-
+  const [cmvrDraftAvailable, setCmvrDraftAvailable] = useState(false);
 
   const [eccdrafts, setEccDrafts] = useState<Report[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<
@@ -84,26 +94,30 @@ export default function DashboardScreen({ navigation }: any) {
         setLoading(true);
       }
 
+      // Check for store-based CMVR draft
+      const draftExists = await hasDraft();
+      setCmvrDraftAvailable(draftExists);
+
       // Fetch local drafts first
-    
-     // Fetch local drafts first
       try {
         const draftMetadata = await getAllDraftMetadata();
         console.log("Found drafts:", draftMetadata.length);
-        const localDrafts = draftMetadata.slice(0, 3).map((draft) => ({
-          id: draft.key,
-          title: draft.projectName || draft.fileName,
-          projectName: draft.projectName || draft.fileName,
-          type: "CMVR",
-          status: "draft" as const,
-          date: new Date(draft.lastSaved).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          }),
-          updatedAt: draft.lastSaved,
-          isLocalDraft: true,
-        }));
+        const localDrafts = draftMetadata
+          .slice(0, 3)
+          .map((draft: DraftMetadata) => ({
+            id: draft.key,
+            title: draft.projectName || draft.fileName,
+            projectName: draft.projectName || draft.fileName,
+            type: "CMVR",
+            status: "draft" as const,
+            date: new Date(draft.lastSaved).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            }),
+            updatedAt: draft.lastSaved,
+            isLocalDraft: true,
+          }));
         console.log("Loaded local drafts:", localDrafts);
         setDrafts(localDrafts);
       } catch (err) {
@@ -149,26 +163,26 @@ export default function DashboardScreen({ navigation }: any) {
         setReports([]);
       }
 
-
-
       // ECC LOCAL
       try {
-        const draftMetadata = await getDraftList();
-        console.log("Found drafts:", draftMetadata.length);
-        const localDrafts = draftMetadata.slice(0, 3).map((draft) => ({
-          id: draft.id,
-          title: draft.fileName,
-          projectName: "",
-          type: "ECC",
-          status: "draft" as const,
-          date: new Date(draft.saveAt).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          }),
-          updatedAt: draft.saveAt,
-          isLocalDraft: true,
-        }));
+        const eccDraftMetadata = (await getDraftList()) as EccDraftMetadata[];
+        console.log("Found drafts:", eccDraftMetadata.length);
+        const localDrafts = eccDraftMetadata
+          .slice(0, 3)
+          .map((draft: EccDraftMetadata) => ({
+            id: draft.id,
+            title: draft.fileName,
+            projectName: "",
+            type: "ECC",
+            status: "draft" as const,
+            date: new Date(draft.saveAt).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            }),
+            updatedAt: draft.saveAt,
+            isLocalDraft: true,
+          }));
         console.log("Loaded local ECC drafts:", localDrafts);
         setEccDrafts(localDrafts);
       } catch (err) {
@@ -176,58 +190,58 @@ export default function DashboardScreen({ navigation }: any) {
         setEccDrafts([]);
       }
 
-
-
-
-
-
-
-
-
-
-
-      // Fetch attendance records
+      // Fetch attendance records created by current user
       try {
-        const attendanceData = await apiGet<any>("/attendance");
-        const recentAttendance = (attendanceData || [])
-          .slice(0, 3)
-          .map((record: any) => {
-            // Parse attendees JSON to get counts
-            let presentCount = 0;
-            let totalCount = 0;
+        if (!user?.id) {
+          console.log("No user ID available for attendance");
+          setAttendanceRecords([]);
+        } else {
+          const attendanceData = await apiGet<any>(
+            `/attendance/creator/${user.id}`
+          );
+          const recentAttendance = (attendanceData || [])
+            .slice(0, 3)
+            .map((record: any) => {
+              // Parse attendees JSON to get counts
+              let presentCount = 0;
+              let totalCount = 0;
 
-            try {
-              const attendees = Array.isArray(record.attendees)
-                ? record.attendees
-                : JSON.parse(record.attendees || "[]");
+              try {
+                const attendees = Array.isArray(record.attendees)
+                  ? record.attendees
+                  : JSON.parse(record.attendees || "[]");
 
-              totalCount = attendees.length;
-              presentCount = attendees.filter((a: any) => a.present).length;
-            } catch (err) {
-              console.log("Error parsing attendees:", err);
-            }
+                totalCount = attendees.length;
+                // Count both IN_PERSON and ONLINE as present (exclude ABSENT)
+                presentCount = attendees.filter(
+                  (a: any) =>
+                    a.attendanceStatus === "IN_PERSON" ||
+                    a.attendanceStatus === "ONLINE"
+                ).length;
+              } catch (err) {
+                console.log("Error parsing attendees:", err);
+              }
 
-            return {
-              id: record.id,
-              fileName: record.fileName || record.title || "Untitled",
-              date: new Date(
-                record.meetingDate || record.createdAt
-              ).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              }),
-              presentCount,
-              totalCount,
-            };
-          });
-        setAttendanceRecords(recentAttendance);
+              return {
+                id: record.id,
+                fileName: record.fileName || record.title || "Untitled",
+                date: new Date(
+                  record.meetingDate || record.createdAt
+                ).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                }),
+                presentCount,
+                totalCount,
+              };
+            });
+          setAttendanceRecords(recentAttendance);
+        }
       } catch (err) {
         console.log("No attendance records found:", err);
         setAttendanceRecords([]);
       }
-
-
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
@@ -243,8 +257,15 @@ export default function DashboardScreen({ navigation }: any) {
     setRefreshing(false);
   };
 
+  const handleLoadCmvrDraft = () => {
+    // Navigate to export screen with loadDraft flag
+    navigation.navigate("CMVRDocumentExport", {
+      loadDraft: true,
+    });
+  };
+
   const hasReports = reports.length > 0;
-  const hasDrafts = drafts.length > 0;
+  const hasDrafts = drafts.length > 0 || cmvrDraftAvailable;
   const haseccDrafts = eccdrafts.length > 0;
   const hasAttendance = attendanceRecords.length > 0;
 
@@ -262,7 +283,6 @@ export default function DashboardScreen({ navigation }: any) {
     (user as any)?.email?.split("@")[0] ||
     "User";
 
- 
   return (
     <SafeAreaView style={styles.safeContainer}>
       <CustomHeader goBackTo="RoleSelection" showSave={false} />
@@ -317,16 +337,15 @@ export default function DashboardScreen({ navigation }: any) {
               icon={Copy}
               title="Duplicate Report"
               subtitle="Use a previous template"
-             onPress={async () => { // <--- Make the callback function ASYNC
-                  // 1. Await the report fetch to ensure the store is updated
-                  await getAllReports(user?.email,token); // <--- Use AWAIT
-                  
-                  // 2. Navigate after data is guaranteed to be in the store
-                  navigation.navigate("DuplicateReport");
+              onPress={async () => {
+                // <--- Make the callback function ASYNC
+                // 1. Await the report fetch to ensure the store is updated
+                await getAllReports(user?.email, token); // <--- Use AWAIT
+
+                // 2. Navigate after data is guaranteed to be in the store
+                navigation.navigate("DuplicateReport");
               }}
             />
-
-            
           </View>
         </View>
 
@@ -339,7 +358,7 @@ export default function DashboardScreen({ navigation }: any) {
                 <Text style={styles.sectionTitle}>CMVR Draft Reports</Text>
               </View>
               {hasDrafts && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => navigation.navigate("CMVRDrafts")}
                   style={styles.viewAllButton}
                   hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
@@ -352,6 +371,66 @@ export default function DashboardScreen({ navigation }: any) {
             <View style={styles.summaryContainer}>
               {hasDrafts ? (
                 <View style={styles.reportsContainer}>
+                  {/* Store-based CMVR draft */}
+                  {cmvrDraftAvailable && (
+                    <>
+                      <TouchableOpacity
+                        style={[styles.reportCard, styles.draftCard]}
+                        activeOpacity={0.8}
+                        onPress={handleLoadCmvrDraft}
+                      >
+                        <View style={styles.reportContent}>
+                          <View style={styles.reportHeader}>
+                            <Text style={styles.reportTitle} numberOfLines={1}>
+                              CMVR Draft
+                            </Text>
+                            <View
+                              style={[
+                                styles.reportTypeBadge,
+                                styles.draftBadge,
+                              ]}
+                            >
+                              <Edit3 size={10} color={theme.colors.warning} />
+                              <Text
+                                style={[
+                                  styles.reportTypeText,
+                                  styles.draftBadgeText,
+                                ]}
+                              >
+                                Draft
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.reportMeta}>
+                            <Calendar
+                              color={theme.colors.textLight}
+                              size={12}
+                            />
+                            <Text style={styles.reportMetaText}>
+                              Last saved:{" "}
+                              {lastSavedAt
+                                ? new Date(lastSavedAt).toLocaleDateString(
+                                    "en-US",
+                                    {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    }
+                                  )
+                                : "Recently saved"}
+                            </Text>
+                          </View>
+                        </View>
+                        <ChevronRight
+                          size={18}
+                          color={theme.colors.textLight}
+                        />
+                      </TouchableOpacity>
+                      {drafts.length > 0 && <View style={styles.divider} />}
+                    </>
+                  )}
+
+                  {/* Legacy drafts */}
                   {drafts.map((draft, index) => (
                     <React.Fragment key={draft.id}>
                       <DraftCard draft={draft} navigation={navigation} />
@@ -378,9 +457,7 @@ export default function DashboardScreen({ navigation }: any) {
           </View>
         )}
 
-
-
-            {!loading && (
+        {!loading && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
@@ -401,16 +478,14 @@ export default function DashboardScreen({ navigation }: any) {
             <View style={styles.summaryContainer}>
               {haseccDrafts ? (
                 <View style={styles.reportsContainer}>
-
-
-                   {eccdrafts.map((draft, index) => (
-                  <React.Fragment key={draft.id}>
+                  {eccdrafts.map((draft, index) => (
+                    <React.Fragment key={draft.id}>
                       <EccDraftCard draft={draft} navigation={navigation} />
-                    {index < eccdrafts.length - 1 && (
-                      <View style={styles.divider} />
-                    )}
-                  </React.Fragment>
-                ))}
+                      {index < eccdrafts.length - 1 && (
+                        <View style={styles.divider} />
+                      )}
+                    </React.Fragment>
+                  ))}
                 </View>
               ) : (
                 <View style={styles.emptyState}>
@@ -550,7 +625,10 @@ export default function DashboardScreen({ navigation }: any) {
 }
 
 function CreateReportModal({ visible, onClose, navigation }: any) {
-    const { selectedReport, isLoading, clearSelectedReport } = useEccStore(state => state);
+  const { selectedReport, isLoading, clearSelectedReport } = useEccStore(
+    (state) => state
+  );
+  const { clearReport, initializeNewReport } = useCmvrStore();
 
   const [scaleAnim] = useState(new Animated.Value(0.95));
   const { setFileName } = useFileName();
@@ -569,6 +647,13 @@ function CreateReportModal({ visible, onClose, navigation }: any) {
     try {
       const defaultFileName = generateDefaultFileName();
       await setFileName(defaultFileName);
+      // Ensure store is reset so no residual data is carried into a new report
+      try {
+        clearReport();
+        initializeNewReport(defaultFileName);
+      } catch (e) {
+        console.warn("Failed to initialize new CMVR report in store:", e);
+      }
       onClose();
       setTimeout(() => {
         navigation.navigate("CMVRReport", {
@@ -628,7 +713,7 @@ function CreateReportModal({ visible, onClose, navigation }: any) {
                     onClose();
                     setTimeout(() => {
                       clearSelectedReport();
-                      navigation.navigate("ECCMonitoring",{id:''});
+                      navigation.navigate("ECCMonitoring", { id: "" });
                     }, 120);
                   }}
                 />
@@ -639,7 +724,7 @@ function CreateReportModal({ visible, onClose, navigation }: any) {
                 />
                 <ModalButton
                   icon={AlertTriangle}
-                  title="EPEP"
+                  title="AEPEP/EPEP"
                   onPress={() => {
                     onClose();
                     setTimeout(() => {
@@ -718,7 +803,7 @@ function ReportCard({ report, navigation }: any) {
   );
 }
 
-function DraftCard({ draft, navigation}: any) {
+function DraftCard({ draft, navigation }: any) {
   const { setFileName } = useFileName();
 
   const handleOpenDraft = async () => {
@@ -792,17 +877,15 @@ function DraftCard({ draft, navigation}: any) {
   );
 }
 
-
-function EccDraftCard({ draft, navigation}: any) {
-
-    const {loadDraftById} = useEccDraftStore();
-    const {setSelectedReport} = useEccStore();
+function EccDraftCard({ draft, navigation }: any) {
+  const { loadDraftById } = useEccDraftStore();
+  const { setSelectedReport } = useEccStore();
 
   const handleOpenDraft = async () => {
-  const data = await loadDraftById(draft.id);
-  setSelectedReport(data);
-  navigation.navigate("ECCMonitoring",{id:draft.id});
-};
+    const data = await loadDraftById(draft.id);
+    setSelectedReport(data);
+    navigation.navigate("ECCMonitoring", { id: draft.id });
+  };
   return (
     <TouchableOpacity
       style={[styles.reportCard, styles.draftCard]}

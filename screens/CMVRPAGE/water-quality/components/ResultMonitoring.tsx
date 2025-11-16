@@ -10,12 +10,14 @@ const MONTHS = [
 ];
 
 export const ResultMonitoring: React.FC<ResultMonitoringProps> = ({
+  parameter,
   resultType,
   tssCurrent,
   tssPrevious,
   onResultTypeChange,
   onTSSChange,
 }) => {
+  console.log("parameter:  ",parameter)
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [additionalTSS, setAdditionalTSS] = useState<TSSItem[]>([]);
 
@@ -26,7 +28,7 @@ export const ResultMonitoring: React.FC<ResultMonitoringProps> = ({
       ...additionalTSS,
       {
         id: newId,
-        name: `TSS ${tssNumber.toString().padStart(2, '0')}`,
+        name: `${parameter} ${tssNumber.toString().padStart(2, '0')}`,
         current: '',
         previous: '',
         isChecked: false,
@@ -128,7 +130,7 @@ export const ResultMonitoring: React.FC<ResultMonitoringProps> = ({
         <View style={styles.tssHeaderRow}>
           <View style={styles.tssNameRow}>
             <View style={styles.bullet} />
-            <Text style={styles.tssName}>TSS 01</Text>
+            <Text style={styles.tssName}>{parameter} 01</Text>
           </View>
         </View>
         <View style={styles.tssInputs}>
