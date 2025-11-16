@@ -75,6 +75,41 @@ export default function ChemicalSafetyScreen({ navigation, route }: any) {
     ]
   );
 
+  const [hasHydratedFromStore, setHasHydratedFromStore] = useState(false);
+
+  // Hydrate from store when data becomes available
+  useEffect(() => {
+    if (hasHydratedFromStore || !currentReport) return;
+
+    if (storedChemicalSafety) {
+      setChemicalSafety(
+        storedChemicalSafety.chemicalSafety || {
+          isNA: false,
+          riskManagement: null,
+          training: null,
+          handling: null,
+          emergencyPreparedness: null,
+          remarks: "",
+          chemicalCategory: null,
+          othersSpecify: "",
+        }
+      );
+      setHealthSafetyChecked(storedChemicalSafety.healthSafetyChecked ?? false);
+      setSocialDevChecked(storedChemicalSafety.socialDevChecked ?? false);
+    }
+
+    if (storedComplaints && Array.isArray(storedComplaints)) {
+      setComplaints(storedComplaints);
+    }
+
+    setHasHydratedFromStore(true);
+  }, [
+    currentReport,
+    storedChemicalSafety,
+    storedComplaints,
+    hasHydratedFromStore,
+  ]);
+
   // Auto-sync to store
   useEffect(() => {
     updateMultipleSections({
@@ -229,72 +264,19 @@ export default function ChemicalSafetyScreen({ navigation, route }: any) {
     );
   };
 
-  const handleGoToSummary = async () => {
-    try {
-      console.log("Navigating to summary with current chemical safety data");
+  const handleGoToSummary = () => {
+    const params: any = route?.params || {};
 
-      const prevPageData: any = route.params || {};
-
-      // Prepare current page data
-      const complianceWithGoodPracticeInChemicalSafetyManagement = {
-        chemicalSafety,
-        healthSafetyChecked,
-        socialDevChecked,
-      };
-      const complaintsVerificationAndManagement = complaints;
-
-      // Prepare complete snapshot with all sections
-      const completeData = {
-        generalInfo: prevPageData.generalInfo,
-        eccInfo: prevPageData.eccInfo,
-        eccAdditionalForms: prevPageData.eccAdditionalForms,
-        isagInfo: prevPageData.isagInfo,
-        isagAdditionalForms: prevPageData.isagAdditionalForms,
-        epepInfo: prevPageData.epepInfo,
-        epepAdditionalForms: prevPageData.epepAdditionalForms,
-        rcfInfo: prevPageData.rcfInfo,
-        rcfAdditionalForms: prevPageData.rcfAdditionalForms,
-        mtfInfo: prevPageData.mtfInfo,
-        mtfAdditionalForms: prevPageData.mtfAdditionalForms,
-        fmrdfInfo: prevPageData.fmrdfInfo,
-        fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
-        mmtInfo: prevPageData.mmtInfo,
-        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken:
-          prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits:
-          prevPageData.complianceToProjectLocationAndCoverageLimits,
-        complianceToImpactManagementCommitments:
-          prevPageData.complianceToImpactManagementCommitments,
-        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
-        waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
-        noiseQualityImpactAssessment: prevPageData.noiseQualityImpactAssessment,
-        complianceWithGoodPracticeInSolidAndHazardousWasteManagement:
-          prevPageData.complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
-        complianceWithGoodPracticeInChemicalSafetyManagement, // Current page data
-        complaintsVerificationAndManagement, // Current page data
-        recommendationsData: prevPageData.recommendationsData,
-        attendanceUrl: prevPageData.attendanceUrl,
-        savedAt: new Date().toISOString(),
-      };
-
-      const resolvedFileName = prevPageData.fileName || "Untitled";
-
-      // Save to draft before navigating
-      await saveDraft(resolvedFileName, completeData);
-
-      // Navigate to summary screen with all data
-      navigation.navigate("CMVRDocumentExport", {
-        ...prevPageData,
-        fileName: resolvedFileName,
-        complianceWithGoodPracticeInChemicalSafetyManagement,
-        complaintsVerificationAndManagement,
-        draftData: completeData,
-      });
-    } catch (error) {
-      console.error("Error navigating to summary:", error);
-      Alert.alert("Error", "Failed to navigate to summary. Please try again.");
-    }
+    navigation.navigate("CMVRDocumentExport", {
+      cmvrReportId: params.submissionId || storeSubmissionId || undefined,
+      fileName: params.fileName || storeFileName || "Untitled",
+      projectId: params.projectId || storeProjectId || undefined,
+      projectName:
+        params.projectName ||
+        storeProjectName ||
+        currentReport?.generalInfo?.projectName ||
+        "",
+    });
   };
 
   const fillTestData = () => {

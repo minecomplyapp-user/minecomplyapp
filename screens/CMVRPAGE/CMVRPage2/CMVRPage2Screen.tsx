@@ -242,6 +242,15 @@ const CMVRPage2Screen = () => {
     );
   };
 
+  const handleGoToSummary = () => {
+    (navigation as any).navigate("CMVRDocumentExport", {
+      cmvrReportId: submissionId || storeSubmissionId || undefined,
+      fileName: fileName || storeFileName || "File_Name",
+      projectId: projectId || storeProjectId || undefined,
+      projectName: projectName || storeProjectName || "",
+    });
+  };
+
   const handleSaveAndNext = () => {
     // Data is already in store via auto-sync useEffect
     // Just navigate with metadata
@@ -365,6 +374,7 @@ const CMVRPage2Screen = () => {
           onStay={handleStay}
           onSaveToDraft={handleSaveToDraft}
           onDiscard={handleDiscard}
+          onGoToSummary={handleGoToSummary}
         />
       </View>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>

@@ -38,6 +38,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { CustomHeader } from "../../components/CustomHeader";
 import { useEccStore } from "../../store/eccStore";
 import { useEccDraftStore } from "../../store/eccDraftStore";
+import { useCmvrStore } from "../../store/cmvrStore";
 interface Report {
   id: string;
   title: string;
@@ -69,9 +70,11 @@ export default function DashboardScreen({ navigation }: any) {
   const token = session?.access_token;
   const { getAllReports } = useEccStore();
   const { getDraftList, loadDraftById } = useEccDraftStore();
+  const { hasDraft, lastSavedAt } = useCmvrStore();
 
   const [reports, setReports] = useState<Report[]>([]);
   const [drafts, setDrafts] = useState<Report[]>([]);
+  const [cmvrDraftAvailable, setCmvrDraftAvailable] = useState(false);
 
   const [eccdrafts, setEccDrafts] = useState<Report[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<
@@ -91,7 +94,9 @@ export default function DashboardScreen({ navigation }: any) {
         setLoading(true);
       }
 
-      // Fetch local drafts first
+      // Check for store-based CMVR draft
+      const draftExists = await hasDraft();
+      setCmvrDraftAvailable(draftExists);
 
       // Fetch local drafts first
       try {
@@ -247,8 +252,15 @@ export default function DashboardScreen({ navigation }: any) {
     setRefreshing(false);
   };
 
+  const handleLoadCmvrDraft = () => {
+    // Navigate to export screen with loadDraft flag
+    navigation.navigate("CMVRDocumentExport", {
+      loadDraft: true,
+    });
+  };
+
   const hasReports = reports.length > 0;
-  const hasDrafts = drafts.length > 0;
+  const hasDrafts = drafts.length > 0 || cmvrDraftAvailable;
   const haseccDrafts = eccdrafts.length > 0;
   const hasAttendance = attendanceRecords.length > 0;
 
@@ -354,6 +366,66 @@ export default function DashboardScreen({ navigation }: any) {
             <View style={styles.summaryContainer}>
               {hasDrafts ? (
                 <View style={styles.reportsContainer}>
+                  {/* Store-based CMVR draft */}
+                  {cmvrDraftAvailable && (
+                    <>
+                      <TouchableOpacity
+                        style={[styles.reportCard, styles.draftCard]}
+                        activeOpacity={0.8}
+                        onPress={handleLoadCmvrDraft}
+                      >
+                        <View style={styles.reportContent}>
+                          <View style={styles.reportHeader}>
+                            <Text style={styles.reportTitle} numberOfLines={1}>
+                              CMVR Draft
+                            </Text>
+                            <View
+                              style={[
+                                styles.reportTypeBadge,
+                                styles.draftBadge,
+                              ]}
+                            >
+                              <Edit3 size={10} color={theme.colors.warning} />
+                              <Text
+                                style={[
+                                  styles.reportTypeText,
+                                  styles.draftBadgeText,
+                                ]}
+                              >
+                                Draft
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.reportMeta}>
+                            <Calendar
+                              color={theme.colors.textLight}
+                              size={12}
+                            />
+                            <Text style={styles.reportMetaText}>
+                              Last saved:{" "}
+                              {lastSavedAt
+                                ? new Date(lastSavedAt).toLocaleDateString(
+                                    "en-US",
+                                    {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    }
+                                  )
+                                : "Recently saved"}
+                            </Text>
+                          </View>
+                        </View>
+                        <ChevronRight
+                          size={18}
+                          color={theme.colors.textLight}
+                        />
+                      </TouchableOpacity>
+                      {drafts.length > 0 && <View style={styles.divider} />}
+                    </>
+                  )}
+
+                  {/* Legacy drafts */}
                   {drafts.map((draft, index) => (
                     <React.Fragment key={draft.id}>
                       <DraftCard draft={draft} navigation={navigation} />
@@ -551,6 +623,7 @@ function CreateReportModal({ visible, onClose, navigation }: any) {
   const { selectedReport, isLoading, clearSelectedReport } = useEccStore(
     (state) => state
   );
+  const { clearReport, initializeNewReport } = useCmvrStore();
 
   const [scaleAnim] = useState(new Animated.Value(0.95));
   const { setFileName } = useFileName();
@@ -569,6 +642,13 @@ function CreateReportModal({ visible, onClose, navigation }: any) {
     try {
       const defaultFileName = generateDefaultFileName();
       await setFileName(defaultFileName);
+      // Ensure store is reset so no residual data is carried into a new report
+      try {
+        clearReport();
+        initializeNewReport(defaultFileName);
+      } catch (e) {
+        console.warn("Failed to initialize new CMVR report in store:", e);
+      }
       onClose();
       setTimeout(() => {
         navigation.navigate("CMVRReport", {

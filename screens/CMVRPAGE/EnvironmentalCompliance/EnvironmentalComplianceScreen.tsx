@@ -26,12 +26,42 @@ import {
 } from "../types/EnvironmentalComplianceScreen.types";
 import { styles } from "../styles/EnvironmentalComplianceScreen.styles";
 
+const createDefaultAirQualityTable = () => ({
+  parameters: [
+    {
+      id: `param-${Date.now()}`,
+      parameter: "",
+      currentSMR: "",
+      previousSMR: "",
+      currentMMT: "",
+      previousMMT: "",
+      thirdPartyTesting: "",
+      eqplRedFlag: "",
+      action: "",
+      limitPM25: "",
+      remarks: "",
+    },
+  ] as ParameterData[],
+  dateTime: "",
+  weatherWind: "",
+  explanation: "",
+  overallCompliance: "",
+});
+
 export default function EnvironmentalComplianceScreen({
   navigation,
   route,
 }: any) {
   // Zustand store
-  const { currentReport, updateSection, saveDraft } = useCmvrStore();
+  const {
+    currentReport,
+    fileName: storeFileName,
+    submissionId: storeSubmissionId,
+    projectId: storeProjectId,
+    projectName: storeProjectName,
+    updateSection,
+    saveDraft,
+  } = useCmvrStore();
 
   // Initialize from store
   const storedAirQuality = currentReport?.airQualityImpactAssessment;
@@ -64,45 +94,68 @@ export default function EnvironmentalComplianceScreen({
 
   // Simple air quality table data (matches backend controller)
   const [tableData, setTableData] = useState(
-    storedAirQuality?.table || {
-      parameters: [
-        {
-          id: `param-${Date.now()}`,
-          parameter: "",
-          currentSMR: "",
-          previousSMR: "",
-          currentMMT: "",
-          previousMMT: "",
-          thirdPartyTesting: "",
-          eqplRedFlag: "",
-          action: "",
-          limitPM25: "",
-          remarks: "",
-        },
-      ] as ParameterData[],
-      dateTime: "",
-      weatherWind: "",
-      explanation: "",
-      overallCompliance: "",
-    }
+    storedAirQuality?.table || createDefaultAirQualityTable()
   );
+
+  const [hasHydratedFromStore, setHasHydratedFromStore] = useState(false);
+  const [canSyncStore, setCanSyncStore] = useState(false);
+
+  useEffect(() => {
+    if (hasHydratedFromStore || !currentReport) return;
+
+    if (storedAirQuality) {
+      setUploadedEccFile(storedAirQuality.uploadedEccFile || null);
+      setUploadedImage(storedAirQuality.uploadedImage || null);
+      setQuarry(storedAirQuality.quarry || "");
+      setPlant(storedAirQuality.plant || "");
+      setPort(storedAirQuality.port || "");
+      setQuarryPlant(storedAirQuality.quarryPlant || "");
+      setQuarryEnabled(
+        storedAirQuality.quarryEnabled ?? Boolean(storedAirQuality.quarry)
+      );
+      setPlantEnabled(
+        storedAirQuality.plantEnabled ?? Boolean(storedAirQuality.plant)
+      );
+      setPortEnabled(
+        storedAirQuality.portEnabled ?? Boolean(storedAirQuality.port)
+      );
+      setQuarryPlantEnabled(
+        storedAirQuality.quarryPlantEnabled ??
+          Boolean(storedAirQuality.quarryPlant)
+      );
+      setTableData(storedAirQuality.table || createDefaultAirQualityTable());
+    }
+
+    setHasHydratedFromStore(true);
+    setCanSyncStore(true);
+  }, [currentReport, storedAirQuality, hasHydratedFromStore]);
 
   // Auto-sync to store
   useEffect(() => {
+    if (!canSyncStore) return;
     updateSection("airQualityImpactAssessment", {
       quarry,
       plant,
       port,
       quarryPlant,
+      quarryEnabled,
+      plantEnabled,
+      portEnabled,
+      quarryPlantEnabled,
       table: tableData,
       uploadedEccFile,
       uploadedImage,
     });
   }, [
+    canSyncStore,
     quarry,
     plant,
     port,
     quarryPlant,
+    quarryEnabled,
+    plantEnabled,
+    portEnabled,
+    quarryPlantEnabled,
     tableData,
     uploadedEccFile,
     uploadedImage,
@@ -387,76 +440,19 @@ export default function EnvironmentalComplianceScreen({
     );
   };
 
-  const handleGoToSummary = async () => {
-    try {
-      console.log("Navigating to summary with current air quality data");
+  const handleGoToSummary = () => {
+    const params = route?.params || {};
 
-      const prevPageData: any = route.params || {};
-
-      // Prepare current page data
-      const airQualityImpactAssessment = {
-        quarry,
-        plant,
-        port,
-        quarryPlant,
-        table: tableData,
-        uploadedEccFile,
-        uploadedImage,
-      };
-
-      // Prepare complete snapshot with all sections
-      const completeData = {
-        generalInfo: prevPageData.generalInfo,
-        eccInfo: prevPageData.eccInfo,
-        eccAdditionalForms: prevPageData.eccAdditionalForms,
-        isagInfo: prevPageData.isagInfo,
-        isagAdditionalForms: prevPageData.isagAdditionalForms,
-        epepInfo: prevPageData.epepInfo,
-        epepAdditionalForms: prevPageData.epepAdditionalForms,
-        rcfInfo: prevPageData.rcfInfo,
-        rcfAdditionalForms: prevPageData.rcfAdditionalForms,
-        mtfInfo: prevPageData.mtfInfo,
-        mtfAdditionalForms: prevPageData.mtfAdditionalForms,
-        fmrdfInfo: prevPageData.fmrdfInfo,
-        fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
-        mmtInfo: prevPageData.mmtInfo,
-        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken:
-          prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits:
-          prevPageData.complianceToProjectLocationAndCoverageLimits,
-        complianceToImpactManagementCommitments:
-          prevPageData.complianceToImpactManagementCommitments,
-        airQualityImpactAssessment, // Current page data
-        waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
-        noiseQualityImpactAssessment: prevPageData.noiseQualityImpactAssessment,
-        complianceWithGoodPracticeInSolidAndHazardousWasteManagement:
-          prevPageData.complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
-        complianceWithGoodPracticeInChemicalSafetyManagement:
-          prevPageData.complianceWithGoodPracticeInChemicalSafetyManagement,
-        complaintsVerificationAndManagement:
-          prevPageData.complaintsVerificationAndManagement,
-        recommendationsData: prevPageData.recommendationsData,
-        attendanceUrl: prevPageData.attendanceUrl,
-        savedAt: new Date().toISOString(),
-      };
-
-      const resolvedFileName = prevPageData.fileName || "Untitled";
-
-      // Save to draft before navigating
-      await saveDraft(resolvedFileName, completeData);
-
-      // Navigate to summary screen with all data
-      navigation.navigate("CMVRDocumentExport", {
-        ...prevPageData,
-        fileName: resolvedFileName,
-        airQualityImpactAssessment,
-        draftData: completeData,
-      });
-    } catch (error) {
-      console.error("Error navigating to summary:", error);
-      Alert.alert("Error", "Failed to navigate to summary. Please try again.");
-    }
+    navigation.navigate("CMVRDocumentExport", {
+      cmvrReportId: params.submissionId || storeSubmissionId || undefined,
+      fileName: params.fileName || storeFileName || "Untitled",
+      projectId: params.projectId || storeProjectId || undefined,
+      projectName:
+        params.projectName ||
+        storeProjectName ||
+        currentReport?.generalInfo?.projectName ||
+        "",
+    });
   };
 
   const fillTestData = () => {

@@ -433,75 +433,19 @@ export default function WasteManagementScreen({ navigation, route }: any) {
     );
   };
 
-  const handleGoToSummary = async () => {
-    try {
-      console.log("Navigating to summary with current waste management data");
+  const handleGoToSummary = () => {
+    const params: any = route?.params || {};
 
-      const prevPageData: any = route.params || {};
-
-      // Prepare current page data
-      const complianceWithGoodPracticeInSolidAndHazardousWasteManagement = {
-        quarryData,
-        plantSimpleData,
-        selectedQuarter,
-        quarryPlantData,
-        plantData,
-        portData,
-        portPlantData,
-      };
-
-      // Prepare complete snapshot with all sections
-      const completeData = {
-        generalInfo: prevPageData.generalInfo,
-        eccInfo: prevPageData.eccInfo,
-        eccAdditionalForms: prevPageData.eccAdditionalForms,
-        isagInfo: prevPageData.isagInfo,
-        isagAdditionalForms: prevPageData.isagAdditionalForms,
-        epepInfo: prevPageData.epepInfo,
-        epepAdditionalForms: prevPageData.epepAdditionalForms,
-        rcfInfo: prevPageData.rcfInfo,
-        rcfAdditionalForms: prevPageData.rcfAdditionalForms,
-        mtfInfo: prevPageData.mtfInfo,
-        mtfAdditionalForms: prevPageData.mtfAdditionalForms,
-        fmrdfInfo: prevPageData.fmrdfInfo,
-        fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
-        mmtInfo: prevPageData.mmtInfo,
-        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken:
-          prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits:
-          prevPageData.complianceToProjectLocationAndCoverageLimits,
-        complianceToImpactManagementCommitments:
-          prevPageData.complianceToImpactManagementCommitments,
-        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
-        waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
-        noiseQualityImpactAssessment: prevPageData.noiseQualityImpactAssessment,
-        complianceWithGoodPracticeInSolidAndHazardousWasteManagement, // Current page data
-        complianceWithGoodPracticeInChemicalSafetyManagement:
-          prevPageData.complianceWithGoodPracticeInChemicalSafetyManagement,
-        complaintsVerificationAndManagement:
-          prevPageData.complaintsVerificationAndManagement,
-        recommendationsData: prevPageData.recommendationsData,
-        attendanceUrl: prevPageData.attendanceUrl,
-        savedAt: new Date().toISOString(),
-      };
-
-      const resolvedFileName = prevPageData.fileName || "Untitled";
-
-      // Save to draft before navigating
-      await saveDraft(resolvedFileName, completeData);
-
-      // Navigate to summary screen with all data
-      navigation.navigate("CMVRDocumentExport", {
-        ...prevPageData,
-        fileName: resolvedFileName,
-        complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
-        draftData: completeData,
-      });
-    } catch (error) {
-      console.error("Error navigating to summary:", error);
-      Alert.alert("Error", "Failed to navigate to summary. Please try again.");
-    }
+    navigation.navigate("CMVRDocumentExport", {
+      cmvrReportId: params.submissionId || storeSubmissionId || undefined,
+      fileName: params.fileName || storeFileName || "Untitled",
+      projectId: params.projectId || storeProjectId || undefined,
+      projectName:
+        params.projectName ||
+        storeProjectName ||
+        currentReport?.generalInfo?.projectName ||
+        "",
+    });
   };
 
   const handleSaveAndNext = () => {

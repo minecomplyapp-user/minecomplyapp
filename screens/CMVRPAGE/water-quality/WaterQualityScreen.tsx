@@ -36,10 +36,15 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     updateSection,
     saveDraft,
     fileName: storeFileName,
+    submissionId: storeSubmissionId,
+    projectId: storeProjectId,
+    projectName: storeProjectName,
   } = useCmvrStore();
 
+  const storedWaterQuality = currentReport?.waterQualityImpactAssessment;
+
   // Get current water quality data from store
-  const waterQualitySection = currentReport?.waterQualityImpactAssessment || {
+  const waterQualitySection = storedWaterQuality || {
     quarry: "",
     plant: "",
     quarryPlant: "",
@@ -107,6 +112,35 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     waterQualitySection.parameters
   );
   const [ports, setPorts] = useState<PortData[]>(waterQualitySection.ports);
+
+  const [hasHydratedFromStore, setHasHydratedFromStore] = useState(false);
+
+  useEffect(() => {
+    if (hasHydratedFromStore || !currentReport) return;
+
+    if (storedWaterQuality) {
+      setQuarryEnabled(storedWaterQuality.quarryEnabled ?? false);
+      setPlantEnabled(storedWaterQuality.plantEnabled ?? false);
+      setQuarryPlantEnabled(storedWaterQuality.quarryPlantEnabled ?? false);
+      setQuarryInput(storedWaterQuality.quarry || "");
+      setPlantInput(storedWaterQuality.plant || "");
+      setQuarryPlantInput(storedWaterQuality.quarryPlant || "");
+      setWaterQualityData(
+        storedWaterQuality.waterQuality || createEmptyLocationData()
+      );
+      setPortData(storedWaterQuality.port || createEmptyLocationData());
+      setData(storedWaterQuality.data || waterQualitySection.data);
+      setParameters(storedWaterQuality.parameters || []);
+      setPorts(storedWaterQuality.ports || []);
+    }
+
+    setHasHydratedFromStore(true);
+  }, [
+    currentReport,
+    storedWaterQuality,
+    hasHydratedFromStore,
+    waterQualitySection.data,
+  ]);
 
   // **SYNC TO STORE** - Update store whenever local state changes
   useEffect(() => {
@@ -179,23 +213,19 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     );
   };
 
-  const handleGoToSummary = async () => {
-    try {
-      console.log("Navigating to summary - store has all data");
+  const handleGoToSummary = () => {
+    const params: any = route?.params || {};
 
-      // Data already in store, just navigate with metadata
-      const params: any = route?.params || {};
-
-      navigation.navigate("CMVRDocumentExport", {
-        submissionId: params.submissionId,
-        projectId: params.projectId,
-        projectName: params.projectName,
-        fileName: storeFileName || params.fileName || "Untitled",
-      });
-    } catch (error) {
-      console.error("Error navigating to summary:", error);
-      Alert.alert("Error", "Failed to navigate to summary. Please try again.");
-    }
+    navigation.navigate("CMVRDocumentExport", {
+      cmvrReportId: params.submissionId || storeSubmissionId || undefined,
+      fileName: storeFileName || params.fileName || "Untitled",
+      projectId: params.projectId || storeProjectId || undefined,
+      projectName:
+        params.projectName ||
+        storeProjectName ||
+        currentReport?.generalInfo?.projectName ||
+        "",
+    });
   };
 
   // ============ UNIFIED WATER QUALITY HANDLERS ============

@@ -108,6 +108,9 @@ type FundAdditionalForm = Omit<RCFInfo, "isNA">;
 
 type CMVRDocumentExportParams = {
   cmvrReportId?: string;
+  projectId?: string | null;
+  projectName?: string;
+  loadDraft?: boolean;
   generalInfo?: GeneralInfo;
   eccInfo?: ECCInfo;
   eccAdditionalForms?: ECCAdditionalForm[];
@@ -180,6 +183,13 @@ type DraftSnapshot = {
   attendanceUrl?: string;
   documentation?: any;
   complianceMonitoringReport?: Partial<DraftSnapshot>;
+};
+
+type StoreHydrationPayload = DraftSnapshot & {
+  id?: string | null;
+  submissionId?: string | null;
+  projectId?: string | null;
+  projectName?: string;
 };
 
 const defaultGeneralInfo: GeneralInfo = {
@@ -759,8 +769,12 @@ const transformProcessDocumentationForPayload = (raw: any) => {
 
 const parseFirstNumber = (val?: string): number => {
   if (!val) return 0;
-  const m = String(val).match(/-?\d*\.?\d+/);
-  return m ? parseFloat(m[0]) : 0;
+  const matches = String(val).match(/-?\d*\.?\d+/g);
+  if (!matches || matches.length === 0) return 0;
+  const hasRange = String(val).includes("-") && matches.length > 1;
+  const target = hasRange ? matches[matches.length - 1] : matches[0];
+  const parsed = parseFloat(target);
+  return Number.isNaN(parsed) ? 0 : parsed;
 };
 
 const transformProjectLocationCoverageForPayload = (raw: any) => {
@@ -1093,186 +1107,273 @@ const transformAirQualityForPayload = (raw: any) => {
 const transformWaterQualityForPayload = (raw: any) => {
   if (!raw) return undefined;
 
+  const sanitizeText = (value: any) => sanitizeString(value);
+  const hasContent = (value: any) =>
+    value !== undefined && value !== null && String(value).trim().length > 0;
+
+  const shouldIncludeParameter = (param: any) => {
+    if (!param || typeof param !== "object") return false;
+    return [
+      param.parameter,
+      param.resultType,
+      param.tssCurrent,
+      param.tssPrevious,
+      param.mmtCurrent,
+      param.mmtPrevious,
+      param.eqplRedFlag,
+      param.action,
+      param.limit,
+      param.remarks,
+    ].some((field) => hasContent(field));
+  };
+
+  const buildParameterPayload = (param: any, fallbackLabel = "Parameter") => {
+    const label = sanitizeText(param?.parameter) || fallbackLabel;
+    return {
+      name: label,
+      result: {
+        internalMonitoring: {
+          month: sanitizeText(param?.resultType),
+          readings: [
+            {
+              label,
+              current_mgL: parseFirstNumber(param?.tssCurrent),
+              previous_mgL: parseFirstNumber(param?.tssPrevious),
+            },
+          ],
+        },
+        mmtConfirmatorySampling: {
+          current: sanitizeText(param?.mmtCurrent),
+          previous: sanitizeText(param?.mmtPrevious),
+        },
+      },
+      denrStandard: {
+        redFlag: sanitizeText(param?.eqplRedFlag),
+        action: sanitizeText(param?.action),
+        limit_mgL: parseFirstNumber(param?.limit),
+      },
+      remark: sanitizeText(param?.remarks),
+    };
+  };
+
+  const buildLocationDescriptions = () => {
+    const pickDescription = (...values: any[]) => {
+      for (const value of values) {
+        const cleaned = sanitizeText(value);
+        if (cleaned) {
+          return cleaned;
+        }
+      }
+      return "";
+    };
+
+    const entries: Array<[string, string]> = [
+      ["quarry", pickDescription(raw.quarry, raw?.data?.quarryInput)],
+      ["plant", pickDescription(raw.plant, raw?.data?.plantInput)],
+      [
+        "quarryPlant",
+        pickDescription(raw.quarryPlant, raw?.data?.quarryPlantInput),
+      ],
+    ];
+
+    const labels: Record<string, string> = {
+      quarry: "Quarry",
+      plant: "Plant",
+      quarryPlant: "Quarry & Plant",
+    };
+
+    const map: Record<string, string> = {};
+    const summaryParts: string[] = [];
+
+    entries.forEach(([key, value]) => {
+      if (value) {
+        map[key] = value;
+        summaryParts.push(`${labels[key] ?? key}: ${value}`);
+      }
+    });
+
+    return {
+      map,
+      summary: summaryParts.join("\n\n"),
+    };
+  };
+
   // NEW STRUCTURE: Handle waterQuality unified object with checkbox states
-  if (raw.waterQuality || raw.port) {
+  const { map: locationDescriptions, summary: locationSummary } =
+    buildLocationDescriptions();
+  const hasNewStructurePayload =
+    !!raw.waterQuality ||
+    !!raw.port ||
+    Object.values(locationDescriptions).some(Boolean) ||
+    !!raw.quarryEnabled ||
+    !!raw.plantEnabled ||
+    !!raw.quarryPlantEnabled;
+
+  if (hasNewStructurePayload) {
     const result: any = {};
 
-    // Handle location descriptions (strings) with checkbox states
-    if (raw.quarryEnabled && raw.quarry) {
-      result.quarry = raw.quarry; // String description
+    if (locationDescriptions.quarry) {
+      result.quarry = locationDescriptions.quarry;
     }
-    if (raw.plantEnabled && raw.plant) {
-      result.plant = raw.plant; // String description
+    if (locationDescriptions.plant) {
+      result.plant = locationDescriptions.plant;
     }
-    if (raw.quarryPlantEnabled && raw.quarryPlant) {
-      result.quarryPlant = raw.quarryPlant; // String description
+    if (locationDescriptions.quarryPlant) {
+      result.quarryPlant = locationDescriptions.quarryPlant;
     }
 
     // Add checkbox states
-    result.quarryEnabled = raw.quarryEnabled || false;
-    result.plantEnabled = raw.plantEnabled || false;
-    result.quarryPlantEnabled = raw.quarryPlantEnabled || false;
+    if (raw.quarryEnabled != null) {
+      result.quarryEnabled = !!raw.quarryEnabled;
+    }
+    if (raw.plantEnabled != null) {
+      result.plantEnabled = !!raw.plantEnabled;
+    }
+    if (raw.quarryPlantEnabled != null) {
+      result.quarryPlantEnabled = !!raw.quarryPlantEnabled;
+    }
+
+    const buildLocationDescription = (source?: any) =>
+      sanitizeText(source?.locationInput) || locationSummary;
+
+    const buildExplanation = (source?: any, fallback?: any) => {
+      if (source?.isExplanationNA || fallback?.isExplanationNA) {
+        return "N/A";
+      }
+      return (
+        sanitizeText(
+          source?.explanation ??
+            source?.explanationForConfirmatorySampling ??
+            fallback?.explanation ??
+            fallback?.explanationForConfirmatorySampling
+        ) || undefined
+      );
+    };
+
+    const collectParameters = (
+      primary: any,
+      extras: any[] = [],
+      fallbackLabel = "Parameter"
+    ) => {
+      const collected: any[] = [];
+      if (primary && shouldIncludeParameter(primary)) {
+        collected.push(buildParameterPayload(primary, fallbackLabel));
+      }
+      extras.forEach((param, index) => {
+        if (shouldIncludeParameter(param)) {
+          collected.push(
+            buildParameterPayload(param, `${fallbackLabel} ${index + 1}`)
+          );
+        }
+      });
+      return collected;
+    };
 
     // Transform unified waterQuality data
-    if (raw.waterQuality) {
-      const waterQualityParams = [];
+    const waterQualitySource = raw.waterQuality || raw.data;
+    if (waterQualitySource) {
+      const extraWaterParams = [
+        ...(Array.isArray(waterQualitySource.parameters)
+          ? waterQualitySource.parameters
+          : []),
+        ...(Array.isArray(raw.parameters) ? raw.parameters : []),
+      ];
+      const waterQualityParams = collectParameters(
+        waterQualitySource,
+        extraWaterParams,
+        "Internal Monitoring"
+      );
 
-      // Add main parameter if exists
-      if (raw.waterQuality.parameter?.trim()) {
-        waterQualityParams.push({
-          name: sanitizeString(raw.waterQuality.parameter),
-          result: {
-            internalMonitoring: {
-              month: sanitizeString(raw.waterQuality.resultType),
-              readings: [
-                {
-                  label: sanitizeString(raw.waterQuality.parameter),
-                  current_mgL: parseFirstNumber(raw.waterQuality.tssCurrent),
-                  previous_mgL: parseFirstNumber(raw.waterQuality.tssPrevious),
-                },
-              ],
-            },
-            mmtConfirmatorySampling: {
-              current: sanitizeString(raw.waterQuality.mmtCurrent),
-              previous: sanitizeString(raw.waterQuality.mmtPrevious),
-            },
-          },
-          denrStandard: {
-            redFlag: sanitizeString(raw.waterQuality.eqplRedFlag),
-            action: sanitizeString(raw.waterQuality.action),
-            limit_mgL: parseFirstNumber(raw.waterQuality.limit),
-          },
-          remark: sanitizeString(raw.waterQuality.remarks),
-        });
-      }
+      const samplingDate = sanitizeText(
+        waterQualitySource.dateTime ??
+          waterQualitySource.samplingDate ??
+          raw.data?.dateTime
+      );
+      const weatherAndWind = sanitizeText(
+        waterQualitySource.weatherWind ??
+          waterQualitySource.weatherAndWind ??
+          raw.data?.weatherWind
+      );
+      const explanationForConfirmatorySampling = buildExplanation(
+        waterQualitySource,
+        raw.data
+      );
+      const overallAssessment = sanitizeText(
+        waterQualitySource.overallCompliance ??
+          waterQualitySource.overallAssessment ??
+          raw.data?.overallCompliance
+      );
 
-      // Add additional parameters
-      if (Array.isArray(raw.waterQuality.parameters)) {
-        raw.waterQuality.parameters.forEach((param: any) => {
-          if (param.parameter?.trim()) {
-            waterQualityParams.push({
-              name: sanitizeString(param.parameter),
-              result: {
-                internalMonitoring: {
-                  month: sanitizeString(param.resultType),
-                  readings: [
-                    {
-                      label: sanitizeString(param.parameter),
-                      current_mgL: parseFirstNumber(param.tssCurrent),
-                      previous_mgL: parseFirstNumber(param.tssPrevious),
-                    },
-                  ],
-                },
-                mmtConfirmatorySampling: {
-                  current: sanitizeString(param.mmtCurrent),
-                  previous: sanitizeString(param.mmtPrevious),
-                },
-              },
-              denrStandard: {
-                redFlag: sanitizeString(param.eqplRedFlag),
-                action: sanitizeString(param.action),
-                limit_mgL: parseFirstNumber(param.limit),
-              },
-              remark: sanitizeString(param.remarks),
-            });
-          }
-        });
-      }
+      const waterMetadataPresent = [
+        samplingDate,
+        weatherAndWind,
+        explanationForConfirmatorySampling,
+        overallAssessment,
+      ].some((field) => hasContent(field));
 
-      if (waterQualityParams.length > 0) {
+      if (waterQualityParams.length > 0 || waterMetadataPresent) {
+        const locationDescription =
+          buildLocationDescription(waterQualitySource);
         result.waterQuality = {
           parameters: waterQualityParams,
-          samplingDate: sanitizeString(raw.waterQuality.dateTime),
-          weatherAndWind: sanitizeString(raw.waterQuality.weatherWind),
-          explanationForConfirmatorySampling: sanitizeString(
-            raw.waterQuality.isExplanationNA
-              ? "N/A"
-              : raw.waterQuality.explanation
-          ),
-          overallAssessment: sanitizeString(raw.waterQuality.overallCompliance),
+          samplingDate,
+          weatherAndWind,
+          explanationForConfirmatorySampling,
+          overallAssessment,
         };
+
+        if (locationDescription) {
+          result.waterQuality.locationDescription = locationDescription;
+          result.waterQuality.description = locationDescription;
+        }
       }
     }
 
+    const buildPortPayload = (portSource: any) => {
+      const extraPortParams = Array.isArray(portSource?.additionalParameters)
+        ? portSource.additionalParameters
+        : [];
+      const params = collectParameters(
+        portSource,
+        extraPortParams,
+        "Port Parameter"
+      );
+      const samplingDate = sanitizeText(portSource?.dateTime);
+      const weatherAndWind = sanitizeText(portSource?.weatherWind);
+      const explanationForConfirmatorySampling = buildExplanation(portSource);
+      const overallAssessment = sanitizeText(portSource?.overallCompliance);
+
+      const metadataPresent = [
+        samplingDate,
+        weatherAndWind,
+        explanationForConfirmatorySampling,
+        overallAssessment,
+      ].some((field) => hasContent(field));
+
+      if (!params.length && !metadataPresent) {
+        return undefined;
+      }
+
+      const locationDescription =
+        sanitizeText(portSource?.portName ?? portSource?.locationInput) ||
+        "Port";
+
+      return {
+        locationDescription,
+        description: locationDescription,
+        parameters: params,
+        samplingDate,
+        weatherAndWind,
+        explanationForConfirmatorySampling,
+        overallAssessment,
+      };
+    };
+
     // Transform port data (separate from waterQuality)
     if (raw.port) {
-      const portParams = [];
-
-      // Add main parameter if exists
-      if (raw.port.parameter?.trim()) {
-        portParams.push({
-          name: sanitizeString(raw.port.parameter),
-          result: {
-            internalMonitoring: {
-              month: sanitizeString(raw.port.resultType),
-              readings: [
-                {
-                  label: sanitizeString(raw.port.parameter),
-                  current_mgL: parseFirstNumber(raw.port.tssCurrent),
-                  previous_mgL: parseFirstNumber(raw.port.tssPrevious),
-                },
-              ],
-            },
-            mmtConfirmatorySampling: {
-              current: sanitizeString(raw.port.mmtCurrent),
-              previous: sanitizeString(raw.port.mmtPrevious),
-            },
-          },
-          denrStandard: {
-            redFlag: sanitizeString(raw.port.eqplRedFlag),
-            action: sanitizeString(raw.port.action),
-            limit_mgL: parseFirstNumber(raw.port.limit),
-          },
-          remark: sanitizeString(raw.port.remarks),
-        });
-      }
-
-      // Add additional port parameters
-      if (Array.isArray(raw.port.additionalParameters)) {
-        raw.port.additionalParameters.forEach((param: any) => {
-          if (param.parameter?.trim()) {
-            portParams.push({
-              name: sanitizeString(param.parameter),
-              result: {
-                internalMonitoring: {
-                  month: sanitizeString(param.resultType),
-                  readings: [
-                    {
-                      label: sanitizeString(param.parameter),
-                      current_mgL: parseFirstNumber(param.tssCurrent),
-                      previous_mgL: parseFirstNumber(param.tssPrevious),
-                    },
-                  ],
-                },
-                mmtConfirmatorySampling: {
-                  current: sanitizeString(param.mmtCurrent),
-                  previous: sanitizeString(param.mmtPrevious),
-                },
-              },
-              denrStandard: {
-                redFlag: sanitizeString(param.eqplRedFlag),
-                action: sanitizeString(param.action),
-                limit_mgL: parseFirstNumber(param.limit),
-              },
-              remark: sanitizeString(param.remarks),
-            });
-          }
-        });
-      }
-
-      if (portParams.length > 0) {
-        result.port = {
-          locationDescription: sanitizeString(
-            raw.port.portName || raw.port.locationInput || "Port"
-          ),
-          parameters: portParams,
-          samplingDate: sanitizeString(raw.port.dateTime),
-          weatherAndWind: sanitizeString(raw.port.weatherWind),
-          explanationForConfirmatorySampling: sanitizeString(
-            raw.port.isExplanationNA ? "N/A" : raw.port.explanation
-          ),
-          overallAssessment: sanitizeString(raw.port.overallCompliance),
-        };
+      const portPayload = buildPortPayload(raw.port);
+      if (portPayload) {
+        result.port = portPayload;
       }
     }
 
@@ -3225,9 +3326,12 @@ const CMVRDocumentExportScreen = () => {
     fileName: storeFileName,
     submissionId: storeSubmissionId,
     projectId: storeProjectId,
+    editedSections = [],
     submitReport,
     updateSubmittedReport,
     deleteDraft,
+    loadDraft,
+    loadReport,
     markAsClean,
     saveDraft,
     updateMetadata,
@@ -3242,6 +3346,8 @@ const CMVRDocumentExportScreen = () => {
     fileName: routeFileName,
     selectedAttendanceId: routeSelectedAttendanceId,
     selectedAttendanceTitle: routeSelectedAttendanceTitle,
+    projectId: routeProjectId,
+    projectName: routeProjectName,
   } = routeParams;
   const routeDraftUpdate = useMemo(
     () =>
@@ -3255,6 +3361,25 @@ const CMVRDocumentExportScreen = () => {
   // Extract attachments safely
   const routeAttachments = (routeParams as any).attachments;
   const routeNewlyUploadedPaths = (routeParams as any).newlyUploadedPaths;
+
+  const editedSectionSet = useMemo(
+    () => new Set(editedSections ?? []),
+    [editedSections]
+  );
+
+  const isSectionEdited = useCallback(
+    (sections?: string | string[]) => {
+      if (!sections || editedSectionSet.size === 0) {
+        return false;
+      }
+
+      const sectionList = Array.isArray(sections) ? sections : [sections];
+      return sectionList.some(
+        (section) => section && editedSectionSet.has(section)
+      );
+    },
+    [editedSectionSet]
+  );
 
   const resolvedFileName = useMemo(
     () =>
@@ -3282,7 +3407,14 @@ const CMVRDocumentExportScreen = () => {
   const [draftSnapshot, setDraftSnapshot] = useState<DraftSnapshot | null>(
     null
   );
-  const [autoFillTriggered, setAutoFillTriggered] = useState(false);
+
+  // Detect if there are changes between currentReport and draftSnapshot
+  const hasChanges = useMemo(() => {
+    if (!currentReport || !draftSnapshot) return false;
+
+    // Deep compare currentReport with draftSnapshot
+    return JSON.stringify(currentReport) !== JSON.stringify(draftSnapshot);
+  }, [currentReport, draftSnapshot]);
 
   const loadStoredDraft =
     useCallback(async (): Promise<DraftSnapshot | null> => {
@@ -3302,6 +3434,15 @@ const CMVRDocumentExportScreen = () => {
       console.warn("Failed to persist CMVR draft snapshot:", error);
     }
   }, []);
+
+  // Handle loadDraft parameter from dashboard
+  useEffect(() => {
+    const shouldLoadDraft = (routeParams as any)?.loadDraft === true;
+    if (shouldLoadDraft) {
+      console.log("Loading CMVR draft from store...");
+      loadDraft();
+    }
+  }, [routeParams, loadDraft]);
 
   // Handle incoming attachments from CMVRAttachmentsScreen
   useEffect(() => {
@@ -3544,6 +3685,22 @@ const CMVRDocumentExportScreen = () => {
         return;
       }
       const merged = mergeDraftData(stored, updates, resolvedFileName);
+
+      if (isActive) {
+        const derivedProjectName =
+          routeProjectName || merged.generalInfo?.projectName || "";
+
+        const storePayload: StoreHydrationPayload = {
+          ...merged,
+          id: routeReportId ?? null,
+          submissionId: routeReportId ?? null,
+          projectId: routeProjectId ?? null,
+          projectName: derivedProjectName,
+        };
+
+        loadReport(storePayload);
+      }
+
       setDraftSnapshot(merged);
       await persistSnapshot(merged);
       if (routeReportId) {
@@ -3559,11 +3716,14 @@ const CMVRDocumentExportScreen = () => {
     };
   }, [
     routeReportId,
+    routeProjectId,
+    routeProjectName,
     loadStoredDraft,
     persistSnapshot,
     resolvedFileName,
     setHasSubmitted,
     setSubmittedReportId,
+    loadReport,
   ]);
 
   // **LEGACY FUNCTION REMOVED** - saveDraftToLocal no longer needed
@@ -3998,56 +4158,7 @@ const CMVRDocumentExportScreen = () => {
     }
   }, [draftPayload, persistSnapshot]);
 
-  useEffect(() => {
-    if (autoFillTriggered) {
-      return;
-    }
-    if (routeReportId || storeSubmissionId) {
-      setAutoFillTriggered(true);
-      return;
-    }
-
-    const hasCurrentReportData =
-      currentReport && Object.keys(currentReport || {}).length > 0;
-
-    if (hasCurrentReportData) {
-      setAutoFillTriggered(true);
-      return;
-    }
-
-    let isActive = true;
-
-    const autoFill = async () => {
-      try {
-        fillAllTestData();
-        await new Promise((resolve) => setTimeout(resolve, 50));
-        try {
-          await saveDraft();
-        } catch (error) {
-          console.warn("Auto-fill draft save failed:", error);
-        }
-      } catch (error) {
-        console.warn("Automatic CMVR test data fill failed:", error);
-      } finally {
-        if (isActive) {
-          setAutoFillTriggered(true);
-        }
-      }
-    };
-
-    autoFill();
-
-    return () => {
-      isActive = false;
-    };
-  }, [
-    autoFillTriggered,
-    currentReport,
-    fillAllTestData,
-    routeReportId,
-    saveDraft,
-    storeSubmissionId,
-  ]);
+  // Auto-fill test data intentionally disabled to prevent accidental population
 
   const navigateToGeneralInfo = () => {
     navigation.navigate("CMVRReport", {
@@ -4196,6 +4307,7 @@ const CMVRDocumentExportScreen = () => {
             title="General Information"
             value={`${getDisplayValue(generalInfo?.companyName)} - ${getDisplayValue(isagInfo?.currentName || generalInfo?.projectName)}`}
             onPress={navigateToGeneralInfo}
+            isEdited={isSectionEdited("generalInfo")}
           />
           <SummaryItem
             icon="🛡️"
@@ -4211,6 +4323,7 @@ const CMVRDocumentExportScreen = () => {
                 : undefined
             }
             onPress={navigateToGeneralInfo}
+            isEdited={isSectionEdited(["eccInfo", "eccAdditionalForms"])}
           />
           <SummaryItem
             icon="📄"
@@ -4226,6 +4339,7 @@ const CMVRDocumentExportScreen = () => {
                 : undefined
             }
             onPress={navigateToGeneralInfo}
+            isEdited={isSectionEdited(["isagInfo", "isagAdditionalForms"])}
           />
           <SummaryItem
             icon="🌿"
@@ -4241,6 +4355,7 @@ const CMVRDocumentExportScreen = () => {
                 : undefined
             }
             onPress={navigateToGeneralInfo}
+            isEdited={isSectionEdited(["epepInfo", "epepAdditionalForms"])}
           />
           <SummaryItem
             icon="💰"
@@ -4256,6 +4371,7 @@ const CMVRDocumentExportScreen = () => {
                 : undefined
             }
             onPress={navigateToGeneralInfo}
+            isEdited={isSectionEdited(["rcfInfo", "rcfAdditionalForms"])}
           />
           <SummaryItem
             icon="🛡️"
@@ -4271,6 +4387,7 @@ const CMVRDocumentExportScreen = () => {
                 : undefined
             }
             onPress={navigateToGeneralInfo}
+            isEdited={isSectionEdited(["mtfInfo", "mtfAdditionalForms"])}
           />
           <SummaryItem
             icon="🌱"
@@ -4286,6 +4403,7 @@ const CMVRDocumentExportScreen = () => {
                 : undefined
             }
             onPress={navigateToGeneralInfo}
+            isEdited={isSectionEdited(["fmrdfInfo", "fmrdfAdditionalForms"])}
           />
           <SummaryItem
             icon="👥"
@@ -4296,12 +4414,14 @@ const CMVRDocumentExportScreen = () => {
                 : "Not provided"
             }
             onPress={navigateToGeneralInfo}
+            isEdited={isSectionEdited("mmtInfo")}
           />
           <SummaryItem
             icon="🧾"
             title="Executive Summary"
             value={executiveSummary ? "Available" : "Not provided"}
             onPress={navigateToPage2}
+            isEdited={isSectionEdited("executiveSummaryOfCompliance")}
           />
           <SummaryItem
             icon="🗂️"
@@ -4312,24 +4432,32 @@ const CMVRDocumentExportScreen = () => {
                 : "Not provided"
             }
             onPress={navigateToPage2}
+            isEdited={isSectionEdited(
+              "processDocumentationOfActivitiesUndertaken"
+            )}
           />
           <SummaryItem
             icon="💧"
             title="Water Quality Assessment"
             value={waterQualityAssessment ? "Available" : "Not provided"}
             onPress={navigateToWaterQuality}
+            isEdited={isSectionEdited("waterQualityImpactAssessment")}
           />
           <SummaryItem
             icon="🔊"
             title="Noise Quality Assessment"
             value={noiseQualityAssessment ? "Available" : "Not provided"}
             onPress={navigateToNoiseQuality}
+            isEdited={isSectionEdited("noiseQualityImpactAssessment")}
           />
           <SummaryItem
             icon="♻️"
             title="Waste Management"
             value={wasteManagementData ? "Available" : "Not provided"}
             onPress={navigateToWasteManagement}
+            isEdited={isSectionEdited(
+              "complianceWithGoodPracticeInSolidAndHazardousWasteManagement"
+            )}
           />
           <SummaryItem
             icon="🧪"
@@ -4340,6 +4468,10 @@ const CMVRDocumentExportScreen = () => {
                 : "Not provided"
             }
             onPress={navigateToChemicalSafety}
+            isEdited={isSectionEdited([
+              "complianceWithGoodPracticeInChemicalSafetyManagement",
+              "complaintsVerificationAndManagement",
+            ])}
           />
           <SummaryItem
             icon="📋"
@@ -4350,6 +4482,7 @@ const CMVRDocumentExportScreen = () => {
                 : "Not selected"
             }
             onPress={navigateToAttendanceSelection}
+            isEdited={isSectionEdited("attendanceUrl")}
           />
           <SummaryItem
             icon="📎"
@@ -4366,6 +4499,7 @@ const CMVRDocumentExportScreen = () => {
                 fileName,
               })
             }
+            isEdited={attachments.length > 0}
           />
         </View>
         <View style={styles.actionSection}>
@@ -4428,10 +4562,10 @@ const CMVRDocumentExportScreen = () => {
               <TouchableOpacity
                 style={[
                   styles.updateButton,
-                  isUpdating && styles.buttonDisabled,
+                  (isUpdating || !hasChanges) && styles.buttonDisabled,
                 ]}
                 onPress={handleSubmitUpdate}
-                disabled={isUpdating}
+                disabled={isUpdating || !hasChanges}
               >
                 {isUpdating ? (
                   <>
@@ -4508,18 +4642,31 @@ const SummaryItem = ({
   value,
   additional,
   onPress,
+  isEdited,
 }: {
   icon: string;
   title: string;
   value: string;
   additional?: string;
   onPress?: () => void;
+  isEdited?: boolean;
 }) => {
+  const wrapperStyle = [
+    styles.summaryItem,
+    isEdited && styles.summaryItemEdited,
+  ];
   const content = (
     <>
       <Text style={styles.summaryIcon}>{icon}</Text>
       <View style={styles.summaryTextContainer}>
-        <Text style={styles.summaryItemTitle}>{title}</Text>
+        <View style={styles.summaryTitleRow}>
+          <Text style={styles.summaryItemTitle}>{title}</Text>
+          {isEdited && (
+            <View style={styles.summaryEditedBadge}>
+              <Text style={styles.summaryEditedBadgeText}>Edited</Text>
+            </View>
+          )}
+        </View>
         <Text style={styles.summaryItemValue} numberOfLines={1}>
           {value}
         </Text>
@@ -4533,7 +4680,7 @@ const SummaryItem = ({
   if (onPress) {
     return (
       <TouchableOpacity
-        style={styles.summaryItem}
+        style={wrapperStyle}
         onPress={onPress}
         activeOpacity={0.7}
       >
@@ -4541,7 +4688,7 @@ const SummaryItem = ({
       </TouchableOpacity>
     );
   }
-  return <View style={styles.summaryItem}>{content}</View>;
+  return <View style={wrapperStyle}>{content}</View>;
 };
 
 const styles = StyleSheet.create({
@@ -4759,6 +4906,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
+  summaryItemEdited: {
+    borderColor: "#F59E0B",
+    backgroundColor: "#FFFBEB",
+  },
   summaryIcon: {
     fontSize: isTablet ? 36 : 28,
     marginRight: isTablet ? 20 : 16,
@@ -4767,12 +4918,30 @@ const styles = StyleSheet.create({
   summaryTextContainer: {
     flex: 1,
   },
+  summaryTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: isTablet ? 6 : 4,
+  },
   summaryItemTitle: {
     fontSize: isTablet ? 16 : 14,
     fontWeight: "700",
     color: "#475569",
-    marginBottom: isTablet ? 6 : 4,
     letterSpacing: -0.1,
+  },
+  summaryEditedBadge: {
+    marginLeft: 8,
+    backgroundColor: "#FDE68A",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  summaryEditedBadgeText: {
+    fontSize: isTablet ? 12 : 11,
+    color: "#92400E",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   summaryItemValue: {
     fontSize: isTablet ? 17 : 15,

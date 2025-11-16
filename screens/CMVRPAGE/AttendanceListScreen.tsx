@@ -47,10 +47,17 @@ export default function AttendanceListScreen({ navigation, route }: any) {
   const isSelectionMode = route.params?.fromRecommendations || false;
   const previousParams = route.params || {};
 
-  // Selected attendance state
+  // Selected attendance state - initialize from route params if available
   const [selectedAttendanceId, setSelectedAttendanceId] = useState<
     string | null
-  >(null);
+  >(route.params?.selectedAttendanceId || null);
+
+  // Hydrate selection from route params when they change
+  useEffect(() => {
+    if (route.params?.selectedAttendanceId) {
+      setSelectedAttendanceId(route.params.selectedAttendanceId);
+    }
+  }, [route.params?.selectedAttendanceId]);
 
   const fmtDate = (d?: string | null): string => {
     if (!d) return "";

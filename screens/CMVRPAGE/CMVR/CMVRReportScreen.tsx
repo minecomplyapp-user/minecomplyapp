@@ -199,6 +199,18 @@ const CMVRReportScreen: React.FC = () => {
   const navigation = useNavigation<CMVRReportScreenNavigationProp>();
   const route = useRoute<CMVRReportScreenRouteProp>();
   const routeParams = route.params || {};
+  const routeDraftData =
+    routeParams.draftData && typeof routeParams.draftData === "object"
+      ? routeParams.draftData
+      : null;
+
+  useEffect(() => {
+    if (routeParams.submissionId) {
+      console.warn(
+        `[CMVR] Opening existing submission ${routeParams.submissionId} on CMVRReportScreen`
+      );
+    }
+  }, [routeParams.submissionId]);
 
   // **ZUSTAND STORE** - Single source of truth
   const {
@@ -215,6 +227,7 @@ const CMVRReportScreen: React.FC = () => {
     loadDraft,
     initializeNewReport,
     loadReport,
+    clearReport,
   } = useCmvrStore();
 
   // Local UI state
@@ -229,8 +242,33 @@ const CMVRReportScreen: React.FC = () => {
   // **INITIALIZATION** - Load from draft or route params on mount
   useEffect(() => {
     const initialize = async () => {
-      // Priority: route params > draft > new report
-      if (routeParams.submissionId || routeParams.draftData) {
+      // Priority: route draft payload > submission params > stored draft > new report
+      if (routeDraftData) {
+        loadReport(routeDraftData);
+
+        const derivedFileName =
+          routeParams.fileName ||
+          routeDraftData.fileName ||
+          contextFileName ||
+          "Untitled";
+
+        updateMetadata({
+          fileName: derivedFileName,
+          submissionId:
+            routeParams.submissionId ?? routeDraftData.submissionId ?? null,
+          projectId: routeParams.projectId ?? routeDraftData.projectId ?? null,
+          projectName:
+            routeParams.projectName ||
+            routeDraftData.projectName ||
+            routeDraftData.generalInfo?.projectName ||
+            "",
+        });
+
+        setContextFileName(derivedFileName);
+        return;
+      }
+
+      if (routeParams.submissionId) {
         // Loading existing submission or draft from route
         const reportData = {
           generalInfo:
@@ -280,17 +318,11 @@ const CMVRReportScreen: React.FC = () => {
         });
 
         setContextFileName(fileName);
-      } else if (!currentReport) {
-        // No data - check for draft or create new
-        const hasDraft = await loadDraft();
-        if (!hasDraft) {
-          const newFileName = contextFileName || "Untitled";
-          initializeNewReport(newFileName);
-          setContextFileName(newFileName);
-        } else {
-          // Draft loaded, sync fileName
-          setContextFileName(storeFileName || "Untitled");
-        }
+      } else {
+        // Always start fresh for new CMVR entries
+        const newFileName = contextFileName || "Untitled";
+        initializeNewReport(newFileName);
+        setContextFileName(newFileName);
       }
     };
 
@@ -318,6 +350,14 @@ const CMVRReportScreen: React.FC = () => {
     eccNumber: "",
     dateOfIssuance: "",
   };
+  // Ensure isNA is properly read from store
+  if (
+    currentReport?.eccInfo &&
+    typeof currentReport.eccInfo.isNA === "boolean"
+  ) {
+    eccInfo.isNA = currentReport.eccInfo.isNA;
+  }
+
   const eccAdditionalForms = currentReport?.eccAdditionalForms || [];
   const isagInfo = currentReport?.isagInfo || {
     isNA: false,
@@ -335,6 +375,14 @@ const CMVRReportScreen: React.FC = () => {
     proponentPhone: "",
     proponentEmail: "",
   };
+  // Ensure isNA is properly read from store
+  if (
+    currentReport?.isagInfo &&
+    typeof currentReport.isagInfo.isNA === "boolean"
+  ) {
+    isagInfo.isNA = currentReport.isagInfo.isNA;
+  }
+
   const isagAdditionalForms = currentReport?.isagAdditionalForms || [];
   const epepInfo = currentReport?.epepInfo || {
     isNA: false,
@@ -342,6 +390,13 @@ const CMVRReportScreen: React.FC = () => {
     epepNumber: "",
     dateOfApproval: "",
   };
+  if (
+    currentReport?.epepInfo &&
+    typeof currentReport.epepInfo.isNA === "boolean"
+  ) {
+    epepInfo.isNA = currentReport.epepInfo.isNA;
+  }
+
   const epepAdditionalForms = currentReport?.epepAdditionalForms || [];
   const rcfInfo = currentReport?.rcfInfo || {
     isNA: false,
@@ -350,6 +405,13 @@ const CMVRReportScreen: React.FC = () => {
     amountDeposited: "",
     dateUpdated: "",
   };
+  if (
+    currentReport?.rcfInfo &&
+    typeof currentReport.rcfInfo.isNA === "boolean"
+  ) {
+    rcfInfo.isNA = currentReport.rcfInfo.isNA;
+  }
+
   const rcfAdditionalForms = currentReport?.rcfAdditionalForms || [];
   const mtfInfo = currentReport?.mtfInfo || {
     isNA: false,
@@ -358,6 +420,13 @@ const CMVRReportScreen: React.FC = () => {
     amountDeposited: "",
     dateUpdated: "",
   };
+  if (
+    currentReport?.mtfInfo &&
+    typeof currentReport.mtfInfo.isNA === "boolean"
+  ) {
+    mtfInfo.isNA = currentReport.mtfInfo.isNA;
+  }
+
   const mtfAdditionalForms = currentReport?.mtfAdditionalForms || [];
   const fmrdfInfo = currentReport?.fmrdfInfo || {
     isNA: false,
@@ -366,6 +435,13 @@ const CMVRReportScreen: React.FC = () => {
     amountDeposited: "",
     dateUpdated: "",
   };
+  if (
+    currentReport?.fmrdfInfo &&
+    typeof currentReport.fmrdfInfo.isNA === "boolean"
+  ) {
+    fmrdfInfo.isNA = currentReport.fmrdfInfo.isNA;
+  }
+
   const fmrdfAdditionalForms = currentReport?.fmrdfAdditionalForms || [];
   const mmtInfo = currentReport?.mmtInfo || {
     isNA: false,
@@ -374,6 +450,16 @@ const CMVRReportScreen: React.FC = () => {
     phoneNumber: "",
     emailAddress: "",
   };
+
+  const isExistingSubmission = Boolean(
+    routeParams.submissionId ?? storeSubmissionId
+  );
+  const statusLabel = isExistingSubmission
+    ? "Editing Submitted CMVR"
+    : "New CMVR Report";
+  const statusSubtext = isExistingSubmission
+    ? `Submission ID: ${routeParams.submissionId || storeSubmissionId}`
+    : "All sections start blank without previous data.";
 
   // **HANDLERS** - Update store instead of local state
   const handleGeneralInfoChange = (field: string, value: string) => {
@@ -663,6 +749,7 @@ const CMVRReportScreen: React.FC = () => {
           routes: [{ name: "Dashboard" }],
         })
       );
+      clearReport();
       return true;
     } catch (error: any) {
       console.error("Error saving draft:", error);
@@ -686,6 +773,7 @@ const CMVRReportScreen: React.FC = () => {
   };
 
   const handleDiscard = () => {
+    clearReport();
     navigation.dispatch(
       CommonActions.reset({
         index: 0,
@@ -731,7 +819,21 @@ const CMVRReportScreen: React.FC = () => {
   const confirmBack = () => {
     // Discard: Navigate back without saving to drafts
     setShowBackDialog(false);
+    clearReport();
     navigation.goBack();
+  };
+
+  const handleGoToSummary = () => {
+    (navigation as any).navigate("CMVRDocumentExport", {
+      cmvrReportId: routeParams.submissionId || storeSubmissionId || undefined,
+      fileName: storeFileName || contextFileName || "Untitled",
+      projectId: routeParams.projectId || storeProjectId || undefined,
+      projectName:
+        routeParams.projectName ||
+        storeProjectName ||
+        generalInfo.projectName ||
+        "",
+    });
   };
 
   React.useLayoutEffect(() => {
@@ -749,6 +851,7 @@ const CMVRReportScreen: React.FC = () => {
           onStay={handleStay}
           onSaveToDraft={handleSaveToDraft}
           onDiscard={handleDiscard}
+          onGoToSummary={handleGoToSummary}
           allowEdit={true}
         />
       </View>
@@ -757,6 +860,17 @@ const CMVRReportScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        <View
+          style={[
+            styles.statusBanner,
+            isExistingSubmission
+              ? styles.statusBannerExisting
+              : styles.statusBannerNew,
+          ]}
+        >
+          <Text style={styles.statusBannerLabel}>{statusLabel}</Text>
+          <Text style={styles.statusBannerSubtext}>{statusSubtext}</Text>
+        </View>
         {__DEV__ && (
           <TouchableOpacity
             style={{

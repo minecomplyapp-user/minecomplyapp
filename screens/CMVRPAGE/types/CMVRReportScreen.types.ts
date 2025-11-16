@@ -15,6 +15,7 @@ export type RootStackParamList = {
     projectName?: string | null;
     projectId?: string | null;
     fileName: string;
+    draftData?: any;
   };
 };
 

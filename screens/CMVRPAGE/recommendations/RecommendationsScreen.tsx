@@ -329,6 +329,28 @@ const RecommendationsScreen: React.FC = () => {
     }
   );
 
+  const [hasHydratedFromStore, setHasHydratedFromStore] = useState(false);
+
+  // Hydrate from store when data becomes available
+  useEffect(() => {
+    if (hasHydratedFromStore || !currentReport) return;
+
+    if (storedRecommendations) {
+      setPrevYear(storedRecommendations.prevYear || "");
+      setPrevQuarter(storedRecommendations.prevQuarter || "1st");
+
+      if (storedRecommendations.currentRecommendations) {
+        setCurrentSections(storedRecommendations.currentRecommendations);
+      }
+
+      if (storedRecommendations.previousRecommendations) {
+        setPreviousSections(storedRecommendations.previousRecommendations);
+      }
+    }
+
+    setHasHydratedFromStore(true);
+  }, [currentReport, storedRecommendations, hasHydratedFromStore]);
+
   // Auto-sync to store
   useEffect(() => {
     updateSection("recommendationsData", {
@@ -514,6 +536,7 @@ const RecommendationsScreen: React.FC = () => {
     // Navigate to AttendanceList in selection mode
     navigation.navigate("AttendanceList", {
       fromRecommendations: true,
+      selectedAttendanceId: currentReport?.attendanceUrl || null,
     });
   };
 

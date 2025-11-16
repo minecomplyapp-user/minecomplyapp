@@ -1,6 +1,3 @@
-
-
-
 import React, { useState } from "react";
 import {
   View,
@@ -22,15 +19,20 @@ import {
 } from "lucide-react-native";
 import { CustomHeader } from "../../components/CustomHeader";
 import { theme } from "../../theme/theme";
-import { scale, verticalScale, normalizeFont, moderateScale } from "../../utils/responsive";
+import {
+  scale,
+  verticalScale,
+  normalizeFont,
+  moderateScale,
+} from "../../utils/responsive";
 import { styles } from "./styles/DuplicateReportScreen.styles";
 
-import {useEccStore} from "../../store/eccStore"
+import { useEccStore } from "../../store/eccStore";
+import { useCmvrStore } from "../../store/cmvrStore";
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
 // Mock data for attendance records
-
 
 const mockECCReports = [
   {
@@ -105,17 +107,19 @@ const mockCMVRReports = [
   },
 ];
 
-type RecordType = "all" | "attendance" | "cmvr"|"ecc";
+type RecordType = "all" | "attendance" | "cmvr" | "ecc";
 
 export default function DuplicateReportScreen({ navigation }: any) {
-  
-  const {getReportById, selectedReport,reports} = useEccStore();
+  const { getReportById, selectedReport, reports } = useEccStore();
+  const { clearReport, initializeNewReport } = useCmvrStore();
   const [selectedType, setSelectedType] = useState<RecordType>("all");
   const [selectedRecord, setSelectedRecord] = useState<number | null>(null);
 
-  const allRecords = [...mockAttendanceRecords, ...mockCMVRReports,...reports].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  const allRecords = [
+    ...mockAttendanceRecords,
+    ...mockCMVRReports,
+    ...reports,
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const filteredRecords =
     selectedType === "all"
@@ -124,7 +128,7 @@ export default function DuplicateReportScreen({ navigation }: any) {
 
   const handleDuplicate = (record: any) => {
     setSelectedRecord(record.id);
-    
+
     Alert.alert(
       "Duplicate Record",
       `Create a new editable copy of "${record.title}"?`,
@@ -136,7 +140,7 @@ export default function DuplicateReportScreen({ navigation }: any) {
         },
         {
           text: "Create Copy",
-          onPress: async () =>  {
+          onPress: async () => {
             setSelectedRecord(null);
             // Navigate directly to edit the duplicated record
             if (record.type === "attendance") {
@@ -146,15 +150,17 @@ export default function DuplicateReportScreen({ navigation }: any) {
                 templateDate: record.date,
                 templateAttendees: record.attendees,
               });
-            }
-            else if (record.type === "ecc") {
-               await getReportById(record.id);
-                navigation.navigate("ECCMonitoring",selectedReport); // ECCMonitoring will read selectedReport from store
-            }else {
-                navigation.navigate("CMVRReport", {
+            } else if (record.type === "ecc") {
+              await getReportById(record.id);
+              navigation.navigate("ECCMonitoring", selectedReport); // ECCMonitoring will read selectedReport from store
+            } else {
+              const duplicateName = `${record.title} (Copy)`;
+              clearReport();
+              initializeNewReport(duplicateName);
+              navigation.navigate("CMVRReport", {
                 submissionId: null,
                 projectId: null,
-                projectName: `${record.title} (Copy)`,
+                projectName: duplicateName,
                 duplicateFrom: record.id,
                 templateData: {
                   title: record.title,
@@ -170,9 +176,9 @@ export default function DuplicateReportScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.safeContainer} edges={['top']}>
+    <SafeAreaView style={styles.safeContainer} edges={["top"]}>
       <CustomHeader showSave={false} />
-      
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
@@ -180,7 +186,12 @@ export default function DuplicateReportScreen({ navigation }: any) {
           isTablet && styles.scrollContentTablet,
         ]}
       >
-        <View style={[styles.contentWrapper, isTablet && styles.contentWrapperTablet]}>
+        <View
+          style={[
+            styles.contentWrapper,
+            isTablet && styles.contentWrapperTablet,
+          ]}
+        >
           {/* Header */}
           <View style={styles.header}>
             <View>
@@ -192,7 +203,12 @@ export default function DuplicateReportScreen({ navigation }: any) {
           </View>
 
           {/* Filter Tabs */}
-          <View style={[styles.filterContainer, isTablet && styles.filterContainerTablet]}>
+          <View
+            style={[
+              styles.filterContainer,
+              isTablet && styles.filterContainerTablet,
+            ]}
+          >
             <FilterTab
               label="All"
               count={allRecords.length}
@@ -214,20 +230,24 @@ export default function DuplicateReportScreen({ navigation }: any) {
               onPress={() => setSelectedType("cmvr")}
               isTablet={isTablet}
             />
-              <FilterTab
+            <FilterTab
               label="ECC"
               count={mockECCReports.length}
               isActive={selectedType === "ecc"}
               onPress={() => setSelectedType("ecc")}
               isTablet={isTablet}
             />
-            
           </View>
 
           {/* Records List */}
           <View style={styles.section}>
             {filteredRecords.length > 0 ? (
-              <View style={[styles.recordsContainer, isTablet && styles.recordsContainerTablet]}>
+              <View
+                style={[
+                  styles.recordsContainer,
+                  isTablet && styles.recordsContainerTablet,
+                ]}
+              >
                 {filteredRecords.map((record, index) => (
                   <React.Fragment key={record.id}>
                     <RecordCard
@@ -251,7 +271,8 @@ export default function DuplicateReportScreen({ navigation }: any) {
                 />
                 <Text style={styles.emptyStateTitle}>No records found</Text>
                 <Text style={styles.emptyStateText}>
-                  No {selectedType === "all" ? "" : selectedType} records available
+                  No {selectedType === "all" ? "" : selectedType} records
+                  available
                 </Text>
               </View>
             )}
@@ -269,11 +290,18 @@ function FilterTab({ label, count, isActive, onPress, isTablet }: any) {
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <Text style={[styles.filterTabText, isActive && styles.filterTabTextActive]}>
+      <Text
+        style={[styles.filterTabText, isActive && styles.filterTabTextActive]}
+      >
         {label}
       </Text>
       <View style={[styles.filterBadge, isActive && styles.filterBadgeActive]}>
-        <Text style={[styles.filterBadgeText, isActive && styles.filterBadgeTextActive]}>
+        <Text
+          style={[
+            styles.filterBadgeText,
+            isActive && styles.filterBadgeTextActive,
+          ]}
+        >
           {count}
         </Text>
       </View>
@@ -308,7 +336,9 @@ function RecordCard({ record, onPress, isSelected, isTablet }: any) {
           {isAttendance ? (
             <>
               <View style={styles.metaDot} />
-              <Text style={styles.recordMetaText}>{record.attendees} attendees</Text>
+              <Text style={styles.recordMetaText}>
+                {record.attendees} attendees
+              </Text>
             </>
           ) : (
             <>
