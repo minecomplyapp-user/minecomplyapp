@@ -17,7 +17,7 @@ import { theme } from "../../theme/theme";
 import styles from "./styles/profileScreen";
 
 const EditProfileScreen = ({ navigation }: any) => {
-  const { user } = useAuth();
+  const { user, refreshProfile, profile: authProfile, updateLocalProfile } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,6 +34,20 @@ const EditProfileScreen = ({ navigation }: any) => {
       setLoading(false);
       return;
     }
+
+    // If AuthContext already has the profile cached, use it to prefill fields
+    if (authProfile) {
+      setFirstName(authProfile.first_name || "");
+      setLastName(authProfile.last_name || "");
+      setPosition(authProfile.position || "");
+      setMailingAddress(authProfile.mailing_address || "");
+      setPhoneNumber(authProfile.phone_number || "");
+      setFax(authProfile.fax || "");
+      setLoading(false);
+      return;
+    }
+
+    // Fallback: fetch directly if AuthContext doesn't have it
     (async () => {
       try {
         const { data, error } = await supabase
@@ -59,25 +73,45 @@ const EditProfileScreen = ({ navigation }: any) => {
         setLoading(false);
       }
     })();
-  }, [user?.id]);
+  }, [user?.id, authProfile]);
 
   const handleSave = async () => {
     if (!user?.id) return;
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          first_name: firstName.trim() || null,
-          last_name: lastName.trim() || null,
-          position: position.trim() || null,
-          mailing_address: mailingAddress.trim() || null,
-          phone_number: phoneNumber.trim() || null,
-          fax: fax.trim() || null,
-        })
-        .eq("id", user.id);
+      // Use upsert so we create the profile row if it doesn't exist yet.
+      const payload = {
+        id: user.id,
+        first_name: firstName.trim() || null,
+        last_name: lastName.trim() || null,
+        position: position.trim() || null,
+        mailing_address: mailingAddress.trim() || null,
+        phone_number: phoneNumber.trim() || null,
+        fax: fax.trim() || null,
+        email: user.email || null,
+        full_name: [firstName.trim(), lastName.trim()].filter(Boolean).join(" ") || null,
+      };
 
-      if (error) throw error;
+      // Optimistic local update: apply new values to AuthContext immediately
+      const prevProfile = (authProfile && { ...authProfile }) || null;
+      try {
+        updateLocalProfile(payload);
+      } catch (e) {}
+
+      const { error } = await supabase.from("profiles").upsert(payload, {
+        onConflict: "id",
+      });
+
+      if (error) {
+        // revert optimistic update on failure
+        if (prevProfile) updateLocalProfile(prevProfile);
+        throw error;
+      }
+
+      // Ensure server-state is in sync with cache
+      try {
+        await refreshProfile();
+      } catch (e) {}
 
       Alert.alert("Saved", "Your profile has been updated.", [
         { text: "OK", onPress: () => navigation.goBack() },
