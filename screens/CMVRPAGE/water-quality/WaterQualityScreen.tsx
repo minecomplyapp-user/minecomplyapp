@@ -17,7 +17,6 @@ import { LocationSection } from "./components/LocationSection";
 import { ParameterForm } from "./components/ParameterForm";
 import { SamplingDetailsSection } from "./components/SamplingDetailsSection";
 import { OverallComplianceSection } from "./components/OverallComplianceSection";
-import { PortSection } from "./components/PortSection";
 import { LocationMonitoringSection } from "./components/LocationMonitoringSection";
 import {
   Parameter,
@@ -75,7 +74,6 @@ export default function WaterQualityScreen({ navigation, route }: any) {
       overallCompliance: "",
     },
     parameters: [],
-    ports: [],
   };
 
   // Local state for UI (derived from store)
@@ -111,8 +109,6 @@ export default function WaterQualityScreen({ navigation, route }: any) {
   const [parameters, setParameters] = useState<Parameter[]>(
     waterQualitySection.parameters
   );
-  const [ports, setPorts] = useState<PortData[]>(waterQualitySection.ports);
-
   const [hasHydratedFromStore, setHasHydratedFromStore] = useState(false);
 
   useEffect(() => {
@@ -131,7 +127,6 @@ export default function WaterQualityScreen({ navigation, route }: any) {
       setPortData(storedWaterQuality.port || createEmptyLocationData());
       setData(storedWaterQuality.data || waterQualitySection.data);
       setParameters(storedWaterQuality.parameters || []);
-      setPorts(storedWaterQuality.ports || []);
     }
 
     setHasHydratedFromStore(true);
@@ -155,7 +150,6 @@ export default function WaterQualityScreen({ navigation, route }: any) {
       port: portData,
       data,
       parameters,
-      ports,
     };
 
     updateSection("waterQualityImpactAssessment", currentData);
@@ -170,7 +164,6 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     portData,
     data,
     parameters,
-    ports,
   ]);
 
   // Note: Data hydration now handled by store initialization in CMVRReportScreen
@@ -477,129 +470,6 @@ export default function WaterQualityScreen({ navigation, route }: any) {
           style: "destructive",
           onPress: () => {
             setParameters(parameters.filter((param) => param.id !== id));
-          },
-        },
-      ]
-    );
-  };
-
-  const addPort = () => {
-    const newId = `port-${Date.now()}`;
-    setPorts((prev) => [
-      ...prev,
-      {
-        id: newId,
-        portName: "",
-        parameter: "",
-        resultType: "Month",
-        tssCurrent: "",
-        tssPrevious: "",
-        mmtCurrent: "",
-        mmtPrevious: "",
-        isMMTNA: false,
-        eqplRedFlag: "",
-        action: "",
-        limit: "",
-        remarks: "",
-        dateTime: "",
-        weatherWind: "",
-        explanation: "",
-        isExplanationNA: false,
-        additionalParameters: [],
-      },
-    ]);
-  };
-
-  const updatePort = (portId: string, field: string, value: any) => {
-    setPorts(
-      ports.map((port) =>
-        port.id === portId ? { ...port, [field]: value } : port
-      )
-    );
-  };
-
-  const addLegacyPortParameter = (portId: string) => {
-    const newParamId = `param-${Date.now()}`;
-    setPorts(
-      ports.map((port) =>
-        port.id === portId
-          ? {
-              ...port,
-              additionalParameters: [
-                ...port.additionalParameters,
-                {
-                  id: newParamId,
-                  parameter: "",
-                  resultType: "Month",
-                  tssCurrent: "",
-                  tssPrevious: "",
-                  mmtCurrent: "",
-                  mmtPrevious: "",
-                  isMMTNA: false,
-                  eqplRedFlag: "",
-                  action: "",
-                  limit: "",
-                  remarks: "",
-                },
-              ],
-            }
-          : port
-      )
-    );
-  };
-
-  const updateLegacyPortParameter = (
-    portId: string,
-    parameterId: string,
-    field: keyof Omit<Parameter, "id">,
-    value: string | boolean
-  ) => {
-    setPorts(
-      ports.map((port) =>
-        port.id === portId
-          ? {
-              ...port,
-              additionalParameters: port.additionalParameters.map((param) =>
-                param.id === parameterId ? { ...param, [field]: value } : param
-              ),
-            }
-          : port
-      )
-    );
-  };
-
-  const deleteLegacyPortParameter = (
-    portId: string,
-    parameterIndex: number
-  ) => {
-    setPorts(
-      ports.map((port) =>
-        port.id === portId
-          ? {
-              ...port,
-              additionalParameters: port.additionalParameters.filter(
-                (_, index) => index !== parameterIndex
-              ),
-            }
-          : port
-      )
-    );
-  };
-
-  const deletePort = (portId: string) => {
-    Alert.alert(
-      "Delete Port",
-      "Are you sure you want to delete this port? This action cannot be undone.",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            setPorts((prev) => prev.filter((port) => port.id !== portId));
           },
         },
       ]
@@ -1061,26 +931,6 @@ export default function WaterQualityScreen({ navigation, route }: any) {
           onSamplingDetailsChange={handlePortSamplingDetailsChange}
           onExplanationNAToggle={handlePortExplanationNAToggle}
         />
-
-        {/* Legacy Port Sections (for multiple ports) */}
-        {ports.map((port, index) => (
-          <PortSection
-            key={port.id}
-            port={port}
-            index={index}
-            onUpdate={updatePort}
-            onDelete={deletePort}
-            onAddParameter={addLegacyPortParameter}
-            onUpdateParameter={updateLegacyPortParameter}
-            onDeleteParameter={deleteLegacyPortParameter}
-          />
-        ))}
-
-        {/* Add More Port Button */}
-        <TouchableOpacity style={styles.addButton} onPress={addPort}>
-          <Ionicons name="add-circle-outline" size={20} color="#02217C" />
-          <Text style={styles.addButtonText}>Add More Port</Text>
-        </TouchableOpacity>
 
         {/* Fill Test Data Button (Dev Only) */}
         {__DEV__ && (
