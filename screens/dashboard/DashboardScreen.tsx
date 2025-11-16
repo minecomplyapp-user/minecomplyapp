@@ -212,7 +212,12 @@ export default function DashboardScreen({ navigation }: any) {
                   : JSON.parse(record.attendees || "[]");
 
                 totalCount = attendees.length;
-                presentCount = attendees.filter((a: any) => a.present).length;
+                // Count both IN_PERSON and ONLINE as present (exclude ABSENT)
+                presentCount = attendees.filter(
+                  (a: any) =>
+                    a.attendanceStatus === "IN_PERSON" ||
+                    a.attendanceStatus === "ONLINE"
+                ).length;
               } catch (err) {
                 console.log("Error parsing attendees:", err);
               }
