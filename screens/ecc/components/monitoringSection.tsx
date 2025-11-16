@@ -3,6 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Pressable,
   Modal,
   ScrollView,
   TextInput,
@@ -61,6 +62,23 @@ export const ECCMonitoringSection = ({
 
   const [removedDefaults, setRemovedDefaults] = useState<CondID[]>([]);
   const [collapsed, setCollapsed] = useState(false);
+
+  // per-condition N/A flags — when true, radios and remarks are disabled and remarks output as "N/A"
+  const [naFlags, setNaFlags] = useState<Record<CondID, boolean>>({});
+  const toggleNA = (id: CondID) => {
+    setNaFlags((prev) => {
+      const turningOn = !(prev[id] ?? false);
+      // update selections/remarks together with flag
+      if (turningOn) {
+        setSelections((s) => ({ ...s, [id]: null }));
+        setRemarks((r) => ({ ...r, [id]: "N/A" }));
+      } else {
+        // when turning off, clear N/A so user can type again
+        setRemarks((r) => ({ ...r, [id]: "" }));
+      }
+      return { ...prev, [id]: turningOn };
+    });
+  };
 
   // modal for add/edit
   const [modalVisible, setModalVisible] = useState(false);
@@ -332,69 +350,79 @@ export const ECCMonitoringSection = ({
                     </View>
 
                     <View style={styles.radioGroup}>
-                      {(["complied", "partial", "not"] as ChoiceKey[]).map(
-                        (k) => {
-                          const isSelected = selected === k;
-                          return (
-                            <View key={k} style={styles.radioRow}>
-                              <TouchableOpacity
-                                onPress={() => setSelection(cond.id, k)}
-                                style={styles.radioTouch}
-                                activeOpacity={0.8}
+                      {(["complied", "partial", "not"] as ChoiceKey[]).map((k) => {
+                        const isSelected = selected === k;
+                        const isDisabled = !!naFlags[cond.id];
+                        return (
+                          <View key={k} style={styles.radioRow}>
+                            <TouchableOpacity
+                              onPress={isDisabled ? undefined : () => setSelection(cond.id, k)}
+                              style={[styles.radioTouch, isDisabled && { opacity: 0.5 }]}
+                              activeOpacity={0.8}
+                              disabled={isDisabled}
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              accessibilityRole="radio"
+                              accessibilityState={{ selected: isSelected, disabled: isDisabled }}
+                              accessibilityLabel={`${k} option for condition ${cond.id}`}
+                            >
+                              <View
+                                style={[
+                                  styles.radioOuter,
+                                  isSelected && { borderColor: colorFor(k) },
+                                  isDisabled && { borderColor: '#E6E6E6' },
+                                ]}
                               >
-                                <View
-                                  style={[
-                                    styles.radioOuter,
-                                    isSelected && { borderColor: colorFor(k) },
-                                  ]}
-                                >
-                                  {isSelected && (
-                                    <View
-                                      style={[
-                                        styles.radioInner,
-                                        { backgroundColor: colorFor(k) },
-                                      ]}
-                                    />
-                                  )}
-                                </View>
-
-                                <View style={styles.radioLabelWrap}>
-                                  <Text
+                                {isSelected && (
+                                  <View
                                     style={[
-                                      styles.radioLabel,
-                                      isSelected && { color: colorFor(k) },
+                                      styles.radioInner,
+                                      { backgroundColor: colorFor(k) },
                                     ]}
-                                  >
-                                    {k === "complied"
-                                      ? "Complied"
-                                      : k === "partial"
-                                        ? "Partially Complied"
-                                        : "Not Complied"}
-                                  </Text>
-                                  {/* <Text style={styles.radioDescription}>
-                                    {cond.descriptions[k]}
-                                  </Text> */}
-                                </View>
-                              </TouchableOpacity>
-                            </View>
-                          );
-                        }
-                      )}
+                                  />
+                                )}
+                              </View>
+
+                              <View style={styles.radioLabelWrap}>
+                                <Text style={[styles.radioLabel, isSelected && { color: colorFor(k) }]}>
+                                  {k === 'complied' ? 'Complied' : k === 'partial' ? 'Partially Complied' : 'Not Complied'}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                          </View>
+                        );
+                      })}
                     </View>
                   </>
                 )}
                 
+                {/* N/A checkbox + Remarks */}
+
+                <Pressable
+                  onPress={() => toggleNA(cond.id)}
+                  android_ripple={{ color: '#EEEEEE' }}
+                  hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: !!naFlags[cond.id] }}
+                  accessibilityLabel={`Mark condition ${cond.id} as not applicable`}
+                  style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}
+                >
+                  <Text style={[styles.naLabel, { marginRight: 8 }]}>{'N/A'}</Text>
+                  <View style={[styles.naCheckbox, naFlags[cond.id] && styles.naCheckboxChecked]}>
+                    {naFlags[cond.id] ? (
+                      <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                    ) : null}
+                  </View>
+                </Pressable>
+
                 <TextInput
                   style={[
                     styles.remarkInput,
+                    naFlags[cond.id] && styles.remarkDisabled,
                     {
-                      // clamp rendered height between MIN and MAX, add small offset for padding
+                      // grow to measured content height (no artificial max)
                       height: Math.max(
                         MIN_REMARK_HEIGHT,
-                        Math.min(
-                          (remarkHeights[cond.id] || MIN_REMARK_HEIGHT) + 6,
-                          MAX_REMARK_HEIGHT
-                        )
+                        remarkHeights[cond.id] || MIN_REMARK_HEIGHT
                       ),
                     },
                   ]}
@@ -405,14 +433,13 @@ export const ECCMonitoringSection = ({
                   keyboardType="default"
                   autoCapitalize="sentences"
                   multiline={true}
-                  blurOnSubmit={false} // allow Enter/new line on both platforms
-                  returnKeyType="default"
-                  // enable internal scrolling when content grows beyond MAX_REMARK_HEIGHT
-                  scrollEnabled={(remarkHeights[cond.id] || 0) > MAX_REMARK_HEIGHT}
-                  // update measured content height so we can grow the input
+                  // disable editing when N/A is checked
+                  editable={!naFlags[cond.id]}
+                  // allow the TextInput to expand instead of scrolling internally
+                  scrollEnabled={false}
+                  // update measured content height so the input grows with content
                   onContentSizeChange={(e) => {
-                    const h = Math.ceil(e.nativeEvent.contentSize.height);
-                    // store raw measured height (will be clamped when rendering)
+                    const h = Math.max(e.nativeEvent.contentSize.height, MIN_REMARK_HEIGHT);
                     setRemarkHeight(cond.id, h);
                   }}
                 />
