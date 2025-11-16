@@ -128,6 +128,21 @@ export const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
 
+  /* remark textarea used in monitoringSection */
+  remarkInput: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: theme.colors.text,
+    fontFamily: theme.typography.regular,
+    minHeight: 80,
+    textAlignVertical: "top",
+  },
+
   /* ===== DATE PICKER ===== */
   datePickerButton: {
     flexDirection: "row",

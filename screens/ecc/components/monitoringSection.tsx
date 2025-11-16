@@ -52,6 +52,13 @@ export const ECCMonitoringSection = ({
   const [remarks, setRemarks] = useState<Record<CondID, string | null>>(
     initialState.remarks || {}
   );
+  // dynamic heights for remarks per condition so the card/container grows with content
+  const [remarkHeights, setRemarkHeights] = useState<Record<CondID, number>>({});
+  const MIN_REMARK_HEIGHT = 80; // minimum visible height for the textarea
+  const MAX_REMARK_HEIGHT = 300; // maximum height before enabling internal scrolling
+  const setRemarkHeight = (id: CondID, height: number) =>
+    setRemarkHeights((p) => ({ ...p, [id]: height }));
+
   const [removedDefaults, setRemovedDefaults] = useState<CondID[]>([]);
   const [collapsed, setCollapsed] = useState(false);
 
@@ -376,35 +383,38 @@ export const ECCMonitoringSection = ({
                     </View>
                   </>
                 )}
-
+                
                 <TextInput
-                  style={{
-                    // Base Input Styles (from your existing styles.input)
-                    height: 50, // This will be overridden by minHeight/padding
-                    paddingHorizontal: 15,
-                    paddingVertical: 10,
-                    borderColor: "#CCC",
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    fontSize: 18,
-                    backgroundColor: "white",
-
-                    // 🟢 Long Text (styles.textArea) Specific Styles
-                    minHeight: 120, // Defines the minimum visible height
-                    textAlignVertical: "top", // Ensures text starts at the top (Crucial for Android multiline)
-
-                    // Note: For long text, you typically remove the fixed 'height: 50'
-                    // If 'styles.input' is passed first, minHeight will override a fixed height.
-                  }}
-                  value={remarks[cond.id] ?? ""} // <-- k = complied | partial | not
+                  style={[
+                    styles.remarkInput,
+                    {
+                      // clamp rendered height between MIN and MAX, add small offset for padding
+                      height: Math.max(
+                        MIN_REMARK_HEIGHT,
+                        Math.min(
+                          (remarkHeights[cond.id] || MIN_REMARK_HEIGHT) + 6,
+                          MAX_REMARK_HEIGHT
+                        )
+                      ),
+                    },
+                  ]}
+                  value={remarks[cond.id] ?? ""}
                   onChangeText={(text) => setRemark(cond.id, text)}
                   placeholder="Enter remarks here..."
+                  placeholderTextColor="#94A3B8"
                   keyboardType="default"
                   autoCapitalize="sentences"
-                  // Multi-line functionality props
                   multiline={true}
-                  scrollEnabled={true}
-                  numberOfLines={4}
+                  blurOnSubmit={false} // allow Enter/new line on both platforms
+                  returnKeyType="default"
+                  // enable internal scrolling when content grows beyond MAX_REMARK_HEIGHT
+                  scrollEnabled={(remarkHeights[cond.id] || 0) > MAX_REMARK_HEIGHT}
+                  // update measured content height so we can grow the input
+                  onContentSizeChange={(e) => {
+                    const h = Math.ceil(e.nativeEvent.contentSize.height);
+                    // store raw measured height (will be clamped when rendering)
+                    setRemarkHeight(cond.id, h);
+                  }}
                 />
               </View>
             );

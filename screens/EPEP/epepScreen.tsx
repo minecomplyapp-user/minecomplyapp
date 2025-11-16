@@ -377,7 +377,7 @@ export default function EPEPScreen({ navigation }: any) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>APEP/EPEP Documents</Text>
+          <Text style={styles.headerTitle}>AEPEP/EPEP Documents</Text>
           <Text style={styles.headerSubtitle}>Scan, upload or manage your AEPEP/EPEP documents.</Text>
         </View>
 
