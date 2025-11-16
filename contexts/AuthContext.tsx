@@ -74,27 +74,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       password,
     });
     try {
-      // After login, sync metadata into profiles to ensure names/fields are present
+      // After login, sync metadata into profiles but avoid overwriting
+      // existing DB values with nulls. Fetch existing row and merge values
+      // so we only upsert fields present in metadata or already stored.
       if (!result.error) {
         const u = result?.data?.user as any;
         if (u?.id) {
           const meta = (u.user_metadata || {}) as Record<string, any>;
-          await supabase.from("profiles").upsert(
-            {
+          try {
+            const { data: existing } = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("id", u.id)
+              .maybeSingle();
+
+            const payload = {
               id: u.id,
-              email: u.email || null,
-              first_name: meta.first_name ?? null,
-              last_name: meta.last_name ?? null,
+              email: u.email || (existing?.email ?? null),
+              first_name:
+                meta.first_name ?? (existing?.first_name ?? null),
+              last_name: meta.last_name ?? (existing?.last_name ?? null),
               full_name:
-                meta.full_name ?? ((u.email || "").split("@")[0] || null),
-              mailing_address: meta.mailing_address ?? null,
-              phone_number: meta.phone_number ?? null,
-              fax: meta.fax ?? null,
-              position: meta.position ?? null,
+                meta.full_name ??
+                (existing?.full_name ?? (u.email || "").split("@")[0]),
+              mailing_address:
+                meta.mailing_address ?? (existing?.mailing_address ?? null),
+              phone_number: meta.phone_number ?? (existing?.phone_number ?? null),
+              fax: meta.fax ?? (existing?.fax ?? null),
+              position: meta.position ?? (existing?.position ?? null),
               verified: !!u.email_confirmed_at,
-            },
-            { onConflict: "id" }
-          );
+            } as Record<string, any>;
+
+            await supabase.from("profiles").upsert(payload, { onConflict: "id" });
+          } catch (e) {
+            // best-effort sync; ignore failures
+            console.warn("Post-login profile sync skipped:", e);
+          }
         }
       }
     } catch (e) {
@@ -212,24 +227,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       let final = data || null;
       // If no first/last but user metadata is available, derive them for display
       const u = session?.user as any;
-      if (final) {
-        if ((!final.first_name || !final.last_name) && u) {
-          const meta = u.user_metadata || {};
-          const derivedFirst = final.first_name || meta.first_name || null;
-          const derivedLast = final.last_name || meta.last_name || null;
-          final = { ...final, first_name: derivedFirst, last_name: derivedLast };
-        }
-      } else if (u) {
-        const meta = u.user_metadata || {};
-        const derivedFirst = meta.first_name || null;
-        const derivedLast = meta.last_name || null;
-        final = {
-          id: u.id,
-          email: u.email || null,
-          first_name: derivedFirst,
-          last_name: derivedLast,
-        };
+      const hadRow = !!final;
+      const meta = (u && u.user_metadata) || {};
+
+      // Build a persistent payload merging DB row and metadata
+      const keysToEnsure = [
+        "email",
+        "first_name",
+        "last_name",
+        "position",
+        "mailing_address",
+        "phone_number",
+        "fax",
+        "full_name",
+        "verified",
+      ];
+
+      const toPersist: Record<string, any> = { id: uid };
+      for (const k of keysToEnsure) {
+        const dbVal = final && (final as any)[k];
+        const metaVal = (meta && meta[k]) ?? null;
+        // Prefer DB value when present, otherwise fall back to metadata
+        toPersist[k] = dbVal ?? metaVal ?? null;
       }
+
+      // If there was no DB row, or if any of the important fields are missing in DB
+      // but available from metadata, persist them so they become permanent.
+      const shouldUpsert =
+        !hadRow ||
+        keysToEnsure.some((k) => {
+          const dbVal = final && (final as any)[k];
+          const persistVal = toPersist[k];
+          // treat undefined/null equivalently
+          return (dbVal ?? null) !== (persistVal ?? null);
+        });
+
+      if (shouldUpsert) {
+        try {
+          await supabase.from("profiles").upsert(toPersist, { onConflict: "id" });
+          // reload the row we just upserted so `final` contains persisted values
+          const { data: refreshed } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", uid)
+            .maybeSingle();
+          if (refreshed) final = refreshed;
+        } catch (e) {
+          console.warn("Failed to persist profile fields during refresh", e);
+        }
+      }
+
       setProfile(final || null);
     } catch (e) {
       console.warn("Failed to refresh profile", e);

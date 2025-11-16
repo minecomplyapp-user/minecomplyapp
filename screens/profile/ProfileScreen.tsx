@@ -37,9 +37,21 @@ const emptyProfile = {
 };
 
 const ProfileScreen = ({ navigation }: any) => {
-  const { user, signOut, profile: authProfile, loading: authLoading } = useAuth();
+  const { user, signOut, profile: authProfile, loading: authLoading, refreshProfile } = useAuth();
   const loading = authLoading;
   const profile = authProfile || { ...emptyProfile, email: user?.email || "" };
+
+  const [refreshingProfile, setRefreshingProfile] = useState(false);
+
+  useEffect(() => {
+    // If we have a logged-in user but no cached profile, try to load it from the server.
+    if (user?.id && !authProfile) {
+      setRefreshingProfile(true);
+      refreshProfile()
+        .catch(() => {})
+        .finally(() => setRefreshingProfile(false));
+    }
+  }, [user?.id, authProfile, refreshProfile]);
 
   const handleSignOut = async () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -100,6 +112,11 @@ const ProfileScreen = ({ navigation }: any) => {
               {profile.email || "No email"}
             </Text>
           </View>
+          {refreshingProfile && (
+            <View style={{ marginLeft: 8 }}>
+              <ActivityIndicator size="small" color={theme.colors.primaryDark} />
+            </View>
+          )}
           {/* NEW Edit Profile Button */}
           <TouchableOpacity
             style={styles.editProfileButton}
