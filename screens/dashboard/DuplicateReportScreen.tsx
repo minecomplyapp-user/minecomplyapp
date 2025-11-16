@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   Alert,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -26,158 +27,207 @@ import {
   moderateScale,
 } from "../../utils/responsive";
 import { styles } from "./styles/DuplicateReportScreen.styles";
-
+import { apiGet, apiPost } from "../../lib/api";
+import { useAuth } from "../../contexts/AuthContext";
 import { useEccStore } from "../../store/eccStore";
 import { useCmvrStore } from "../../store/cmvrStore";
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 
-// Mock data for attendance records
-
-const mockECCReports = [
-  {
-    id: "3a42ec7b-01ef-4a11-ac95-c1a8ec07902f",
-    title: "tester",
-    date: "Oct 28, 2025",
-    attendees: 24,
-    type: "ecc",
-  },
-  {
-    id: 8,
-    title: "Site B - Night Shift",
-    date: "Oct 25, 2025",
-    attendees: 18,
-    type: "ecc",
-  },
-  {
-    id: 90,
-    title: "Engineering Team - Weekly",
-    date: "Oct 20, 2025",
-    attendees: 12,
-    type: "ecc",
-  },
-];
-
-const mockAttendanceRecords = [
-  {
-    id: 1,
-    title: "Site A - Morning Shift",
-    date: "Oct 28, 2025",
-    attendees: 24,
-    type: "attendance",
-  },
-  {
-    id: 2,
-    title: "Site B - Night Shift",
-    date: "Oct 25, 2025",
-    attendees: 18,
-    type: "attendance",
-  },
-  {
-    id: 3,
-    title: "Engineering Team - Weekly",
-    date: "Oct 20, 2025",
-    attendees: 12,
-    type: "attendance",
-  },
-];
-
-// Mock data for CMVR reports
-const mockCMVRReports = [
-  {
-    id: 4,
-    title: "Q3 Compliance Monitoring Report",
-    date: "Oct 15, 2025",
-    status: "Approved",
-    type: "cmvr",
-  },
-  {
-    id: 5,
-    title: "Environmental Assessment - Site A",
-    date: "Oct 10, 2025",
-    status: "Under Review",
-    type: "cmvr",
-  },
-  {
-    id: 6,
-    title: "Safety Inspection Report",
-    date: "Oct 5, 2025",
-    status: "Approved",
-    type: "cmvr",
-  },
-];
-
 type RecordType = "all" | "attendance" | "cmvr" | "ecc";
 
+interface Record {
+  id: string;
+  title: string;
+  date: string;
+  attendees?: number;
+  status?: string;
+  type: "attendance" | "cmvr" | "ecc";
+}
+
 export default function DuplicateReportScreen({ navigation }: any) {
-  const { getReportById, selectedReport, reports } = useEccStore();
-  const { clearReport, initializeNewReport } = useCmvrStore();
+  const { user } = useAuth();
+  const { reports: eccReports, getAllReports: fetchEccReports } = useEccStore();
+  const { submittedReports: cmvrReports, fetchUserReports } = useCmvrStore();
   const [selectedType, setSelectedType] = useState<RecordType>("all");
-  const [selectedRecord, setSelectedRecord] = useState<number | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<string | null>(null);
+  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDuplicating, setIsDuplicating] = useState(false);
+
+  // Fetch all records on mount
+  useEffect(() => {
+    fetchAllRecords();
+  }, [user?.id]);
+
+  const fetchAllRecords = async () => {
+    if (!user?.id) return;
+
+    try {
+      setIsLoading(true);
+      
+      // Fetch attendance records (will be filtered by createdById)
+      const attendanceData = await apiGet<any[]>(`/attendance`);
+      setAttendanceRecords(attendanceData || []);
+
+      // Fetch ECC reports for the current user
+      await fetchEccReports(user.id, "");
+
+      // Fetch CMVR reports for the current user
+      await fetchUserReports(user.id, "");
+    } catch (error) {
+      console.error("Error fetching records:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Transform records to consistent format - Filter by createdById
+  const transformedAttendance: Record[] = attendanceRecords
+    .filter((record) => record.createdById === user?.id)
+    .map((record) => ({
+      id: record.id,
+      title: record.title || record.fileName || "Untitled",
+      date: record.meetingDate
+        ? new Date(record.meetingDate).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
+        : "No date",
+      attendees: Array.isArray(record.attendees) ? record.attendees.length : 0,
+      type: "attendance" as const,
+    }));
+
+  const transformedCMVR: Record[] = (cmvrReports || [])
+    .filter((report: any) => report.createdById === user?.id)
+    .map((report: any) => ({
+      id: report.id,
+      title: report.fileName || "Untitled",
+      date: new Date(report.createdAt).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+      status: "Submitted",
+      type: "cmvr" as const,
+    }));
+
+  const transformedECC: Record[] = (eccReports || [])
+    .filter((report: any) => {
+      // ECC reports might have createdById in the report object
+      return report.createdById === user?.id;
+    })
+    .map((report: any) => ({
+      id: report.id,
+      title: report.title || "Untitled",
+      date: report.date || "No date",
+      status: "Submitted",
+      type: "ecc" as const,
+    }));
 
   const allRecords = [
-    ...mockAttendanceRecords,
-    ...mockCMVRReports,
-    ...reports,
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    ...transformedAttendance,
+    ...transformedCMVR,
+    ...transformedECC,
+  ].sort((a, b) => {
+    try {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return dateB - dateA;
+    } catch {
+      return 0;
+    }
+  });
 
   const filteredRecords =
     selectedType === "all"
       ? allRecords
       : allRecords.filter((record) => record.type === selectedType);
 
-  const handleDuplicate = (record: any) => {
+  const handleDuplicate = async (record: Record) => {
     setSelectedRecord(record.id);
 
-    Alert.alert(
-      "Duplicate Record",
-      `Create a new editable copy of "${record.title}"?`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-          onPress: () => setSelectedRecord(null),
-        },
-        {
-          text: "Create Copy",
-          onPress: async () => {
-            setSelectedRecord(null);
-            // Navigate directly to edit the duplicated record
+    Alert.alert("Duplicate Record", `Create a copy of "${record.title}"?`, [
+      {
+        text: "Cancel",
+        style: "cancel",
+        onPress: () => setSelectedRecord(null),
+      },
+      {
+        text: "Create Copy",
+        onPress: async () => {
+          try {
+            setIsDuplicating(true);
+
             if (record.type === "attendance") {
-              navigation.navigate("CreateAttendance", {
-                duplicateFrom: record.id,
-                templateTitle: record.title,
-                templateDate: record.date,
-                templateAttendees: record.attendees,
-              });
+              await apiPost(`/attendance/${record.id}/duplicate`, {});
+              Alert.alert("Success", "Attendance record duplicated");
+              await fetchAllRecords();
             } else if (record.type === "ecc") {
-              await getReportById(record.id);
-              navigation.navigate("ECCMonitoring", selectedReport); // ECCMonitoring will read selectedReport from store
-            } else {
-              const duplicateName = `${record.title} (Copy)`;
-              clearReport();
-              initializeNewReport(duplicateName);
-              navigation.navigate("CMVRReport", {
-                submissionId: null,
-                projectId: null,
-                projectName: duplicateName,
-                duplicateFrom: record.id,
-                templateData: {
-                  title: record.title,
-                  date: record.date,
-                  status: record.status,
-                },
-              });
+              await apiPost(`/ecc/${record.id}/duplicate`, {});
+              Alert.alert("Success", "ECC report duplicated");
+              await fetchAllRecords();
+            } else if (record.type === "cmvr") {
+              await apiPost(`/cmvr/${record.id}/duplicate`, {});
+              Alert.alert("Success", "CMVR report duplicated");
+              await fetchAllRecords();
             }
-          },
+          } catch (error: any) {
+            console.error("Error duplicating:", error);
+            Alert.alert("Error", error.message || "Failed to duplicate");
+          } finally {
+            setIsDuplicating(false);
+            setSelectedRecord(null);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeContainer} edges={["top"]}>
+        <CustomHeader showSave={false} />
+        <View
+          style={[
+            styles.contentWrapper,
+            { justifyContent: "center", alignItems: "center", flex: 1 },
+          ]}
+        >
+          <ActivityIndicator size="large" color={theme.colors.primaryDark} />
+          <Text style={[styles.subtitle, { marginTop: 16 }]}>
+            Loading records...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeContainer} edges={["top"]}>
       <CustomHeader showSave={false} />
+
+      {isDuplicating && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+        >
+          <ActivityIndicator size="large" color={theme.colors.primaryDark} />
+          <Text style={{ color: "white", marginTop: 16, fontSize: 16 }}>
+            Duplicating...
+          </Text>
+        </View>
+      )}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -218,21 +268,21 @@ export default function DuplicateReportScreen({ navigation }: any) {
             />
             <FilterTab
               label="Attendance"
-              count={mockAttendanceRecords.length}
+              count={transformedAttendance.length}
               isActive={selectedType === "attendance"}
               onPress={() => setSelectedType("attendance")}
               isTablet={isTablet}
             />
             <FilterTab
               label="CMVR"
-              count={mockCMVRReports.length}
+              count={transformedCMVR.length}
               isActive={selectedType === "cmvr"}
               onPress={() => setSelectedType("cmvr")}
               isTablet={isTablet}
             />
             <FilterTab
               label="ECC"
-              count={mockECCReports.length}
+              count={transformedECC.length}
               isActive={selectedType === "ecc"}
               onPress={() => setSelectedType("ecc")}
               isTablet={isTablet}

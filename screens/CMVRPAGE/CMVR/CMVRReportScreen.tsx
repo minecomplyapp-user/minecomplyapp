@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   ScrollView,
@@ -239,6 +239,16 @@ const CMVRReportScreen: React.FC = () => {
   const { fileName: contextFileName, setFileName: setContextFileName } =
     useFileName();
 
+  const initialSnapshotRef = useRef<{
+    report: any;
+    metadata: {
+      fileName: string;
+      submissionId: string | null;
+      projectId: string | null;
+      projectName: string;
+    };
+  } | null>(null);
+
   // **INITIALIZATION** - Load from draft or route params on mount
   useEffect(() => {
     const initialize = async () => {
@@ -328,6 +338,30 @@ const CMVRReportScreen: React.FC = () => {
 
     initialize();
   }, []); // Run once on mount
+
+  useEffect(() => {
+    if (initialSnapshotRef.current || !currentReport) {
+      return;
+    }
+
+    initialSnapshotRef.current = {
+      report: JSON.parse(JSON.stringify(currentReport)),
+      metadata: {
+        fileName: storeFileName || contextFileName || "Untitled",
+        submissionId: storeSubmissionId ?? null,
+        projectId: storeProjectId ?? null,
+        projectName:
+          storeProjectName || currentReport?.generalInfo?.projectName || "",
+      },
+    };
+  }, [
+    currentReport,
+    storeFileName,
+    contextFileName,
+    storeSubmissionId,
+    storeProjectId,
+    storeProjectName,
+  ]);
 
   // **DERIVED STATE** - Get current values from store
   const generalInfo = currentReport?.generalInfo || {
@@ -819,7 +853,26 @@ const CMVRReportScreen: React.FC = () => {
   const confirmBack = () => {
     // Discard: Navigate back without saving to drafts
     setShowBackDialog(false);
-    clearReport();
+
+    const snapshot = initialSnapshotRef.current;
+    if (snapshot?.report) {
+      loadReport({
+        ...snapshot.report,
+        fileName: snapshot.metadata.fileName,
+        submissionId: snapshot.metadata.submissionId ?? undefined,
+        projectId: snapshot.metadata.projectId ?? undefined,
+        projectName: snapshot.metadata.projectName,
+      });
+    } else if (routeDraftData) {
+      loadReport({
+        ...routeDraftData,
+        fileName:
+          routeDraftData.fileName ||
+          storeFileName ||
+          contextFileName ||
+          "Untitled",
+      });
+    }
     navigation.goBack();
   };
 

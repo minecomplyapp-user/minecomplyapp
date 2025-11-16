@@ -20,6 +20,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { uploadFileFromUri, deleteFilesFromStorage } from "../../lib/storage";
+import { apiGet } from "../../lib/api";
 
 import { useFileName } from "../../contexts/FileNameContext";
 import { useCmvrStore } from "../../store/cmvrStore";
@@ -57,10 +58,12 @@ import type {
   ComplianceData as AirComplianceData,
   ParameterData as AirParameterData,
 } from "./types/EnvironmentalComplianceScreen.types";
-import type {
-  WaterQualityData,
-  Parameter as WaterParameter,
-  PortData as WaterPortData,
+import {
+  createEmptyLocationData,
+  type WaterQualityData,
+  type Parameter as WaterParameter,
+  type PortData as WaterPortData,
+  type LocationData,
 } from "./types/WaterQualityScreen.types";
 import type {
   NoiseParameter,
@@ -183,6 +186,13 @@ type DraftSnapshot = {
   attendanceUrl?: string;
   documentation?: any;
   complianceMonitoringReport?: Partial<DraftSnapshot>;
+};
+
+type AttendanceRecordSummary = {
+  id: string;
+  title?: string | null;
+  fileName?: string | null;
+  meetingDate?: string | null;
 };
 
 type StoreHydrationPayload = DraftSnapshot & {
@@ -2520,15 +2530,253 @@ const convertWaterBackendParam = (
   return base;
 };
 
+const cloneWaterParameters = (
+  params: WaterParameter[] = [],
+  prefix = "water-param"
+): WaterParameter[] =>
+  params.map((param, index) => ({
+    ...param,
+    id: param.id || createHydrationId(prefix, index),
+  }));
+
+const buildLocationDataFromPayload = (
+  source: any,
+  prefix: string
+): LocationData => {
+  const location = createEmptyLocationData();
+  if (!source || typeof source !== "object") {
+    location.parameters = [];
+    return location;
+  }
+
+  const mappedParams = Array.isArray(source.parameters)
+    ? source.parameters
+        .map((param: any, index: number) =>
+          convertWaterBackendParam(param, prefix, index)
+        )
+        .filter((param: WaterParameter) =>
+          [
+            param.parameter,
+            param.tssCurrent,
+            param.tssPrevious,
+            param.limit,
+            param.remarks,
+          ].some((field) => !!field && String(field).trim().length > 0)
+        )
+    : [];
+
+  if (mappedParams.length > 0) {
+    const [main, ...additional] = mappedParams;
+    location.parameter = main.parameter;
+    location.resultType = main.resultType;
+    location.tssCurrent = main.tssCurrent;
+    location.tssPrevious = main.tssPrevious;
+    location.mmtCurrent = main.mmtCurrent ?? "";
+    location.mmtPrevious = main.mmtPrevious ?? "";
+    location.isMMTNA = !!main.isMMTNA;
+    location.eqplRedFlag = main.eqplRedFlag;
+    location.action = main.action;
+    location.limit = main.limit;
+    location.remarks = main.remarks;
+    location.parameters = additional;
+  } else {
+    location.parameters = [];
+  }
+
+  location.locationInput =
+    sanitizeString(
+      source.locationInput ?? source.locationDescription ?? source.description
+    ) || "";
+  location.dateTime =
+    sanitizeString(source.samplingDate ?? source.dateTime) || "";
+  location.weatherWind =
+    sanitizeString(source.weatherAndWind ?? source.weatherWind) || "";
+
+  const explanationSource =
+    source.explanationForConfirmatorySampling ??
+    source.explanation ??
+    (source.isExplanationNA ? "N/A" : "");
+  if (
+    typeof explanationSource === "string" &&
+    explanationSource.trim().toUpperCase() === "N/A"
+  ) {
+    location.explanation = "";
+    location.isExplanationNA = true;
+  } else {
+    location.explanation = sanitizeString(explanationSource);
+    location.isExplanationNA = !!source.isExplanationNA;
+  }
+
+  location.overallCompliance =
+    sanitizeString(source.overallAssessment ?? source.overallCompliance) || "";
+
+  return location;
+};
+
+const buildLegacyDataFromLocation = (
+  location: LocationData,
+  descriptions: { quarry: string; plant: string; quarryPlant: string }
+): WaterQualityData => ({
+  quarryInput: descriptions.quarry,
+  plantInput: descriptions.plant,
+  quarryPlantInput: descriptions.quarryPlant,
+  parameter: location.parameter,
+  resultType: location.resultType,
+  tssCurrent: location.tssCurrent,
+  tssPrevious: location.tssPrevious,
+  mmtCurrent: location.mmtCurrent,
+  mmtPrevious: location.mmtPrevious,
+  isMMTNA: location.isMMTNA,
+  eqplRedFlag: location.eqplRedFlag,
+  action: location.action,
+  limit: location.limit,
+  remarks: location.remarks,
+  dateTime: location.dateTime,
+  weatherWind: location.weatherWind,
+  explanation: location.explanation,
+  isExplanationNA: location.isExplanationNA,
+  overallCompliance: location.overallCompliance,
+});
+
+const buildLegacyPortFromLocation = (
+  location: LocationData,
+  index = 0
+): WaterPortData | null => {
+  const hasDetails =
+    [
+      location.parameter,
+      location.remarks,
+      location.overallCompliance,
+      location.dateTime,
+      location.weatherWind,
+    ].some((field) => !!field && String(field).trim().length > 0) ||
+    (location.parameters?.length ?? 0) > 0;
+
+  if (!hasDetails) {
+    return null;
+  }
+
+  return {
+    id: createHydrationId("port", index),
+    portName: location.locationInput || `Port ${index + 1}`,
+    parameter: location.parameter,
+    resultType: location.resultType,
+    tssCurrent: location.tssCurrent,
+    tssPrevious: location.tssPrevious,
+    mmtCurrent: location.mmtCurrent,
+    mmtPrevious: location.mmtPrevious,
+    isMMTNA: location.isMMTNA,
+    eqplRedFlag: location.eqplRedFlag,
+    action: location.action,
+    limit: location.limit,
+    remarks: location.remarks,
+    dateTime: location.dateTime,
+    weatherWind: location.weatherWind,
+    explanation: location.explanation,
+    isExplanationNA: location.isExplanationNA,
+    additionalParameters: cloneWaterParameters(
+      location.parameters,
+      "port-param"
+    ),
+  };
+};
+
+const convertLegacyPortToLocationData = (
+  port?: WaterPortData
+): LocationData => {
+  const location = createEmptyLocationData();
+  if (!port) {
+    location.parameters = [];
+    return location;
+  }
+  location.locationInput = sanitizeString(port.portName);
+  location.parameter = sanitizeString(port.parameter);
+  location.resultType = sanitizeString(port.resultType) || "Month";
+  location.tssCurrent = sanitizeString(port.tssCurrent);
+  location.tssPrevious = sanitizeString(port.tssPrevious);
+  location.mmtCurrent = sanitizeString(port.mmtCurrent);
+  location.mmtPrevious = sanitizeString(port.mmtPrevious);
+  location.isMMTNA = !!port.isMMTNA;
+  location.eqplRedFlag = sanitizeString(port.eqplRedFlag);
+  location.action = sanitizeString(port.action);
+  location.limit = sanitizeString(port.limit);
+  location.remarks = sanitizeString(port.remarks);
+  location.dateTime = sanitizeString(port.dateTime);
+  location.weatherWind = sanitizeString(port.weatherWind);
+  location.explanation = sanitizeString(port.explanation);
+  location.isExplanationNA = !!port.isExplanationNA;
+  location.overallCompliance = "";
+  location.parameters = cloneWaterParameters(
+    port.additionalParameters,
+    "legacy-port-param"
+  );
+  return location;
+};
+
+const convertLegacySectionToStore = (payload: {
+  selectedLocations: { quarry: boolean; plant: boolean; quarryPlant: boolean };
+  data: WaterQualityData;
+  parameters: WaterParameter[];
+  ports: WaterPortData[];
+}) => {
+  const quarry = sanitizeString(payload.data.quarryInput);
+  const plant = sanitizeString(payload.data.plantInput);
+  const quarryPlant = sanitizeString(payload.data.quarryPlantInput);
+
+  const waterLocation = createEmptyLocationData();
+  waterLocation.locationInput = quarry || plant || quarryPlant;
+  waterLocation.parameter = sanitizeString(payload.data.parameter);
+  waterLocation.resultType = sanitizeString(payload.data.resultType) || "Month";
+  waterLocation.tssCurrent = sanitizeString(payload.data.tssCurrent);
+  waterLocation.tssPrevious = sanitizeString(payload.data.tssPrevious);
+  waterLocation.mmtCurrent = sanitizeString(payload.data.mmtCurrent);
+  waterLocation.mmtPrevious = sanitizeString(payload.data.mmtPrevious);
+  waterLocation.isMMTNA = !!payload.data.isMMTNA;
+  waterLocation.eqplRedFlag = sanitizeString(payload.data.eqplRedFlag);
+  waterLocation.action = sanitizeString(payload.data.action);
+  waterLocation.limit = sanitizeString(payload.data.limit);
+  waterLocation.remarks = sanitizeString(payload.data.remarks);
+  waterLocation.dateTime = sanitizeString(payload.data.dateTime);
+  waterLocation.weatherWind = sanitizeString(payload.data.weatherWind);
+  waterLocation.explanation = sanitizeString(payload.data.explanation);
+  waterLocation.isExplanationNA = !!payload.data.isExplanationNA;
+  waterLocation.overallCompliance = sanitizeString(
+    payload.data.overallCompliance
+  );
+  waterLocation.parameters = cloneWaterParameters(
+    payload.parameters,
+    "legacy-water-param"
+  );
+
+  const portLocation = convertLegacyPortToLocationData(payload.ports[0]);
+
+  return {
+    quarry,
+    plant,
+    quarryPlant,
+    quarryEnabled: payload.selectedLocations.quarry,
+    plantEnabled: payload.selectedLocations.plant,
+    quarryPlantEnabled: payload.selectedLocations.quarryPlant,
+    waterQuality: waterLocation,
+    port: portLocation,
+    data: payload.data,
+    parameters: payload.parameters,
+    ports: payload.ports,
+  };
+};
+
 const normalizeWaterQualityFromApi = (
   raw: any
 ):
   | {
-      selectedLocations: {
-        quarry: boolean;
-        plant: boolean;
-        quarryPlant: boolean;
-      };
+      quarry: string;
+      plant: string;
+      quarryPlant: string;
+      quarryEnabled: boolean;
+      plantEnabled: boolean;
+      quarryPlantEnabled: boolean;
+      waterQuality: LocationData;
+      port: LocationData;
       data: WaterQualityData;
       parameters: WaterParameter[];
       ports: WaterPortData[];
@@ -2538,9 +2786,74 @@ const normalizeWaterQualityFromApi = (
     return undefined;
   }
 
-  // If already normalized, return as-is
-  if (raw.data && raw.parameters && raw.ports) {
+  // Already in the new store shape
+  if (
+    raw.waterQuality &&
+    raw.port &&
+    raw.data &&
+    Array.isArray(raw.parameters) &&
+    Array.isArray(raw.ports)
+  ) {
     return raw;
+  }
+
+  const hasNewStructure =
+    raw.waterQuality ||
+    raw.port ||
+    raw.quarry ||
+    raw.plant ||
+    raw.quarryPlant ||
+    raw.quarryAndPlant ||
+    raw.quarryEnabled !== undefined ||
+    raw.plantEnabled !== undefined ||
+    raw.quarryPlantEnabled !== undefined;
+
+  if (hasNewStructure) {
+    const quarry = sanitizeString(raw.quarry);
+    const plant = sanitizeString(raw.plant);
+    const quarryPlant = sanitizeString(raw.quarryPlant ?? raw.quarryAndPlant);
+
+    const waterLocation = buildLocationDataFromPayload(
+      raw.waterQuality || raw.data || {},
+      "water-quality"
+    );
+    const portLocation = buildLocationDataFromPayload(raw.port, "water-port");
+
+    const legacyData = buildLegacyDataFromLocation(waterLocation, {
+      quarry,
+      plant,
+      quarryPlant,
+    });
+    const legacyPort = buildLegacyPortFromLocation(portLocation, 0);
+
+    return {
+      quarry,
+      plant,
+      quarryPlant,
+      quarryEnabled: raw.quarryEnabled ?? !!quarry,
+      plantEnabled: raw.plantEnabled ?? !!plant,
+      quarryPlantEnabled: raw.quarryPlantEnabled ?? !!quarryPlant,
+      waterQuality: {
+        ...waterLocation,
+        parameters: cloneWaterParameters(
+          waterLocation.parameters,
+          "water-extra-param"
+        ),
+      },
+      port: {
+        ...portLocation,
+        parameters: cloneWaterParameters(
+          portLocation.parameters,
+          "water-port-extra"
+        ),
+      },
+      data: legacyData,
+      parameters: cloneWaterParameters(
+        waterLocation.parameters,
+        "water-legacy-param"
+      ),
+      ports: legacyPort ? [legacyPort] : [],
+    };
   }
 
   const data = createEmptyWaterQualityData();
@@ -2648,12 +2961,12 @@ const normalizeWaterQualityFromApi = (
     }
   }
 
-  return {
+  return convertLegacySectionToStore({
     selectedLocations,
     data,
     parameters: extras,
     ports,
-  };
+  });
 };
 
 const normalizeNoiseQualityFromApi = (raw: any) => {
@@ -3407,6 +3720,17 @@ const CMVRDocumentExportScreen = () => {
   const [draftSnapshot, setDraftSnapshot] = useState<DraftSnapshot | null>(
     null
   );
+  const [attendanceRecordInfo, setAttendanceRecordInfo] = useState<{
+    id: string;
+    label?: string;
+  } | null>(() =>
+    routeSelectedAttendanceId
+      ? {
+          id: routeSelectedAttendanceId,
+          label: routeSelectedAttendanceTitle ?? undefined,
+        }
+      : null
+  );
 
   // Detect if there are changes between currentReport and draftSnapshot
   const hasChanges = useMemo(() => {
@@ -3415,6 +3739,10 @@ const CMVRDocumentExportScreen = () => {
     // Deep compare currentReport with draftSnapshot
     return JSON.stringify(currentReport) !== JSON.stringify(draftSnapshot);
   }, [currentReport, draftSnapshot]);
+
+  const attendanceUrl = currentReport?.attendanceUrl ?? null;
+  const resolvedAttendanceId =
+    routeSelectedAttendanceId ?? attendanceUrl ?? null;
 
   const loadStoredDraft =
     useCallback(async (): Promise<DraftSnapshot | null> => {
@@ -3460,6 +3788,96 @@ const CMVRDocumentExportScreen = () => {
       setNewlyUploadedPaths(routeNewlyUploadedPaths);
     }
   }, [routeAttachments, routeNewlyUploadedPaths]);
+
+  // Keep attendance metadata in sync with latest selection routed back from AttendanceList
+  useEffect(() => {
+    if (!routeSelectedAttendanceId) {
+      return;
+    }
+    setAttendanceRecordInfo({
+      id: routeSelectedAttendanceId,
+      label: routeSelectedAttendanceTitle ?? undefined,
+    });
+  }, [routeSelectedAttendanceId, routeSelectedAttendanceTitle]);
+
+  // Reset local attendance metadata if selection is cleared
+  useEffect(() => {
+    if (!resolvedAttendanceId) {
+      setAttendanceRecordInfo(null);
+    }
+  }, [resolvedAttendanceId]);
+
+  // Hydrate attendance metadata when loading an existing report
+  useEffect(() => {
+    if (!resolvedAttendanceId) {
+      return;
+    }
+
+    const alreadyHasLabel =
+      attendanceRecordInfo &&
+      attendanceRecordInfo.id === resolvedAttendanceId &&
+      attendanceRecordInfo.label;
+
+    if (alreadyHasLabel) {
+      return;
+    }
+
+    if (
+      routeSelectedAttendanceId &&
+      routeSelectedAttendanceId === resolvedAttendanceId &&
+      routeSelectedAttendanceTitle
+    ) {
+      return;
+    }
+
+    let isMounted = true;
+    const fetchAttendanceDetails = async () => {
+      try {
+        const record = await apiGet<AttendanceRecordSummary>(
+          `/attendance/${resolvedAttendanceId}`
+        );
+        if (!isMounted || !record) {
+          return;
+        }
+        setAttendanceRecordInfo({
+          id: resolvedAttendanceId,
+          label:
+            record.title ||
+            record.fileName ||
+            record.meetingDate ||
+            `Attendance ${resolvedAttendanceId.slice(0, 8)}`,
+        });
+      } catch (error) {
+        console.warn("Failed to fetch attendance record metadata:", error);
+      }
+    };
+
+    fetchAttendanceDetails();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    resolvedAttendanceId,
+    routeSelectedAttendanceId,
+    routeSelectedAttendanceTitle,
+    attendanceRecordInfo,
+  ]);
+
+  // Persist any newly selected attendance record into the CMVR store state
+  useEffect(() => {
+    if (!routeSelectedAttendanceId) {
+      return;
+    }
+    if (routeSelectedAttendanceId === attendanceUrl) {
+      return;
+    }
+
+    updateMultipleSections({ attendanceUrl: routeSelectedAttendanceId });
+    setDraftSnapshot((prev) =>
+      prev ? { ...prev, attendanceUrl: routeSelectedAttendanceId } : prev
+    );
+  }, [routeSelectedAttendanceId, attendanceUrl, updateMultipleSections]);
 
   useEffect(() => {
     let isActive = true;
@@ -4096,8 +4514,15 @@ const CMVRDocumentExportScreen = () => {
   const recommendationsData = currentReport?.recommendationsData;
   const recommendationPrev = currentReport?.recommendationFromPrevQuarter;
   const recommendationNext = currentReport?.recommendationForNextQuarter;
-  const attendanceUrl = currentReport?.attendanceUrl;
   const documentation = currentReport?.documentation;
+  const attendanceTitleFromState =
+    routeSelectedAttendanceTitle ??
+    (attendanceRecordInfo && attendanceRecordInfo.id === resolvedAttendanceId
+      ? attendanceRecordInfo.label
+      : undefined);
+  const attendanceDisplayValue =
+    attendanceTitleFromState ??
+    (resolvedAttendanceId ? "Attendance record linked" : "Not selected");
 
   const baseNavParams = {
     fileName,
