@@ -350,6 +350,7 @@ const createEmptyReportState = () => ({
   complaintsVerificationAndManagement: [createComplaintEntry()],
   recommendationsData: createRecommendationsSection(),
   attendanceUrl: null,
+  attendanceId: null,
 });
 
 const mergeObjects = (base, incoming) =>
@@ -671,10 +672,18 @@ const normalizeReportData = (reportData = {}) => {
     recommendationsData: normalizeRecommendationsSection(
       reportData.recommendationsData
     ),
+    attendanceId:
+      reportData.attendanceId !== undefined
+        ? reportData.attendanceId
+        : reportData.attendanceUrl !== undefined
+          ? reportData.attendanceUrl
+          : base.attendanceId,
     attendanceUrl:
       reportData.attendanceUrl !== undefined
         ? reportData.attendanceUrl
-        : base.attendanceUrl,
+        : reportData.attendanceId !== undefined
+          ? reportData.attendanceId
+          : base.attendanceUrl,
   };
 };
 
@@ -797,9 +806,36 @@ export const useCmvrStore = create((set, get) => ({
    * Update multiple sections at once
    */
   updateMultipleSections: (sectionsData) => {
+    const normalizedSectionsData = { ...(sectionsData || {}) };
+    if (
+      Object.prototype.hasOwnProperty.call(
+        normalizedSectionsData,
+        "attendanceUrl"
+      ) &&
+      !Object.prototype.hasOwnProperty.call(
+        normalizedSectionsData,
+        "attendanceId"
+      )
+    ) {
+      normalizedSectionsData.attendanceId =
+        normalizedSectionsData.attendanceUrl;
+    } else if (
+      Object.prototype.hasOwnProperty.call(
+        normalizedSectionsData,
+        "attendanceId"
+      ) &&
+      !Object.prototype.hasOwnProperty.call(
+        normalizedSectionsData,
+        "attendanceUrl"
+      )
+    ) {
+      normalizedSectionsData.attendanceUrl =
+        normalizedSectionsData.attendanceId;
+    }
+
     set((state) => {
       const updatedSections = new Set(state.editedSections || []);
-      Object.keys(sectionsData || {}).forEach((sectionName) => {
+      Object.keys(normalizedSectionsData || {}).forEach((sectionName) => {
         if (sectionName) {
           updatedSections.add(sectionName);
         }
@@ -807,7 +843,7 @@ export const useCmvrStore = create((set, get) => ({
       return {
         currentReport: {
           ...state.currentReport,
-          ...sectionsData,
+          ...normalizedSectionsData,
         },
         isDirty: true,
         editedSections: Array.from(updatedSections),

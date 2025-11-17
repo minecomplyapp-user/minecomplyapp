@@ -144,7 +144,8 @@ type CMVRDocumentExportParams = {
   complaintsVerificationAndManagement?: any;
   recommendationFromPrevQuarter?: any;
   recommendationForNextQuarter?: any;
-  attendanceUrl?: string;
+  attendanceId?: string | null;
+  attendanceUrl?: string | null;
   documentation?: any;
   complianceMonitoringReport?: Partial<DraftSnapshot>;
 };
@@ -183,7 +184,8 @@ type DraftSnapshot = {
   complaintsVerificationAndManagement?: any;
   recommendationFromPrevQuarter?: any;
   recommendationForNextQuarter?: any;
-  attendanceUrl?: string;
+  attendanceId?: string | null;
+  attendanceUrl?: string | null;
   documentation?: any;
   complianceMonitoringReport?: Partial<DraftSnapshot>;
 };
@@ -590,6 +592,8 @@ const mergeDraftData = (
         fmrdfInfo: defaultFundInfo,
         fmrdfAdditionalForms: [],
         mmtInfo: defaultMmtInfo,
+        attendanceId: null,
+        attendanceUrl: null,
         fileName,
         savedAt: new Date().toISOString(),
       };
@@ -628,6 +632,7 @@ const mergeDraftData = (
   assign("complaintsVerificationAndManagement");
   assign("recommendationFromPrevQuarter");
   assign("recommendationForNextQuarter");
+  assign("attendanceId");
   assign("attendanceUrl");
   assign("documentation");
   base.fileName = fileName;
@@ -3599,8 +3604,15 @@ const buildCreateCMVRPayload = (
   if (hasComplianceData) {
     payload.complianceMonitoringReport = complianceMonitoringReport;
   }
-  if (options.attendanceId) {
-    payload.attendanceId = options.attendanceId;
+  const payloadAttendanceId =
+    options.attendanceId ??
+    (typeof norm.attendanceId === "string" && norm.attendanceId
+      ? norm.attendanceId
+      : typeof norm.attendanceUrl === "string"
+        ? norm.attendanceUrl
+        : undefined);
+  if (payloadAttendanceId) {
+    payload.attendanceId = payloadAttendanceId;
   }
 
   // Add ECC Conditions attachment if uploaded
@@ -3740,9 +3752,12 @@ const CMVRDocumentExportScreen = () => {
     return JSON.stringify(currentReport) !== JSON.stringify(draftSnapshot);
   }, [currentReport, draftSnapshot]);
 
-  const attendanceUrl = currentReport?.attendanceUrl ?? null;
+  const attendanceIdFromStore = currentReport?.attendanceId ?? null;
+  const legacyAttendanceId = currentReport?.attendanceUrl ?? null;
+  const storedAttendanceId =
+    attendanceIdFromStore ?? legacyAttendanceId ?? null;
   const resolvedAttendanceId =
-    routeSelectedAttendanceId ?? attendanceUrl ?? null;
+    routeSelectedAttendanceId ?? storedAttendanceId ?? null;
 
   const loadStoredDraft =
     useCallback(async (): Promise<DraftSnapshot | null> => {
@@ -3869,15 +3884,21 @@ const CMVRDocumentExportScreen = () => {
     if (!routeSelectedAttendanceId) {
       return;
     }
-    if (routeSelectedAttendanceId === attendanceUrl) {
+    if (routeSelectedAttendanceId === storedAttendanceId) {
       return;
     }
 
-    updateMultipleSections({ attendanceUrl: routeSelectedAttendanceId });
+    updateMultipleSections({ attendanceId: routeSelectedAttendanceId });
     setDraftSnapshot((prev) =>
-      prev ? { ...prev, attendanceUrl: routeSelectedAttendanceId } : prev
+      prev
+        ? {
+            ...prev,
+            attendanceId: routeSelectedAttendanceId,
+            attendanceUrl: routeSelectedAttendanceId,
+          }
+        : prev
     );
-  }, [routeSelectedAttendanceId, attendanceUrl, updateMultipleSections]);
+  }, [routeSelectedAttendanceId, storedAttendanceId, updateMultipleSections]);
 
   useEffect(() => {
     let isActive = true;
@@ -4283,7 +4304,7 @@ const CMVRDocumentExportScreen = () => {
         snapshotForSubmission,
         {
           recommendationsData: snapshotForSubmission.recommendationsData,
-          attendanceId: routeSelectedAttendanceId,
+          attendanceId: resolvedAttendanceId ?? undefined,
         },
         user?.id
       );
@@ -4395,7 +4416,7 @@ const CMVRDocumentExportScreen = () => {
         recommendationsData,
         recommendationFromPrevQuarter: recommendationPrev,
         recommendationForNextQuarter: recommendationNext,
-        attendanceUrl,
+        attendanceId: resolvedAttendanceId,
         documentation,
       });
 
@@ -4540,6 +4561,9 @@ const CMVRDocumentExportScreen = () => {
     fmrdfInfo,
     fmrdfAdditionalForms,
     mmtInfo,
+    selectedAttendanceId: resolvedAttendanceId,
+    attendanceId: resolvedAttendanceId,
+    attendanceUrl: resolvedAttendanceId ?? legacyAttendanceId ?? null,
   };
 
   const draftPayload = {
@@ -4570,7 +4594,8 @@ const CMVRDocumentExportScreen = () => {
     recommendationsData,
     recommendationFromPrevQuarter: recommendationPrev,
     recommendationForNextQuarter: recommendationNext,
-    attendanceUrl,
+    attendanceId: resolvedAttendanceId,
+    attendanceUrl: resolvedAttendanceId ?? legacyAttendanceId ?? null,
     documentation,
   } as DraftSnapshot;
 
@@ -4662,7 +4687,7 @@ const CMVRDocumentExportScreen = () => {
       recommendationsData,
       recommendationFromPrevQuarter: recommendationPrev,
       recommendationForNextQuarter: recommendationNext,
-      attendanceUrl,
+      selectedAttendanceId: resolvedAttendanceId,
       documentation,
     } as any);
   };
@@ -4901,13 +4926,9 @@ const CMVRDocumentExportScreen = () => {
           <SummaryItem
             icon="📋"
             title="Attendance Record"
-            value={
-              routeSelectedAttendanceTitle
-                ? routeSelectedAttendanceTitle
-                : "Not selected"
-            }
+            value={attendanceDisplayValue}
             onPress={navigateToAttendanceSelection}
-            isEdited={isSectionEdited("attendanceUrl")}
+            isEdited={isSectionEdited(["attendanceId", "attendanceUrl"])}
           />
           <SummaryItem
             icon="📎"
