@@ -46,8 +46,9 @@ interface Record {
 }
 
 export default function DuplicateReportScreen({ navigation }: any) {
-  const { user } = useAuth();
-  const { reports: eccReports, getAllReports: fetchEccReports } = useEccStore();
+  const { user,session } = useAuth();
+  const {getReportById, selectedReport,reports} = useEccStore();
+  const token = session?.access_token;
   const { submittedReports: cmvrReports, fetchUserReports } = useCmvrStore();
   const [selectedType, setSelectedType] = useState<RecordType>("all");
   const [selectedRecord, setSelectedRecord] = useState<string | null>(null);
@@ -58,6 +59,7 @@ export default function DuplicateReportScreen({ navigation }: any) {
   // Fetch all records on mount
   useEffect(() => {
     fetchAllRecords();
+
   }, [user?.id]);
 
   const fetchAllRecords = async () => {
@@ -71,7 +73,6 @@ export default function DuplicateReportScreen({ navigation }: any) {
       setAttendanceRecords(attendanceData || []);
 
       // Fetch ECC reports for the current user
-      await fetchEccReports(user.id, "");
 
       // Fetch CMVR reports for the current user
       await fetchUserReports(user.id, "");
@@ -113,11 +114,8 @@ export default function DuplicateReportScreen({ navigation }: any) {
       type: "cmvr" as const,
     }));
 
-  const transformedECC: Record[] = (eccReports || [])
-    .filter((report: any) => {
-      // ECC reports might have createdById in the report object
-      return report.createdById === user?.id;
-    })
+  const transformedECC: Record[] = (reports || [])
+  
     .map((report: any) => ({
       id: report.id,
       title: report.title || "Untitled",
@@ -132,6 +130,7 @@ export default function DuplicateReportScreen({ navigation }: any) {
     ...transformedECC,
   ].sort((a, b) => {
     try {
+      console.log("transformedECC",transformedECC);
       const dateA = new Date(a.date).getTime();
       const dateB = new Date(b.date).getTime();
       return dateB - dateA;
@@ -165,9 +164,8 @@ export default function DuplicateReportScreen({ navigation }: any) {
               Alert.alert("Success", "Attendance record duplicated");
               await fetchAllRecords();
             } else if (record.type === "ecc") {
-              await apiPost(`/ecc/${record.id}/duplicate`, {});
-              Alert.alert("Success", "ECC report duplicated");
-              await fetchAllRecords();
+               await getReportById(record.id,token);
+                navigation.navigate("ECCMonitoring",selectedReport); // ECCMonitoring will read selectedReport from store
             } else if (record.type === "cmvr") {
               await apiPost(`/cmvr/${record.id}/duplicate`, {});
               Alert.alert("Success", "CMVR report duplicated");
