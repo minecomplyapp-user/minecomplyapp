@@ -103,42 +103,66 @@ export const AirQualityLocationMonitoringSection: React.FC<Props> = ({
               <Text style={styles.fieldLabel}>Parameter Name:</Text>
               <TextInput
                 style={styles.textInput}
-                value={param.name}
+                value={param.parameter}
                 onChangeText={(value) =>
-                  onUpdateParameter(param.id, "name", value)
+                  onUpdateParameter(param.id, "parameter", value)
                 }
                 placeholder="e.g., TSP, PM10"
                 placeholderTextColor="#94A3B8"
               />
             </View>
 
-            {/* Results Row */}
+            {/* SMR Results Row */}
             <View style={styles.rowContainer}>
               <View style={styles.halfField}>
-                <Text style={styles.fieldLabel}>In SMR:</Text>
+                <Text style={styles.fieldLabel}>Current SMR:</Text>
                 <TextInput
                   style={styles.textInput}
-                  value={param.inSMR}
+                  value={param.currentSMR}
                   onChangeText={(value) =>
-                    onUpdateParameter(param.id, "inSMR", value)
+                    onUpdateParameter(param.id, "currentSMR", value)
                   }
                   placeholder="e.g., 45 µg/m³"
                   placeholderTextColor="#94A3B8"
                 />
               </View>
               <View style={styles.halfField}>
-                <Text style={styles.fieldLabel}>MMT Confirmatory:</Text>
+                <Text style={styles.fieldLabel}>Previous SMR:</Text>
                 <TextInput
                   style={styles.textInput}
-                  value={param.mmtConfirmatorySampling}
+                  value={param.previousSMR}
                   onChangeText={(value) =>
-                    onUpdateParameter(
-                      param.id,
-                      "mmtConfirmatorySampling",
-                      value
-                    )
+                    onUpdateParameter(param.id, "previousSMR", value)
+                  }
+                  placeholder="e.g., 40 µg/m³"
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+            </View>
+
+            {/* MMT Results Row */}
+            <View style={styles.rowContainer}>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>Current MMT:</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={param.currentMMT}
+                  onChangeText={(value) =>
+                    onUpdateParameter(param.id, "currentMMT", value)
                   }
                   placeholder="e.g., 48 µg/m³"
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>Previous MMT:</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={param.previousMMT}
+                  onChangeText={(value) =>
+                    onUpdateParameter(param.id, "previousMMT", value)
+                  }
+                  placeholder="e.g., 50 µg/m³"
                   placeholderTextColor="#94A3B8"
                 />
               </View>
@@ -152,9 +176,9 @@ export const AirQualityLocationMonitoringSection: React.FC<Props> = ({
                   <Text style={styles.fieldLabel}>Red Flag:</Text>
                   <TextInput
                     style={styles.textInput}
-                    value={param.redFlag}
+                    value={param.eqplRedFlag}
                     onChangeText={(value) =>
-                      onUpdateParameter(param.id, "redFlag", value)
+                      onUpdateParameter(param.id, "eqplRedFlag", value)
                     }
                     placeholder="Yes/No"
                     placeholderTextColor="#94A3B8"
@@ -173,12 +197,12 @@ export const AirQualityLocationMonitoringSection: React.FC<Props> = ({
                   />
                 </View>
                 <View style={styles.thirdField}>
-                  <Text style={styles.fieldLabel}>Limit:</Text>
+                  <Text style={styles.fieldLabel}>Limit (PM2.5):</Text>
                   <TextInput
                     style={styles.textInput}
-                    value={param.limit}
+                    value={param.limitPM25}
                     onChangeText={(value) =>
-                      onUpdateParameter(param.id, "limit", value)
+                      onUpdateParameter(param.id, "limitPM25", value)
                     }
                     placeholder="e.g., 90 µg/m³"
                     placeholderTextColor="#94A3B8"

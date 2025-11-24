@@ -20,8 +20,10 @@ import { useAuth } from "../../contexts/AuthContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { uploadFileFromUri, deleteFilesFromStorage } from "../../lib/storage";
+import { apiGet } from "../../lib/api";
 
 import { useFileName } from "../../contexts/FileNameContext";
+import { useCmvrStore } from "../../store/cmvrStore";
 import {
   createCMVRReport,
   generateCMVRDocx,
@@ -56,10 +58,12 @@ import type {
   ComplianceData as AirComplianceData,
   ParameterData as AirParameterData,
 } from "./types/EnvironmentalComplianceScreen.types";
-import type {
-  WaterQualityData,
-  Parameter as WaterParameter,
-  PortData as WaterPortData,
+import {
+  createEmptyLocationData,
+  type WaterQualityData,
+  type Parameter as WaterParameter,
+  type PortData as WaterPortData,
+  type LocationData,
 } from "./types/WaterQualityScreen.types";
 import type {
   NoiseParameter,
@@ -82,6 +86,7 @@ import type {
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const isTablet = SCREEN_WIDTH >= 768;
 const isSmallPhone = SCREEN_WIDTH < 375;
+const DRAFT_KEY = "@cmvr_document_export_draft";
 
 type RecommendationItemShape = {
   recommendation?: string;
@@ -106,6 +111,9 @@ type FundAdditionalForm = Omit<RCFInfo, "isNA">;
 
 type CMVRDocumentExportParams = {
   cmvrReportId?: string;
+  projectId?: string | null;
+  projectName?: string;
+  loadDraft?: boolean;
   generalInfo?: GeneralInfo;
   eccInfo?: ECCInfo;
   eccAdditionalForms?: ECCAdditionalForm[];
@@ -136,8 +144,10 @@ type CMVRDocumentExportParams = {
   complaintsVerificationAndManagement?: any;
   recommendationFromPrevQuarter?: any;
   recommendationForNextQuarter?: any;
-  attendanceUrl?: string;
+  attendanceId?: string | null;
+  attendanceUrl?: string | null;
   documentation?: any;
+  complianceMonitoringReport?: Partial<DraftSnapshot>;
 };
 
 type RootStackParamList = {
@@ -174,8 +184,24 @@ type DraftSnapshot = {
   complaintsVerificationAndManagement?: any;
   recommendationFromPrevQuarter?: any;
   recommendationForNextQuarter?: any;
-  attendanceUrl?: string;
+  attendanceId?: string | null;
+  attendanceUrl?: string | null;
   documentation?: any;
+  complianceMonitoringReport?: Partial<DraftSnapshot>;
+};
+
+type AttendanceRecordSummary = {
+  id: string;
+  title?: string | null;
+  fileName?: string | null;
+  meetingDate?: string | null;
+};
+
+type StoreHydrationPayload = DraftSnapshot & {
+  id?: string | null;
+  submissionId?: string | null;
+  projectId?: string | null;
+  projectName?: string;
 };
 
 const defaultGeneralInfo: GeneralInfo = {
@@ -566,6 +592,8 @@ const mergeDraftData = (
         fmrdfInfo: defaultFundInfo,
         fmrdfAdditionalForms: [],
         mmtInfo: defaultMmtInfo,
+        attendanceId: null,
+        attendanceUrl: null,
         fileName,
         savedAt: new Date().toISOString(),
       };
@@ -604,6 +632,7 @@ const mergeDraftData = (
   assign("complaintsVerificationAndManagement");
   assign("recommendationFromPrevQuarter");
   assign("recommendationForNextQuarter");
+  assign("attendanceId");
   assign("attendanceUrl");
   assign("documentation");
   base.fileName = fileName;
@@ -755,8 +784,12 @@ const transformProcessDocumentationForPayload = (raw: any) => {
 
 const parseFirstNumber = (val?: string): number => {
   if (!val) return 0;
-  const m = String(val).match(/-?\d*\.?\d+/);
-  return m ? parseFloat(m[0]) : 0;
+  const matches = String(val).match(/-?\d*\.?\d+/g);
+  if (!matches || matches.length === 0) return 0;
+  const hasRange = String(val).includes("-") && matches.length > 1;
+  const target = hasRange ? matches[matches.length - 1] : matches[0];
+  const parsed = parseFloat(target);
+  return Number.isNaN(parsed) ? 0 : parsed;
 };
 
 const transformProjectLocationCoverageForPayload = (raw: any) => {
@@ -1030,7 +1063,7 @@ const transformAirQualityForPayload = (raw: any) => {
       });
 
       // Gather all parameters from the parameters array
-      const allParameters = [];
+      const allParameters: ReturnType<typeof mapParameter>[] = [];
       if (Array.isArray(locationData.parameters)) {
         locationData.parameters.forEach((param: any) => {
           if (param.parameter) {
@@ -1089,186 +1122,273 @@ const transformAirQualityForPayload = (raw: any) => {
 const transformWaterQualityForPayload = (raw: any) => {
   if (!raw) return undefined;
 
+  const sanitizeText = (value: any) => sanitizeString(value);
+  const hasContent = (value: any) =>
+    value !== undefined && value !== null && String(value).trim().length > 0;
+
+  const shouldIncludeParameter = (param: any) => {
+    if (!param || typeof param !== "object") return false;
+    return [
+      param.parameter,
+      param.resultType,
+      param.tssCurrent,
+      param.tssPrevious,
+      param.mmtCurrent,
+      param.mmtPrevious,
+      param.eqplRedFlag,
+      param.action,
+      param.limit,
+      param.remarks,
+    ].some((field) => hasContent(field));
+  };
+
+  const buildParameterPayload = (param: any, fallbackLabel = "Parameter") => {
+    const label = sanitizeText(param?.parameter) || fallbackLabel;
+    return {
+      name: label,
+      result: {
+        internalMonitoring: {
+          month: sanitizeText(param?.resultType),
+          readings: [
+            {
+              label,
+              current_mgL: parseFirstNumber(param?.tssCurrent),
+              previous_mgL: parseFirstNumber(param?.tssPrevious),
+            },
+          ],
+        },
+        mmtConfirmatorySampling: {
+          current: sanitizeText(param?.mmtCurrent),
+          previous: sanitizeText(param?.mmtPrevious),
+        },
+      },
+      denrStandard: {
+        redFlag: sanitizeText(param?.eqplRedFlag),
+        action: sanitizeText(param?.action),
+        limit_mgL: parseFirstNumber(param?.limit),
+      },
+      remark: sanitizeText(param?.remarks),
+    };
+  };
+
+  const buildLocationDescriptions = () => {
+    const pickDescription = (...values: any[]) => {
+      for (const value of values) {
+        const cleaned = sanitizeText(value);
+        if (cleaned) {
+          return cleaned;
+        }
+      }
+      return "";
+    };
+
+    const entries: Array<[string, string]> = [
+      ["quarry", pickDescription(raw.quarry, raw?.data?.quarryInput)],
+      ["plant", pickDescription(raw.plant, raw?.data?.plantInput)],
+      [
+        "quarryPlant",
+        pickDescription(raw.quarryPlant, raw?.data?.quarryPlantInput),
+      ],
+    ];
+
+    const labels: Record<string, string> = {
+      quarry: "Quarry",
+      plant: "Plant",
+      quarryPlant: "Quarry & Plant",
+    };
+
+    const map: Record<string, string> = {};
+    const summaryParts: string[] = [];
+
+    entries.forEach(([key, value]) => {
+      if (value) {
+        map[key] = value;
+        summaryParts.push(`${labels[key] ?? key}: ${value}`);
+      }
+    });
+
+    return {
+      map,
+      summary: summaryParts.join("\n\n"),
+    };
+  };
+
   // NEW STRUCTURE: Handle waterQuality unified object with checkbox states
-  if (raw.waterQuality || raw.port) {
+  const { map: locationDescriptions, summary: locationSummary } =
+    buildLocationDescriptions();
+  const hasNewStructurePayload =
+    !!raw.waterQuality ||
+    !!raw.port ||
+    Object.values(locationDescriptions).some(Boolean) ||
+    !!raw.quarryEnabled ||
+    !!raw.plantEnabled ||
+    !!raw.quarryPlantEnabled;
+
+  if (hasNewStructurePayload) {
     const result: any = {};
 
-    // Handle location descriptions (strings) with checkbox states
-    if (raw.quarryEnabled && raw.quarry) {
-      result.quarry = raw.quarry; // String description
+    if (locationDescriptions.quarry) {
+      result.quarry = locationDescriptions.quarry;
     }
-    if (raw.plantEnabled && raw.plant) {
-      result.plant = raw.plant; // String description
+    if (locationDescriptions.plant) {
+      result.plant = locationDescriptions.plant;
     }
-    if (raw.quarryPlantEnabled && raw.quarryPlant) {
-      result.quarryPlant = raw.quarryPlant; // String description
+    if (locationDescriptions.quarryPlant) {
+      result.quarryPlant = locationDescriptions.quarryPlant;
     }
 
     // Add checkbox states
-    result.quarryEnabled = raw.quarryEnabled || false;
-    result.plantEnabled = raw.plantEnabled || false;
-    result.quarryPlantEnabled = raw.quarryPlantEnabled || false;
+    if (raw.quarryEnabled != null) {
+      result.quarryEnabled = !!raw.quarryEnabled;
+    }
+    if (raw.plantEnabled != null) {
+      result.plantEnabled = !!raw.plantEnabled;
+    }
+    if (raw.quarryPlantEnabled != null) {
+      result.quarryPlantEnabled = !!raw.quarryPlantEnabled;
+    }
+
+    const buildLocationDescription = (source?: any) =>
+      sanitizeText(source?.locationInput) || locationSummary;
+
+    const buildExplanation = (source?: any, fallback?: any) => {
+      if (source?.isExplanationNA || fallback?.isExplanationNA) {
+        return "N/A";
+      }
+      return (
+        sanitizeText(
+          source?.explanation ??
+            source?.explanationForConfirmatorySampling ??
+            fallback?.explanation ??
+            fallback?.explanationForConfirmatorySampling
+        ) || undefined
+      );
+    };
+
+    const collectParameters = (
+      primary: any,
+      extras: any[] = [],
+      fallbackLabel = "Parameter"
+    ) => {
+      const collected: any[] = [];
+      if (primary && shouldIncludeParameter(primary)) {
+        collected.push(buildParameterPayload(primary, fallbackLabel));
+      }
+      extras.forEach((param, index) => {
+        if (shouldIncludeParameter(param)) {
+          collected.push(
+            buildParameterPayload(param, `${fallbackLabel} ${index + 1}`)
+          );
+        }
+      });
+      return collected;
+    };
 
     // Transform unified waterQuality data
-    if (raw.waterQuality) {
-      const waterQualityParams = [];
+    const waterQualitySource = raw.waterQuality || raw.data;
+    if (waterQualitySource) {
+      const extraWaterParams = [
+        ...(Array.isArray(waterQualitySource.parameters)
+          ? waterQualitySource.parameters
+          : []),
+        ...(Array.isArray(raw.parameters) ? raw.parameters : []),
+      ];
+      const waterQualityParams = collectParameters(
+        waterQualitySource,
+        extraWaterParams,
+        "Internal Monitoring"
+      );
 
-      // Add main parameter if exists
-      if (raw.waterQuality.parameter?.trim()) {
-        waterQualityParams.push({
-          name: sanitizeString(raw.waterQuality.parameter),
-          result: {
-            internalMonitoring: {
-              month: sanitizeString(raw.waterQuality.resultType),
-              readings: [
-                {
-                  label: sanitizeString(raw.waterQuality.parameter),
-                  current_mgL: parseFirstNumber(raw.waterQuality.tssCurrent),
-                  previous_mgL: parseFirstNumber(raw.waterQuality.tssPrevious),
-                },
-              ],
-            },
-            mmtConfirmatorySampling: {
-              current: sanitizeString(raw.waterQuality.mmtCurrent),
-              previous: sanitizeString(raw.waterQuality.mmtPrevious),
-            },
-          },
-          denrStandard: {
-            redFlag: sanitizeString(raw.waterQuality.eqplRedFlag),
-            action: sanitizeString(raw.waterQuality.action),
-            limit_mgL: parseFirstNumber(raw.waterQuality.limit),
-          },
-          remark: sanitizeString(raw.waterQuality.remarks),
-        });
-      }
+      const samplingDate = sanitizeText(
+        waterQualitySource.dateTime ??
+          waterQualitySource.samplingDate ??
+          raw.data?.dateTime
+      );
+      const weatherAndWind = sanitizeText(
+        waterQualitySource.weatherWind ??
+          waterQualitySource.weatherAndWind ??
+          raw.data?.weatherWind
+      );
+      const explanationForConfirmatorySampling = buildExplanation(
+        waterQualitySource,
+        raw.data
+      );
+      const overallAssessment = sanitizeText(
+        waterQualitySource.overallCompliance ??
+          waterQualitySource.overallAssessment ??
+          raw.data?.overallCompliance
+      );
 
-      // Add additional parameters
-      if (Array.isArray(raw.waterQuality.parameters)) {
-        raw.waterQuality.parameters.forEach((param: any) => {
-          if (param.parameter?.trim()) {
-            waterQualityParams.push({
-              name: sanitizeString(param.parameter),
-              result: {
-                internalMonitoring: {
-                  month: sanitizeString(param.resultType),
-                  readings: [
-                    {
-                      label: sanitizeString(param.parameter),
-                      current_mgL: parseFirstNumber(param.tssCurrent),
-                      previous_mgL: parseFirstNumber(param.tssPrevious),
-                    },
-                  ],
-                },
-                mmtConfirmatorySampling: {
-                  current: sanitizeString(param.mmtCurrent),
-                  previous: sanitizeString(param.mmtPrevious),
-                },
-              },
-              denrStandard: {
-                redFlag: sanitizeString(param.eqplRedFlag),
-                action: sanitizeString(param.action),
-                limit_mgL: parseFirstNumber(param.limit),
-              },
-              remark: sanitizeString(param.remarks),
-            });
-          }
-        });
-      }
+      const waterMetadataPresent = [
+        samplingDate,
+        weatherAndWind,
+        explanationForConfirmatorySampling,
+        overallAssessment,
+      ].some((field) => hasContent(field));
 
-      if (waterQualityParams.length > 0) {
+      if (waterQualityParams.length > 0 || waterMetadataPresent) {
+        const locationDescription =
+          buildLocationDescription(waterQualitySource);
         result.waterQuality = {
           parameters: waterQualityParams,
-          samplingDate: sanitizeString(raw.waterQuality.dateTime),
-          weatherAndWind: sanitizeString(raw.waterQuality.weatherWind),
-          explanationForConfirmatorySampling: sanitizeString(
-            raw.waterQuality.isExplanationNA
-              ? "N/A"
-              : raw.waterQuality.explanation
-          ),
-          overallAssessment: sanitizeString(raw.waterQuality.overallCompliance),
+          samplingDate,
+          weatherAndWind,
+          explanationForConfirmatorySampling,
+          overallAssessment,
         };
+
+        if (locationDescription) {
+          result.waterQuality.locationDescription = locationDescription;
+          result.waterQuality.description = locationDescription;
+        }
       }
     }
 
+    const buildPortPayload = (portSource: any) => {
+      const extraPortParams = Array.isArray(portSource?.additionalParameters)
+        ? portSource.additionalParameters
+        : [];
+      const params = collectParameters(
+        portSource,
+        extraPortParams,
+        "Port Parameter"
+      );
+      const samplingDate = sanitizeText(portSource?.dateTime);
+      const weatherAndWind = sanitizeText(portSource?.weatherWind);
+      const explanationForConfirmatorySampling = buildExplanation(portSource);
+      const overallAssessment = sanitizeText(portSource?.overallCompliance);
+
+      const metadataPresent = [
+        samplingDate,
+        weatherAndWind,
+        explanationForConfirmatorySampling,
+        overallAssessment,
+      ].some((field) => hasContent(field));
+
+      if (!params.length && !metadataPresent) {
+        return undefined;
+      }
+
+      const locationDescription =
+        sanitizeText(portSource?.portName ?? portSource?.locationInput) ||
+        "Port";
+
+      return {
+        locationDescription,
+        description: locationDescription,
+        parameters: params,
+        samplingDate,
+        weatherAndWind,
+        explanationForConfirmatorySampling,
+        overallAssessment,
+      };
+    };
+
     // Transform port data (separate from waterQuality)
     if (raw.port) {
-      const portParams = [];
-
-      // Add main parameter if exists
-      if (raw.port.parameter?.trim()) {
-        portParams.push({
-          name: sanitizeString(raw.port.parameter),
-          result: {
-            internalMonitoring: {
-              month: sanitizeString(raw.port.resultType),
-              readings: [
-                {
-                  label: sanitizeString(raw.port.parameter),
-                  current_mgL: parseFirstNumber(raw.port.tssCurrent),
-                  previous_mgL: parseFirstNumber(raw.port.tssPrevious),
-                },
-              ],
-            },
-            mmtConfirmatorySampling: {
-              current: sanitizeString(raw.port.mmtCurrent),
-              previous: sanitizeString(raw.port.mmtPrevious),
-            },
-          },
-          denrStandard: {
-            redFlag: sanitizeString(raw.port.eqplRedFlag),
-            action: sanitizeString(raw.port.action),
-            limit_mgL: parseFirstNumber(raw.port.limit),
-          },
-          remark: sanitizeString(raw.port.remarks),
-        });
-      }
-
-      // Add additional port parameters
-      if (Array.isArray(raw.port.additionalParameters)) {
-        raw.port.additionalParameters.forEach((param: any) => {
-          if (param.parameter?.trim()) {
-            portParams.push({
-              name: sanitizeString(param.parameter),
-              result: {
-                internalMonitoring: {
-                  month: sanitizeString(param.resultType),
-                  readings: [
-                    {
-                      label: sanitizeString(param.parameter),
-                      current_mgL: parseFirstNumber(param.tssCurrent),
-                      previous_mgL: parseFirstNumber(param.tssPrevious),
-                    },
-                  ],
-                },
-                mmtConfirmatorySampling: {
-                  current: sanitizeString(param.mmtCurrent),
-                  previous: sanitizeString(param.mmtPrevious),
-                },
-              },
-              denrStandard: {
-                redFlag: sanitizeString(param.eqplRedFlag),
-                action: sanitizeString(param.action),
-                limit_mgL: parseFirstNumber(param.limit),
-              },
-              remark: sanitizeString(param.remarks),
-            });
-          }
-        });
-      }
-
-      if (portParams.length > 0) {
-        result.port = {
-          locationDescription: sanitizeString(
-            raw.port.portName || raw.port.locationInput || "Port"
-          ),
-          parameters: portParams,
-          samplingDate: sanitizeString(raw.port.dateTime),
-          weatherAndWind: sanitizeString(raw.port.weatherWind),
-          explanationForConfirmatorySampling: sanitizeString(
-            raw.port.isExplanationNA ? "N/A" : raw.port.explanation
-          ),
-          overallAssessment: sanitizeString(raw.port.overallCompliance),
-        };
+      const portPayload = buildPortPayload(raw.port);
+      if (portPayload) {
+        result.port = portPayload;
       }
     }
 
@@ -1349,7 +1469,12 @@ const transformWaterQualityForPayload = (raw: any) => {
       const extraParams = Array.isArray(locationData.parameters)
         ? locationData.parameters
             .map((param: any) => mapLocationParam(param, locationData))
-            .filter((param): param is NonNullable<typeof param> => !!param)
+            .filter(
+              (
+                param: ReturnType<typeof mapLocationParam> | null | undefined
+              ): param is NonNullable<ReturnType<typeof mapLocationParam>> =>
+                !!param
+            )
         : [];
       const parameters = [...(mainParam ? [mainParam] : []), ...extraParams];
       if (!parameters.length) {
@@ -1375,7 +1500,12 @@ const transformWaterQualityForPayload = (raw: any) => {
       const extraParams = Array.isArray(portData.additionalParameters)
         ? portData.additionalParameters
             .map((param: any) => mapLocationParam(param, portData))
-            .filter((param): param is NonNullable<typeof param> => !!param)
+            .filter(
+              (
+                param: ReturnType<typeof mapLocationParam> | null | undefined
+              ): param is NonNullable<ReturnType<typeof mapLocationParam>> =>
+                !!param
+            )
         : [];
       const parameters = [...(mainParam ? [mainParam] : []), ...extraParams];
       if (!parameters.length) {
@@ -1712,7 +1842,13 @@ const createHydrationId = (() => {
 const normalizeLabelKey = (value: string) =>
   value.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-const COMPLIANCE_FORM_FIELD_DEFS = [
+type ComplianceFormFieldDefinition = {
+  key: string;
+  label: string;
+  subFields?: readonly string[];
+};
+
+const COMPLIANCE_FORM_FIELD_DEFS: readonly ComplianceFormFieldDefinition[] = [
   { key: "projectLocation", label: "Project Location" },
   { key: "projectArea", label: "Project Area (ha)" },
   { key: "capitalCost", label: "Capital Cost (Php)" },
@@ -1747,9 +1883,9 @@ const buildDefaultComplianceFormData = (): FormData => {
       specification: "",
       remarks: "",
       withinSpecs: null,
-      ...(def.subFields
+      ...(Array.isArray(def.subFields)
         ? {
-            subFields: def.subFields.map((label) => ({
+            subFields: def.subFields.map((label: string) => ({
               label: `${label}:`,
               specification: "",
             })),
@@ -2399,15 +2535,253 @@ const convertWaterBackendParam = (
   return base;
 };
 
+const cloneWaterParameters = (
+  params: WaterParameter[] = [],
+  prefix = "water-param"
+): WaterParameter[] =>
+  params.map((param, index) => ({
+    ...param,
+    id: param.id || createHydrationId(prefix, index),
+  }));
+
+const buildLocationDataFromPayload = (
+  source: any,
+  prefix: string
+): LocationData => {
+  const location = createEmptyLocationData();
+  if (!source || typeof source !== "object") {
+    location.parameters = [];
+    return location;
+  }
+
+  const mappedParams = Array.isArray(source.parameters)
+    ? source.parameters
+        .map((param: any, index: number) =>
+          convertWaterBackendParam(param, prefix, index)
+        )
+        .filter((param: WaterParameter) =>
+          [
+            param.parameter,
+            param.tssCurrent,
+            param.tssPrevious,
+            param.limit,
+            param.remarks,
+          ].some((field) => !!field && String(field).trim().length > 0)
+        )
+    : [];
+
+  if (mappedParams.length > 0) {
+    const [main, ...additional] = mappedParams;
+    location.parameter = main.parameter;
+    location.resultType = main.resultType;
+    location.tssCurrent = main.tssCurrent;
+    location.tssPrevious = main.tssPrevious;
+    location.mmtCurrent = main.mmtCurrent ?? "";
+    location.mmtPrevious = main.mmtPrevious ?? "";
+    location.isMMTNA = !!main.isMMTNA;
+    location.eqplRedFlag = main.eqplRedFlag;
+    location.action = main.action;
+    location.limit = main.limit;
+    location.remarks = main.remarks;
+    location.parameters = additional;
+  } else {
+    location.parameters = [];
+  }
+
+  location.locationInput =
+    sanitizeString(
+      source.locationInput ?? source.locationDescription ?? source.description
+    ) || "";
+  location.dateTime =
+    sanitizeString(source.samplingDate ?? source.dateTime) || "";
+  location.weatherWind =
+    sanitizeString(source.weatherAndWind ?? source.weatherWind) || "";
+
+  const explanationSource =
+    source.explanationForConfirmatorySampling ??
+    source.explanation ??
+    (source.isExplanationNA ? "N/A" : "");
+  if (
+    typeof explanationSource === "string" &&
+    explanationSource.trim().toUpperCase() === "N/A"
+  ) {
+    location.explanation = "";
+    location.isExplanationNA = true;
+  } else {
+    location.explanation = sanitizeString(explanationSource);
+    location.isExplanationNA = !!source.isExplanationNA;
+  }
+
+  location.overallCompliance =
+    sanitizeString(source.overallAssessment ?? source.overallCompliance) || "";
+
+  return location;
+};
+
+const buildLegacyDataFromLocation = (
+  location: LocationData,
+  descriptions: { quarry: string; plant: string; quarryPlant: string }
+): WaterQualityData => ({
+  quarryInput: descriptions.quarry,
+  plantInput: descriptions.plant,
+  quarryPlantInput: descriptions.quarryPlant,
+  parameter: location.parameter,
+  resultType: location.resultType,
+  tssCurrent: location.tssCurrent,
+  tssPrevious: location.tssPrevious,
+  mmtCurrent: location.mmtCurrent,
+  mmtPrevious: location.mmtPrevious,
+  isMMTNA: location.isMMTNA,
+  eqplRedFlag: location.eqplRedFlag,
+  action: location.action,
+  limit: location.limit,
+  remarks: location.remarks,
+  dateTime: location.dateTime,
+  weatherWind: location.weatherWind,
+  explanation: location.explanation,
+  isExplanationNA: location.isExplanationNA,
+  overallCompliance: location.overallCompliance,
+});
+
+const buildLegacyPortFromLocation = (
+  location: LocationData,
+  index = 0
+): WaterPortData | null => {
+  const hasDetails =
+    [
+      location.parameter,
+      location.remarks,
+      location.overallCompliance,
+      location.dateTime,
+      location.weatherWind,
+    ].some((field) => !!field && String(field).trim().length > 0) ||
+    (location.parameters?.length ?? 0) > 0;
+
+  if (!hasDetails) {
+    return null;
+  }
+
+  return {
+    id: createHydrationId("port", index),
+    portName: location.locationInput || `Port ${index + 1}`,
+    parameter: location.parameter,
+    resultType: location.resultType,
+    tssCurrent: location.tssCurrent,
+    tssPrevious: location.tssPrevious,
+    mmtCurrent: location.mmtCurrent,
+    mmtPrevious: location.mmtPrevious,
+    isMMTNA: location.isMMTNA,
+    eqplRedFlag: location.eqplRedFlag,
+    action: location.action,
+    limit: location.limit,
+    remarks: location.remarks,
+    dateTime: location.dateTime,
+    weatherWind: location.weatherWind,
+    explanation: location.explanation,
+    isExplanationNA: location.isExplanationNA,
+    additionalParameters: cloneWaterParameters(
+      location.parameters,
+      "port-param"
+    ),
+  };
+};
+
+const convertLegacyPortToLocationData = (
+  port?: WaterPortData
+): LocationData => {
+  const location = createEmptyLocationData();
+  if (!port) {
+    location.parameters = [];
+    return location;
+  }
+  location.locationInput = sanitizeString(port.portName);
+  location.parameter = sanitizeString(port.parameter);
+  location.resultType = sanitizeString(port.resultType) || "Month";
+  location.tssCurrent = sanitizeString(port.tssCurrent);
+  location.tssPrevious = sanitizeString(port.tssPrevious);
+  location.mmtCurrent = sanitizeString(port.mmtCurrent);
+  location.mmtPrevious = sanitizeString(port.mmtPrevious);
+  location.isMMTNA = !!port.isMMTNA;
+  location.eqplRedFlag = sanitizeString(port.eqplRedFlag);
+  location.action = sanitizeString(port.action);
+  location.limit = sanitizeString(port.limit);
+  location.remarks = sanitizeString(port.remarks);
+  location.dateTime = sanitizeString(port.dateTime);
+  location.weatherWind = sanitizeString(port.weatherWind);
+  location.explanation = sanitizeString(port.explanation);
+  location.isExplanationNA = !!port.isExplanationNA;
+  location.overallCompliance = "";
+  location.parameters = cloneWaterParameters(
+    port.additionalParameters,
+    "legacy-port-param"
+  );
+  return location;
+};
+
+const convertLegacySectionToStore = (payload: {
+  selectedLocations: { quarry: boolean; plant: boolean; quarryPlant: boolean };
+  data: WaterQualityData;
+  parameters: WaterParameter[];
+  ports: WaterPortData[];
+}) => {
+  const quarry = sanitizeString(payload.data.quarryInput);
+  const plant = sanitizeString(payload.data.plantInput);
+  const quarryPlant = sanitizeString(payload.data.quarryPlantInput);
+
+  const waterLocation = createEmptyLocationData();
+  waterLocation.locationInput = quarry || plant || quarryPlant;
+  waterLocation.parameter = sanitizeString(payload.data.parameter);
+  waterLocation.resultType = sanitizeString(payload.data.resultType) || "Month";
+  waterLocation.tssCurrent = sanitizeString(payload.data.tssCurrent);
+  waterLocation.tssPrevious = sanitizeString(payload.data.tssPrevious);
+  waterLocation.mmtCurrent = sanitizeString(payload.data.mmtCurrent);
+  waterLocation.mmtPrevious = sanitizeString(payload.data.mmtPrevious);
+  waterLocation.isMMTNA = !!payload.data.isMMTNA;
+  waterLocation.eqplRedFlag = sanitizeString(payload.data.eqplRedFlag);
+  waterLocation.action = sanitizeString(payload.data.action);
+  waterLocation.limit = sanitizeString(payload.data.limit);
+  waterLocation.remarks = sanitizeString(payload.data.remarks);
+  waterLocation.dateTime = sanitizeString(payload.data.dateTime);
+  waterLocation.weatherWind = sanitizeString(payload.data.weatherWind);
+  waterLocation.explanation = sanitizeString(payload.data.explanation);
+  waterLocation.isExplanationNA = !!payload.data.isExplanationNA;
+  waterLocation.overallCompliance = sanitizeString(
+    payload.data.overallCompliance
+  );
+  waterLocation.parameters = cloneWaterParameters(
+    payload.parameters,
+    "legacy-water-param"
+  );
+
+  const portLocation = convertLegacyPortToLocationData(payload.ports[0]);
+
+  return {
+    quarry,
+    plant,
+    quarryPlant,
+    quarryEnabled: payload.selectedLocations.quarry,
+    plantEnabled: payload.selectedLocations.plant,
+    quarryPlantEnabled: payload.selectedLocations.quarryPlant,
+    waterQuality: waterLocation,
+    port: portLocation,
+    data: payload.data,
+    parameters: payload.parameters,
+    ports: payload.ports,
+  };
+};
+
 const normalizeWaterQualityFromApi = (
   raw: any
 ):
   | {
-      selectedLocations: {
-        quarry: boolean;
-        plant: boolean;
-        quarryPlant: boolean;
-      };
+      quarry: string;
+      plant: string;
+      quarryPlant: string;
+      quarryEnabled: boolean;
+      plantEnabled: boolean;
+      quarryPlantEnabled: boolean;
+      waterQuality: LocationData;
+      port: LocationData;
       data: WaterQualityData;
       parameters: WaterParameter[];
       ports: WaterPortData[];
@@ -2417,9 +2791,74 @@ const normalizeWaterQualityFromApi = (
     return undefined;
   }
 
-  // If already normalized, return as-is
-  if (raw.data && raw.parameters && raw.ports) {
+  // Already in the new store shape
+  if (
+    raw.waterQuality &&
+    raw.port &&
+    raw.data &&
+    Array.isArray(raw.parameters) &&
+    Array.isArray(raw.ports)
+  ) {
     return raw;
+  }
+
+  const hasNewStructure =
+    raw.waterQuality ||
+    raw.port ||
+    raw.quarry ||
+    raw.plant ||
+    raw.quarryPlant ||
+    raw.quarryAndPlant ||
+    raw.quarryEnabled !== undefined ||
+    raw.plantEnabled !== undefined ||
+    raw.quarryPlantEnabled !== undefined;
+
+  if (hasNewStructure) {
+    const quarry = sanitizeString(raw.quarry);
+    const plant = sanitizeString(raw.plant);
+    const quarryPlant = sanitizeString(raw.quarryPlant ?? raw.quarryAndPlant);
+
+    const waterLocation = buildLocationDataFromPayload(
+      raw.waterQuality || raw.data || {},
+      "water-quality"
+    );
+    const portLocation = buildLocationDataFromPayload(raw.port, "water-port");
+
+    const legacyData = buildLegacyDataFromLocation(waterLocation, {
+      quarry,
+      plant,
+      quarryPlant,
+    });
+    const legacyPort = buildLegacyPortFromLocation(portLocation, 0);
+
+    return {
+      quarry,
+      plant,
+      quarryPlant,
+      quarryEnabled: raw.quarryEnabled ?? !!quarry,
+      plantEnabled: raw.plantEnabled ?? !!plant,
+      quarryPlantEnabled: raw.quarryPlantEnabled ?? !!quarryPlant,
+      waterQuality: {
+        ...waterLocation,
+        parameters: cloneWaterParameters(
+          waterLocation.parameters,
+          "water-extra-param"
+        ),
+      },
+      port: {
+        ...portLocation,
+        parameters: cloneWaterParameters(
+          portLocation.parameters,
+          "water-port-extra"
+        ),
+      },
+      data: legacyData,
+      parameters: cloneWaterParameters(
+        waterLocation.parameters,
+        "water-legacy-param"
+      ),
+      ports: legacyPort ? [legacyPort] : [],
+    };
   }
 
   const data = createEmptyWaterQualityData();
@@ -2527,12 +2966,12 @@ const normalizeWaterQualityFromApi = (
     }
   }
 
-  return {
+  return convertLegacySectionToStore({
     selectedLocations,
     data,
     parameters: extras,
     ports,
-  };
+  });
 };
 
 const normalizeNoiseQualityFromApi = (raw: any) => {
@@ -2621,6 +3060,7 @@ const createEmptyWasteSection = (prefix: string): PlantPortSectionData => ({
   eccEpepCommitments: [
     {
       id: createHydrationId(`${prefix}-waste`, 0),
+      typeOfWaste: "",
       handling: "",
       storage: "",
       disposal: "",
@@ -2699,7 +3139,8 @@ const normalizeWasteManagementFromApi = (
       generateTable: boolean;
       N_A: boolean;
     },
-    key: "quarryPlantData" | "plantData" | "portPlantData"
+    sectionTarget: PlantPortSectionData,
+    sectionKey: "quarry" | "plant" | "port"
   ) => {
     if (!source) {
       return;
@@ -2708,31 +3149,30 @@ const normalizeWasteManagementFromApi = (
       target.noSignificantImpact = false;
       target.N_A = false;
       target.generateTable = true;
-      const sectionTarget = (result as Record<string, PlantPortSectionData>)[
-        key
-      ];
-      if (!sectionTarget) {
-        return;
-      }
       if (!source.length) {
         return;
       }
-      const formatted = source.map((entry: any, index: number) => ({
-        id: createHydrationId(`${key}-entry`, index),
-        handling: sanitizeString(
-          entry?.eccEpepCommitments?.handling ?? entry?.handling
-        ),
-        storage: sanitizeString(
-          entry?.eccEpepCommitments?.storage ?? entry?.storage
-        ),
-        disposal: sanitizeString(
-          entry?.eccEpepCommitments?.disposal == null
-            ? ""
-            : entry.eccEpepCommitments.disposal
-              ? "Yes"
-              : "No"
-        ),
-      }));
+      const formatted: WasteEntry[] = source.map(
+        (entry: any, index: number) => ({
+          id: createHydrationId(`${sectionKey}-entry`, index),
+          typeOfWaste: sanitizeString(
+            entry?.typeOfWaste ?? sectionTarget.typeOfWaste
+          ),
+          handling: sanitizeString(
+            entry?.eccEpepCommitments?.handling ?? entry?.handling
+          ),
+          storage: sanitizeString(
+            entry?.eccEpepCommitments?.storage ?? entry?.storage
+          ),
+          disposal: sanitizeString(
+            entry?.eccEpepCommitments?.disposal == null
+              ? ""
+              : entry.eccEpepCommitments.disposal
+                ? "Yes"
+                : "No"
+          ),
+        })
+      );
       sectionTarget.typeOfWaste = sanitizeString(
         source[0]?.typeOfWaste ?? sectionTarget.typeOfWaste
       );
@@ -2764,9 +3204,9 @@ const normalizeWasteManagementFromApi = (
       }
     }
   };
-  assignFlags(raw.quarry, result.quarryData, "quarryPlantData");
-  assignFlags(raw.plant, result.plantSimpleData, "plantData");
-  assignFlags(raw.port, result.portData, "portPlantData");
+  assignFlags(raw.quarry, result.quarryData, result.quarryPlantData, "quarry");
+  assignFlags(raw.plant, result.plantSimpleData, result.plantData, "plant");
+  assignFlags(raw.port, result.portData, result.portPlantData, "port");
   return result;
 };
 
@@ -3164,8 +3604,15 @@ const buildCreateCMVRPayload = (
   if (hasComplianceData) {
     payload.complianceMonitoringReport = complianceMonitoringReport;
   }
-  if (options.attendanceId) {
-    payload.attendanceId = options.attendanceId;
+  const payloadAttendanceId =
+    options.attendanceId ??
+    (typeof norm.attendanceId === "string" && norm.attendanceId
+      ? norm.attendanceId
+      : typeof norm.attendanceUrl === "string"
+        ? norm.attendanceUrl
+        : undefined);
+  if (payloadAttendanceId) {
+    payload.attendanceId = payloadAttendanceId;
   }
 
   // Add ECC Conditions attachment if uploaded
@@ -3183,8 +3630,8 @@ const buildCreateCMVRPayload = (
 };
 
 type CMVRDocumentExportScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  "CMVRDocumentExport"
+  Record<string, object | undefined>,
+  string
 >;
 
 type CMVRDocumentExportScreenRouteProp = RouteProp<
@@ -3197,71 +3644,84 @@ const CMVRDocumentExportScreen = () => {
   const route = useRoute<CMVRDocumentExportScreenRouteProp>();
   const { user } = useAuth();
   const { fileName: contextFileName } = useFileName();
+
+  // **ZUSTAND STORE** - Single source of truth for CMVR data
+  const {
+    currentReport,
+    fileName: storeFileName,
+    submissionId: storeSubmissionId,
+    projectId: storeProjectId,
+    editedSections = [],
+    submitReport,
+    updateSubmittedReport,
+    deleteDraft,
+    loadDraft,
+    loadReport,
+    markAsClean,
+    saveDraft,
+    updateMetadata,
+    setCreatedById,
+    updateMultipleSections,
+    fillAllTestData,
+  } = useCmvrStore();
+
   const routeParams = route.params ?? {};
   const {
     cmvrReportId: routeReportId,
-    generalInfo: routeGeneralInfo,
-    eccInfo: routeEccInfo,
-    eccAdditionalForms: routeEccAdditionalForms,
-    isagInfo: routeIsagInfo,
-    isagAdditionalForms: routeIsagAdditionalForms,
-    epepInfo: routeEpepInfo,
-    epepAdditionalForms: routeEpepAdditionalForms,
-    rcfInfo: routeRcfInfo,
-    rcfAdditionalForms: routeRcfAdditionalForms,
-    mtfInfo: routeMtfInfo,
-    mtfAdditionalForms: routeMtfAdditionalForms,
-    fmrdfInfo: routeFmrdfInfo,
-    fmrdfAdditionalForms: routeFmrdfAdditionalForms,
-    mmtInfo: routeMmtInfo,
-    recommendationsData: routeRecommendationsData,
     fileName: routeFileName,
-    executiveSummaryOfCompliance: routeExecutiveSummaryOfCompliance,
-    processDocumentationOfActivitiesUndertaken:
-      routeProcessDocumentationOfActivitiesUndertaken,
-    complianceToProjectLocationAndCoverageLimits:
-      routeComplianceToProjectLocationAndCoverageLimits,
-    complianceToImpactManagementCommitments:
-      routeComplianceToImpactManagementCommitments,
-    airQualityImpactAssessment: routeAirQualityImpactAssessment,
-    waterQualityImpactAssessment: routeWaterQualityImpactAssessment,
-    noiseQualityImpactAssessment: routeNoiseQualityImpactAssessment,
-    complianceWithGoodPracticeInSolidAndHazardousWasteManagement:
-      routeComplianceWithGoodPracticeInSolidAndHazardousWasteManagement,
-    complianceWithGoodPracticeInChemicalSafetyManagement:
-      routeComplianceWithGoodPracticeInChemicalSafetyManagement,
-    complaintsVerificationAndManagement:
-      routeComplaintsVerificationAndManagement,
-    recommendationFromPrevQuarter: routeRecommendationFromPrevQuarter,
-    recommendationForNextQuarter: routeRecommendationForNextQuarter,
-    attendanceUrl: routeAttendanceUrl,
     selectedAttendanceId: routeSelectedAttendanceId,
     selectedAttendanceTitle: routeSelectedAttendanceTitle,
-    documentation: routeDocumentation,
-    attachments: routeAttachments,
-    newlyUploadedPaths: routeNewlyUploadedPaths,
+    projectId: routeProjectId,
+    projectName: routeProjectName,
   } = routeParams;
+  const routeDraftUpdate = useMemo(
+    () =>
+      ((routeParams as any)?.draftData &&
+      typeof (routeParams as any).draftData === "object"
+        ? ((routeParams as any).draftData as Partial<DraftSnapshot>)
+        : {}) ?? {},
+    [routeParams]
+  );
+
+  // Extract attachments safely
+  const routeAttachments = (routeParams as any).attachments;
+  const routeNewlyUploadedPaths = (routeParams as any).newlyUploadedPaths;
+
+  const editedSectionSet = useMemo(
+    () => new Set(editedSections ?? []),
+    [editedSections]
+  );
+
+  const isSectionEdited = useCallback(
+    (sections?: string | string[]) => {
+      if (!sections || editedSectionSet.size === 0) {
+        return false;
+      }
+
+      const sectionList = Array.isArray(sections) ? sections : [sections];
+      return sectionList.some(
+        (section) => section && editedSectionSet.has(section)
+      );
+    },
+    [editedSectionSet]
+  );
 
   const resolvedFileName = useMemo(
-    () => routeFileName?.trim() || contextFileName?.trim() || "CMVR_Report",
-    [routeFileName, contextFileName]
+    () =>
+      storeFileName ||
+      routeFileName?.trim() ||
+      contextFileName?.trim() ||
+      "CMVR_Report",
+    [storeFileName, routeFileName, contextFileName]
   );
 
-  const DRAFT_KEY = useMemo(
-    () => `cmvr_draft_${resolvedFileName || "temp"}`,
-    [resolvedFileName]
-  );
-
-  const [draftSnapshot, setDraftSnapshot] = useState<DraftSnapshot | null>(
-    null
-  );
+  // Local UI state only (not data state)
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isSavingDraft, setIsSavingDraft] = useState(false);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(!!storeSubmissionId);
   const [submittedReportId, setSubmittedReportId] = useState<string | null>(
-    null
+    storeSubmissionId
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -3269,6 +3729,63 @@ const CMVRDocumentExportScreen = () => {
     { uri: string; path?: string; uploading?: boolean; caption?: string }[]
   >([]);
   const [newlyUploadedPaths, setNewlyUploadedPaths] = useState<string[]>([]);
+  const [draftSnapshot, setDraftSnapshot] = useState<DraftSnapshot | null>(
+    null
+  );
+  const [attendanceRecordInfo, setAttendanceRecordInfo] = useState<{
+    id: string;
+    label?: string;
+  } | null>(() =>
+    routeSelectedAttendanceId
+      ? {
+          id: routeSelectedAttendanceId,
+          label: routeSelectedAttendanceTitle ?? undefined,
+        }
+      : null
+  );
+
+  // Detect if there are changes between currentReport and draftSnapshot
+  const hasChanges = useMemo(() => {
+    if (!currentReport || !draftSnapshot) return false;
+
+    // Deep compare currentReport with draftSnapshot
+    return JSON.stringify(currentReport) !== JSON.stringify(draftSnapshot);
+  }, [currentReport, draftSnapshot]);
+
+  const attendanceIdFromStore = currentReport?.attendanceId ?? null;
+  const legacyAttendanceId = currentReport?.attendanceUrl ?? null;
+  const storedAttendanceId =
+    attendanceIdFromStore ?? legacyAttendanceId ?? null;
+  const resolvedAttendanceId =
+    routeSelectedAttendanceId ?? storedAttendanceId ?? null;
+
+  const loadStoredDraft =
+    useCallback(async (): Promise<DraftSnapshot | null> => {
+      try {
+        const stored = await AsyncStorage.getItem(DRAFT_KEY);
+        return stored ? (JSON.parse(stored) as DraftSnapshot) : null;
+      } catch (error) {
+        console.warn("Failed to load CMVR draft snapshot:", error);
+        return null;
+      }
+    }, []);
+
+  const persistSnapshot = useCallback(async (snapshot: DraftSnapshot) => {
+    try {
+      await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(snapshot));
+    } catch (error) {
+      console.warn("Failed to persist CMVR draft snapshot:", error);
+    }
+  }, []);
+
+  // Handle loadDraft parameter from dashboard
+  useEffect(() => {
+    const shouldLoadDraft = (routeParams as any)?.loadDraft === true;
+    if (shouldLoadDraft) {
+      console.log("Loading CMVR draft from store...");
+      loadDraft();
+    }
+  }, [routeParams, loadDraft]);
 
   // Handle incoming attachments from CMVRAttachmentsScreen
   useEffect(() => {
@@ -3287,127 +3804,107 @@ const CMVRDocumentExportScreen = () => {
     }
   }, [routeAttachments, routeNewlyUploadedPaths]);
 
-  const loadStoredDraft =
-    useCallback(async (): Promise<DraftSnapshot | null> => {
-      try {
-        const raw = await AsyncStorage.getItem(DRAFT_KEY);
-        if (!raw) {
-          return null;
-        }
-        return JSON.parse(raw) as DraftSnapshot;
-      } catch (error) {
-        console.error("Failed to load CMVR draft:", error);
-        return null;
-      }
-    }, [DRAFT_KEY]);
+  // Keep attendance metadata in sync with latest selection routed back from AttendanceList
+  useEffect(() => {
+    if (!routeSelectedAttendanceId) {
+      return;
+    }
+    setAttendanceRecordInfo({
+      id: routeSelectedAttendanceId,
+      label: routeSelectedAttendanceTitle ?? undefined,
+    });
+  }, [routeSelectedAttendanceId, routeSelectedAttendanceTitle]);
 
-  const persistSnapshot = useCallback(
-    async (snapshot: DraftSnapshot) => {
-      await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(snapshot));
-      console.log("Draft saved locally:", DRAFT_KEY);
-    },
-    [DRAFT_KEY]
-  );
+  // Reset local attendance metadata if selection is cleared
+  useEffect(() => {
+    if (!resolvedAttendanceId) {
+      setAttendanceRecordInfo(null);
+    }
+  }, [resolvedAttendanceId]);
 
-  const routeDraftUpdate = useMemo<Partial<DraftSnapshot>>(() => {
-    const update: Partial<DraftSnapshot> = {};
-    if (routeGeneralInfo) update.generalInfo = routeGeneralInfo;
-    if (routeEccInfo) update.eccInfo = routeEccInfo;
-    if (routeEccAdditionalForms !== undefined)
-      update.eccAdditionalForms = routeEccAdditionalForms;
-    if (routeIsagInfo) update.isagInfo = routeIsagInfo;
-    if (routeIsagAdditionalForms !== undefined)
-      update.isagAdditionalForms = routeIsagAdditionalForms;
-    if (routeEpepInfo) update.epepInfo = routeEpepInfo;
-    if (routeEpepAdditionalForms !== undefined)
-      update.epepAdditionalForms = routeEpepAdditionalForms;
-    if (routeRcfInfo) update.rcfInfo = routeRcfInfo;
-    if (routeRcfAdditionalForms !== undefined)
-      update.rcfAdditionalForms = routeRcfAdditionalForms;
-    if (routeMtfInfo) update.mtfInfo = routeMtfInfo;
-    if (routeMtfAdditionalForms !== undefined)
-      update.mtfAdditionalForms = routeMtfAdditionalForms;
-    if (routeFmrdfInfo) update.fmrdfInfo = routeFmrdfInfo;
-    if (routeFmrdfAdditionalForms !== undefined)
-      update.fmrdfAdditionalForms = routeFmrdfAdditionalForms;
-    if (routeMmtInfo) update.mmtInfo = routeMmtInfo;
-    if (routeRecommendationsData !== undefined)
-      update.recommendationsData = routeRecommendationsData;
-    if (routeExecutiveSummaryOfCompliance !== undefined)
-      update.executiveSummaryOfCompliance = routeExecutiveSummaryOfCompliance;
-    if (routeProcessDocumentationOfActivitiesUndertaken !== undefined)
-      update.processDocumentationOfActivitiesUndertaken =
-        routeProcessDocumentationOfActivitiesUndertaken;
-    if (routeComplianceToProjectLocationAndCoverageLimits !== undefined)
-      update.complianceToProjectLocationAndCoverageLimits =
-        routeComplianceToProjectLocationAndCoverageLimits;
-    if (routeComplianceToImpactManagementCommitments !== undefined)
-      update.complianceToImpactManagementCommitments =
-        routeComplianceToImpactManagementCommitments;
-    if (routeAirQualityImpactAssessment !== undefined)
-      update.airQualityImpactAssessment = routeAirQualityImpactAssessment;
-    if (routeWaterQualityImpactAssessment !== undefined)
-      update.waterQualityImpactAssessment = routeWaterQualityImpactAssessment;
-    if (routeNoiseQualityImpactAssessment !== undefined)
-      update.noiseQualityImpactAssessment = routeNoiseQualityImpactAssessment;
+  // Hydrate attendance metadata when loading an existing report
+  useEffect(() => {
+    if (!resolvedAttendanceId) {
+      return;
+    }
+
+    const alreadyHasLabel =
+      attendanceRecordInfo &&
+      attendanceRecordInfo.id === resolvedAttendanceId &&
+      attendanceRecordInfo.label;
+
+    if (alreadyHasLabel) {
+      return;
+    }
+
     if (
-      routeComplianceWithGoodPracticeInSolidAndHazardousWasteManagement !==
-      undefined
-    )
-      update.complianceWithGoodPracticeInSolidAndHazardousWasteManagement =
-        routeComplianceWithGoodPracticeInSolidAndHazardousWasteManagement;
-    if (routeComplianceWithGoodPracticeInChemicalSafetyManagement !== undefined)
-      update.complianceWithGoodPracticeInChemicalSafetyManagement =
-        routeComplianceWithGoodPracticeInChemicalSafetyManagement;
-    if (routeComplaintsVerificationAndManagement !== undefined)
-      update.complaintsVerificationAndManagement =
-        routeComplaintsVerificationAndManagement;
-    if (routeRecommendationFromPrevQuarter !== undefined)
-      update.recommendationFromPrevQuarter = routeRecommendationFromPrevQuarter;
-    if (routeRecommendationForNextQuarter !== undefined)
-      update.recommendationForNextQuarter = routeRecommendationForNextQuarter;
-    if (routeAttendanceUrl !== undefined)
-      update.attendanceUrl = routeAttendanceUrl;
-    if (routeDocumentation !== undefined)
-      update.documentation = routeDocumentation;
-    return update;
+      routeSelectedAttendanceId &&
+      routeSelectedAttendanceId === resolvedAttendanceId &&
+      routeSelectedAttendanceTitle
+    ) {
+      return;
+    }
+
+    let isMounted = true;
+    const fetchAttendanceDetails = async () => {
+      try {
+        const record = await apiGet<AttendanceRecordSummary>(
+          `/attendance/${resolvedAttendanceId}`
+        );
+        if (!isMounted || !record) {
+          return;
+        }
+        setAttendanceRecordInfo({
+          id: resolvedAttendanceId,
+          label:
+            record.title ||
+            record.fileName ||
+            record.meetingDate ||
+            `Attendance ${resolvedAttendanceId.slice(0, 8)}`,
+        });
+      } catch (error) {
+        console.warn("Failed to fetch attendance record metadata:", error);
+      }
+    };
+
+    fetchAttendanceDetails();
+
+    return () => {
+      isMounted = false;
+    };
   }, [
-    routeGeneralInfo,
-    routeEccInfo,
-    routeEccAdditionalForms,
-    routeIsagInfo,
-    routeIsagAdditionalForms,
-    routeEpepInfo,
-    routeEpepAdditionalForms,
-    routeRcfInfo,
-    routeRcfAdditionalForms,
-    routeMtfInfo,
-    routeMtfAdditionalForms,
-    routeFmrdfInfo,
-    routeFmrdfAdditionalForms,
-    routeMmtInfo,
-    routeRecommendationsData,
-    routeExecutiveSummaryOfCompliance,
-    routeProcessDocumentationOfActivitiesUndertaken,
-    routeComplianceToProjectLocationAndCoverageLimits,
-    routeComplianceToImpactManagementCommitments,
-    routeAirQualityImpactAssessment,
-    routeWaterQualityImpactAssessment,
-    routeNoiseQualityImpactAssessment,
-    routeComplianceWithGoodPracticeInSolidAndHazardousWasteManagement,
-    routeComplianceWithGoodPracticeInChemicalSafetyManagement,
-    routeComplaintsVerificationAndManagement,
-    routeRecommendationFromPrevQuarter,
-    routeRecommendationForNextQuarter,
-    routeAttendanceUrl,
-    routeDocumentation,
+    resolvedAttendanceId,
+    routeSelectedAttendanceId,
+    routeSelectedAttendanceTitle,
+    attendanceRecordInfo,
   ]);
+
+  // Persist any newly selected attendance record into the CMVR store state
+  useEffect(() => {
+    if (!routeSelectedAttendanceId) {
+      return;
+    }
+    if (routeSelectedAttendanceId === storedAttendanceId) {
+      return;
+    }
+
+    updateMultipleSections({ attendanceId: routeSelectedAttendanceId });
+    setDraftSnapshot((prev) =>
+      prev
+        ? {
+            ...prev,
+            attendanceId: routeSelectedAttendanceId,
+            attendanceUrl: routeSelectedAttendanceId,
+          }
+        : prev
+    );
+  }, [routeSelectedAttendanceId, storedAttendanceId, updateMultipleSections]);
 
   useEffect(() => {
     let isActive = true;
     const hydrateDraft = async () => {
-      let routeUpdate = routeDraftUpdate;
-      if (routeReportId && Object.keys(routeDraftUpdate).length === 0) {
+      let updates: Partial<DraftSnapshot> = {};
+      if (routeReportId) {
         try {
           console.log("Fetching CMVR report from API:", routeReportId);
           const { getCMVRReportById } = await import("../../lib/cmvr");
@@ -3489,7 +3986,7 @@ const CMVRDocumentExportScreen = () => {
                     barangay: reportData.location,
                   }
                 : reportData.location || {};
-            routeUpdate = {
+            const normalizedUpdate: Partial<DraftSnapshot> = {
               generalInfo: {
                 companyName:
                   (sourceGeneralInfo?.companyName as string) ||
@@ -3570,7 +4067,7 @@ const CMVRDocumentExportScreen = () => {
                 reportData.cmvrData?.executiveSummaryOfCompliance
             );
             if (normalizedExecutiveSummary) {
-              routeUpdate.executiveSummaryOfCompliance =
+              normalizedUpdate.executiveSummaryOfCompliance =
                 normalizedExecutiveSummary;
             }
 
@@ -3579,7 +4076,7 @@ const CMVRDocumentExportScreen = () => {
                 reportData.cmvrData?.processDocumentationOfActivitiesUndertaken
             );
             if (normalizedProcessDoc) {
-              routeUpdate.processDocumentationOfActivitiesUndertaken =
+              normalizedUpdate.processDocumentationOfActivitiesUndertaken =
                 normalizedProcessDoc;
             }
 
@@ -3588,7 +4085,7 @@ const CMVRDocumentExportScreen = () => {
                 reportData.complianceMonitoringReport
               );
             if (normalizedComplianceSections) {
-              Object.assign(routeUpdate, normalizedComplianceSections);
+              Object.assign(normalizedUpdate, normalizedComplianceSections);
             }
 
             // Load attachments if they exist
@@ -3613,50 +4110,63 @@ const CMVRDocumentExportScreen = () => {
             }
 
             console.log("Successfully loaded report data from API");
+            updates = normalizedUpdate;
           }
         } catch (error) {
           console.error("Error fetching CMVR report:", error);
         }
       }
       const stored = await loadStoredDraft();
-      const merged = mergeDraftData(stored, routeUpdate, resolvedFileName);
       if (!isActive) {
         return;
       }
+      if (!stored && Object.keys(updates).length === 0) {
+        return;
+      }
+      const merged = mergeDraftData(stored, updates, resolvedFileName);
+
+      if (isActive) {
+        const derivedProjectName =
+          routeProjectName || merged.generalInfo?.projectName || "";
+
+        const storePayload: StoreHydrationPayload = {
+          ...merged,
+          id: routeReportId ?? null,
+          submissionId: routeReportId ?? null,
+          projectId: routeProjectId ?? null,
+          projectName: derivedProjectName,
+        };
+
+        loadReport(storePayload);
+      }
+
       setDraftSnapshot(merged);
       await persistSnapshot(merged);
-      if (routeReportId && isActive) {
+      if (routeReportId) {
         setSubmittedReportId(routeReportId);
         setHasSubmitted(true);
       }
     };
-    hydrateDraft().catch((error) => {
-      console.error("Failed to prepare CMVR draft snapshot:", error);
-    });
+
+    hydrateDraft();
+
     return () => {
       isActive = false;
     };
   }, [
-    loadStoredDraft,
-    routeDraftUpdate,
-    resolvedFileName,
-    persistSnapshot,
     routeReportId,
+    routeProjectId,
+    routeProjectName,
+    loadStoredDraft,
+    persistSnapshot,
+    resolvedFileName,
+    setHasSubmitted,
+    setSubmittedReportId,
+    loadReport,
   ]);
 
-  const saveDraftToLocal = useCallback(async (): Promise<DraftSnapshot> => {
-    if (!draftSnapshot) {
-      throw new Error("No CMVR data available to save.");
-    }
-    const snapshotToPersist: DraftSnapshot = {
-      ...draftSnapshot,
-      fileName: resolvedFileName,
-      savedAt: new Date().toISOString(),
-    };
-    setDraftSnapshot(snapshotToPersist);
-    await persistSnapshot(snapshotToPersist);
-    return snapshotToPersist;
-  }, [draftSnapshot, persistSnapshot, resolvedFileName]);
+  // **LEGACY FUNCTION REMOVED** - saveDraftToLocal no longer needed
+  // Draft management now handled by store.saveDraft()
 
   const handleExit = async () => {
     try {
@@ -3794,7 +4304,7 @@ const CMVRDocumentExportScreen = () => {
         snapshotForSubmission,
         {
           recommendationsData: snapshotForSubmission.recommendationsData,
-          attendanceId: routeSelectedAttendanceId,
+          attendanceId: resolvedAttendanceId ?? undefined,
         },
         user?.id
       );
@@ -3833,20 +4343,21 @@ const CMVRDocumentExportScreen = () => {
   };
 
   const handleSaveDraft = async () => {
-    if (!draftSnapshot) {
+    if (!currentReport) {
       Alert.alert(
-        "Preparing Draft",
-        "Please wait while we load your CMVR report data.",
+        "No Data",
+        "Please complete the CMVR report before saving draft.",
         [{ text: "OK" }]
       );
       return;
     }
-    setIsSavingDraft(true);
+
     try {
-      await saveDraftToLocal();
+      // Use store's saveDraft function
+      await saveDraft();
       Alert.alert(
         "Draft Saved",
-        "Your CMVR report has been saved as a draft locally.",
+        "Your CMVR report has been saved as a draft.",
         [{ text: "OK" }]
       );
     } catch (error) {
@@ -3854,90 +4365,92 @@ const CMVRDocumentExportScreen = () => {
       Alert.alert("Save Failed", "Failed to save draft. Please try again.", [
         { text: "OK" },
       ]);
-    } finally {
-      setIsSavingDraft(false);
     }
   };
 
   const handleSubmitToSupabase = async () => {
-    if (!draftSnapshot) {
+    if (!currentReport) {
       Alert.alert(
-        "Preparing Data",
-        "Please wait while we prepare your CMVR report data.",
+        "No Data",
+        "Please complete the CMVR report before submitting.",
         [{ text: "OK" }]
       );
       return;
     }
+
     setIsSubmitting(true);
     setSubmitError(null);
-    try {
-      const snapshotForSubmission = mergeDraftData(
-        draftSnapshot,
-        routeDraftUpdate,
-        resolvedFileName
-      );
-      setDraftSnapshot(snapshotForSubmission);
-      console.log("=== DEBUG: Snapshot for submission ===");
-      console.log(
-        "Has executiveSummaryOfCompliance:",
-        !!snapshotForSubmission.executiveSummaryOfCompliance
-      );
-      console.log(
-        "Has processDocumentationOfActivitiesUndertaken:",
-        !!snapshotForSubmission.processDocumentationOfActivitiesUndertaken
-      );
-      console.log(
-        "Has waterQualityImpactAssessment:",
-        !!snapshotForSubmission.waterQualityImpactAssessment
-      );
-      console.log(
-        "Has airQualityImpactAssessment:",
-        !!snapshotForSubmission.airQualityImpactAssessment
-      );
-      console.log(
-        "Has noiseQualityImpactAssessment:",
-        !!snapshotForSubmission.noiseQualityImpactAssessment
-      );
-      console.log("Full snapshot keys:", Object.keys(snapshotForSubmission));
-      const payload = buildCreateCMVRPayload(
-        snapshotForSubmission,
-        {
-          recommendationsData: snapshotForSubmission.recommendationsData,
-          attendanceId: routeSelectedAttendanceId,
-        },
-        user?.id
-      );
 
-      // Add attachments to payload
-      console.log("=== DEBUG: Attachments state ===", attachments);
-      if (attachments.length > 0) {
-        const formattedAttachments = attachments
-          .filter((a) => !!a.path)
-          .map((a) => ({ path: a.path!, caption: a.caption || undefined }));
-        console.log(
-          "=== DEBUG: Formatted attachments ===",
-          formattedAttachments
-        );
-        payload.attachments = formattedAttachments;
+    try {
+      console.log("=== DEBUG: Submitting from store ===");
+      console.log("Current report sections:", Object.keys(currentReport));
+
+      // Sync local generalInfo to store before submission
+      updateMultipleSections({
+        generalInfo,
+        eccInfo,
+        eccAdditionalForms,
+        isagInfo,
+        isagAdditionalForms,
+        epepInfo,
+        epepAdditionalForms,
+        rcfInfo,
+        rcfAdditionalForms,
+        mtfInfo,
+        mtfAdditionalForms,
+        fmrdfInfo,
+        fmrdfAdditionalForms,
+        mmtInfo,
+        executiveSummaryOfCompliance: executiveSummary,
+        processDocumentationOfActivitiesUndertaken: processDocumentation,
+        complianceToProjectLocationAndCoverageLimits: complianceProjectLocation,
+        complianceToImpactManagementCommitments: complianceImpactCommitments,
+        airQualityImpactAssessment: airQualityAssessment,
+        waterQualityImpactAssessment: waterQualityAssessment,
+        noiseQualityImpactAssessment: noiseQualityAssessment,
+        complianceWithGoodPracticeInSolidAndHazardousWasteManagement:
+          wasteManagementData,
+        complianceWithGoodPracticeInChemicalSafetyManagement:
+          chemicalSafetyData,
+        complaintsVerificationAndManagement: complaintsData,
+        recommendationsData,
+        recommendationFromPrevQuarter: recommendationPrev,
+        recommendationForNextQuarter: recommendationNext,
+        attendanceId: resolvedAttendanceId,
+        documentation,
+      });
+
+      // Ensure fileName and createdById are set before submission
+      updateMetadata({ fileName: resolvedFileName });
+      if (user?.id) {
+        setCreatedById(user.id);
       }
 
-      console.log("=== DEBUG: Payload attachments ===", payload.attachments);
-      console.log("=== DEBUG: Payload being sent ===");
-      console.log(JSON.stringify(payload, null, 2));
-      const fileNameForSubmission =
-        sanitizeString(snapshotForSubmission.fileName) ||
-        sanitizeString(snapshotForSubmission.generalInfo?.projectName) ||
-        "CMVR_Report";
-      const created = await createCMVRReport(payload, fileNameForSubmission);
-      const newId = created?.id || created?.data?.id || null;
-      setSubmittedReportId(newId);
-      setHasSubmitted(true);
-      await AsyncStorage.removeItem(DRAFT_KEY);
-      Alert.alert(
-        "Submitted",
-        "Your CMVR report has been saved to the database. You can now generate a document.",
-        [{ text: "OK" }]
-      );
+      const result = await submitReport();
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to submit CMVR report");
+      }
+
+      if (result.report && result.report.id) {
+        const newId = result.report.id;
+        setSubmittedReportId(newId);
+        setHasSubmitted(true);
+
+        // Delete draft after successful submission
+        await deleteDraft();
+        markAsClean();
+
+        Alert.alert(
+          "Submitted",
+          "Your CMVR report has been saved to the database. You can now generate a document.",
+          [{ text: "OK" }]
+        );
+
+        return;
+      }
+
+      throw new Error("Submission failed - no ID returned");
     } catch (error: any) {
       console.error("Error submitting CMVR report:", error);
       const errorMessage =
@@ -3950,7 +4463,9 @@ const CMVRDocumentExportScreen = () => {
   };
 
   const handleGenerateDocument = async () => {
-    if (!hasSubmitted || !submittedReportId) {
+    const reportId = submittedReportId || storeSubmissionId;
+
+    if (!hasSubmitted || !reportId) {
       Alert.alert(
         "Submit Required",
         "Please submit your report to the database first.",
@@ -3958,9 +4473,10 @@ const CMVRDocumentExportScreen = () => {
       );
       return;
     }
+
     setIsGenerating(true);
     try {
-      await generateCMVRDocx(submittedReportId, resolvedFileName);
+      await generateCMVRDocx(reportId, resolvedFileName);
       Alert.alert(
         "Download Started",
         "Your browser will open to download the DOCX file.",
@@ -3979,80 +4495,55 @@ const CMVRDocumentExportScreen = () => {
   };
 
   const fileName = resolvedFileName;
-  const generalInfo =
-    draftSnapshot?.generalInfo ?? routeGeneralInfo ?? defaultGeneralInfo;
-  const eccInfo = draftSnapshot?.eccInfo ?? routeEccInfo ?? defaultEccInfo;
+
+  // **READ FROM STORE** - All data comes from currentReport
+  const generalInfo = currentReport?.generalInfo ?? defaultGeneralInfo;
+  const eccInfo = currentReport?.eccInfo ?? defaultEccInfo;
   const eccAdditionalForms =
-    draftSnapshot?.eccAdditionalForms ??
-    routeEccAdditionalForms ??
-    ([] as ECCAdditionalForm[]);
-  const isagInfo = draftSnapshot?.isagInfo ?? routeIsagInfo ?? defaultIsagInfo;
+    currentReport?.eccAdditionalForms ?? ([] as ECCAdditionalForm[]);
+  const isagInfo = currentReport?.isagInfo ?? defaultIsagInfo;
   const isagAdditionalForms =
-    draftSnapshot?.isagAdditionalForms ??
-    routeIsagAdditionalForms ??
-    ([] as ISAGAdditionalForm[]);
-  const epepInfo = draftSnapshot?.epepInfo ?? routeEpepInfo ?? defaultEpepInfo;
+    currentReport?.isagAdditionalForms ?? ([] as ISAGAdditionalForm[]);
+  const epepInfo = currentReport?.epepInfo ?? defaultEpepInfo;
   const epepAdditionalForms =
-    draftSnapshot?.epepAdditionalForms ??
-    routeEpepAdditionalForms ??
-    ([] as EpepAdditionalForm[]);
-  const rcfInfo = draftSnapshot?.rcfInfo ?? routeRcfInfo ?? defaultFundInfo;
+    currentReport?.epepAdditionalForms ?? ([] as EpepAdditionalForm[]);
+  const rcfInfo = currentReport?.rcfInfo ?? defaultFundInfo;
   const rcfAdditionalForms =
-    draftSnapshot?.rcfAdditionalForms ??
-    routeRcfAdditionalForms ??
-    ([] as FundAdditionalForm[]);
-  const mtfInfo = draftSnapshot?.mtfInfo ?? routeMtfInfo ?? defaultFundInfo;
+    currentReport?.rcfAdditionalForms ?? ([] as FundAdditionalForm[]);
+  const mtfInfo = currentReport?.mtfInfo ?? defaultFundInfo;
   const mtfAdditionalForms =
-    draftSnapshot?.mtfAdditionalForms ??
-    routeMtfAdditionalForms ??
-    ([] as FundAdditionalForm[]);
-  const fmrdfInfo =
-    draftSnapshot?.fmrdfInfo ?? routeFmrdfInfo ?? defaultFundInfo;
+    currentReport?.mtfAdditionalForms ?? ([] as FundAdditionalForm[]);
+  const fmrdfInfo = currentReport?.fmrdfInfo ?? defaultFundInfo;
   const fmrdfAdditionalForms =
-    draftSnapshot?.fmrdfAdditionalForms ??
-    routeFmrdfAdditionalForms ??
-    ([] as FundAdditionalForm[]);
-  const mmtInfo = draftSnapshot?.mmtInfo ?? routeMmtInfo ?? defaultMmtInfo;
-  const executiveSummary =
-    draftSnapshot?.executiveSummaryOfCompliance ??
-    routeExecutiveSummaryOfCompliance;
+    currentReport?.fmrdfAdditionalForms ?? ([] as FundAdditionalForm[]);
+  const mmtInfo = currentReport?.mmtInfo ?? defaultMmtInfo;
+  const executiveSummary = currentReport?.executiveSummaryOfCompliance;
   const processDocumentation =
-    draftSnapshot?.processDocumentationOfActivitiesUndertaken ??
-    routeProcessDocumentationOfActivitiesUndertaken;
+    currentReport?.processDocumentationOfActivitiesUndertaken;
   const complianceProjectLocation =
-    draftSnapshot?.complianceToProjectLocationAndCoverageLimits ??
-    routeComplianceToProjectLocationAndCoverageLimits;
+    currentReport?.complianceToProjectLocationAndCoverageLimits;
   const complianceImpactCommitments =
-    draftSnapshot?.complianceToImpactManagementCommitments ??
-    routeComplianceToImpactManagementCommitments;
-  const airQualityAssessment =
-    draftSnapshot?.airQualityImpactAssessment ??
-    routeAirQualityImpactAssessment;
-  const waterQualityAssessment =
-    draftSnapshot?.waterQualityImpactAssessment ??
-    routeWaterQualityImpactAssessment;
-  const noiseQualityAssessment =
-    draftSnapshot?.noiseQualityImpactAssessment ??
-    routeNoiseQualityImpactAssessment;
+    currentReport?.complianceToImpactManagementCommitments;
+  const airQualityAssessment = currentReport?.airQualityImpactAssessment;
+  const waterQualityAssessment = currentReport?.waterQualityImpactAssessment;
+  const noiseQualityAssessment = currentReport?.noiseQualityImpactAssessment;
   const wasteManagementData =
-    draftSnapshot?.complianceWithGoodPracticeInSolidAndHazardousWasteManagement ??
-    routeComplianceWithGoodPracticeInSolidAndHazardousWasteManagement;
+    currentReport?.complianceWithGoodPracticeInSolidAndHazardousWasteManagement;
   const chemicalSafetyData =
-    draftSnapshot?.complianceWithGoodPracticeInChemicalSafetyManagement ??
-    routeComplianceWithGoodPracticeInChemicalSafetyManagement;
-  const complaintsData =
-    draftSnapshot?.complaintsVerificationAndManagement ??
-    routeComplaintsVerificationAndManagement;
-  const recommendationsData =
-    draftSnapshot?.recommendationsData ?? routeRecommendationsData;
-  const recommendationPrev =
-    draftSnapshot?.recommendationFromPrevQuarter ??
-    routeRecommendationFromPrevQuarter;
-  const recommendationNext =
-    draftSnapshot?.recommendationForNextQuarter ??
-    routeRecommendationForNextQuarter;
-  const attendanceUrl = draftSnapshot?.attendanceUrl ?? routeAttendanceUrl;
-  const documentation = draftSnapshot?.documentation ?? routeDocumentation;
+    currentReport?.complianceWithGoodPracticeInChemicalSafetyManagement;
+  const complaintsData = currentReport?.complaintsVerificationAndManagement;
+  const recommendationsData = currentReport?.recommendationsData;
+  const recommendationPrev = currentReport?.recommendationFromPrevQuarter;
+  const recommendationNext = currentReport?.recommendationForNextQuarter;
+  const documentation = currentReport?.documentation;
+  const attendanceTitleFromState =
+    routeSelectedAttendanceTitle ??
+    (attendanceRecordInfo && attendanceRecordInfo.id === resolvedAttendanceId
+      ? attendanceRecordInfo.label
+      : undefined);
+  const attendanceDisplayValue =
+    attendanceTitleFromState ??
+    (resolvedAttendanceId ? "Attendance record linked" : "Not selected");
 
   const baseNavParams = {
     fileName,
@@ -4070,14 +4561,14 @@ const CMVRDocumentExportScreen = () => {
     fmrdfInfo,
     fmrdfAdditionalForms,
     mmtInfo,
+    selectedAttendanceId: resolvedAttendanceId,
+    attendanceId: resolvedAttendanceId,
+    attendanceUrl: resolvedAttendanceId ?? legacyAttendanceId ?? null,
   };
 
   const draftPayload = {
-    ...(draftSnapshot ?? {}),
+    ...currentReport,
     fileName,
-    generalInfo,
-    eccInfo,
-    eccAdditionalForms,
     isagInfo,
     isagAdditionalForms,
     epepInfo,
@@ -4103,9 +4594,21 @@ const CMVRDocumentExportScreen = () => {
     recommendationsData,
     recommendationFromPrevQuarter: recommendationPrev,
     recommendationForNextQuarter: recommendationNext,
-    attendanceUrl,
+    attendanceId: resolvedAttendanceId,
+    attendanceUrl: resolvedAttendanceId ?? legacyAttendanceId ?? null,
     documentation,
   } as DraftSnapshot;
+
+  const saveDraftToLocal = useCallback(async () => {
+    try {
+      await persistSnapshot(draftPayload);
+      setDraftSnapshot(draftPayload);
+    } catch (error) {
+      console.warn("Failed to save CMVR draft snapshot:", error);
+    }
+  }, [draftPayload, persistSnapshot]);
+
+  // Auto-fill test data intentionally disabled to prevent accidental population
 
   const navigateToGeneralInfo = () => {
     navigation.navigate("CMVRReport", {
@@ -4184,7 +4687,7 @@ const CMVRDocumentExportScreen = () => {
       recommendationsData,
       recommendationFromPrevQuarter: recommendationPrev,
       recommendationForNextQuarter: recommendationNext,
-      attendanceUrl,
+      selectedAttendanceId: resolvedAttendanceId,
       documentation,
     } as any);
   };
@@ -4254,6 +4757,7 @@ const CMVRDocumentExportScreen = () => {
             title="General Information"
             value={`${getDisplayValue(generalInfo?.companyName)} - ${getDisplayValue(isagInfo?.currentName || generalInfo?.projectName)}`}
             onPress={navigateToGeneralInfo}
+            isEdited={isSectionEdited("generalInfo")}
           />
           <SummaryItem
             icon="🛡️"
@@ -4269,6 +4773,7 @@ const CMVRDocumentExportScreen = () => {
                 : undefined
             }
             onPress={navigateToGeneralInfo}
+            isEdited={isSectionEdited(["eccInfo", "eccAdditionalForms"])}
           />
           <SummaryItem
             icon="📄"
@@ -4284,6 +4789,7 @@ const CMVRDocumentExportScreen = () => {
                 : undefined
             }
             onPress={navigateToGeneralInfo}
+            isEdited={isSectionEdited(["isagInfo", "isagAdditionalForms"])}
           />
           <SummaryItem
             icon="🌿"
@@ -4299,6 +4805,7 @@ const CMVRDocumentExportScreen = () => {
                 : undefined
             }
             onPress={navigateToGeneralInfo}
+            isEdited={isSectionEdited(["epepInfo", "epepAdditionalForms"])}
           />
           <SummaryItem
             icon="💰"
@@ -4314,6 +4821,7 @@ const CMVRDocumentExportScreen = () => {
                 : undefined
             }
             onPress={navigateToGeneralInfo}
+            isEdited={isSectionEdited(["rcfInfo", "rcfAdditionalForms"])}
           />
           <SummaryItem
             icon="🛡️"
@@ -4329,6 +4837,7 @@ const CMVRDocumentExportScreen = () => {
                 : undefined
             }
             onPress={navigateToGeneralInfo}
+            isEdited={isSectionEdited(["mtfInfo", "mtfAdditionalForms"])}
           />
           <SummaryItem
             icon="🌱"
@@ -4344,6 +4853,7 @@ const CMVRDocumentExportScreen = () => {
                 : undefined
             }
             onPress={navigateToGeneralInfo}
+            isEdited={isSectionEdited(["fmrdfInfo", "fmrdfAdditionalForms"])}
           />
           <SummaryItem
             icon="👥"
@@ -4354,12 +4864,14 @@ const CMVRDocumentExportScreen = () => {
                 : "Not provided"
             }
             onPress={navigateToGeneralInfo}
+            isEdited={isSectionEdited("mmtInfo")}
           />
           <SummaryItem
             icon="🧾"
             title="Executive Summary"
             value={executiveSummary ? "Available" : "Not provided"}
             onPress={navigateToPage2}
+            isEdited={isSectionEdited("executiveSummaryOfCompliance")}
           />
           <SummaryItem
             icon="🗂️"
@@ -4370,24 +4882,32 @@ const CMVRDocumentExportScreen = () => {
                 : "Not provided"
             }
             onPress={navigateToPage2}
+            isEdited={isSectionEdited(
+              "processDocumentationOfActivitiesUndertaken"
+            )}
           />
           <SummaryItem
             icon="💧"
             title="Water Quality Assessment"
             value={waterQualityAssessment ? "Available" : "Not provided"}
             onPress={navigateToWaterQuality}
+            isEdited={isSectionEdited("waterQualityImpactAssessment")}
           />
           <SummaryItem
             icon="🔊"
             title="Noise Quality Assessment"
             value={noiseQualityAssessment ? "Available" : "Not provided"}
             onPress={navigateToNoiseQuality}
+            isEdited={isSectionEdited("noiseQualityImpactAssessment")}
           />
           <SummaryItem
             icon="♻️"
             title="Waste Management"
             value={wasteManagementData ? "Available" : "Not provided"}
             onPress={navigateToWasteManagement}
+            isEdited={isSectionEdited(
+              "complianceWithGoodPracticeInSolidAndHazardousWasteManagement"
+            )}
           />
           <SummaryItem
             icon="🧪"
@@ -4398,16 +4918,17 @@ const CMVRDocumentExportScreen = () => {
                 : "Not provided"
             }
             onPress={navigateToChemicalSafety}
+            isEdited={isSectionEdited([
+              "complianceWithGoodPracticeInChemicalSafetyManagement",
+              "complaintsVerificationAndManagement",
+            ])}
           />
           <SummaryItem
             icon="📋"
             title="Attendance Record"
-            value={
-              routeSelectedAttendanceTitle
-                ? routeSelectedAttendanceTitle
-                : "Not selected"
-            }
+            value={attendanceDisplayValue}
             onPress={navigateToAttendanceSelection}
+            isEdited={isSectionEdited(["attendanceId", "attendanceUrl"])}
           />
           <SummaryItem
             icon="📎"
@@ -4418,15 +4939,13 @@ const CMVRDocumentExportScreen = () => {
                 : "No attachments"
             }
             onPress={() =>
-              navigation.navigate(
-                "CMVRAttachments" as never,
-                {
-                  ...baseNavParams,
-                  existingAttachments: attachments,
-                  fileName,
-                } as never
-              )
+              navigation.navigate("CMVRAttachments", {
+                ...baseNavParams,
+                existingAttachments: attachments,
+                fileName,
+              })
             }
+            isEdited={attachments.length > 0}
           />
         </View>
         <View style={styles.actionSection}>
@@ -4489,10 +5008,10 @@ const CMVRDocumentExportScreen = () => {
               <TouchableOpacity
                 style={[
                   styles.updateButton,
-                  isUpdating && styles.buttonDisabled,
+                  (isUpdating || !hasChanges) && styles.buttonDisabled,
                 ]}
                 onPress={handleSubmitUpdate}
-                disabled={isUpdating}
+                disabled={isUpdating || !hasChanges}
               >
                 {isUpdating ? (
                   <>
@@ -4569,18 +5088,31 @@ const SummaryItem = ({
   value,
   additional,
   onPress,
+  isEdited,
 }: {
   icon: string;
   title: string;
   value: string;
   additional?: string;
   onPress?: () => void;
+  isEdited?: boolean;
 }) => {
+  const wrapperStyle = [
+    styles.summaryItem,
+    isEdited && styles.summaryItemEdited,
+  ];
   const content = (
     <>
       <Text style={styles.summaryIcon}>{icon}</Text>
       <View style={styles.summaryTextContainer}>
-        <Text style={styles.summaryItemTitle}>{title}</Text>
+        <View style={styles.summaryTitleRow}>
+          <Text style={styles.summaryItemTitle}>{title}</Text>
+          {isEdited && (
+            <View style={styles.summaryEditedBadge}>
+              <Text style={styles.summaryEditedBadgeText}>Edited</Text>
+            </View>
+          )}
+        </View>
         <Text style={styles.summaryItemValue} numberOfLines={1}>
           {value}
         </Text>
@@ -4594,7 +5126,7 @@ const SummaryItem = ({
   if (onPress) {
     return (
       <TouchableOpacity
-        style={styles.summaryItem}
+        style={wrapperStyle}
         onPress={onPress}
         activeOpacity={0.7}
       >
@@ -4602,7 +5134,7 @@ const SummaryItem = ({
       </TouchableOpacity>
     );
   }
-  return <View style={styles.summaryItem}>{content}</View>;
+  return <View style={wrapperStyle}>{content}</View>;
 };
 
 const styles = StyleSheet.create({
@@ -4820,6 +5352,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
+  summaryItemEdited: {
+    borderColor: "#F59E0B",
+    backgroundColor: "#FFFBEB",
+  },
   summaryIcon: {
     fontSize: isTablet ? 36 : 28,
     marginRight: isTablet ? 20 : 16,
@@ -4828,12 +5364,30 @@ const styles = StyleSheet.create({
   summaryTextContainer: {
     flex: 1,
   },
+  summaryTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: isTablet ? 6 : 4,
+  },
   summaryItemTitle: {
     fontSize: isTablet ? 16 : 14,
     fontWeight: "700",
     color: "#475569",
-    marginBottom: isTablet ? 6 : 4,
     letterSpacing: -0.1,
+  },
+  summaryEditedBadge: {
+    marginLeft: 8,
+    backgroundColor: "#FDE68A",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  summaryEditedBadgeText: {
+    fontSize: isTablet ? 12 : 11,
+    color: "#92400E",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   summaryItemValue: {
     fontSize: isTablet ? 17 : 15,

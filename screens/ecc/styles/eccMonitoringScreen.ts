@@ -128,6 +128,55 @@ export const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
 
+  /* remark textarea used in monitoringSection */
+  remarkInput: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: theme.colors.text,
+    fontFamily: theme.typography.regular,
+    minHeight: 80,
+    textAlignVertical: "top",
+    marginTop: 6,
+  },
+
+  /* N/A checkbox and label used in monitoringSection */
+  naCheckbox: {
+    width: 22,
+    height: 22,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 6,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    // ensure checkbox sits above neighbouring elements for reliable tap
+    zIndex: 2,
+    
+  },
+  naLabel: {
+    fontFamily: theme.typography.medium,
+    fontSize: 14,
+    color: theme.colors.text,
+    marginTop: 2,
+  },
+  naCheckboxChecked: {
+    backgroundColor: theme.colors.primaryDark,
+    borderColor: theme.colors.primaryDark,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  /* disabled state for remark input when N/A is checked */
+  remarkDisabled: {
+    backgroundColor: "#F1F5F9",
+    color: "#94A3B8",
+  },
+
   /* ===== DATE PICKER ===== */
   datePickerButton: {
     flexDirection: "row",

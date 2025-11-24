@@ -20,7 +20,7 @@ import {
 import { theme } from "../../theme/theme";
 import { attendanceRecordStyles as styles } from "./styles/attendanceRecordScreen";
 import { CustomHeader } from "../../components/CustomHeader";
-import { apiGet, apiDelete, getApiBaseUrl, getJwt } from "../../lib/api";
+import { apiGet, apiDelete, getApiBaseUrl } from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
 
@@ -121,23 +121,18 @@ export default function AttendanceRecordScreen({ navigation }: any) {
     );
   };
 
-  const handleDownload = async (id: string) => {
+  const handleDownload = async (id: string, format: "pdf" | "docx" = "pdf") => {
     try {
       const base = getApiBaseUrl();
-      const token = await getJwt();
+      const url = `${base}/api/attendance/${id}/${format}`;
 
-      // Build URL with token as query parameter for browser download
-      const url = `${base}/api/attendance/${id}/docx?token=${encodeURIComponent(token)}`;
-
-      // Check if the URL can be opened
       const canOpen = await Linking.canOpenURL(url);
 
       if (canOpen) {
-        // Open URL in browser - this will trigger native download
         await Linking.openURL(url);
         Alert.alert(
           "Download Started",
-          "The Docx will be downloaded by your browser. Check your Downloads folder or notification bar."
+          `The ${format.toUpperCase()} will be downloaded by your browser. Check your Downloads folder or notification bar.`
         );
       } else {
         Alert.alert("Error", "Unable to open browser for download");
@@ -236,7 +231,7 @@ export default function AttendanceRecordScreen({ navigation }: any) {
                   record={{
                     ...record,
                     // Normalize display fields
-                    title: record.title || record.fileName,
+                    title: record.fileName,
                     date: fmtDate(
                       record.meetingDate || record.createdAt || null
                     ),
@@ -372,7 +367,7 @@ function AnimatedRecordCard({ record, onDelete, onDownload, onOpen }: any) {
         <View style={styles.actionRow}>
           <TouchableOpacity
             style={[styles.iconButton, styles.downloadButton]}
-            onPress={() => onDownload(record.id)}
+            onPress={() => onDownload(record.id, "docx")}
           >
             <Download size={18} color={theme.colors.primaryDark} />
           </TouchableOpacity>

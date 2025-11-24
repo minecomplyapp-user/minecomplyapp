@@ -494,10 +494,13 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
 
   const handleSaveToDraft = async () => {
     try {
-      console.log("Form data:", JSON.stringify(formData, null, 2));
-      console.log(
-        "Other components:",
-        JSON.stringify(otherComponents, null, 2)
+      await saveDraft();
+      Alert.alert("Success", "Draft saved successfully");
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
       );
       console.log("Uploaded images:", uploadedImages);
 

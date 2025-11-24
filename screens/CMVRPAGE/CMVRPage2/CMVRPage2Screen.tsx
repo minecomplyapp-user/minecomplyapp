@@ -8,7 +8,7 @@ import {
 } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { CMSHeader } from "../../../components/CMSHeader";
-import { saveDraft } from "../../../lib/drafts";
+import { useCmvrStore } from "../../../store/cmvrStore";
 import { ExecutiveSummarySection } from "./components/ExecutiveSummarySection";
 import { ProcessDocumentationSection } from "./components/ProcessDocumentationSection";
 import {
@@ -22,82 +22,102 @@ import { styles } from "../styles/CMVRPage2Screen.styles";
 const CMVRPage2Screen = () => {
   const navigation = useNavigation<CMVRPage2ScreenNavigationProp>();
   const route = useRoute<CMVRPage2ScreenRouteProp>();
+
+  // **ZUSTAND STORE** - Single source of truth
   const {
-    submissionId = "",
-    projectName = "",
-    projectId = "",
-    fileName: routeFileName = "File_Name",
+    currentReport,
+    fileName: storeFileName,
+    submissionId: storeSubmissionId,
+    projectId: storeProjectId,
+    projectName: storeProjectName,
+    updateSection,
+    updateMultipleSections,
+    saveDraft,
+  } = useCmvrStore();
+
+  const {
+    submissionId = storeSubmissionId || "",
+    projectName = storeProjectName || "",
+    projectId = storeProjectId || "",
+    fileName: routeFileName = storeFileName || "File_Name",
   } = route.params || {};
 
   const [fileName, setFileName] = useState(routeFileName);
 
-  const [executiveSummary, setExecutiveSummary] = useState<ExecutiveSummary>({
-    epepCompliance: {
-      safety: false,
-      social: false,
-      rehabilitation: false,
-    },
-    epepRemarks: "",
-    sdmpCompliance: "",
-    sdmpRemarks: "",
-    complaintsManagement: {
-      complaintReceiving: false,
-      caseInvestigation: false,
-      implementationControl: false,
-      communicationComplainant: false,
-      complaintDocumentation: false,
-      naForAll: false,
-    },
-    complaintsRemarks: "",
-    accountability: "",
-    accountabilityRemarks: "",
-    othersSpecify: "",
-    othersNA: false,
-  });
+  // Local state for UI - initialized from store
+  const [executiveSummary, setExecutiveSummary] = useState<ExecutiveSummary>(
+    currentReport?.executiveSummaryOfCompliance || {
+      epepCompliance: {
+        safety: false,
+        social: false,
+        rehabilitation: false,
+      },
+      epepRemarks: "",
+      sdmpCompliance: "",
+      sdmpRemarks: "",
+      complaintsManagement: {
+        complaintReceiving: false,
+        caseInvestigation: false,
+        implementationControl: false,
+        communicationComplainant: false,
+        complaintDocumentation: false,
+        naForAll: false,
+      },
+      complaintsRemarks: "",
+      accountability: "",
+      accountabilityRemarks: "",
+      othersSpecify: "",
+      othersNA: false,
+    }
+  );
 
-  const [processDoc, setProcessDoc] = useState<ProcessDocumentation>({
-    dateConducted: "",
-    sameDateForAll: false,
-    eccMmtMembers: "",
-    epepMmtMembers: "",
-    ocularMmtMembers: "",
-    ocularNA: false,
-    methodologyRemarks: "",
-    siteValidationApplicable: "",
-    samplingDateConducted: "",
-    samplingMmtMembers: "",
-    samplingMethodologyRemarks: "",
-  });
+  const [processDoc, setProcessDoc] = useState<ProcessDocumentation>(
+    currentReport?.processDocumentationOfActivitiesUndertaken || {
+      dateConducted: "",
+      sameDateForAll: false,
+      eccMmtMembers: "",
+      epepMmtMembers: "",
+      ocularMmtMembers: "",
+      ocularNA: false,
+      methodologyRemarks: "",
+      siteValidationApplicable: "",
+      samplingDateConducted: "",
+      samplingMmtMembers: "",
+      samplingMethodologyRemarks: "",
+    }
+  );
 
-  const [eccMmtAdditional, setEccMmtAdditional] = useState<string[]>([]);
-  const [epepMmtAdditional, setEpepMmtAdditional] = useState<string[]>([]);
-  const [ocularMmtAdditional, setOcularMmtAdditional] = useState<string[]>([]);
+  const [eccMmtAdditional, setEccMmtAdditional] = useState<string[]>(
+    currentReport?.eccMmtAdditional || []
+  );
+  const [epepMmtAdditional, setEpepMmtAdditional] = useState<string[]>(
+    currentReport?.epepMmtAdditional || []
+  );
+  const [ocularMmtAdditional, setOcularMmtAdditional] = useState<string[]>(
+    currentReport?.ocularMmtAdditional || []
+  );
 
-  // Hydrate from route params when coming from a draft
+  // Auto-sync local state to store
   useEffect(() => {
-    const params: any = route.params || {};
-    if (params.executiveSummaryOfCompliance) {
-      setExecutiveSummary({
-        ...executiveSummary,
-        ...params.executiveSummaryOfCompliance,
-      });
-    }
-    if (params.processDocumentationOfActivitiesUndertaken) {
-      setProcessDoc({
+    updateMultipleSections({
+      executiveSummaryOfCompliance: executiveSummary,
+      processDocumentationOfActivitiesUndertaken: {
         ...processDoc,
-        ...params.processDocumentationOfActivitiesUndertaken,
-      });
-    }
-    if (Array.isArray(params.eccMmtAdditional)) {
-      setEccMmtAdditional(params.eccMmtAdditional);
-    }
-    if (Array.isArray(params.epepMmtAdditional)) {
-      setEpepMmtAdditional(params.epepMmtAdditional);
-    }
-    if (Array.isArray(params.ocularMmtAdditional)) {
-      setOcularMmtAdditional(params.ocularMmtAdditional);
-    }
-  }, [route.params]);
+        eccMmtAdditional,
+        epepMmtAdditional,
+        ocularMmtAdditional,
+      },
+      eccMmtAdditional,
+      epepMmtAdditional,
+      ocularMmtAdditional,
+    });
+  }, [
+    executiveSummary,
+    processDoc,
+    eccMmtAdditional,
+    epepMmtAdditional,
+    ocularMmtAdditional,
+  ]);
 
   // Fill with test data for quick testing
   const fillTestData = () => {
@@ -174,50 +194,16 @@ const CMVRPage2Screen = () => {
 
   const handleSave = async () => {
     try {
-      // Get all Page 1 data from route params
-      const page1Data: any = route.params || {};
+      await saveDraft();
+      Alert.alert("Success", "Draft saved successfully");
 
-      // Combine all data from Page 1 and Page 2
-      const draftData = {
-        // Page 1 data
-        generalInfo: page1Data.generalInfo,
-        eccInfo: page1Data.eccInfo,
-        eccAdditionalForms: page1Data.eccAdditionalForms,
-        isagInfo: page1Data.isagInfo,
-        isagAdditionalForms: page1Data.isagAdditionalForms,
-        epepInfo: page1Data.epepInfo,
-        epepAdditionalForms: page1Data.epepAdditionalForms,
-        rcfInfo: page1Data.rcfInfo,
-        rcfAdditionalForms: page1Data.rcfAdditionalForms,
-        mtfInfo: page1Data.mtfInfo,
-        mtfAdditionalForms: page1Data.mtfAdditionalForms,
-        fmrdfInfo: page1Data.fmrdfInfo,
-        fmrdfAdditionalForms: page1Data.fmrdfAdditionalForms,
-        mmtInfo: page1Data.mmtInfo,
-        fileName: fileName,
-        // Page 2 data (use same keys as navigation)
-        executiveSummaryOfCompliance: executiveSummary,
-        processDocumentationOfActivitiesUndertaken: processDoc,
-        eccMmtAdditional,
-        epepMmtAdditional,
-        ocularMmtAdditional,
-        savedAt: new Date().toISOString(),
-      };
-
-      const success = await saveDraft(fileName || "Untitled", draftData);
-
-      if (success) {
-        Alert.alert("Success", "Draft saved successfully");
-        // Navigate to Dashboard using reset
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: "Dashboard" }],
-          })
-        );
-      } else {
-        Alert.alert("Error", "Failed to save draft. Please try again.");
-      }
+      // Navigate to Dashboard using reset
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
     } catch (error) {
       console.error("Error saving draft:", error);
       Alert.alert("Error", "Failed to save draft. Please try again.");
@@ -231,50 +217,16 @@ const CMVRPage2Screen = () => {
 
   const handleSaveToDraft = async () => {
     try {
-      // Get all Page 1 data from route params
-      const page1Data: any = route.params || {};
+      await saveDraft();
+      Alert.alert("Success", "Draft saved successfully");
 
-      // Combine all data from Page 1 and Page 2
-      const draftData = {
-        // Page 1 data
-        generalInfo: page1Data.generalInfo,
-        eccInfo: page1Data.eccInfo,
-        eccAdditionalForms: page1Data.eccAdditionalForms,
-        isagInfo: page1Data.isagInfo,
-        isagAdditionalForms: page1Data.isagAdditionalForms,
-        epepInfo: page1Data.epepInfo,
-        epepAdditionalForms: page1Data.epepAdditionalForms,
-        rcfInfo: page1Data.rcfInfo,
-        rcfAdditionalForms: page1Data.rcfAdditionalForms,
-        mtfInfo: page1Data.mtfInfo,
-        mtfAdditionalForms: page1Data.mtfAdditionalForms,
-        fmrdfInfo: page1Data.fmrdfInfo,
-        fmrdfAdditionalForms: page1Data.fmrdfAdditionalForms,
-        mmtInfo: page1Data.mmtInfo,
-        fileName: fileName,
-        // Page 2 data (use same keys as navigation)
-        executiveSummaryOfCompliance: executiveSummary,
-        processDocumentationOfActivitiesUndertaken: processDoc,
-        eccMmtAdditional,
-        epepMmtAdditional,
-        ocularMmtAdditional,
-        savedAt: new Date().toISOString(),
-      };
-
-      const success = await saveDraft(fileName || "Untitled", draftData);
-
-      if (success) {
-        Alert.alert("Success", "Draft saved successfully");
-        // Navigate to Dashboard using reset
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: "Dashboard" }],
-          })
-        );
-      } else {
-        Alert.alert("Error", "Failed to save draft. Please try again.");
-      }
+      // Navigate to Dashboard using reset
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
     } catch (error) {
       console.error("Error saving draft:", error);
       Alert.alert("Error", "Failed to save draft. Please try again.");
@@ -290,30 +242,29 @@ const CMVRPage2Screen = () => {
     );
   };
 
+  const handleGoToSummary = () => {
+    (navigation as any).navigate("CMVRDocumentExport", {
+      cmvrReportId: submissionId || storeSubmissionId || undefined,
+      fileName: fileName || storeFileName || "File_Name",
+      projectId: projectId || storeProjectId || undefined,
+      projectName: projectName || storeProjectName || "",
+    });
+  };
+
   const handleSaveAndNext = () => {
-    // Build Page 2 payloads
-    const executiveSummaryOfCompliance = {
-      ...executiveSummary,
-    };
-
-    const processDocumentationOfActivitiesUndertaken = {
-      ...processDoc,
-      eccMmtAdditional,
-      epepMmtAdditional,
-      ocularMmtAdditional,
-    };
-
+    // Data is already in store via auto-sync useEffect
+    // Just navigate with metadata
     const nextParams = {
-      ...(route.params || {}),
-      submissionId,
-      projectId,
-      projectName,
-      fileName,
-      executiveSummaryOfCompliance,
-      processDocumentationOfActivitiesUndertaken,
+      submissionId: submissionId || storeSubmissionId,
+      projectId: projectId || storeProjectId,
+      projectName: projectName || storeProjectName,
+      fileName: fileName || storeFileName,
     } as any;
 
-    console.log("Navigating with Page2 params keys:", Object.keys(nextParams));
+    console.log(
+      "Navigating to ComplianceMonitoring with metadata:",
+      Object.keys(nextParams)
+    );
     navigation.navigate("ComplianceMonitoring", nextParams);
   };
 
@@ -386,15 +337,15 @@ const CMVRPage2Screen = () => {
       [
         {
           text: "Cancel",
-          style: "cancel"
+          style: "cancel",
         },
         {
           text: "Delete",
           style: "destructive",
           onPress: () => {
             setEccMmtAdditional(eccMmtAdditional.filter((_, i) => i !== index));
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -423,6 +374,7 @@ const CMVRPage2Screen = () => {
           onStay={handleStay}
           onSaveToDraft={handleSaveToDraft}
           onDiscard={handleDiscard}
+          onGoToSummary={handleGoToSummary}
         />
       </View>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -474,7 +426,7 @@ const CMVRPage2Screen = () => {
           <Text style={styles.saveNextButtonText}>Save & Next</Text>
           <Ionicons name="arrow-forward" size={18} color="white" />
         </TouchableOpacity>
-        {/* filler gap ts not advisable tbh*/}   
+        {/* filler gap ts not advisable tbh*/}
         <View style={{ height: 40 }} />
       </ScrollView>
     </View>

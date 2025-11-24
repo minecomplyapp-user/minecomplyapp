@@ -50,7 +50,7 @@ export const ConditionModal = ({
                   onChangeText={(t) => onChange({ ...editing, title: t })}
                 />
 
-                <Text style={styles.modalLabel}>Complied (description)</Text>
+                {/* <Text style={styles.modalLabel}>Complied (description)</Text>
                 <TextInput
                   style={[styles.modalInput, styles.modalTextarea]}
                   placeholder="Complied description"
@@ -63,9 +63,9 @@ export const ConditionModal = ({
                     })
                   }
                   multiline
-                />
+                /> */}
 
-                <Text style={styles.modalLabel}>
+                {/* <Text style={styles.modalLabel}>
                   Partially Complied (description)
                 </Text>
                 <TextInput
@@ -80,9 +80,9 @@ export const ConditionModal = ({
                     })
                   }
                   multiline
-                />
+                /> */}
 
-                <Text style={styles.modalLabel}>
+                {/* <Text style={styles.modalLabel}>
                   Not Complied (description)
                 </Text>
                 <TextInput
@@ -97,7 +97,7 @@ export const ConditionModal = ({
                     })
                   }
                   multiline
-                />
+                /> */}
               </ScrollView>
 
               {/* Action Buttons */}

@@ -21,25 +21,31 @@ import {
 import { theme } from "../../theme/theme";
 import { CustomHeader } from "../../components/CustomHeader";
 import { cmvrDraftStyles as styles } from "./styles/ECCDraftsScreen.styles";
-import {
-
-  DraftMetadata,
-} from "../../lib/drafts";
 import { useFileName } from "../../contexts/FileNameContext";
-import { useEccDraftStore } from "../../store/eccDraftStore"
-import { useEccStore } from "../../store/eccStore"
+import { useEccDraftStore } from "../../store/eccDraftStore";
+import { useEccStore } from "../../store/eccStore";
 
-interface DraftListItem extends DraftMetadata {
-  id: string,
+type EccDraftMetadata = {
+  id: string;
+  fileName: string;
+  date: string;
+  saveAt: string;
+};
+
+interface DraftListItem {
+  id: string;
   displayName: string;
   displayDate: string;
+  updatedAt: string;
+  isLocalDraft: boolean;
 }
 
 type Navigation = StackNavigationProp<any>;
 
 const CMVRDraftsScreen = () => {
-  const {getDraftList,loadDraftById,clearDrafts,deleteDraft} =useEccDraftStore()
-  const {setSelectedReport} =useEccStore()
+  const { getDraftList, loadDraftById, clearDrafts, deleteDraft } =
+    useEccDraftStore();
+  const { setSelectedReport } = useEccStore();
 
   const navigation = useNavigation<Navigation>();
   const { setFileName } = useFileName();
@@ -49,40 +55,32 @@ const CMVRDraftsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [createAnim] = useState(new Animated.Value(1));
 
-  
-
   const hydrateDrafts = useCallback(async () => {
-
     setLoading(true);
 
- 
-
-
-     try {
-        const draftMetadata = await getDraftList();
-        // console.log("Found drafts:", draftMetadata.length);
-        const hydrated = draftMetadata.slice(0, 3).map((draft) => ({
+    try {
+      const draftMetadata = (await getDraftList()) as EccDraftMetadata[];
+      // console.log("Found drafts:", draftMetadata.length);
+      const hydrated = draftMetadata
+        .slice(0, 3)
+        .map((draft: EccDraftMetadata) => ({
           id: draft.id,
           displayName: draft.fileName,
-        
-          date: new Date(draft.saveAt).toLocaleDateString("en-US", {
+          displayDate: new Date(draft.saveAt).toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
             year: "numeric",
           }),
-          updatedAt:draft.date,
+          updatedAt: draft.date ?? draft.saveAt,
           isLocalDraft: true,
         }));
       setDrafts(hydrated);
-          console.log("Asdasd",draftMetadata)
-      } catch (err) {
-        console.log("Error loading local drafts:", err);
-     
-      }finally {
+      console.log("Asdasd", draftMetadata);
+    } catch (err) {
+      console.log("Error loading local drafts:", err);
+    } finally {
       setLoading(false);
     }
-
-
   }, []);
 
   useEffect(() => {
@@ -141,17 +139,14 @@ const CMVRDraftsScreen = () => {
     }
   };
 
-  const handleOpenDraft = async (id:string) => {
-        const data = await loadDraftById(id);
-        setSelectedReport(data)
-        console.log("asd",data)
-        navigation.navigate("ECCMonitoring",{id:id})
-
-
-    
+  const handleOpenDraft = async (id: string) => {
+    const data = await loadDraftById(id);
+    setSelectedReport(data);
+    console.log("asd", data);
+    navigation.navigate("ECCMonitoring", { id: id });
   };
 
-  const handleDeleteDraft = (id: any) => {
+  const handleDeleteDraft = (id: string) => {
     Alert.alert(
       "Delete Draft",
       "Are you sure you want to delete this draft? This cannot be undone.",
@@ -164,8 +159,7 @@ const CMVRDraftsScreen = () => {
             try {
               const success = await deleteDraft(id);
               if (success) {
-                  await hydrateDrafts(); 
-
+                await hydrateDrafts();
               } else {
                 Alert.alert("Error", "Unable to delete draft right now.");
               }
@@ -242,9 +236,9 @@ const CMVRDraftsScreen = () => {
 };
 
 interface DraftCardProps {
-  draft: any;
+  draft: DraftListItem;
   onOpen: (id: string) => void;
-  onDelete: (draft: DraftListItem) => void;
+  onDelete: (id: string) => void;
 }
 
 function AnimatedDraftCard({ draft, onOpen, onDelete }: DraftCardProps) {
@@ -274,7 +268,7 @@ function AnimatedDraftCard({ draft, onOpen, onDelete }: DraftCardProps) {
         activeOpacity={0.9}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        onPress={() => onOpen(draft)}
+        onPress={() => onOpen(draft.id)}
         style={styles.draftInner}
       >
         <View style={styles.draftInfo}>
@@ -284,9 +278,7 @@ function AnimatedDraftCard({ draft, onOpen, onDelete }: DraftCardProps) {
           <View style={styles.draftMeta}>
             <Calendar color={theme.colors.textLight} size={14} />
             <Text style={styles.draftMetaText}>
-              Last saved: {draft.updatedAt 
-                ? draft.updatedAt 
-                : 'Unknown Date'}
+              Last saved: {draft.updatedAt ? draft.updatedAt : "Unknown Date"}
             </Text>
           </View>
         </View>
@@ -294,14 +286,14 @@ function AnimatedDraftCard({ draft, onOpen, onDelete }: DraftCardProps) {
         <View style={styles.actionRow}>
           <TouchableOpacity
             style={[styles.iconButton, styles.openButton]}
-            onPress={() => onOpen(draft)}
+            onPress={() => onOpen(draft.id)}
           >
             <Edit3 size={18} color={theme.colors.primaryDark} />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.iconButton, styles.deleteButton]}
-            onPress={() => onDelete(draft)}
+            onPress={() => onDelete(draft.id)}
           >
             <Trash2 size={18} color={theme.colors.error} />
           </TouchableOpacity>

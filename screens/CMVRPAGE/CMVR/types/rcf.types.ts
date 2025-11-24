@@ -26,4 +26,6 @@ export type RCFSectionProps = {
   setFmrdfInfo: React.Dispatch<React.SetStateAction<FundInfo>>;
   fmrdfAdditionalForms: FundAdditionalForm[];
   setFmrdfAdditionalForms: React.Dispatch<React.SetStateAction<FundAdditionalForm[]>>;
+  permitHolderList: string[];
+
 };

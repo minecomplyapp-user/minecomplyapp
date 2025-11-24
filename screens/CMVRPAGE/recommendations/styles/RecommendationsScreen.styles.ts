@@ -13,8 +13,8 @@ export const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
-  
-quarterSelectorCard: {
+
+  quarterSelectorCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 20,
@@ -47,7 +47,7 @@ quarterSelectorCard: {
     color: "#475569",
     marginBottom: 8,
   },
- yearInput: {
+  yearInput: {
     backgroundColor: "#F8FAFC",
     borderWidth: 1.5,
     borderColor: "#CBD5E1",
@@ -61,7 +61,7 @@ quarterSelectorCard: {
     textAlign: "left",
     letterSpacing: 0.5,
   },
-  
+
   sectionHeaderContainer: {
     backgroundColor: "#02217C",
     paddingVertical: 14,
@@ -83,7 +83,7 @@ quarterSelectorCard: {
     letterSpacing: 0.5,
     textTransform: "uppercase",
   },
-  
+
   // Section Card
   sectionCard: {
     backgroundColor: "#FFFFFF",
@@ -140,7 +140,7 @@ quarterSelectorCard: {
   sectionContent: {
     gap: 16,
   },
-  
+
   // Item Card
   itemCard: {
     backgroundColor: "#F8FAFC",
@@ -186,6 +186,25 @@ quarterSelectorCard: {
   fieldGroup: {
     marginBottom: 16,
   },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#475569",
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: "#0F172A",
+    fontWeight: "500",
+    minHeight: 48,
+    textAlignVertical: "top",
+  },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -205,7 +224,7 @@ quarterSelectorCard: {
     fontSize: 14,
     fontWeight: "700",
   },
-  
+
   // Save Button
   saveButton: {
     backgroundColor: "#02217C",

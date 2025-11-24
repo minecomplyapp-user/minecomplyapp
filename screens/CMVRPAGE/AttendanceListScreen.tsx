@@ -17,6 +17,7 @@ import {
   Trash2,
   Download,
   Edit,
+  FileText,
 } from "lucide-react-native";
 import { theme } from "../../theme/theme";
 import { attendanceRecordStyles as styles } from "../attendance/styles/attendanceRecordScreen";
@@ -47,10 +48,17 @@ export default function AttendanceListScreen({ navigation, route }: any) {
   const isSelectionMode = route.params?.fromRecommendations || false;
   const previousParams = route.params || {};
 
-  // Selected attendance state
+  // Selected attendance state - initialize from route params if available
   const [selectedAttendanceId, setSelectedAttendanceId] = useState<
     string | null
-  >(null);
+  >(route.params?.selectedAttendanceId || null);
+
+  // Hydrate selection from route params when they change
+  useEffect(() => {
+    if (route.params?.selectedAttendanceId) {
+      setSelectedAttendanceId(route.params.selectedAttendanceId);
+    }
+  }, [route.params?.selectedAttendanceId]);
 
   const fmtDate = (d?: string | null): string => {
     if (!d) return "";
@@ -74,6 +82,7 @@ export default function AttendanceListScreen({ navigation, route }: any) {
       const data = await apiGet<AttendanceRecordItem[]>(
         `/attendance/creator/${user.id}`
       );
+      console.log("Fetched attendance records:", JSON.stringify(data, null, 2));
       setAttendanceRecords(Array.isArray(data) ? data : []);
     } catch (e: any) {
       Alert.alert("Error", e?.message || "Failed to load attendance records.");
@@ -128,12 +137,16 @@ export default function AttendanceListScreen({ navigation, route }: any) {
     );
   };
 
-  const handleDownload = async (id: string) => {
+  const handleDownload = async (id: string, format: "pdf" | "docx" = "pdf") => {
     try {
       const base = getApiBaseUrl();
-      const token = await getJwt();
 
-      const url = `${base}/api/attendance/${id}/pdf?token=${encodeURIComponent(token)}`;
+      // Use direct endpoint without token in URL (like CMVR downloads)
+      // The backend will handle authentication if needed
+      const url = `${base}/api/attendance/${id}/${format}`;
+
+      console.log("Download URL:", url);
+      console.log("Record ID:", id);
 
       const canOpen = await Linking.canOpenURL(url);
 
@@ -141,17 +154,38 @@ export default function AttendanceListScreen({ navigation, route }: any) {
         await Linking.openURL(url);
         Alert.alert(
           "Download Started",
-          "The PDF will be downloaded by your browser. Check your Downloads folder or notification bar."
+          `The ${format.toUpperCase()} will be downloaded by your browser. Check your Downloads folder or notification bar.`
         );
       } else {
         Alert.alert("Error", "Unable to open browser for download");
       }
     } catch (e: any) {
+      console.error("Download error:", e);
       Alert.alert(
         "Download failed",
         e?.message || "Could not open download URL"
       );
     }
+  };
+  const handleDownloadOptions = (record: AttendanceRecordItem) => {
+    Alert.alert(
+      "Download Format",
+      `Choose format for: ${record.fileName || record.title || "Attendance"}`,
+      [
+        {
+          text: "PDF",
+          onPress: () => handleDownload(record.id, "pdf"),
+        },
+        {
+          text: "DOCX (Word)",
+          onPress: () => handleDownload(record.id, "docx"),
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ]
+    );
   };
 
   const handleSelectRecord = (record: AttendanceRecordItem) => {
@@ -182,7 +216,6 @@ export default function AttendanceListScreen({ navigation, route }: any) {
       ...previousParams,
       selectedAttendanceId: selectedRecord.id,
       selectedAttendanceTitle: selectedRecord.title || selectedRecord.fileName,
-      attendanceUrl: selectedRecord.id,
     });
   };
 
@@ -326,7 +359,7 @@ export default function AttendanceListScreen({ navigation, route }: any) {
                     ),
                   }}
                   onDelete={(id: string) => handleDelete(id)}
-                  onDownload={handleDownload}
+                  onDownload={() => handleDownloadOptions(record)}
                   onOpen={handleOpenRecord}
                   isSelectionMode={isSelectionMode}
                   isSelected={
@@ -437,7 +470,7 @@ function AnimatedRecordCard({
               style={[styles.iconButton, styles.downloadButton]}
               onPress={(e) => {
                 e.stopPropagation();
-                onDownload(record.id);
+                onDownload();
               }}
             >
               <Download size={18} color={theme.colors.primaryDark} />

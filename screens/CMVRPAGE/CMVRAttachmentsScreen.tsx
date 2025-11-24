@@ -22,7 +22,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const isTablet = SCREEN_WIDTH >= 768;
 
 export default function CMVRAttachmentsScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const route = useRoute();
   const params: any = route.params || {};
 
@@ -159,14 +159,11 @@ export default function CMVRAttachmentsScreen() {
 
     console.log("=== Navigating with attachments ===", formattedAttachments);
 
-    navigation.navigate(
-      "CMVRDocumentExport" as never,
-      {
-        ...params,
-        attachments: formattedAttachments,
-        newlyUploadedPaths,
-      } as never
-    );
+    navigation.navigate("CMVRDocumentExport", {
+      ...params,
+      attachments: formattedAttachments,
+      newlyUploadedPaths,
+    });
   };
 
   return (

@@ -11,7 +11,7 @@ import {
 export const cmvrDraftStyles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: theme.colors.background,
   },
   scrollContent: {
     paddingBottom: verticalScale(40),
@@ -20,7 +20,6 @@ export const cmvrDraftStyles = StyleSheet.create({
     paddingHorizontal: scale(20),
     paddingTop: verticalScale(theme.spacing.lg),
     paddingBottom: verticalScale(20),
-    backgroundColor: "white",
     ...Platform.select({
       ios: {
         shadowColor: "#000",

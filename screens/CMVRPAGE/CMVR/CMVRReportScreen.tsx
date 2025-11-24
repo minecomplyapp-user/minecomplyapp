@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   ScrollView,
@@ -21,8 +21,9 @@ import MMTSection from "./components/MMTSection";
 import type { MMTInfo } from "./types/mmt.types";
 import { Ionicons } from "@expo/vector-icons";
 import { useFileName } from "../../../contexts/FileNameContext";
+import { useCmvrStore } from "../../../store/cmvrStore";
 import { createCMVRReport } from "../../../lib/cmvr";
-import { saveDraft } from "../../../lib/drafts";
+
 import {
   CMVRReportScreenNavigationProp,
   CMVRReportScreenRouteProp,
@@ -198,162 +199,422 @@ const CMVRReportScreen: React.FC = () => {
   const navigation = useNavigation<CMVRReportScreenNavigationProp>();
   const route = useRoute<CMVRReportScreenRouteProp>();
   const routeParams = route.params || {};
-  const draftData = routeParams.draftData;
-  const submissionId = routeParams.submissionId ?? null;
-  const projectId = routeParams.projectId ?? null;
-  const projectName =
-    (typeof routeParams.projectName === "string" && routeParams.projectName) ||
-    draftData?.generalInfo?.projectName ||
-    draftData?.generalInfo?.projectNameCurrent ||
-    "";
-  const routeFileName =
-    routeParams.fileName || draftData?.fileName || undefined;
-  const { fileName, setFileName } = useFileName();
-  console.log("Initial fileName:", fileName);
+  const routeDraftData =
+    routeParams.draftData && typeof routeParams.draftData === "object"
+      ? routeParams.draftData
+      : null;
 
   useEffect(() => {
-    if (routeFileName) {
-      setFileName(routeFileName);
+    if (routeParams.submissionId) {
+      console.warn(
+        `[CMVR] Opening existing submission ${routeParams.submissionId} on CMVRReportScreen`
+      );
     }
-  }, [routeFileName]);
+  }, [routeParams.submissionId]);
 
-  const [generalInfo, setGeneralInfo] = useState<GeneralInfo>(() => ({
-    companyName: draftData?.generalInfo?.companyName || "",
-    projectName:
-      draftData?.generalInfo?.projectName ||
-      draftData?.generalInfo?.projectNameCurrent ||
-      projectName ||
-      "",
-    location: draftData?.generalInfo?.location || "",
-    region: draftData?.generalInfo?.region || "",
-    province: draftData?.generalInfo?.province || "",
-    municipality: draftData?.generalInfo?.municipality || "",
-    quarter: draftData?.generalInfo?.quarter || "",
-    year: draftData?.generalInfo?.year || "",
-    dateOfCompliance: draftData?.generalInfo?.dateOfCompliance || "",
-    monitoringPeriod: draftData?.generalInfo?.monitoringPeriod || "",
-    dateOfCMRSubmission: draftData?.generalInfo?.dateOfCMRSubmission || "",
-  }));
+  // **ZUSTAND STORE** - Single source of truth
+  const {
+    currentReport,
+    fileName: storeFileName,
+    submissionId: storeSubmissionId,
+    projectId: storeProjectId,
+    projectName: storeProjectName,
+    isDirty,
+    updateSection,
+    updateMultipleSections,
+    updateMetadata,
+    saveDraft,
+    loadDraft,
+    initializeNewReport,
+    loadReport,
+    clearReport,
+  } = useCmvrStore();
 
+  // Local UI state
+  const [isSaving, setIsSaving] = useState(false);
+  const [showBackDialog, setShowBackDialog] = useState(false);
+  const [permitHolderList, setPermitHolderList] = useState<string[]>([]);
+
+  // Legacy fileName context (keep for compatibility with other screens)
+  const { fileName: contextFileName, setFileName: setContextFileName } =
+    useFileName();
+
+  const initialSnapshotRef = useRef<{
+    report: any;
+    metadata: {
+      fileName: string;
+      submissionId: string | null;
+      projectId: string | null;
+      projectName: string;
+    };
+  } | null>(null);
+
+  // **INITIALIZATION** - Load from draft or route params on mount
+  useEffect(() => {
+    const initialize = async () => {
+      // Priority: route draft payload > submission params > stored draft > new report
+      if (routeDraftData) {
+        loadReport(routeDraftData);
+
+        const derivedFileName =
+          routeParams.fileName ||
+          routeDraftData.fileName ||
+          contextFileName ||
+          "Untitled";
+
+        updateMetadata({
+          fileName: derivedFileName,
+          submissionId:
+            routeParams.submissionId ?? routeDraftData.submissionId ?? null,
+          projectId: routeParams.projectId ?? routeDraftData.projectId ?? null,
+          projectName:
+            routeParams.projectName ||
+            routeDraftData.projectName ||
+            routeDraftData.generalInfo?.projectName ||
+            "",
+        });
+
+        setContextFileName(derivedFileName);
+        return;
+      }
+
+      if (routeParams.submissionId) {
+        // Loading existing submission or draft from route
+        const reportData = {
+          generalInfo:
+            routeParams.draftData?.generalInfo || currentReport?.generalInfo,
+          eccInfo: routeParams.draftData?.eccInfo || currentReport?.eccInfo,
+          eccAdditionalForms:
+            routeParams.draftData?.eccAdditionalForms ||
+            currentReport?.eccAdditionalForms,
+          isagInfo: routeParams.draftData?.isagInfo || currentReport?.isagInfo,
+          isagAdditionalForms:
+            routeParams.draftData?.isagAdditionalForms ||
+            currentReport?.isagAdditionalForms,
+          epepInfo: routeParams.draftData?.epepInfo || currentReport?.epepInfo,
+          epepAdditionalForms:
+            routeParams.draftData?.epepAdditionalForms ||
+            currentReport?.epepAdditionalForms,
+          rcfInfo: routeParams.draftData?.rcfInfo || currentReport?.rcfInfo,
+          rcfAdditionalForms:
+            routeParams.draftData?.rcfAdditionalForms ||
+            currentReport?.rcfAdditionalForms,
+          mtfInfo: routeParams.draftData?.mtfInfo || currentReport?.mtfInfo,
+          mtfAdditionalForms:
+            routeParams.draftData?.mtfAdditionalForms ||
+            currentReport?.mtfAdditionalForms,
+          fmrdfInfo:
+            routeParams.draftData?.fmrdfInfo || currentReport?.fmrdfInfo,
+          fmrdfAdditionalForms:
+            routeParams.draftData?.fmrdfAdditionalForms ||
+            currentReport?.fmrdfAdditionalForms,
+          mmtInfo: routeParams.draftData?.mmtInfo || currentReport?.mmtInfo,
+        };
+
+        loadReport(reportData);
+
+        const fileName =
+          routeParams.fileName || routeParams.draftData?.fileName || "Untitled";
+        const projectName =
+          routeParams.projectName ||
+          routeParams.draftData?.generalInfo?.projectName ||
+          "";
+
+        updateMetadata({
+          fileName,
+          submissionId: routeParams.submissionId ?? null,
+          projectId: routeParams.projectId ?? null,
+          projectName,
+        });
+
+        setContextFileName(fileName);
+      } else {
+        // Always start fresh for new CMVR entries
+        const newFileName = contextFileName || "Untitled";
+        initializeNewReport(newFileName);
+        setContextFileName(newFileName);
+      }
+    };
+
+    initialize();
+  }, []); // Run once on mount
+
+  useEffect(() => {
+    if (initialSnapshotRef.current || !currentReport) {
+      return;
+    }
+
+    initialSnapshotRef.current = {
+      report: JSON.parse(JSON.stringify(currentReport)),
+      metadata: {
+        fileName: storeFileName || contextFileName || "Untitled",
+        submissionId: storeSubmissionId ?? null,
+        projectId: storeProjectId ?? null,
+        projectName:
+          storeProjectName || currentReport?.generalInfo?.projectName || "",
+      },
+    };
+  }, [
+    currentReport,
+    storeFileName,
+    contextFileName,
+    storeSubmissionId,
+    storeProjectId,
+    storeProjectName,
+  ]);
+
+  // **DERIVED STATE** - Get current values from store
+  const generalInfo = currentReport?.generalInfo || {
+    companyName: "",
+    projectName: "",
+    location: "",
+    region: "",
+    province: "",
+    municipality: "",
+    quarter: "",
+    year: "",
+    dateOfCompliance: "",
+    monitoringPeriod: "",
+    dateOfCMRSubmission: "",
+  };
+
+  const eccInfo = currentReport?.eccInfo || {
+    isNA: false,
+    permitHolder: "",
+    eccNumber: "",
+    dateOfIssuance: "",
+  };
+  // Ensure isNA is properly read from store
+  if (
+    currentReport?.eccInfo &&
+    typeof currentReport.eccInfo.isNA === "boolean"
+  ) {
+    eccInfo.isNA = currentReport.eccInfo.isNA;
+  }
+
+  const eccAdditionalForms = currentReport?.eccAdditionalForms || [];
+  const isagInfo = currentReport?.isagInfo || {
+    isNA: false,
+    permitHolder: "",
+    isagNumber: "",
+    dateOfIssuance: "",
+    currentName: "",
+    nameInECC: "",
+    projectStatus: "",
+    gpsX: "",
+    gpsY: "",
+    proponentName: "",
+    proponentContact: "",
+    proponentAddress: "",
+    proponentPhone: "",
+    proponentEmail: "",
+  };
+  // Ensure isNA is properly read from store
+  if (
+    currentReport?.isagInfo &&
+    typeof currentReport.isagInfo.isNA === "boolean"
+  ) {
+    isagInfo.isNA = currentReport.isagInfo.isNA;
+  }
+
+  const isagAdditionalForms = currentReport?.isagAdditionalForms || [];
+  const epepInfo = currentReport?.epepInfo || {
+    isNA: false,
+    permitHolder: "",
+    epepNumber: "",
+    dateOfApproval: "",
+  };
+  if (
+    currentReport?.epepInfo &&
+    typeof currentReport.epepInfo.isNA === "boolean"
+  ) {
+    epepInfo.isNA = currentReport.epepInfo.isNA;
+  }
+
+  const epepAdditionalForms = currentReport?.epepAdditionalForms || [];
+  const rcfInfo = currentReport?.rcfInfo || {
+    isNA: false,
+    permitHolder: "",
+    savingsAccount: "",
+    amountDeposited: "",
+    dateUpdated: "",
+  };
+  if (
+    currentReport?.rcfInfo &&
+    typeof currentReport.rcfInfo.isNA === "boolean"
+  ) {
+    rcfInfo.isNA = currentReport.rcfInfo.isNA;
+  }
+
+  const rcfAdditionalForms = currentReport?.rcfAdditionalForms || [];
+  const mtfInfo = currentReport?.mtfInfo || {
+    isNA: false,
+    permitHolder: "",
+    savingsAccount: "",
+    amountDeposited: "",
+    dateUpdated: "",
+  };
+  if (
+    currentReport?.mtfInfo &&
+    typeof currentReport.mtfInfo.isNA === "boolean"
+  ) {
+    mtfInfo.isNA = currentReport.mtfInfo.isNA;
+  }
+
+  const mtfAdditionalForms = currentReport?.mtfAdditionalForms || [];
+  const fmrdfInfo = currentReport?.fmrdfInfo || {
+    isNA: false,
+    permitHolder: "",
+    savingsAccount: "",
+    amountDeposited: "",
+    dateUpdated: "",
+  };
+  if (
+    currentReport?.fmrdfInfo &&
+    typeof currentReport.fmrdfInfo.isNA === "boolean"
+  ) {
+    fmrdfInfo.isNA = currentReport.fmrdfInfo.isNA;
+  }
+
+  const fmrdfAdditionalForms = currentReport?.fmrdfAdditionalForms || [];
+  const mmtInfo = currentReport?.mmtInfo || {
+    isNA: false,
+    contactPerson: "",
+    mailingAddress: "",
+    phoneNumber: "",
+    emailAddress: "",
+  };
+
+  const isExistingSubmission = Boolean(
+    routeParams.submissionId ?? storeSubmissionId
+  );
+  const statusLabel = isExistingSubmission
+    ? "Editing Submitted CMVR"
+    : "New CMVR Report";
+  const statusSubtext = isExistingSubmission
+    ? `Submission ID: ${routeParams.submissionId || storeSubmissionId}`
+    : "All sections start blank without previous data.";
+
+  // **HANDLERS** - Update store instead of local state
   const handleGeneralInfoChange = (field: string, value: string) => {
     if (field === "fileName") {
-      setFileName(value);
+      updateMetadata({ fileName: value });
+      setContextFileName(value);
     } else {
-      setGeneralInfo((prevState) => ({
-        ...prevState,
-        [field]: value,
-      }));
+      updateSection("generalInfo", { ...generalInfo, [field]: value });
     }
   };
 
-  const [eccInfo, setEccInfo] = useState<ECCInfo>({
-    isNA: draftData?.eccInfo?.isNA ?? false,
-    permitHolder: draftData?.eccInfo?.permitHolder || "",
-    eccNumber: draftData?.eccInfo?.eccNumber || "",
-    dateOfIssuance: draftData?.eccInfo?.dateOfIssuance || "",
-  });
+  // **SETTER FUNCTIONS** - Wrappers to update store sections
+  const setEccInfo = (value: ECCInfo | ((prev: ECCInfo) => ECCInfo)) => {
+    const newValue = typeof value === "function" ? value(eccInfo) : value;
+    updateSection("eccInfo", newValue);
+  };
 
-  const [eccAdditionalForms, setEccAdditionalForms] = useState<
-    ECCAdditionalForm[]
-  >(draftData?.eccAdditionalForms || []);
+  const setEccAdditionalForms = (
+    value:
+      | ECCAdditionalForm[]
+      | ((prev: ECCAdditionalForm[]) => ECCAdditionalForm[])
+  ) => {
+    const newValue =
+      typeof value === "function" ? value(eccAdditionalForms) : value;
+    updateSection("eccAdditionalForms", newValue);
+  };
 
-  const [isagInfo, setIsagInfo] = useState<ISAGInfo>({
-    isNA: draftData?.isagInfo?.isNA ?? false,
-    permitHolder: draftData?.isagInfo?.permitHolder || "",
-    isagNumber: draftData?.isagInfo?.isagNumber || "",
-    dateOfIssuance: draftData?.isagInfo?.dateOfIssuance || "",
-    currentName: draftData?.isagInfo?.currentName || "",
-    nameInECC: draftData?.isagInfo?.nameInECC || "",
-    projectStatus: draftData?.isagInfo?.projectStatus || "",
-    gpsX: draftData?.isagInfo?.gpsX || "",
-    gpsY: draftData?.isagInfo?.gpsY || "",
-    proponentName: draftData?.isagInfo?.proponentName || "",
-    proponentContact: draftData?.isagInfo?.proponentContact || "",
-    proponentAddress: draftData?.isagInfo?.proponentAddress || "",
-    proponentPhone: draftData?.isagInfo?.proponentPhone || "",
-    proponentEmail: draftData?.isagInfo?.proponentEmail || "",
-  });
+  const setIsagInfo = (value: ISAGInfo | ((prev: ISAGInfo) => ISAGInfo)) => {
+    const newValue = typeof value === "function" ? value(isagInfo) : value;
+    updateSection("isagInfo", newValue);
+  };
 
-  const [isagAdditionalForms, setIsagAdditionalForms] = useState<
-    ISAGAdditionalForm[]
-  >(draftData?.isagAdditionalForms || []);
+  const setIsagAdditionalForms = (
+    value:
+      | ISAGAdditionalForm[]
+      | ((prev: ISAGAdditionalForm[]) => ISAGAdditionalForm[])
+  ) => {
+    const newValue =
+      typeof value === "function" ? value(isagAdditionalForms) : value;
+    updateSection("isagAdditionalForms", newValue);
+  };
 
-  const [epepInfo, setEpepInfo] = useState<EPEPInfo>({
-    isNA: draftData?.epepInfo?.isNA ?? false,
-    permitHolder: draftData?.epepInfo?.permitHolder || "",
-    epepNumber: draftData?.epepInfo?.epepNumber || "",
-    dateOfApproval: draftData?.epepInfo?.dateOfApproval || "",
-  });
+  const setEpepInfo = (value: EPEPInfo | ((prev: EPEPInfo) => EPEPInfo)) => {
+    const newValue = typeof value === "function" ? value(epepInfo) : value;
+    updateSection("epepInfo", newValue);
+  };
 
-  const [epepAdditionalForms, setEpepAdditionalForms] = useState<
-    Array<Omit<EPEPInfo, "isNA">>
-  >(draftData?.epepAdditionalForms || []);
+  const setEpepAdditionalForms = (
+    value:
+      | Array<Omit<EPEPInfo, "isNA">>
+      | ((prev: Array<Omit<EPEPInfo, "isNA">>) => Array<Omit<EPEPInfo, "isNA">>)
+  ) => {
+    const newValue =
+      typeof value === "function" ? value(epepAdditionalForms) : value;
+    updateSection("epepAdditionalForms", newValue);
+  };
 
-  const [rcfInfo, setRcfInfo] = useState<RCFInfo>({
-    isNA: draftData?.rcfInfo?.isNA ?? false,
-    permitHolder: draftData?.rcfInfo?.permitHolder || "",
-    savingsAccount: draftData?.rcfInfo?.savingsAccount || "",
-    amountDeposited: draftData?.rcfInfo?.amountDeposited || "",
-    dateUpdated: draftData?.rcfInfo?.dateUpdated || "",
-  });
+  const setRcfInfo = (value: RCFInfo | ((prev: RCFInfo) => RCFInfo)) => {
+    const newValue = typeof value === "function" ? value(rcfInfo) : value;
+    updateSection("rcfInfo", newValue);
+  };
 
-  const [rcfAdditionalForms, setRcfAdditionalForms] = useState<
-    Array<Omit<RCFInfo, "isNA">>
-  >(draftData?.rcfAdditionalForms || []);
+  const setRcfAdditionalForms = (
+    value:
+      | Array<Omit<RCFInfo, "isNA">>
+      | ((prev: Array<Omit<RCFInfo, "isNA">>) => Array<Omit<RCFInfo, "isNA">>)
+  ) => {
+    const newValue =
+      typeof value === "function" ? value(rcfAdditionalForms) : value;
+    updateSection("rcfAdditionalForms", newValue);
+  };
 
-  const [mtfInfo, setMtfInfo] = useState<RCFInfo>({
-    isNA: draftData?.mtfInfo?.isNA ?? false,
-    permitHolder: draftData?.mtfInfo?.permitHolder || "",
-    savingsAccount: draftData?.mtfInfo?.savingsAccount || "",
-    amountDeposited: draftData?.mtfInfo?.amountDeposited || "",
-    dateUpdated: draftData?.mtfInfo?.dateUpdated || "",
-  });
+  const setMtfInfo = (value: RCFInfo | ((prev: RCFInfo) => RCFInfo)) => {
+    const newValue = typeof value === "function" ? value(mtfInfo) : value;
+    updateSection("mtfInfo", newValue);
+  };
 
-  const [mtfAdditionalForms, setMtfAdditionalForms] = useState<
-    Array<Omit<RCFInfo, "isNA">>
-  >(draftData?.mtfAdditionalForms || []);
+  const setMtfAdditionalForms = (
+    value:
+      | Array<Omit<RCFInfo, "isNA">>
+      | ((prev: Array<Omit<RCFInfo, "isNA">>) => Array<Omit<RCFInfo, "isNA">>)
+  ) => {
+    const newValue =
+      typeof value === "function" ? value(mtfAdditionalForms) : value;
+    updateSection("mtfAdditionalForms", newValue);
+  };
 
-  const [fmrdfInfo, setFmrdfInfo] = useState<RCFInfo>({
-    isNA: draftData?.fmrdfInfo?.isNA ?? false,
-    permitHolder: draftData?.fmrdfInfo?.permitHolder || "",
-    savingsAccount: draftData?.fmrdfInfo?.savingsAccount || "",
-    amountDeposited: draftData?.fmrdfInfo?.amountDeposited || "",
-    dateUpdated: draftData?.fmrdfInfo?.dateUpdated || "",
-  });
+  const setFmrdfInfo = (value: RCFInfo | ((prev: RCFInfo) => RCFInfo)) => {
+    const newValue = typeof value === "function" ? value(fmrdfInfo) : value;
+    updateSection("fmrdfInfo", newValue);
+  };
 
-  const [fmrdfAdditionalForms, setFmrdfAdditionalForms] = useState<
-    Array<Omit<RCFInfo, "isNA">>
-  >(draftData?.fmrdfAdditionalForms || []);
+  const setFmrdfAdditionalForms = (
+    value:
+      | Array<Omit<RCFInfo, "isNA">>
+      | ((prev: Array<Omit<RCFInfo, "isNA">>) => Array<Omit<RCFInfo, "isNA">>)
+  ) => {
+    const newValue =
+      typeof value === "function" ? value(fmrdfAdditionalForms) : value;
+    updateSection("fmrdfAdditionalForms", newValue);
+  };
 
-  const [mmtInfo, setMmtInfo] = useState<MMTInfo>({
-    isNA: draftData?.mmtInfo?.isNA ?? false,
-    contactPerson: draftData?.mmtInfo?.contactPerson || "",
-    mailingAddress: draftData?.mmtInfo?.mailingAddress || "",
-    phoneNumber: draftData?.mmtInfo?.phoneNumber || "",
-    emailAddress: draftData?.mmtInfo?.emailAddress || "",
-  });
+  const setMmtInfo = (value: MMTInfo | ((prev: MMTInfo) => MMTInfo)) => {
+    const newValue = typeof value === "function" ? value(mmtInfo) : value;
+    updateSection("mmtInfo", newValue);
+  };
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [showBackDialog, setShowBackDialog] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const setGeneralInfo = (
+    value: GeneralInfo | ((prev: GeneralInfo) => GeneralInfo)
+  ) => {
+    const newValue = typeof value === "function" ? value(generalInfo) : value;
+    updateSection("generalInfo", newValue);
+  };
 
-  useEffect(() => {
-    setHasUnsavedChanges(true);
-  }, [
-    generalInfo,
-    eccInfo,
-    isagInfo,
-    epepInfo,
-    rcfInfo,
-    mtfInfo,
-    fmrdfInfo,
-    mmtInfo,
-  ]);
+  // Note: isDirty is automatically tracked by the store, no need for local hasUnsavedChanges
 
   const fillTestData = () => {
     setGeneralInfo({
       companyName: "Test Mining Company",
-      projectName: projectName || "Test Project",
+      projectName:
+        storeProjectName || generalInfo.projectName || "Test Project",
       location: "123 Mining Street",
       region: "Region 1",
       province: "Test Province",
@@ -511,38 +772,19 @@ const CMVRReportScreen: React.FC = () => {
     }
     try {
       setIsSaving(true);
-      const draftData = {
-        generalInfo,
-        eccInfo,
-        eccAdditionalForms,
-        isagInfo,
-        isagAdditionalForms,
-        epepInfo,
-        epepAdditionalForms,
-        rcfInfo,
-        rcfAdditionalForms,
-        mtfInfo,
-        mtfAdditionalForms,
-        fmrdfInfo,
-        fmrdfAdditionalForms,
-        mmtInfo,
-        fileName,
-        savedAt: new Date().toISOString(),
-      };
-      const success = await saveDraft(fileName || "Untitled", draftData);
-      if (success) {
-        setHasUnsavedChanges(false);
-        Alert.alert("Success", "Draft saved successfully");
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: "Dashboard" }],
-          })
-        );
-      } else {
-        throw new Error("Failed to save draft");
-      }
-      return success;
+
+      // Save to AsyncStorage using store
+      await saveDraft();
+
+      Alert.alert("Success", "Draft saved successfully");
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
+      clearReport();
+      return true;
     } catch (error: any) {
       console.error("Error saving draft:", error);
       Alert.alert("Error", "Failed to save draft. Please try again.", [
@@ -559,57 +801,13 @@ const CMVRReportScreen: React.FC = () => {
     console.log("User chose to stay");
   };
 
-  const handleSaveToDraft = async () => {
-    if (isSaving) {
-      console.log("Save already in progress...");
-      return;
-    }
-    try {
-      setIsSaving(true);
-      const draftData = {
-        generalInfo,
-        eccInfo,
-        eccAdditionalForms,
-        isagInfo,
-        isagAdditionalForms,
-        epepInfo,
-        epepAdditionalForms,
-        rcfInfo,
-        rcfAdditionalForms,
-        mtfInfo,
-        mtfAdditionalForms,
-        fmrdfInfo,
-        fmrdfAdditionalForms,
-        mmtInfo,
-        fileName,
-        savedAt: new Date().toISOString(),
-      };
-      const success = await saveDraft(fileName || "Untitled", draftData);
-      if (success) {
-        setHasUnsavedChanges(false);
-        Alert.alert("Success", "Draft saved successfully");
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: "Dashboard" }],
-          })
-        );
-      } else {
-        throw new Error("Failed to save draft");
-      }
-    } catch (error: any) {
-      console.error("Error saving draft:", error);
-      Alert.alert("Error", "Failed to save draft. Please try again.", [
-        { text: "OK" },
-      ]);
-      throw error;
-    } finally {
-      setIsSaving(false);
-    }
+  const handleSaveToDraft = async (): Promise<void> => {
+    // Same as handleSave (using store's saveDraft)
+    await handleSave();
   };
 
   const handleDiscard = () => {
-    setHasUnsavedChanges(false);
+    clearReport();
     navigation.dispatch(
       CommonActions.reset({
         index: 0,
@@ -619,7 +817,9 @@ const CMVRReportScreen: React.FC = () => {
   };
 
   const handleSaveAndContinue = async () => {
-    if (!fileName || fileName.trim() === "") {
+    const currentFileName = storeFileName || contextFileName || "Untitled";
+
+    if (!currentFileName || currentFileName.trim() === "") {
       Alert.alert(
         "File Name Required",
         "Please enter a file name before continuing.",
@@ -627,30 +827,18 @@ const CMVRReportScreen: React.FC = () => {
       );
       return;
     }
+
     try {
       console.log("Continuing to next page...");
-      setHasUnsavedChanges(false);
+
+      // Store already has all the data - just navigate
+      // No need to pass data via params anymore!
       navigation.navigate("CMVRPage2", {
-        ...(route.params || {}),
-        ...(routeParams?.draftData || {}),
-        submissionId: submissionId,
-        projectName: projectName,
-        projectId: projectId,
-        fileName: fileName,
-        generalInfo,
-        eccInfo,
-        eccAdditionalForms,
-        isagInfo,
-        isagAdditionalForms,
-        epepInfo,
-        epepAdditionalForms,
-        rcfInfo,
-        rcfAdditionalForms,
-        mtfInfo,
-        mtfAdditionalForms,
-        fmrdfInfo,
-        fmrdfAdditionalForms,
-        mmtInfo,
+        // Only pass metadata (not the actual form data)
+        submissionId: storeSubmissionId,
+        projectId: storeProjectId,
+        projectName: storeProjectName,
+        fileName: currentFileName,
       } as any);
     } catch (error) {
       console.error("Error navigating:", error);
@@ -665,8 +853,40 @@ const CMVRReportScreen: React.FC = () => {
   const confirmBack = () => {
     // Discard: Navigate back without saving to drafts
     setShowBackDialog(false);
-    setHasUnsavedChanges(false);
+
+    const snapshot = initialSnapshotRef.current;
+    if (snapshot?.report) {
+      loadReport({
+        ...snapshot.report,
+        fileName: snapshot.metadata.fileName,
+        submissionId: snapshot.metadata.submissionId ?? undefined,
+        projectId: snapshot.metadata.projectId ?? undefined,
+        projectName: snapshot.metadata.projectName,
+      });
+    } else if (routeDraftData) {
+      loadReport({
+        ...routeDraftData,
+        fileName:
+          routeDraftData.fileName ||
+          storeFileName ||
+          contextFileName ||
+          "Untitled",
+      });
+    }
     navigation.goBack();
+  };
+
+  const handleGoToSummary = () => {
+    (navigation as any).navigate("CMVRDocumentExport", {
+      cmvrReportId: routeParams.submissionId || storeSubmissionId || undefined,
+      fileName: storeFileName || contextFileName || "Untitled",
+      projectId: routeParams.projectId || storeProjectId || undefined,
+      projectName:
+        routeParams.projectName ||
+        storeProjectName ||
+        generalInfo.projectName ||
+        "",
+    });
   };
 
   React.useLayoutEffect(() => {
@@ -684,6 +904,7 @@ const CMVRReportScreen: React.FC = () => {
           onStay={handleStay}
           onSaveToDraft={handleSaveToDraft}
           onDiscard={handleDiscard}
+          onGoToSummary={handleGoToSummary}
           allowEdit={true}
         />
       </View>
@@ -692,6 +913,17 @@ const CMVRReportScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        <View
+          style={[
+            styles.statusBanner,
+            isExistingSubmission
+              ? styles.statusBannerExisting
+              : styles.statusBannerNew,
+          ]}
+        >
+          <Text style={styles.statusBannerLabel}>{statusLabel}</Text>
+          <Text style={styles.statusBannerSubtext}>{statusSubtext}</Text>
+        </View>
         {__DEV__ && (
           <TouchableOpacity
             style={{
@@ -709,7 +941,7 @@ const CMVRReportScreen: React.FC = () => {
           </TouchableOpacity>
         )}
         <GeneralInfoSection
-          fileName={fileName}
+          fileName={storeFileName || contextFileName || "Untitled"}
           {...generalInfo}
           onChange={handleGeneralInfoChange}
         />
@@ -723,6 +955,8 @@ const CMVRReportScreen: React.FC = () => {
           setIsagInfo={setIsagInfo}
           isagAdditionalForms={isagAdditionalForms}
           setIsagAdditionalForms={setIsagAdditionalForms}
+          permitHolderList={permitHolderList}
+          setPermitHolderList={setPermitHolderList}
         />
         <View style={styles.divider} />
         <EPEPSection
@@ -730,6 +964,8 @@ const CMVRReportScreen: React.FC = () => {
           setEpepInfo={setEpepInfo}
           epepAdditionalForms={epepAdditionalForms}
           setEpepAdditionalForms={setEpepAdditionalForms}
+          permitHolderList={permitHolderList}
+          setPermitHolderList={setPermitHolderList}
         />
         <View style={styles.divider} />
         <RCFSection
@@ -745,6 +981,7 @@ const CMVRReportScreen: React.FC = () => {
           setFmrdfInfo={setFmrdfInfo}
           fmrdfAdditionalForms={fmrdfAdditionalForms}
           setFmrdfAdditionalForms={setFmrdfAdditionalForms}
+          permitHolderList={permitHolderList}
         />
         <View style={styles.divider} />
         <MMTSection mmtInfo={mmtInfo} setMmtInfo={setMmtInfo} />
@@ -755,7 +992,7 @@ const CMVRReportScreen: React.FC = () => {
           <Text style={styles.saveNextButtonText}>Save & Next</Text>
           <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
-        {/* filler gap ts not advisable tbh*/}   
+        {/* filler gap ts not advisable tbh*/}
         <View style={{ height: 40 }} />
       </ScrollView>
       <ConfirmationDialog

@@ -12,7 +12,7 @@ import {
 import { useNavigation, CommonActions } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { CMSHeader } from "../../../components/CMSHeader";
-import { saveDraft } from "../../../lib/drafts";
+import { useCmvrStore } from "../../../store/cmvrStore";
 import { ProjectImpacts } from "./components/ProjectImpacts";
 import { OperationSectionComponent } from "./components/OperationSection";
 import { OverallCompliance } from "./components/OverallCompliance";
@@ -24,76 +24,109 @@ import {
 } from "../types/EIAComplianceScreen.types";
 import { styles } from "../styles/EIAComplianceScreen.styles";
 
+const createDefaultOperationSection = (title: string): OperationSection => ({
+  title,
+  isNA: false,
+  measures: [
+    {
+      id: "1",
+      planned: "",
+      actualObservation: "",
+      isEffective: null,
+      recommendations: "",
+    },
+  ],
+});
+
 const EIAComplianceScreen: React.FC<{
   navigation: EIAComplianceScreenNavigationProp;
   route: any;
 }> = ({ navigation, route }) => {
-  const [preConstruction, setPreConstruction] = useState<YesNoNull>(null);
-  const [construction, setConstruction] = useState<YesNoNull>(null);
+  // Zustand store
+  const {
+    currentReport,
+    fileName: storeFileName,
+    submissionId: storeSubmissionId,
+    projectId: storeProjectId,
+    projectName: storeProjectName,
+    updateMultipleSections,
+    saveDraft,
+  } = useCmvrStore();
 
-  const [quarryOperation, setQuarryOperation] = useState<OperationSection>({
-    title: "Quarry Operation",
-    isNA: false,
-    measures: [
-      {
-        id: "1",
-        planned: "",
-        actualObservation: "",
-        isEffective: null,
-        recommendations: "",
-      },
-    ],
-  });
+  // Initialize from store
+  const storedEIA = currentReport?.complianceToImpactManagementCommitments;
 
-  const [plantOperation, setPlantOperation] = useState<OperationSection>({
-    title: "Plant Operation",
-    isNA: false,
-    measures: [
-      {
-        id: "1",
-        planned: "",
-        actualObservation: "",
-        isEffective: null,
-        recommendations: "",
-      },
-    ],
-  });
+  const [preConstruction, setPreConstruction] = useState<YesNoNull>(
+    storedEIA?.preConstruction ?? null
+  );
+  const [construction, setConstruction] = useState<YesNoNull>(
+    storedEIA?.construction ?? null
+  );
 
-  const [portOperation, setPortOperation] = useState<OperationSection>({
-    title: "Port Operation",
-    isNA: false,
-    measures: [
-      {
-        id: "1",
-        planned: "",
-        actualObservation: "",
-        isEffective: null,
-        recommendations: "",
-      },
-    ],
-  });
+  const [quarryOperation, setQuarryOperation] = useState<OperationSection>(
+    storedEIA?.quarryOperation ||
+      createDefaultOperationSection("Quarry Operation")
+  );
 
-  const [overallCompliance, setOverallCompliance] = useState("");
+  const [plantOperation, setPlantOperation] = useState<OperationSection>(
+    storedEIA?.plantOperation ||
+      createDefaultOperationSection("Plant Operation")
+  );
 
-  // Hydrate from route params when coming from a draft
+  const [portOperation, setPortOperation] = useState<OperationSection>(
+    storedEIA?.portOperation || createDefaultOperationSection("Port Operation")
+  );
+
+  const [overallCompliance, setOverallCompliance] = useState(
+    storedEIA?.overallCompliance || ""
+  );
+
+  const [hasHydratedFromStore, setHasHydratedFromStore] = useState(false);
+
   useEffect(() => {
-    const params: any = route?.params || {};
-    const saved = params.complianceToImpactManagementCommitments;
-    if (saved) {
-      if (typeof saved.preConstruction !== "undefined")
-        setPreConstruction(saved.preConstruction);
-      if (typeof saved.construction !== "undefined")
-        setConstruction(saved.construction);
-      if (saved.quarryOperation)
-        setQuarryOperation((prev) => ({ ...prev, ...saved.quarryOperation }));
-      if (saved.plantOperation)
-        setPlantOperation((prev) => ({ ...prev, ...saved.plantOperation }));
-      if (saved.portOperation)
-        setPortOperation((prev) => ({ ...prev, ...saved.portOperation }));
-      if (typeof saved.overallCompliance === "string")
-        setOverallCompliance(saved.overallCompliance);
+    if (hasHydratedFromStore || !currentReport) return;
+
+    if (storedEIA) {
+      setPreConstruction(storedEIA.preConstruction ?? null);
+      setConstruction(storedEIA.construction ?? null);
+      setQuarryOperation(
+        storedEIA.quarryOperation ||
+          createDefaultOperationSection("Quarry Operation")
+      );
+      setPlantOperation(
+        storedEIA.plantOperation ||
+          createDefaultOperationSection("Plant Operation")
+      );
+      setPortOperation(
+        storedEIA.portOperation ||
+          createDefaultOperationSection("Port Operation")
+      );
+      setOverallCompliance(storedEIA.overallCompliance || "");
     }
-  }, [route?.params]);
+
+    setHasHydratedFromStore(true);
+  }, [currentReport, storedEIA, hasHydratedFromStore]);
+
+  // Auto-sync to store
+  useEffect(() => {
+    updateMultipleSections({
+      complianceToImpactManagementCommitments: {
+        preConstruction,
+        construction,
+        quarryOperation,
+        plantOperation,
+        portOperation,
+        overallCompliance,
+      },
+    });
+  }, [
+    preConstruction,
+    construction,
+    quarryOperation,
+    plantOperation,
+    portOperation,
+    overallCompliance,
+  ]);
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
@@ -102,60 +135,17 @@ const EIAComplianceScreen: React.FC<{
   }, [navigation]);
 
   const handleSave = async () => {
-    console.log("Saving EIA Compliance data...");
-
-    // Collect all previous page data from route.params
-    const prevPageData: any = route.params || {};
-
-    // Prepare EIA compliance data
-    const complianceToImpactManagementCommitments = {
-      preConstruction,
-      construction,
-      quarryOperation,
-      plantOperation,
-      portOperation,
-      overallCompliance,
-    };
-
-    // Combine all data from previous pages + current page
-    const draftData = {
-      generalInfo: prevPageData.generalInfo,
-      eccInfo: prevPageData.eccInfo,
-      eccAdditionalForms: prevPageData.eccAdditionalForms,
-      isagInfo: prevPageData.isagInfo,
-      isagAdditionalForms: prevPageData.isagAdditionalForms,
-      epepInfo: prevPageData.epepInfo,
-      epepAdditionalForms: prevPageData.epepAdditionalForms,
-      rcfInfo: prevPageData.rcfInfo,
-      rcfAdditionalForms: prevPageData.rcfAdditionalForms,
-      mtfInfo: prevPageData.mtfInfo,
-      mtfAdditionalForms: prevPageData.mtfAdditionalForms,
-      fmrdfInfo: prevPageData.fmrdfInfo,
-      fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
-      mmtInfo: prevPageData.mmtInfo,
-      executiveSummary: prevPageData.executiveSummary,
-      processDocumentation: prevPageData.processDocumentation,
-      complianceToProjectLocationAndCoverageLimits:
-        prevPageData.complianceToProjectLocationAndCoverageLimits,
-      complianceToImpactManagementCommitments,
-      savedAt: new Date().toISOString(),
-    };
-
-    const fileName = prevPageData.fileName || "Untitled";
-
-    // Save draft to AsyncStorage
-    const success = await saveDraft(fileName, draftData);
-
-    if (success) {
+    try {
+      await saveDraft();
       Alert.alert("Success", "Draft saved successfully");
-      // Navigate to Dashboard using CommonActions.reset
       navigation.dispatch(
         CommonActions.reset({
           index: 0,
           routes: [{ name: "Dashboard" }],
         })
       );
-    } else {
+    } catch (error) {
+      console.error("Error saving draft:", error);
       Alert.alert("Error", "Failed to save draft");
     }
   };
@@ -165,60 +155,17 @@ const EIAComplianceScreen: React.FC<{
   };
 
   const handleSaveToDraft = async () => {
-    console.log("Saving EIA Compliance data...");
-
-    // Collect all previous page data from route.params
-    const prevPageData: any = route.params || {};
-
-    // Prepare EIA compliance data
-    const complianceToImpactManagementCommitments = {
-      preConstruction,
-      construction,
-      quarryOperation,
-      plantOperation,
-      portOperation,
-      overallCompliance,
-    };
-
-    // Combine all data from previous pages + current page
-    const draftData = {
-      generalInfo: prevPageData.generalInfo,
-      eccInfo: prevPageData.eccInfo,
-      eccAdditionalForms: prevPageData.eccAdditionalForms,
-      isagInfo: prevPageData.isagInfo,
-      isagAdditionalForms: prevPageData.isagAdditionalForms,
-      epepInfo: prevPageData.epepInfo,
-      epepAdditionalForms: prevPageData.epepAdditionalForms,
-      rcfInfo: prevPageData.rcfInfo,
-      rcfAdditionalForms: prevPageData.rcfAdditionalForms,
-      mtfInfo: prevPageData.mtfInfo,
-      mtfAdditionalForms: prevPageData.mtfAdditionalForms,
-      fmrdfInfo: prevPageData.fmrdfInfo,
-      fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
-      mmtInfo: prevPageData.mmtInfo,
-      executiveSummary: prevPageData.executiveSummary,
-      processDocumentation: prevPageData.processDocumentation,
-      complianceToProjectLocationAndCoverageLimits:
-        prevPageData.complianceToProjectLocationAndCoverageLimits,
-      complianceToImpactManagementCommitments,
-      savedAt: new Date().toISOString(),
-    };
-
-    const fileName = prevPageData.fileName || "Untitled";
-
-    // Save draft to AsyncStorage
-    const success = await saveDraft(fileName, draftData);
-
-    if (success) {
+    try {
+      await saveDraft();
       Alert.alert("Success", "Draft saved successfully");
-      // Navigate to Dashboard using CommonActions.reset
       navigation.dispatch(
         CommonActions.reset({
           index: 0,
           routes: [{ name: "Dashboard" }],
         })
       );
-    } else {
+    } catch (error) {
+      console.error("Error saving draft:", error);
       Alert.alert("Error", "Failed to save draft");
     }
   };
@@ -232,73 +179,19 @@ const EIAComplianceScreen: React.FC<{
     );
   };
 
-  const handleGoToSummary = async () => {
-    try {
-      console.log("Navigating to summary with current EIA compliance data");
+  const handleGoToSummary = () => {
+    const params = route?.params || {};
 
-      const prevPageData: any = route.params || {};
-
-      // Prepare current page data
-      const complianceToImpactManagementCommitments = {
-        preConstruction,
-        construction,
-        quarryOperation,
-        plantOperation,
-        portOperation,
-        overallCompliance,
-      };
-
-      // Prepare complete snapshot with all sections
-      const completeData = {
-        generalInfo: prevPageData.generalInfo,
-        eccInfo: prevPageData.eccInfo,
-        eccAdditionalForms: prevPageData.eccAdditionalForms,
-        isagInfo: prevPageData.isagInfo,
-        isagAdditionalForms: prevPageData.isagAdditionalForms,
-        epepInfo: prevPageData.epepInfo,
-        epepAdditionalForms: prevPageData.epepAdditionalForms,
-        rcfInfo: prevPageData.rcfInfo,
-        rcfAdditionalForms: prevPageData.rcfAdditionalForms,
-        mtfInfo: prevPageData.mtfInfo,
-        mtfAdditionalForms: prevPageData.mtfAdditionalForms,
-        fmrdfInfo: prevPageData.fmrdfInfo,
-        fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
-        mmtInfo: prevPageData.mmtInfo,
-        executiveSummaryOfCompliance: prevPageData.executiveSummaryOfCompliance,
-        processDocumentationOfActivitiesUndertaken:
-          prevPageData.processDocumentationOfActivitiesUndertaken,
-        complianceToProjectLocationAndCoverageLimits:
-          prevPageData.complianceToProjectLocationAndCoverageLimits,
-        complianceToImpactManagementCommitments, // Current page data
-        airQualityImpactAssessment: prevPageData.airQualityImpactAssessment,
-        waterQualityImpactAssessment: prevPageData.waterQualityImpactAssessment,
-        noiseQualityImpactAssessment: prevPageData.noiseQualityImpactAssessment,
-        complianceWithGoodPracticeInSolidAndHazardousWasteManagement:
-          prevPageData.complianceWithGoodPracticeInSolidAndHazardousWasteManagement,
-        complianceWithGoodPracticeInChemicalSafetyManagement:
-          prevPageData.complianceWithGoodPracticeInChemicalSafetyManagement,
-        complaintsVerificationAndManagement:
-          prevPageData.complaintsVerificationAndManagement,
-        recommendationsData: prevPageData.recommendationsData,
-        attendanceUrl: prevPageData.attendanceUrl,
-        savedAt: new Date().toISOString(),
-      };
-
-      const resolvedFileName = prevPageData.fileName || "Untitled";
-
-      // Save to draft before navigating
-      await saveDraft(resolvedFileName, completeData);
-
-      (navigation as any).navigate("CMVRDocumentExport", {
-        ...prevPageData,
-        fileName: resolvedFileName,
-        complianceToImpactManagementCommitments,
-        draftData: completeData,
-      });
-    } catch (error) {
-      console.error("Error navigating to summary:", error);
-      Alert.alert("Error", "Failed to navigate to summary. Please try again.");
-    }
+    (navigation as any).navigate("CMVRDocumentExport", {
+      cmvrReportId: params.submissionId || storeSubmissionId || undefined,
+      fileName: params.fileName || storeFileName || "Untitled",
+      projectId: params.projectId || storeProjectId || undefined,
+      projectName:
+        params.projectName ||
+        storeProjectName ||
+        currentReport?.generalInfo?.projectName ||
+        "",
+    });
   };
 
   const fillTestData = () => {
