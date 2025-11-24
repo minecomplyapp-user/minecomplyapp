@@ -87,6 +87,10 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     waterQualitySection.quarryPlantEnabled
   );
 
+  const [portEnabled, setPortEnabled] = useState<boolean>(
+    waterQualitySection.portEnabled ?? false
+  );
+
   const [quarryInput, setQuarryInput] = useState<string>(
     waterQualitySection.quarry
   );
@@ -118,6 +122,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
       setQuarryEnabled(storedWaterQuality.quarryEnabled ?? false);
       setPlantEnabled(storedWaterQuality.plantEnabled ?? false);
       setQuarryPlantEnabled(storedWaterQuality.quarryPlantEnabled ?? false);
+      setPortEnabled(storedWaterQuality.portEnabled ?? false);
       setQuarryInput(storedWaterQuality.quarry || "");
       setPlantInput(storedWaterQuality.plant || "");
       setQuarryPlantInput(storedWaterQuality.quarryPlant || "");
@@ -146,6 +151,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
       quarryEnabled,
       plantEnabled,
       quarryPlantEnabled,
+      portEnabled,
       waterQuality: waterQualityData,
       port: portData,
       data,
@@ -160,6 +166,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     quarryEnabled,
     plantEnabled,
     quarryPlantEnabled,
+    portEnabled,
     waterQualityData,
     portData,
     data,
@@ -503,6 +510,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     setQuarryEnabled(true);
     setPlantEnabled(true);
     setQuarryPlantEnabled(true);
+    setPortEnabled(true);
 
     // Fill location descriptions
     setQuarryInput("Station WQ-01 (Quarry settling pond effluent)");
@@ -831,7 +839,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
               <Checkbox
                 value={quarryPlantEnabled}
                 onToggle={() => setQuarryPlantEnabled(!quarryPlantEnabled)}
-                label="Quarry & Plant"
+                label="Quarry / Plant"
               />
             </View>
             <TextInput
@@ -841,7 +849,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
               ]}
               value={quarryPlantInput}
               onChangeText={setQuarryPlantInput}
-              placeholder="Enter quarry & plant location description"
+              placeholder="Enter quarry / plant location description"
               multiline
               editable={quarryPlantEnabled}
             />
@@ -886,51 +894,86 @@ export default function WaterQualityScreen({ navigation, route }: any) {
           onExplanationNAToggle={handleWaterQualityExplanationNAToggle}
         />
 
-        {/* Port Section Header */}
-        <View style={styles.sectionHeader}>
-          <View style={styles.sectionNumberBadge}>
-            <Text style={styles.sectionNumber}>PORT</Text>
-          </View>
-          <Text style={styles.sectionTitle}>Port Monitoring</Text>
-        </View>
+        {/* Port Section - Optional */}
+        {!portEnabled ? (
+          <TouchableOpacity
+            style={[styles.addButton, { marginTop: 16 }]}
+            onPress={() => setPortEnabled(true)}
+          >
+            <Ionicons name="add-circle-outline" size={24} color="#2196F3" />
+            <Text style={styles.addButtonText}>Add Port Monitoring</Text>
+          </TouchableOpacity>
+        ) : (
+          <>
+            {/* Port Section Header */}
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionNumberBadge}>
+                <Text style={styles.sectionNumber}>PORT</Text>
+              </View>
+              <Text style={styles.sectionTitle}>Port Monitoring</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  Alert.alert(
+                    "Remove Port Monitoring",
+                    "Are you sure you want to remove the port monitoring section?",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Remove",
+                        style: "destructive",
+                        onPress: () => {
+                          setPortEnabled(false);
+                          setPortData(createEmptyLocationData());
+                        },
+                      },
+                    ]
+                  );
+                }}
+                style={{ marginLeft: "auto" }}
+              >
+                <Ionicons name="trash-outline" size={20} color="#ff3b30" />
+              </TouchableOpacity>
+            </View>
 
-        {/* Port Monitoring Section */}
-        <LocationMonitoringSection
-          locationName="Port"
-          locationInput=""
-          mainParameter={{
-            id: "port-main",
-            parameter: portData.parameter,
-            resultType: portData.resultType,
-            tssCurrent: portData.tssCurrent,
-            tssPrevious: portData.tssPrevious,
-            eqplRedFlag: portData.eqplRedFlag,
-            action: portData.action,
-            limit: portData.limit,
-            remarks: portData.remarks,
-            mmtCurrent: portData.mmtCurrent,
-            mmtPrevious: portData.mmtPrevious,
-            isMMTNA: portData.isMMTNA,
-          }}
-          parameters={portData.parameters}
-          mmtCurrent={portData.mmtCurrent}
-          mmtPrevious={portData.mmtPrevious}
-          isMMTNA={portData.isMMTNA}
-          dateTime={portData.dateTime}
-          weatherWind={portData.weatherWind}
-          explanation={portData.explanation}
-          isExplanationNA={portData.isExplanationNA}
-          overallCompliance={portData.overallCompliance}
-          onLocationInputChange={() => {}}
-          onMainParameterUpdate={handlePortMainParameterUpdate}
-          onMMTInputChange={handlePortMMTInputChange}
-          onMMTNAToggle={handlePortMMTNAToggle}
-          onAddParameter={addPortParameter}
-          onUpdateParameter={updatePortParameter}
-          onDeleteParameter={deletePortParameter}
-          onSamplingDetailsChange={handlePortSamplingDetailsChange}
-          onExplanationNAToggle={handlePortExplanationNAToggle}
-        />
+            {/* Port Monitoring Section */}
+            <LocationMonitoringSection
+              locationName="Port"
+              locationInput=""
+              mainParameter={{
+                id: "port-main",
+                parameter: portData.parameter,
+                resultType: portData.resultType,
+                tssCurrent: portData.tssCurrent,
+                tssPrevious: portData.tssPrevious,
+                eqplRedFlag: portData.eqplRedFlag,
+                action: portData.action,
+                limit: portData.limit,
+                remarks: portData.remarks,
+                mmtCurrent: portData.mmtCurrent,
+                mmtPrevious: portData.mmtPrevious,
+                isMMTNA: portData.isMMTNA,
+              }}
+              parameters={portData.parameters}
+              mmtCurrent={portData.mmtCurrent}
+              mmtPrevious={portData.mmtPrevious}
+              isMMTNA={portData.isMMTNA}
+              dateTime={portData.dateTime}
+              weatherWind={portData.weatherWind}
+              explanation={portData.explanation}
+              isExplanationNA={portData.isExplanationNA}
+              overallCompliance={portData.overallCompliance}
+              onLocationInputChange={() => {}}
+              onMainParameterUpdate={handlePortMainParameterUpdate}
+              onMMTInputChange={handlePortMMTInputChange}
+              onMMTNAToggle={handlePortMMTNAToggle}
+              onAddParameter={addPortParameter}
+              onUpdateParameter={updatePortParameter}
+              onDeleteParameter={deletePortParameter}
+              onSamplingDetailsChange={handlePortSamplingDetailsChange}
+              onExplanationNAToggle={handlePortExplanationNAToggle}
+            />
+          </>
+        )}
 
         {/* Fill Test Data Button (Dev Only) */}
         {__DEV__ && (

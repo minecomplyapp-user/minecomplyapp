@@ -169,6 +169,7 @@ type DraftSnapshot = {
   fmrdfInfo: RCFInfo;
   fmrdfAdditionalForms: FundAdditionalForm[];
   mmtInfo: MMTInfo;
+  permitHolderList: string[];
   fileName: string;
   savedAt?: string;
   recommendationsData?: RecommendationsData;
@@ -592,6 +593,7 @@ const mergeDraftData = (
         fmrdfInfo: defaultFundInfo,
         fmrdfAdditionalForms: [],
         mmtInfo: defaultMmtInfo,
+        permitHolderList: [],
         attendanceId: null,
         attendanceUrl: null,
         fileName,
@@ -619,6 +621,7 @@ const mergeDraftData = (
   assign("fmrdfInfo");
   assign("fmrdfAdditionalForms");
   assign("mmtInfo");
+  assign("permitHolderList");
   assign("recommendationsData");
   assign("executiveSummaryOfCompliance");
   assign("processDocumentationOfActivitiesUndertaken");
@@ -1194,7 +1197,7 @@ const transformWaterQualityForPayload = (raw: any) => {
     const labels: Record<string, string> = {
       quarry: "Quarry",
       plant: "Plant",
-      quarryPlant: "Quarry & Plant",
+      quarryPlant: "Quarry / Plant",
     };
 
     const map: Record<string, string> = {};
@@ -3438,6 +3441,14 @@ const buildCreateCMVRPayload = (
     monitoringTrustFundUnified: mtfEntries,
     finalMineRehabilitationAndDecommissioningFund: fmrdfEntries,
   };
+  if (Array.isArray(norm.permitHolderList)) {
+    const cleaned = norm.permitHolderList
+      .map((holder) => sanitizeString(holder))
+      .filter((holder) => holder.length > 0);
+    if (cleaned.length > 0) {
+      payload.permitHolderList = cleaned;
+    }
+  }
   if (userId) {
     payload.createdById = userId;
   }
@@ -3769,14 +3780,6 @@ const CMVRDocumentExportScreen = () => {
         return null;
       }
     }, []);
-
-  const persistSnapshot = useCallback(async (snapshot: DraftSnapshot) => {
-    try {
-      await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(snapshot));
-    } catch (error) {
-      console.warn("Failed to persist CMVR draft snapshot:", error);
-    }
-  }, []);
 
   // Handle loadDraft parameter from dashboard
   useEffect(() => {
@@ -4141,7 +4144,6 @@ const CMVRDocumentExportScreen = () => {
       }
 
       setDraftSnapshot(merged);
-      await persistSnapshot(merged);
       if (routeReportId) {
         setSubmittedReportId(routeReportId);
         setHasSubmitted(true);
@@ -4158,7 +4160,6 @@ const CMVRDocumentExportScreen = () => {
     routeProjectId,
     routeProjectName,
     loadStoredDraft,
-    persistSnapshot,
     resolvedFileName,
     setHasSubmitted,
     setSubmittedReportId,
@@ -4171,7 +4172,7 @@ const CMVRDocumentExportScreen = () => {
   const handleExit = async () => {
     try {
       if (!hasSubmitted) {
-        await saveDraftToLocal();
+        await saveDraft();
       }
     } catch (e) {
       console.warn("Failed to save draft on exit:", e);
@@ -4401,6 +4402,7 @@ const CMVRDocumentExportScreen = () => {
         fmrdfInfo,
         fmrdfAdditionalForms,
         mmtInfo,
+        permitHolderList,
         executiveSummaryOfCompliance: executiveSummary,
         processDocumentationOfActivitiesUndertaken: processDocumentation,
         complianceToProjectLocationAndCoverageLimits: complianceProjectLocation,
@@ -4517,6 +4519,7 @@ const CMVRDocumentExportScreen = () => {
   const fmrdfAdditionalForms =
     currentReport?.fmrdfAdditionalForms ?? ([] as FundAdditionalForm[]);
   const mmtInfo = currentReport?.mmtInfo ?? defaultMmtInfo;
+  const permitHolderList = currentReport?.permitHolderList || [];
   const executiveSummary = currentReport?.executiveSummaryOfCompliance;
   const processDocumentation =
     currentReport?.processDocumentationOfActivitiesUndertaken;
@@ -4561,6 +4564,7 @@ const CMVRDocumentExportScreen = () => {
     fmrdfInfo,
     fmrdfAdditionalForms,
     mmtInfo,
+    permitHolderList,
     selectedAttendanceId: resolvedAttendanceId,
     attendanceId: resolvedAttendanceId,
     attendanceUrl: resolvedAttendanceId ?? legacyAttendanceId ?? null,
@@ -4569,6 +4573,7 @@ const CMVRDocumentExportScreen = () => {
   const draftPayload = {
     ...currentReport,
     fileName,
+    permitHolderList,
     isagInfo,
     isagAdditionalForms,
     epepInfo,
@@ -4598,15 +4603,6 @@ const CMVRDocumentExportScreen = () => {
     attendanceUrl: resolvedAttendanceId ?? legacyAttendanceId ?? null,
     documentation,
   } as DraftSnapshot;
-
-  const saveDraftToLocal = useCallback(async () => {
-    try {
-      await persistSnapshot(draftPayload);
-      setDraftSnapshot(draftPayload);
-    } catch (error) {
-      console.warn("Failed to save CMVR draft snapshot:", error);
-    }
-  }, [draftPayload, persistSnapshot]);
 
   // Auto-fill test data intentionally disabled to prevent accidental population
 

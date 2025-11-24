@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   RefreshControl,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import {
@@ -68,6 +69,32 @@ const CMVRDraftsScreen = () => {
     setLoading(true);
     try {
       const metadata = await getAllDraftMetadata();
+
+      // Check for single store draft (legacy/active slot)
+      try {
+        const singleDraftStr = await AsyncStorage.getItem("@cmvr_draft");
+        if (singleDraftStr) {
+          const singleDraft = JSON.parse(singleDraftStr);
+          // Only add if not already in the list (by filename)
+          // This prevents duplicates since we now save to both
+          const alreadyExists = metadata.some(
+            (m) => m.fileName === singleDraft.fileName
+          );
+
+          if (!alreadyExists) {
+            metadata.unshift({
+              key: "@cmvr_draft",
+              fileName: singleDraft.fileName || "Active Draft",
+              projectName: singleDraft.projectName || "Untitled Project",
+              lastSaved: singleDraft.savedAt || new Date().toISOString(),
+              createdAt: singleDraft.createdAt || new Date().toISOString(),
+            });
+          }
+        }
+      } catch (e) {
+        console.log("Error checking single draft:", e);
+      }
+
       const hydrated = metadata.map((item) => ({
         ...item,
         displayName: item.projectName || item.fileName,

@@ -1797,10 +1797,15 @@ export const transformToBackendDTO = (
     safeGeneralInfo.epepFmrdpStatus ||
     (currentReport.epepInfo?.isNA ? "N/A" : "Approved");
 
+  const permitHolderList = Array.isArray(currentReport.permitHolderList)
+    ? currentReport.permitHolderList.filter((holder) => sanitizeString(holder))
+    : undefined;
+
   return {
     createdById: createdById || undefined,
     // Basic project information (from generalInfo)
     companyName: safeGeneralInfo.companyName || "",
+    permitHolderList,
     location: safeGeneralInfo.location || "",
     quarter: safeGeneralInfo.quarter || "",
     year: parseInt(safeGeneralInfo.year) || new Date().getFullYear(),

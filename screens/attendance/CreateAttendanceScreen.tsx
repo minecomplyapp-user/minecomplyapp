@@ -89,6 +89,8 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
       attendance: "",
       signatureUrl: "",
       signaturePath: "",
+      photoUrl: "",
+      photoPath: "",
     },
   ]);
 
@@ -97,6 +99,7 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
     null
   );
   const [uploadingSignature, setUploadingSignature] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [newlyUploadedPaths, setNewlyUploadedPaths] = useState<string[]>([]);
 
   const [isSigning, setIsSigning] = useState(false);
@@ -125,9 +128,13 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
   const { bottom: viewportBottom } = useSafeAreaWeb();
   const scrollPaddingBottom = Math.max(
     verticalScale(theme.spacing.xl),
-    viewportBottom ? viewportBottom + verticalScale(theme.spacing.md) : verticalScale(theme.spacing.xl)
+    viewportBottom
+      ? viewportBottom + verticalScale(theme.spacing.md)
+      : verticalScale(theme.spacing.xl)
   );
-  const footerPaddingBottom = viewportBottom ? viewportBottom + verticalScale(theme.spacing.md) : verticalScale(theme.spacing.md);
+  const footerPaddingBottom = viewportBottom
+    ? viewportBottom + verticalScale(theme.spacing.md)
+    : verticalScale(theme.spacing.md);
 
   // Load existing attendance record if in edit mode
   useEffect(() => {
@@ -183,6 +190,18 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
               }
             }
 
+            // Get signed URL for photo if it exists
+            let photoUrl = "";
+            const photoPath = att.photoUrl || "";
+            if (photoPath) {
+              try {
+                const { url } = await createSignedDownloadUrl(photoPath, 60);
+                photoUrl = url;
+              } catch (error) {
+                console.log("Failed to load photo URL:", error);
+              }
+            }
+
             return {
               id: index + 1,
               name: att.name || "",
@@ -191,6 +210,8 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
               attendance: attendance,
               signatureUrl: signatureUrl,
               signaturePath: signaturePath,
+              photoUrl: photoUrl,
+              photoPath: photoPath,
             };
           })
         );
@@ -237,6 +258,8 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
         attendance: "",
         signatureUrl: "",
         signaturePath: "",
+        photoUrl: "",
+        photoPath: "",
       },
     ]);
   };
@@ -338,7 +361,9 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
 
       // Show immediate preview using the data URI while we upload in background
       setAttendees((prev) =>
-        prev.map((a) => (a.id === currentId ? { ...a, signatureUrl: dataUri } : a))
+        prev.map((a) =>
+          a.id === currentId ? { ...a, signatureUrl: dataUri } : a
+        )
       );
 
       // Close modal and clear current attendee selection immediately
@@ -372,7 +397,9 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
           // Update the attendee with the signature path and replace preview with signed URL
           setAttendees((prev) =>
             prev.map((a) =>
-              a.id === currentId ? { ...a, signatureUrl: url, signaturePath: path } : a
+              a.id === currentId
+                ? { ...a, signatureUrl: url, signaturePath: path }
+                : a
             )
           );
 
@@ -382,7 +409,10 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
           // Alert.alert("Success", "Signature uploaded successfully.");
         } catch (uploadError: any) {
           console.error("Signature upload failed:", uploadError);
-          Alert.alert("Error", uploadError?.message || "Failed to upload signature.");
+          Alert.alert(
+            "Error",
+            uploadError?.message || "Failed to upload signature."
+          );
         } finally {
           setUploadingSignature(false);
           setIsSigning(false);
@@ -395,14 +425,209 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
     }
   };
 
+  const handleTakePhoto = async (id: number) => {
+    try {
+      setCurrentAttendeeId(id);
+      setUploadingPhoto(true);
+
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (permission.status !== "granted") {
+        Alert.alert(
+          "Permission required",
+          "Permission to access camera is required to take a photo."
+        );
+        setUploadingPhoto(false);
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: true,
+      });
+
+      const wasCancelled =
+        (result as any).cancelled || (result as any).canceled;
+      const pickedUri = (result as any).uri || (result as any).assets?.[0]?.uri;
+
+      if (wasCancelled || !pickedUri) {
+        setUploadingPhoto(false);
+        setCurrentAttendeeId(null);
+        return;
+      }
+
+      // Resize/compress for upload
+      const manipulated = await manipulateAsync(
+        pickedUri,
+        [{ resize: { width: 800 } }],
+        { compress: 0.7, format: SaveFormat.JPEG }
+      );
+
+      // Show immediate preview using local uri while uploading
+      setAttendees((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, photoUrl: manipulated.uri } : a))
+      );
+
+      // Upload to storage (attendance-photos folder)
+      try {
+        // Ensure the file has a proper extension by creating a new file if needed
+        let fileUri = manipulated.uri;
+        if (!fileUri.endsWith(".jpg") && !fileUri.endsWith(".jpeg")) {
+          const newPath = `${FileSystem.cacheDirectory}attendance-photo-${Date.now()}.jpg`;
+          await FileSystem.copyAsync({
+            from: manipulated.uri,
+            to: newPath,
+          });
+          fileUri = newPath;
+        }
+
+        const { path } = await uploadFileFromUri({
+          uri: fileUri,
+          fileName: `attendance-${Date.now()}.jpg`,
+          contentType: "image/jpeg",
+          folder: "attendance-photos",
+        });
+        const { url } = await createSignedDownloadUrl(path, 60);
+
+        setNewlyUploadedPaths((prev) => [...prev, path]);
+
+        setAttendees((prev) =>
+          prev.map((a) =>
+            a.id === id ? { ...a, photoUrl: url, photoPath: path } : a
+          )
+        );
+
+        // Clean up temp file if we created one
+        if (fileUri !== manipulated.uri) {
+          await FileSystem.deleteAsync(fileUri, { idempotent: true });
+        }
+      } catch (uploadErr: any) {
+        console.error("Upload failed:", uploadErr);
+        Alert.alert("Error", uploadErr?.message || "Failed to upload photo.");
+        // clear preview on failure
+        setAttendees((prev) =>
+          prev.map((a) =>
+            a.id === id ? { ...a, photoUrl: "", photoPath: "" } : a
+          )
+        );
+      }
+    } catch (err: any) {
+      console.error("handleTakePhoto error:", err);
+      Alert.alert("Error", err?.message || "Failed to take photo.");
+    } finally {
+      setUploadingPhoto(false);
+      setCurrentAttendeeId(null);
+    }
+  };
+
+  const handleUploadPhoto = async (id: number) => {
+    try {
+      setCurrentAttendeeId(id);
+      setUploadingPhoto(true);
+
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permission.status !== "granted") {
+        Alert.alert(
+          "Permission required",
+          "Permission to access photos is required to upload a photo."
+        );
+        setUploadingPhoto(false);
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: true,
+      });
+
+      const wasCancelled =
+        (result as any).cancelled || (result as any).canceled;
+      const pickedUri = (result as any).uri || (result as any).assets?.[0]?.uri;
+
+      if (wasCancelled || !pickedUri) {
+        setUploadingPhoto(false);
+        setCurrentAttendeeId(null);
+        return;
+      }
+
+      // Resize/compress for upload
+      const manipulated = await manipulateAsync(
+        pickedUri,
+        [{ resize: { width: 800 } }],
+        { compress: 0.7, format: SaveFormat.JPEG }
+      );
+
+      // Show immediate preview using local uri while uploading
+      setAttendees((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, photoUrl: manipulated.uri } : a))
+      );
+
+      // Upload to storage (attendance-photos folder)
+      try {
+        // Ensure the file has a proper extension by creating a new file if needed
+        let fileUri = manipulated.uri;
+        if (!fileUri.endsWith(".jpg") && !fileUri.endsWith(".jpeg")) {
+          const newPath = `${FileSystem.cacheDirectory}attendance-photo-${Date.now()}.jpg`;
+          await FileSystem.copyAsync({
+            from: manipulated.uri,
+            to: newPath,
+          });
+          fileUri = newPath;
+        }
+
+        const { path } = await uploadFileFromUri({
+          uri: fileUri,
+          fileName: `attendance-${Date.now()}.jpg`,
+          contentType: "image/jpeg",
+          folder: "attendance-photos",
+        });
+        const { url } = await createSignedDownloadUrl(path, 60);
+
+        setNewlyUploadedPaths((prev) => [...prev, path]);
+
+        setAttendees((prev) =>
+          prev.map((a) =>
+            a.id === id ? { ...a, photoUrl: url, photoPath: path } : a
+          )
+        );
+
+        // Clean up temp file if we created one
+        if (fileUri !== manipulated.uri) {
+          await FileSystem.deleteAsync(fileUri, { idempotent: true });
+        }
+      } catch (uploadErr: any) {
+        console.error("Upload failed:", uploadErr);
+        Alert.alert("Error", uploadErr?.message || "Failed to upload photo.");
+        // clear preview on failure
+        setAttendees((prev) =>
+          prev.map((a) =>
+            a.id === id ? { ...a, photoUrl: "", photoPath: "" } : a
+          )
+        );
+      }
+    } catch (err: any) {
+      console.error("handleUploadPhoto error:", err);
+      Alert.alert("Error", err?.message || "Failed to pick photo.");
+    } finally {
+      setUploadingPhoto(false);
+      setCurrentAttendeeId(null);
+    }
+  };
+
   const handleUploadSignature = async (id: number) => {
     try {
       setCurrentAttendeeId(id);
       setUploadingSignature(true);
 
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (permission.status !== "granted") {
-        Alert.alert("Permission required", "Permission to access photos is required to upload a signature.");
+        Alert.alert(
+          "Permission required",
+          "Permission to access photos is required to upload a signature."
+        );
         setUploadingSignature(false);
         return;
       }
@@ -414,7 +639,8 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
       });
 
       // Handle different ImagePickerResult shapes across SDK versions
-      const wasCancelled = (result as any).cancelled || (result as any).canceled;
+      const wasCancelled =
+        (result as any).cancelled || (result as any).canceled;
       const pickedUri = (result as any).uri || (result as any).assets?.[0]?.uri;
 
       if (wasCancelled || !pickedUri) {
@@ -424,10 +650,18 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
       }
 
       // Resize/compress for upload
-      const manipulated = await manipulateAsync(pickedUri, [{ resize: { width: 800 } }], { compress: 0.7, format: SaveFormat.PNG });
+      const manipulated = await manipulateAsync(
+        pickedUri,
+        [{ resize: { width: 800 } }],
+        { compress: 0.7, format: SaveFormat.PNG }
+      );
 
       // Show immediate preview using local uri while uploading
-      setAttendees((prev) => prev.map((a) => (a.id === id ? { ...a, signatureUrl: manipulated.uri } : a)));
+      setAttendees((prev) =>
+        prev.map((a) =>
+          a.id === id ? { ...a, signatureUrl: manipulated.uri } : a
+        )
+      );
 
       // Upload to storage (signatures folder)
       try {
@@ -437,13 +671,22 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
         setNewlyUploadedPaths((prev) => [...prev, path]);
 
         setAttendees((prev) =>
-          prev.map((a) => (a.id === id ? { ...a, signatureUrl: url, signaturePath: path } : a))
+          prev.map((a) =>
+            a.id === id ? { ...a, signatureUrl: url, signaturePath: path } : a
+          )
         );
       } catch (uploadErr: any) {
         console.error("Upload failed:", uploadErr);
-        Alert.alert("Error", uploadErr?.message || "Failed to upload signature image.");
+        Alert.alert(
+          "Error",
+          uploadErr?.message || "Failed to upload signature image."
+        );
         // clear preview on failure
-        setAttendees((prev) => prev.map((a) => (a.id === id ? { ...a, signatureUrl: "", signaturePath: "" } : a)));
+        setAttendees((prev) =>
+          prev.map((a) =>
+            a.id === id ? { ...a, signatureUrl: "", signaturePath: "" } : a
+          )
+        );
       }
     } catch (err: any) {
       console.error("handleUploadSignature error:", err);
@@ -478,6 +721,29 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
 
     updateField(id, "signatureUrl", "");
     updateField(id, "signaturePath", "");
+  };
+
+  const handleRemovePhoto = async (id: number) => {
+    const attendee = attendees.find((a) => a.id === id);
+    const photoPath = (attendee as any)?.photoPath || attendee?.photoUrl;
+
+    if (photoPath) {
+      try {
+        // Delete from storage bucket
+        await apiPost("/storage/delete-files", {
+          paths: [photoPath],
+        });
+
+        // If the photo being removed was just uploaded, untrack it
+        setNewlyUploadedPaths((prev) => prev.filter((p) => p !== photoPath));
+      } catch (error) {
+        console.error("Failed to delete photo from storage:", error);
+        // Continue with removal even if deletion fails
+      }
+    }
+
+    updateField(id, "photoUrl", "");
+    updateField(id, "photoPath", "");
   };
 
   const handleSignatureClear = () => {
@@ -626,6 +892,8 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
           (a as any).signaturePath?.trim() ||
           a.signatureUrl?.trim() ||
           undefined,
+        photoUrl:
+          (a as any).photoPath?.trim() || a.photoUrl?.trim() || undefined,
         attendanceStatus: mapAttendanceStatus(a.attendance),
       })),
     };
@@ -676,7 +944,10 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
       />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollPaddingBottom }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: scrollPaddingBottom },
+        ]}
         scrollEnabled={!isSigning}
       >
         {/* Header */}
@@ -936,73 +1207,178 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
                 )}
               </View>
 
-              {/* Signature */}
-              <View style={styles.inputContainer}>
-                <Text
-                  style={[
-                    styles.label,
-                    errors.attendees?.[attendee.id]?.signatureUrl &&
-                      styles.labelError,
-                  ]}
-                >
-                  Signature
-                </Text>
-                {attendee.signatureUrl ? (
-                  <View style={styles.signaturePreviewContainer}>
-                    <Image
-                      source={{ uri: attendee.signatureUrl }}
-                      style={styles.signaturePreview}
-                      resizeMode="contain"
-                    />
-                    <TouchableOpacity
-                      style={styles.removeSignatureButton}
-                      onPress={() => handleRemoveSignature(attendee.id)}
-                    >
-                      <Feather name="x" size={16} color={theme.colors.error} />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View style={{ flexDirection: "column", alignItems: "flex-start" }}>
-                    <TouchableOpacity
-                      style={[styles.addSignatureButton, { width: "100%" }]}
-                      onPress={() => handleAddSignature(attendee.id)}
-                    >
-                      <Feather
-                        name="edit-3"
-                        size={18}
-                        color={theme.colors.primaryDark}
+              {/* Signature - Hidden when Absent */}
+              {attendee.attendance.toLowerCase() !== "absent" && (
+                <View style={styles.inputContainer}>
+                  <Text
+                    style={[
+                      styles.label,
+                      errors.attendees?.[attendee.id]?.signatureUrl &&
+                        styles.labelError,
+                    ]}
+                  >
+                    Signature
+                  </Text>
+                  {attendee.signatureUrl ? (
+                    <View style={styles.signaturePreviewContainer}>
+                      <Image
+                        source={{ uri: attendee.signatureUrl }}
+                        style={styles.signaturePreview}
+                        resizeMode="contain"
                       />
-                      <Text style={styles.addSignatureText}>Add Signature</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.addSignatureButton, { marginTop: 10, width: "100%" }]}
-                      onPress={() => handleUploadSignature(attendee.id)}
-                      disabled={uploadingSignature}
-                    >
-                      {uploadingSignature && currentAttendeeId === attendee.id ? (
-                        <ActivityIndicator size="small" color={theme.colors.primaryDark} />
-                      ) : (
+                      <TouchableOpacity
+                        style={styles.removeSignatureButton}
+                        onPress={() => handleRemoveSignature(attendee.id)}
+                      >
                         <Feather
-                          name="upload"
+                          name="x"
+                          size={16}
+                          color={theme.colors.error}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View
+                      style={{
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <TouchableOpacity
+                        style={[styles.addSignatureButton, { width: "100%" }]}
+                        onPress={() => handleAddSignature(attendee.id)}
+                      >
+                        <Feather
+                          name="edit-3"
                           size={18}
                           color={theme.colors.primaryDark}
                         />
-                      )}
-                      <Text style={styles.addSignatureText}>Upload Signature</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-                {errors.attendees?.[attendee.id]?.signatureUrl && (
-                  <Text style={styles.errorText}>Signature is required</Text>
-                )}
-              </View>
+                        <Text style={styles.addSignatureText}>
+                          Add Signature
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.addSignatureButton,
+                          { marginTop: 10, width: "100%" },
+                        ]}
+                        onPress={() => handleUploadSignature(attendee.id)}
+                        disabled={uploadingSignature}
+                      >
+                        {uploadingSignature &&
+                        currentAttendeeId === attendee.id ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={theme.colors.primaryDark}
+                          />
+                        ) : (
+                          <Feather
+                            name="upload"
+                            size={18}
+                            color={theme.colors.primaryDark}
+                          />
+                        )}
+                        <Text style={styles.addSignatureText}>
+                          Upload Signature
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  {errors.attendees?.[attendee.id]?.signatureUrl && (
+                    <Text style={styles.errorText}>Signature is required</Text>
+                  )}
+                </View>
+              )}
+
+              {/* Attendance Photo - Hidden when Absent */}
+              {attendee.attendance.toLowerCase() !== "absent" && (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Attendance Photo (optional)</Text>
+                  {attendee.photoUrl ? (
+                    <View style={styles.signaturePreviewContainer}>
+                      <Image
+                        source={{ uri: attendee.photoUrl }}
+                        style={styles.signaturePreview}
+                        resizeMode="cover"
+                      />
+                      <TouchableOpacity
+                        style={styles.removeSignatureButton}
+                        onPress={() => handleRemovePhoto(attendee.id)}
+                      >
+                        <Feather
+                          name="x"
+                          size={16}
+                          color={theme.colors.error}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View
+                      style={{
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <TouchableOpacity
+                        style={[styles.addSignatureButton, { width: "100%" }]}
+                        onPress={() => handleTakePhoto(attendee.id)}
+                        disabled={uploadingPhoto}
+                      >
+                        {uploadingPhoto && currentAttendeeId === attendee.id ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={theme.colors.primaryDark}
+                          />
+                        ) : (
+                          <Feather
+                            name="camera"
+                            size={18}
+                            color={theme.colors.primaryDark}
+                          />
+                        )}
+                        <Text style={styles.addSignatureText}>Take Photo</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.addSignatureButton,
+                          { marginTop: 10, width: "100%" },
+                        ]}
+                        onPress={() => handleUploadPhoto(attendee.id)}
+                        disabled={uploadingPhoto}
+                      >
+                        {uploadingPhoto && currentAttendeeId === attendee.id ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={theme.colors.primaryDark}
+                          />
+                        ) : (
+                          <Feather
+                            name="upload"
+                            size={18}
+                            color={theme.colors.primaryDark}
+                          />
+                        )}
+                        <Text style={styles.addSignatureText}>
+                          Upload Photo
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
           ))}
         </View>
 
         {/* Add Person Button */}
-  <View style={[styles.bottomButtonsContainer, { paddingBottom: footerPaddingBottom }] }>
+        <View
+          style={[
+            styles.bottomButtonsContainer,
+            { paddingBottom: footerPaddingBottom },
+          ]}
+        >
           <TouchableOpacity
             activeOpacity={0.9}
             onPressIn={handlePressIn}
@@ -1093,7 +1469,12 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
           </View>
 
           {/* Footer with only Cancel and Save */}
-          <View style={[styles.signatureModalFooter, { paddingBottom: footerPaddingBottom }]}>
+          <View
+            style={[
+              styles.signatureModalFooter,
+              { paddingBottom: footerPaddingBottom },
+            ]}
+          >
             <View style={styles.signatureModalButtons}>
               <TouchableOpacity
                 style={[
@@ -1129,7 +1510,7 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
             </View>
           </View>
         </SafeAreaView>
-         <View style={{ height: 40 }} />
+        <View style={{ height: 40 }} />
       </Modal>
     </SafeAreaView>
   );
