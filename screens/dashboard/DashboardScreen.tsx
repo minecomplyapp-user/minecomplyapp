@@ -340,6 +340,7 @@ export default function DashboardScreen({ navigation }: any) {
               onPress={async () => {
                 // <--- Make the callback function ASYNC
                 // 1. Await the report fetch to ensure the store is updated
+                console.log("Fetching all reports for duplication...",user?.email);
                 await getAllReports(user?.email, token); // <--- Use AWAIT
 
                 // 2. Navigate after data is guaranteed to be in the store

@@ -94,7 +94,7 @@ export const LocationSection: React.FC<LocationSectionProps> = ({
             selectedLocations.quarryPlant && styles.checkboxLabelActive,
           ]}
         >
-          Quarry & Plant
+          Quarry / Plant
         </Text>
       </TouchableOpacity>
 

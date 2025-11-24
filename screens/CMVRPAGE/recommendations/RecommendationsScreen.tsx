@@ -536,7 +536,8 @@ const RecommendationsScreen: React.FC = () => {
     // Navigate to AttendanceList in selection mode
     navigation.navigate("AttendanceList", {
       fromRecommendations: true,
-      selectedAttendanceId: currentReport?.attendanceUrl || null,
+      selectedAttendanceId:
+        currentReport?.attendanceId ?? currentReport?.attendanceUrl ?? null,
     });
   };
 

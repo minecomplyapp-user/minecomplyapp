@@ -1118,10 +1118,10 @@ export default function WaterQualityScreen({ navigation, route }: any) {
           />
         )}
 
-        {/* Quarry & Plant Monitoring Section */}
+        {/* Quarry / Plant Monitoring Section */}
         {selectedLocations.quarryPlant && (
           <LocationMonitoringSection
-            locationName="Quarry & Plant"
+            locationName="Quarry / Plant"
             locationInput={quarryPlantData.locationInput}
             mainParameter={{
               id: "quarryplant-main",

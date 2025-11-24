@@ -127,7 +127,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
             placeholder="Type new permit holder name"
             placeholderTextColor="#94A3B8"
           />
-
+          x
           <TouchableOpacity
             style={styles.submitButton} // Re-using submitButton style
             onPress={() => {

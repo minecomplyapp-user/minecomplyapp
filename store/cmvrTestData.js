@@ -969,7 +969,7 @@ export const buildCmvrTestData = () => {
     complianceWithGoodPracticeInChemicalSafetyManagement: chemicalSafety,
     complaintsVerificationAndManagement: complaints,
     recommendationsData: recommendations,
-    attendanceUrl: "https://example.com/attendance-record.pdf",
+    attendanceId: "sample-attendance-record-id",
   };
 
   const metadata = {

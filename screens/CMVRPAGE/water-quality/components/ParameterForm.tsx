@@ -30,13 +30,9 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
   const handleParameterSelect = (value: string | number) => {
     const selection = String(value).toLowerCase();
 
-    if (selection.includes("oil")) {
-      onUpdate("parameter", "OG");
-    } else if (selection.includes("tss")) {
-      onUpdate("parameter", "TSS");
-    } else {
-      onUpdate("parameter", "");
-    }
+  
+          onUpdate("parameter",value as string);
+
   };
 
   return (
@@ -63,7 +59,7 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
         >
           <Picker.Item label="Select Parameter..." value="" />
           <Picker.Item label="TSS" value="TSS" />
-          <Picker.Item label="Oil & Grease" value="Oil & Grease" />
+          <Picker.Item label="Oil & Grease" value="OG" />
         </Picker>
       </View>
 

@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { transformToBackendDTO } from "./cmvrTransformers";
 import { buildCmvrTestData } from "./cmvrTestData";
 import { getJwt } from "../lib/api";
+import { saveDraft as saveDraftToStorage } from "../lib/drafts";
 
 // Storage key for CMVR drafts
 const CMVR_DRAFT_STORAGE_KEY = "@cmvr_draft";
@@ -322,6 +323,7 @@ const createProcessDocumentationSection = () => ({
 
 const createEmptyReportState = () => ({
   generalInfo: {},
+  permitHolderList: [],
   eccInfo: {},
   eccAdditionalForms: [],
   isagInfo: {},
@@ -350,6 +352,7 @@ const createEmptyReportState = () => ({
   complaintsVerificationAndManagement: [createComplaintEntry()],
   recommendationsData: createRecommendationsSection(),
   attendanceUrl: null,
+  attendanceId: null,
 });
 
 const mergeObjects = (base, incoming) =>
@@ -602,79 +605,93 @@ const normalizeLocationCoverage = (incoming) => {
 };
 
 const normalizeReportData = (reportData = {}) => {
+  // Unwrap cmvrData if present (from backend response)
+  const sourceData = reportData.cmvrData || reportData;
   const base = createEmptyReportState();
   return {
-    generalInfo: mergeObjects(base.generalInfo, reportData.generalInfo),
-    eccInfo: mergeObjects(base.eccInfo, reportData.eccInfo),
+    generalInfo: mergeObjects(base.generalInfo, sourceData.generalInfo),
+    permitHolderList: ensureArray(
+      sourceData.permitHolderList,
+      base.permitHolderList
+    ),
+    eccInfo: mergeObjects(base.eccInfo, sourceData.eccInfo),
     eccAdditionalForms: ensureArray(
-      reportData.eccAdditionalForms,
+      sourceData.eccAdditionalForms,
       base.eccAdditionalForms
     ),
-    isagInfo: mergeObjects(base.isagInfo, reportData.isagInfo),
+    isagInfo: mergeObjects(base.isagInfo, sourceData.isagInfo),
     isagAdditionalForms: ensureArray(
-      reportData.isagAdditionalForms,
+      sourceData.isagAdditionalForms,
       base.isagAdditionalForms
     ),
-    epepInfo: mergeObjects(base.epepInfo, reportData.epepInfo),
+    epepInfo: mergeObjects(base.epepInfo, sourceData.epepInfo),
     epepAdditionalForms: ensureArray(
-      reportData.epepAdditionalForms,
+      sourceData.epepAdditionalForms,
       base.epepAdditionalForms
     ),
-    rcfInfo: mergeObjects(base.rcfInfo, reportData.rcfInfo),
+    rcfInfo: mergeObjects(base.rcfInfo, sourceData.rcfInfo),
     rcfAdditionalForms: ensureArray(
-      reportData.rcfAdditionalForms,
+      sourceData.rcfAdditionalForms,
       base.rcfAdditionalForms
     ),
-    mtfInfo: mergeObjects(base.mtfInfo, reportData.mtfInfo),
+    mtfInfo: mergeObjects(base.mtfInfo, sourceData.mtfInfo),
     mtfAdditionalForms: ensureArray(
-      reportData.mtfAdditionalForms,
+      sourceData.mtfAdditionalForms,
       base.mtfAdditionalForms
     ),
-    fmrdfInfo: mergeObjects(base.fmrdfInfo, reportData.fmrdfInfo),
+    fmrdfInfo: mergeObjects(base.fmrdfInfo, sourceData.fmrdfInfo),
     fmrdfAdditionalForms: ensureArray(
-      reportData.fmrdfAdditionalForms,
+      sourceData.fmrdfAdditionalForms,
       base.fmrdfAdditionalForms
     ),
-    mmtInfo: mergeObjects(base.mmtInfo, reportData.mmtInfo),
+    mmtInfo: mergeObjects(base.mmtInfo, sourceData.mmtInfo),
     executiveSummaryOfCompliance: normalizeExecutiveSummary(
-      reportData.executiveSummaryOfCompliance
+      sourceData.executiveSummaryOfCompliance
     ),
     processDocumentationOfActivitiesUndertaken: normalizeProcessDocumentation(
-      reportData.processDocumentationOfActivitiesUndertaken
+      sourceData.processDocumentationOfActivitiesUndertaken
     ),
     complianceToProjectLocationAndCoverageLimits: normalizeLocationCoverage(
-      reportData.complianceToProjectLocationAndCoverageLimits
+      sourceData.complianceToProjectLocationAndCoverageLimits
     ),
     complianceToImpactManagementCommitments: normalizeImpactCommitmentsSection(
-      reportData.complianceToImpactManagementCommitments
+      sourceData.complianceToImpactManagementCommitments
     ),
     airQualityImpactAssessment: normalizeAirQualitySection(
-      reportData.airQualityImpactAssessment
+      sourceData.airQualityImpactAssessment
     ),
     waterQualityImpactAssessment: normalizeWaterQualitySection(
-      reportData.waterQualityImpactAssessment
+      sourceData.waterQualityImpactAssessment
     ),
     noiseQualityImpactAssessment: normalizeNoiseQualitySection(
-      reportData.noiseQualityImpactAssessment
+      sourceData.noiseQualityImpactAssessment
     ),
     complianceWithGoodPracticeInSolidAndHazardousWasteManagement:
       normalizeWasteManagementSection(
-        reportData.complianceWithGoodPracticeInSolidAndHazardousWasteManagement
+        sourceData.complianceWithGoodPracticeInSolidAndHazardousWasteManagement
       ),
     complianceWithGoodPracticeInChemicalSafetyManagement:
       normalizeChemicalSafetySection(
-        reportData.complianceWithGoodPracticeInChemicalSafetyManagement
+        sourceData.complianceWithGoodPracticeInChemicalSafetyManagement
       ),
     complaintsVerificationAndManagement: normalizeComplaints(
-      reportData.complaintsVerificationAndManagement
+      sourceData.complaintsVerificationAndManagement
     ),
     recommendationsData: normalizeRecommendationsSection(
-      reportData.recommendationsData
+      sourceData.recommendationsData
     ),
+    attendanceId:
+      sourceData.attendanceId !== undefined
+        ? sourceData.attendanceId
+        : sourceData.attendanceUrl !== undefined
+          ? sourceData.attendanceUrl
+          : base.attendanceId,
     attendanceUrl:
-      reportData.attendanceUrl !== undefined
-        ? reportData.attendanceUrl
-        : base.attendanceUrl,
+      sourceData.attendanceUrl !== undefined
+        ? sourceData.attendanceUrl
+        : sourceData.attendanceId !== undefined
+          ? sourceData.attendanceId
+          : base.attendanceUrl,
   };
 };
 
@@ -797,9 +814,36 @@ export const useCmvrStore = create((set, get) => ({
    * Update multiple sections at once
    */
   updateMultipleSections: (sectionsData) => {
+    const normalizedSectionsData = { ...(sectionsData || {}) };
+    if (
+      Object.prototype.hasOwnProperty.call(
+        normalizedSectionsData,
+        "attendanceUrl"
+      ) &&
+      !Object.prototype.hasOwnProperty.call(
+        normalizedSectionsData,
+        "attendanceId"
+      )
+    ) {
+      normalizedSectionsData.attendanceId =
+        normalizedSectionsData.attendanceUrl;
+    } else if (
+      Object.prototype.hasOwnProperty.call(
+        normalizedSectionsData,
+        "attendanceId"
+      ) &&
+      !Object.prototype.hasOwnProperty.call(
+        normalizedSectionsData,
+        "attendanceUrl"
+      )
+    ) {
+      normalizedSectionsData.attendanceUrl =
+        normalizedSectionsData.attendanceId;
+    }
+
     set((state) => {
       const updatedSections = new Set(state.editedSections || []);
-      Object.keys(sectionsData || {}).forEach((sectionName) => {
+      Object.keys(normalizedSectionsData || {}).forEach((sectionName) => {
         if (sectionName) {
           updatedSections.add(sectionName);
         }
@@ -807,7 +851,7 @@ export const useCmvrStore = create((set, get) => ({
       return {
         currentReport: {
           ...state.currentReport,
-          ...sectionsData,
+          ...normalizedSectionsData,
         },
         isDirty: true,
         editedSections: Array.from(updatedSections),
@@ -904,6 +948,10 @@ export const useCmvrStore = create((set, get) => ({
         savedAt,
       };
 
+      // Save to multi-file draft system (so it appears in the list)
+      await saveDraftToStorage(state.fileName, draftData);
+
+      // Also save to single slot for Dashboard "Resume" card
       await AsyncStorage.setItem(
         CMVR_DRAFT_STORAGE_KEY,
         JSON.stringify(draftData)
@@ -1085,7 +1133,7 @@ export const useCmvrStore = create((set, get) => ({
 
       // Construct endpoint with fileName as query param
       const fileName = state.fileName || "Untitled";
-      const endpoint = `${BASE_URL}/cmvr?fileName=${encodeURIComponent(fileName)}`;
+      const endpoint = `${BASE_URL}/cmvr/${reportId}?fileName=${encodeURIComponent(fileName)}`;
 
       console.log(
         "Submitting payload:",

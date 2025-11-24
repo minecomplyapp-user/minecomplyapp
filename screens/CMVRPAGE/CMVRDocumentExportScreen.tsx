@@ -144,7 +144,8 @@ type CMVRDocumentExportParams = {
   complaintsVerificationAndManagement?: any;
   recommendationFromPrevQuarter?: any;
   recommendationForNextQuarter?: any;
-  attendanceUrl?: string;
+  attendanceId?: string | null;
+  attendanceUrl?: string | null;
   documentation?: any;
   complianceMonitoringReport?: Partial<DraftSnapshot>;
 };
@@ -168,6 +169,7 @@ type DraftSnapshot = {
   fmrdfInfo: RCFInfo;
   fmrdfAdditionalForms: FundAdditionalForm[];
   mmtInfo: MMTInfo;
+  permitHolderList: string[];
   fileName: string;
   savedAt?: string;
   recommendationsData?: RecommendationsData;
@@ -183,7 +185,8 @@ type DraftSnapshot = {
   complaintsVerificationAndManagement?: any;
   recommendationFromPrevQuarter?: any;
   recommendationForNextQuarter?: any;
-  attendanceUrl?: string;
+  attendanceId?: string | null;
+  attendanceUrl?: string | null;
   documentation?: any;
   complianceMonitoringReport?: Partial<DraftSnapshot>;
 };
@@ -590,6 +593,9 @@ const mergeDraftData = (
         fmrdfInfo: defaultFundInfo,
         fmrdfAdditionalForms: [],
         mmtInfo: defaultMmtInfo,
+        permitHolderList: [],
+        attendanceId: null,
+        attendanceUrl: null,
         fileName,
         savedAt: new Date().toISOString(),
       };
@@ -615,6 +621,7 @@ const mergeDraftData = (
   assign("fmrdfInfo");
   assign("fmrdfAdditionalForms");
   assign("mmtInfo");
+  assign("permitHolderList");
   assign("recommendationsData");
   assign("executiveSummaryOfCompliance");
   assign("processDocumentationOfActivitiesUndertaken");
@@ -628,6 +635,7 @@ const mergeDraftData = (
   assign("complaintsVerificationAndManagement");
   assign("recommendationFromPrevQuarter");
   assign("recommendationForNextQuarter");
+  assign("attendanceId");
   assign("attendanceUrl");
   assign("documentation");
   base.fileName = fileName;
@@ -1189,7 +1197,7 @@ const transformWaterQualityForPayload = (raw: any) => {
     const labels: Record<string, string> = {
       quarry: "Quarry",
       plant: "Plant",
-      quarryPlant: "Quarry & Plant",
+      quarryPlant: "Quarry / Plant",
     };
 
     const map: Record<string, string> = {};
@@ -3433,6 +3441,14 @@ const buildCreateCMVRPayload = (
     monitoringTrustFundUnified: mtfEntries,
     finalMineRehabilitationAndDecommissioningFund: fmrdfEntries,
   };
+  if (Array.isArray(norm.permitHolderList)) {
+    const cleaned = norm.permitHolderList
+      .map((holder) => sanitizeString(holder))
+      .filter((holder) => holder.length > 0);
+    if (cleaned.length > 0) {
+      payload.permitHolderList = cleaned;
+    }
+  }
   if (userId) {
     payload.createdById = userId;
   }
@@ -3599,8 +3615,15 @@ const buildCreateCMVRPayload = (
   if (hasComplianceData) {
     payload.complianceMonitoringReport = complianceMonitoringReport;
   }
-  if (options.attendanceId) {
-    payload.attendanceId = options.attendanceId;
+  const payloadAttendanceId =
+    options.attendanceId ??
+    (typeof norm.attendanceId === "string" && norm.attendanceId
+      ? norm.attendanceId
+      : typeof norm.attendanceUrl === "string"
+        ? norm.attendanceUrl
+        : undefined);
+  if (payloadAttendanceId) {
+    payload.attendanceId = payloadAttendanceId;
   }
 
   // Add ECC Conditions attachment if uploaded
@@ -3740,9 +3763,12 @@ const CMVRDocumentExportScreen = () => {
     return JSON.stringify(currentReport) !== JSON.stringify(draftSnapshot);
   }, [currentReport, draftSnapshot]);
 
-  const attendanceUrl = currentReport?.attendanceUrl ?? null;
+  const attendanceIdFromStore = currentReport?.attendanceId ?? null;
+  const legacyAttendanceId = currentReport?.attendanceUrl ?? null;
+  const storedAttendanceId =
+    attendanceIdFromStore ?? legacyAttendanceId ?? null;
   const resolvedAttendanceId =
-    routeSelectedAttendanceId ?? attendanceUrl ?? null;
+    routeSelectedAttendanceId ?? storedAttendanceId ?? null;
 
   const loadStoredDraft =
     useCallback(async (): Promise<DraftSnapshot | null> => {
@@ -3754,14 +3780,6 @@ const CMVRDocumentExportScreen = () => {
         return null;
       }
     }, []);
-
-  const persistSnapshot = useCallback(async (snapshot: DraftSnapshot) => {
-    try {
-      await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(snapshot));
-    } catch (error) {
-      console.warn("Failed to persist CMVR draft snapshot:", error);
-    }
-  }, []);
 
   // Handle loadDraft parameter from dashboard
   useEffect(() => {
@@ -3869,15 +3887,21 @@ const CMVRDocumentExportScreen = () => {
     if (!routeSelectedAttendanceId) {
       return;
     }
-    if (routeSelectedAttendanceId === attendanceUrl) {
+    if (routeSelectedAttendanceId === storedAttendanceId) {
       return;
     }
 
-    updateMultipleSections({ attendanceUrl: routeSelectedAttendanceId });
+    updateMultipleSections({ attendanceId: routeSelectedAttendanceId });
     setDraftSnapshot((prev) =>
-      prev ? { ...prev, attendanceUrl: routeSelectedAttendanceId } : prev
+      prev
+        ? {
+            ...prev,
+            attendanceId: routeSelectedAttendanceId,
+            attendanceUrl: routeSelectedAttendanceId,
+          }
+        : prev
     );
-  }, [routeSelectedAttendanceId, attendanceUrl, updateMultipleSections]);
+  }, [routeSelectedAttendanceId, storedAttendanceId, updateMultipleSections]);
 
   useEffect(() => {
     let isActive = true;
@@ -4120,7 +4144,6 @@ const CMVRDocumentExportScreen = () => {
       }
 
       setDraftSnapshot(merged);
-      await persistSnapshot(merged);
       if (routeReportId) {
         setSubmittedReportId(routeReportId);
         setHasSubmitted(true);
@@ -4137,7 +4160,6 @@ const CMVRDocumentExportScreen = () => {
     routeProjectId,
     routeProjectName,
     loadStoredDraft,
-    persistSnapshot,
     resolvedFileName,
     setHasSubmitted,
     setSubmittedReportId,
@@ -4150,7 +4172,7 @@ const CMVRDocumentExportScreen = () => {
   const handleExit = async () => {
     try {
       if (!hasSubmitted) {
-        await saveDraftToLocal();
+        await saveDraft();
       }
     } catch (e) {
       console.warn("Failed to save draft on exit:", e);
@@ -4283,7 +4305,7 @@ const CMVRDocumentExportScreen = () => {
         snapshotForSubmission,
         {
           recommendationsData: snapshotForSubmission.recommendationsData,
-          attendanceId: routeSelectedAttendanceId,
+          attendanceId: resolvedAttendanceId ?? undefined,
         },
         user?.id
       );
@@ -4380,6 +4402,7 @@ const CMVRDocumentExportScreen = () => {
         fmrdfInfo,
         fmrdfAdditionalForms,
         mmtInfo,
+        permitHolderList,
         executiveSummaryOfCompliance: executiveSummary,
         processDocumentationOfActivitiesUndertaken: processDocumentation,
         complianceToProjectLocationAndCoverageLimits: complianceProjectLocation,
@@ -4395,7 +4418,7 @@ const CMVRDocumentExportScreen = () => {
         recommendationsData,
         recommendationFromPrevQuarter: recommendationPrev,
         recommendationForNextQuarter: recommendationNext,
-        attendanceUrl,
+        attendanceId: resolvedAttendanceId,
         documentation,
       });
 
@@ -4496,6 +4519,7 @@ const CMVRDocumentExportScreen = () => {
   const fmrdfAdditionalForms =
     currentReport?.fmrdfAdditionalForms ?? ([] as FundAdditionalForm[]);
   const mmtInfo = currentReport?.mmtInfo ?? defaultMmtInfo;
+  const permitHolderList = currentReport?.permitHolderList || [];
   const executiveSummary = currentReport?.executiveSummaryOfCompliance;
   const processDocumentation =
     currentReport?.processDocumentationOfActivitiesUndertaken;
@@ -4540,11 +4564,16 @@ const CMVRDocumentExportScreen = () => {
     fmrdfInfo,
     fmrdfAdditionalForms,
     mmtInfo,
+    permitHolderList,
+    selectedAttendanceId: resolvedAttendanceId,
+    attendanceId: resolvedAttendanceId,
+    attendanceUrl: resolvedAttendanceId ?? legacyAttendanceId ?? null,
   };
 
   const draftPayload = {
     ...currentReport,
     fileName,
+    permitHolderList,
     isagInfo,
     isagAdditionalForms,
     epepInfo,
@@ -4570,18 +4599,10 @@ const CMVRDocumentExportScreen = () => {
     recommendationsData,
     recommendationFromPrevQuarter: recommendationPrev,
     recommendationForNextQuarter: recommendationNext,
-    attendanceUrl,
+    attendanceId: resolvedAttendanceId,
+    attendanceUrl: resolvedAttendanceId ?? legacyAttendanceId ?? null,
     documentation,
   } as DraftSnapshot;
-
-  const saveDraftToLocal = useCallback(async () => {
-    try {
-      await persistSnapshot(draftPayload);
-      setDraftSnapshot(draftPayload);
-    } catch (error) {
-      console.warn("Failed to save CMVR draft snapshot:", error);
-    }
-  }, [draftPayload, persistSnapshot]);
 
   // Auto-fill test data intentionally disabled to prevent accidental population
 
@@ -4662,7 +4683,7 @@ const CMVRDocumentExportScreen = () => {
       recommendationsData,
       recommendationFromPrevQuarter: recommendationPrev,
       recommendationForNextQuarter: recommendationNext,
-      attendanceUrl,
+      selectedAttendanceId: resolvedAttendanceId,
       documentation,
     } as any);
   };
@@ -4901,13 +4922,9 @@ const CMVRDocumentExportScreen = () => {
           <SummaryItem
             icon="📋"
             title="Attendance Record"
-            value={
-              routeSelectedAttendanceTitle
-                ? routeSelectedAttendanceTitle
-                : "Not selected"
-            }
+            value={attendanceDisplayValue}
             onPress={navigateToAttendanceSelection}
-            isEdited={isSectionEdited("attendanceUrl")}
+            isEdited={isSectionEdited(["attendanceId", "attendanceUrl"])}
           />
           <SummaryItem
             icon="📎"

@@ -201,7 +201,7 @@ getReportById: async (id,token) => {
         }
 
         const data = await response.json();
-            console.log("asdasda")
+            console.log("fetched ecc report",data)
         // 3. Update State with the fetched data
         set({
             reports: data, // Assuming the API returns an array of reports

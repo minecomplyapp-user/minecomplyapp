@@ -233,7 +233,6 @@ const CMVRReportScreen: React.FC = () => {
   // Local UI state
   const [isSaving, setIsSaving] = useState(false);
   const [showBackDialog, setShowBackDialog] = useState(false);
-  const [permitHolderList, setPermitHolderList] = useState<string[]>([]);
 
   // Legacy fileName context (keep for compatibility with other screens)
   const { fileName: contextFileName, setFileName: setContextFileName } =
@@ -485,6 +484,8 @@ const CMVRReportScreen: React.FC = () => {
     emailAddress: "",
   };
 
+  const permitHolderList = currentReport?.permitHolderList || [];
+
   const isExistingSubmission = Boolean(
     routeParams.submissionId ?? storeSubmissionId
   );
@@ -601,6 +602,14 @@ const CMVRReportScreen: React.FC = () => {
     updateSection("mmtInfo", newValue);
   };
 
+  const setPermitHolderList = (
+    value: string[] | ((prev: string[]) => string[])
+  ) => {
+    const newValue =
+      typeof value === "function" ? value(permitHolderList) : value;
+    updateSection("permitHolderList", newValue);
+  };
+
   const setGeneralInfo = (
     value: GeneralInfo | ((prev: GeneralInfo) => GeneralInfo)
   ) => {
@@ -611,6 +620,12 @@ const CMVRReportScreen: React.FC = () => {
   // Note: isDirty is automatically tracked by the store, no need for local hasUnsavedChanges
 
   const fillTestData = () => {
+    setPermitHolderList([
+      "First Permit Holder Corp.",
+      "Second Mining Company Ltd.",
+      "Third Resources Inc.",
+      "Fourth Development Corp.",
+    ]);
     setGeneralInfo({
       companyName: "Test Mining Company",
       projectName:

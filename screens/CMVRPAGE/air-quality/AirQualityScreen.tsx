@@ -540,10 +540,10 @@ export default function AirQualityScreen({ navigation, route }: any) {
           />
         )}
 
-        {/* Quarry & Plant Monitoring Section */}
+        {/* Quarry / Plant Monitoring Section */}
         {selectedLocations.quarryPlant && (
           <AirQualityLocationMonitoringSection
-            locationName="Quarry & Plant"
+            locationName="Quarry / Plant"
             locationInput={quarryPlantData.locationInput}
             samplingDate={quarryPlantData.samplingDate}
             weatherAndWind={quarryPlantData.weatherAndWind}

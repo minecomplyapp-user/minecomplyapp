@@ -18,7 +18,9 @@ export const ExecutiveSummarySection: React.FC<ExecutiveSummaryProps> = ({
         </View>
         <View style={styles.headerTextContainer}>
           <Text style={styles.sectionTitle}>Executive Summary</Text>
-          <Text style={styles.sectionSubtitle}>Summary of Compliance Status</Text>
+          <Text style={styles.sectionSubtitle}>
+            Summary of Compliance Status
+          </Text>
         </View>
       </View>
 
@@ -41,7 +43,8 @@ export const ExecutiveSummarySection: React.FC<ExecutiveSummaryProps> = ({
               <View
                 style={[
                   styles.checkbox,
-                  executiveSummary.epepCompliance.safety && styles.checkboxChecked,
+                  executiveSummary.epepCompliance.safety &&
+                    styles.checkboxChecked,
                 ]}
               >
                 {executiveSummary.epepCompliance.safety && (
@@ -57,7 +60,8 @@ export const ExecutiveSummarySection: React.FC<ExecutiveSummaryProps> = ({
               <View
                 style={[
                   styles.checkbox,
-                  executiveSummary.epepCompliance.social && styles.checkboxChecked,
+                  executiveSummary.epepCompliance.social &&
+                    styles.checkboxChecked,
                 ]}
               >
                 {executiveSummary.epepCompliance.social && (
@@ -107,7 +111,9 @@ export const ExecutiveSummarySection: React.FC<ExecutiveSummaryProps> = ({
           <View style={styles.radioGroup}>
             <TouchableOpacity
               style={styles.checkboxRow}
-              onPress={() => updateExecutiveSummary("sdmpCompliance", "complied")}
+              onPress={() =>
+                updateExecutiveSummary("sdmpCompliance", "complied")
+              }
             >
               <View
                 style={[
@@ -184,14 +190,23 @@ export const ExecutiveSummarySection: React.FC<ExecutiveSummaryProps> = ({
 
           <View style={styles.checkboxGroup}>
             {[
-              { key: "complaintReceiving", label: "Complaint receiving set-up" },
+              {
+                key: "complaintReceiving",
+                label: "Complaint receiving set-up",
+              },
               { key: "caseInvestigation", label: "Case investigation" },
-              { key: "implementationControl", label: "Implementation of control" },
+              {
+                key: "implementationControl",
+                label: "Implementation of control",
+              },
               {
                 key: "communicationComplainant",
                 label: "Communication with complainant/public",
               },
-              { key: "complaintDocumentation", label: "Complaint documentation" },
+              {
+                key: "complaintDocumentation",
+                label: "Complaint documentation",
+              },
             ].map((item) => (
               <TouchableOpacity
                 key={item.key}
@@ -243,22 +258,29 @@ export const ExecutiveSummarySection: React.FC<ExecutiveSummaryProps> = ({
         {/* 🔒 Complaints Remarks (disabled when N/A) */}
         <View style={styles.fieldGroup}>
           <Text style={styles.labelSmall}>COMPLAINTS REMARKS</Text>
-          <TextInput
-            style={[
-              styles.input,
-              styles.textArea,
-              executiveSummary.complaintsManagement.naForAll && styles.disabledInput,
-            ]}
-            value={executiveSummary.complaintsRemarks}
-            onChangeText={(text) =>
-              updateExecutiveSummary("complaintsRemarks", text)
+          <View
+            pointerEvents={
+              executiveSummary.complaintsManagement.naForAll ? "none" : "auto"
             }
-            placeholder="Enter remarks for complaints management..."
-            placeholderTextColor="#94A3B8"
-            multiline
-            numberOfLines={3}
-            editable={!executiveSummary.complaintsManagement.naForAll}
-          />
+          >
+            <TextInput
+              style={[
+                styles.input,
+                styles.textArea,
+                executiveSummary.complaintsManagement.naForAll &&
+                  styles.disabledInput,
+              ]}
+              value={executiveSummary.complaintsRemarks}
+              onChangeText={(text) =>
+                updateExecutiveSummary("complaintsRemarks", text)
+              }
+              placeholder="Enter remarks for complaints management..."
+              placeholderTextColor="#94A3B8"
+              multiline
+              numberOfLines={3}
+              editable={!executiveSummary.complaintsManagement.naForAll}
+            />
+          </View>
         </View>
 
         <View style={styles.divider} />
@@ -273,7 +295,9 @@ export const ExecutiveSummarySection: React.FC<ExecutiveSummaryProps> = ({
           <View style={styles.radioGroup}>
             <TouchableOpacity
               style={styles.checkboxRow}
-              onPress={() => updateExecutiveSummary("accountability", "complied")}
+              onPress={() =>
+                updateExecutiveSummary("accountability", "complied")
+              }
             >
               <View
                 style={[

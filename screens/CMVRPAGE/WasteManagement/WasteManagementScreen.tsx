@@ -610,22 +610,21 @@ export default function WasteManagementScreen({ navigation, route }: any) {
           allowEdit={true}
         />
       </View>
+      <View style={styles.sectionHeaderContainer}>
+        <View style={styles.sectionHeaderContent}>
+          <View style={styles.sectionBadge}>
+            <Text style={styles.sectionBadgeText}>3</Text>
+          </View>
+          <Text style={styles.sectionTitle}>
+            Compliance with Good Practice in Solid and Hazardous Waste
+            Management
+          </Text>
+        </View>
+      </View>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.sectionHeaderContainer}>
-          <View style={styles.sectionHeaderContent}>
-            <View style={styles.sectionBadge}>
-              <Text style={styles.sectionBadgeText}>3</Text>
-            </View>
-            <Text style={styles.sectionTitle}>
-              Compliance with Good Practice in Solid and Hazardous Waste
-              Management
-            </Text>
-          </View>
-        </View>
-
         <View style={styles.quarterPickerContainer}>
           <Text style={styles.quarterLabel}>Select Quarter</Text>
           <View style={styles.quarterButtonsRow}>

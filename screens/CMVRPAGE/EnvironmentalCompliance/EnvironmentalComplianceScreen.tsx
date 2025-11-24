@@ -695,7 +695,7 @@ export default function EnvironmentalComplianceScreen({
                 )}
               </View>
               <Text style={styles.locationLabel}>
-                Quarry & Plant Location Description
+                Quarry / Plant Location Description
               </Text>
             </TouchableOpacity>
           </View>
