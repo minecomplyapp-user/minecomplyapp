@@ -194,6 +194,11 @@ const CMVRPage2Screen = () => {
 
   const handleSave = async () => {
     try {
+      console.log("Saving draft with additional MMT members:", {
+        eccMmtAdditional,
+        epepMmtAdditional,
+        ocularMmtAdditional,
+      });
       await saveDraft();
       Alert.alert("Success", "Draft saved successfully");
 
@@ -217,6 +222,12 @@ const CMVRPage2Screen = () => {
 
   const handleSaveToDraft = async () => {
     try {
+      console.log("Saving to draft with processDoc:", {
+        ...processDoc,
+        eccMmtAdditional,
+        epepMmtAdditional,
+        ocularMmtAdditional,
+      });
       await saveDraft();
       Alert.alert("Success", "Draft saved successfully");
 

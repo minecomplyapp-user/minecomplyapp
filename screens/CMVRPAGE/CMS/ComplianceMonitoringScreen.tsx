@@ -14,7 +14,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useNavigation, CommonActions } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { CMSHeader } from "../../../components/CMSHeader";
-import { saveDraft } from "../../../lib/drafts";
+import { useCmvrStore } from "../../../store/cmvrStore";
 import {
   createSignedDownloadUrl,
   uploadProjectLocationImage,
@@ -36,6 +36,18 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
   // Use the fileName context
   const { fileName, setFileName } = useFileName();
 
+  // Zustand store
+  const {
+    currentReport,
+    fileName: storeFileName,
+    updateMultipleSections,
+    saveDraft,
+  } = useCmvrStore();
+
+  // Initialize from store
+  const storedData =
+    currentReport?.complianceToProjectLocationAndCoverageLimits;
+
   // Initialize fileName from route params if provided
   useEffect(() => {
     if (route?.params?.fileName && route.params.fileName !== fileName) {
@@ -43,104 +55,122 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
     }
   }, [route?.params?.fileName]);
 
-  const [formData, setFormData] = useState<FormData>({
-    projectLocation: {
-      label: "Project Location",
-      specification: "",
-      remarks: "",
-      withinSpecs: null,
-    },
-    projectArea: {
-      label: "Project Area (ha)",
-      specification: "",
-      remarks: "",
-      withinSpecs: null,
-    },
-    capitalCost: {
-      label: "Capital Cost (Php)",
-      specification: "",
-      remarks: "",
-      withinSpecs: null,
-    },
-    typeOfMinerals: {
-      label: "Type of Minerals",
-      specification: "",
-      remarks: "",
-      withinSpecs: null,
-    },
-    miningMethod: {
-      label: "Mining Method",
-      specification: "",
-      remarks: "",
-      withinSpecs: null,
-    },
-    production: {
-      label: "Production",
-      specification: "",
-      remarks: "",
-      withinSpecs: null,
-    },
-    mineLife: {
-      label: "Mine Life",
-      specification: "",
-      remarks: "",
-      withinSpecs: null,
-    },
-    mineralReserves: {
-      label: "Mineral Reserves/ Resources",
-      specification: "",
-      remarks: "",
-      withinSpecs: null,
-    },
-    accessTransportation: {
-      label: "Access/ Transportation",
-      specification: "",
-      remarks: "",
-      withinSpecs: null,
-    },
-    powerSupply: {
-      label: "Power Supply",
-      specification: "",
-      remarks: "",
-      withinSpecs: null,
-      subFields: [
-        { label: "Plant:", specification: "" },
-        { label: "Port:", specification: "" },
-      ],
-    },
-    miningEquipment: {
-      label: "Mining Equipment",
-      specification: "",
-      remarks: "",
-      withinSpecs: null,
-      subFields: [
-        { label: "Quarry/Plant:", specification: "" },
-        { label: "Port:", specification: "" },
-      ],
-    },
-    workForce: {
-      label: "Work Force",
-      specification: "",
-      remarks: "",
-      withinSpecs: null,
-      subFields: [{ label: "Employees:", specification: "" }],
-    },
-    developmentSchedule: {
-      label: "Development/ Utilization Schedule",
-      specification: "",
-      remarks: "",
-      withinSpecs: null,
-    },
-  });
+  const [formData, setFormData] = useState<FormData>(
+    storedData?.formData || {
+      projectLocation: {
+        label: "Project Location",
+        specification: "",
+        remarks: "",
+        withinSpecs: null,
+      },
+      projectArea: {
+        label: "Project Area (ha)",
+        specification: "",
+        remarks: "",
+        withinSpecs: null,
+      },
+      capitalCost: {
+        label: "Capital Cost (Php)",
+        specification: "",
+        remarks: "",
+        withinSpecs: null,
+      },
+      typeOfMinerals: {
+        label: "Type of Minerals",
+        specification: "",
+        remarks: "",
+        withinSpecs: null,
+      },
+      miningMethod: {
+        label: "Mining Method",
+        specification: "",
+        remarks: "",
+        withinSpecs: null,
+      },
+      production: {
+        label: "Production",
+        specification: "",
+        remarks: "",
+        withinSpecs: null,
+      },
+      mineLife: {
+        label: "Mine Life",
+        specification: "",
+        remarks: "",
+        withinSpecs: null,
+      },
+      mineralReserves: {
+        label: "Mineral Reserves/ Resources",
+        specification: "",
+        remarks: "",
+        withinSpecs: null,
+      },
+      accessTransportation: {
+        label: "Access/ Transportation",
+        specification: "",
+        remarks: "",
+        withinSpecs: null,
+      },
+      powerSupply: {
+        label: "Power Supply",
+        specification: "",
+        remarks: "",
+        withinSpecs: null,
+        subFields: [
+          { label: "Plant:", specification: "" },
+          { label: "Port:", specification: "" },
+        ],
+      },
+      miningEquipment: {
+        label: "Mining Equipment",
+        specification: "",
+        remarks: "",
+        withinSpecs: null,
+        subFields: [
+          { label: "Quarry/Plant:", specification: "" },
+          { label: "Port:", specification: "" },
+        ],
+      },
+      workForce: {
+        label: "Work Force",
+        specification: "",
+        remarks: "",
+        withinSpecs: null,
+        subFields: [{ label: "Employees:", specification: "" }],
+      },
+      developmentSchedule: {
+        label: "Development/ Utilization Schedule",
+        specification: "",
+        remarks: "",
+        withinSpecs: null,
+      },
+    }
+  );
 
-  const [otherComponents, setOtherComponents] = useState<OtherComponent[]>([]);
-  const [uploadedImages, setUploadedImages] = useState<UploadedImages>({});
+  const [otherComponents, setOtherComponents] = useState<OtherComponent[]>(
+    storedData?.otherComponents || []
+  );
+  const [uploadedImages, setUploadedImages] = useState<UploadedImages>(
+    storedData?.uploadedImages || {}
+  );
   const [imagePreviews, setImagePreviews] = useState<Record<string, string>>(
     {}
   );
   const [uploadingImages, setUploadingImages] = useState<
     Record<string, boolean>
   >({});
+
+  // Auto-sync to store
+  useEffect(() => {
+    updateMultipleSections({
+      complianceToProjectLocationAndCoverageLimits: {
+        formData,
+        otherComponents,
+        uploadedImages,
+        imagePreviews,
+      },
+    });
+  }, [formData, otherComponents, uploadedImages, imagePreviews]);
 
   const pickImage = async (
     fieldKey: string,
@@ -364,22 +394,11 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
   };
 
   const handleSave = async () => {
-    console.log("Proceeding to next page (no draft save)");
-    const complianceToProjectLocationAndCoverageLimits = {
-      formData,
-      otherComponents,
-      uploadedImages,
-    };
-    const nextParams = {
-      ...(route?.params || {}),
-      fileName: (route?.params as any)?.fileName || fileName,
-      complianceToProjectLocationAndCoverageLimits,
-    } as any;
-    console.log(
-      "Navigating with ComplianceMonitoring params keys:",
-      Object.keys(nextParams)
-    );
-    navigation.navigate("EIACompliance", nextParams);
+    console.log("Proceeding to next page (data already in store)");
+    // Data is already synced to store via useEffect
+    navigation.navigate("EIACompliance", {
+      fileName: fileName || storeFileName,
+    });
   };
 
   const handleStay = () => {
@@ -388,63 +407,17 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
 
   const handleSaveToDraft = async () => {
     try {
-      console.log("Form data:", JSON.stringify(formData, null, 2));
-      console.log(
-        "Other components:",
-        JSON.stringify(otherComponents, null, 2)
+      console.log("Saving draft with Zustand store");
+      // Data is already synced to store via useEffect
+      await saveDraft();
+      Alert.alert("Success", "Draft saved successfully");
+      // Navigate to Dashboard using CommonActions.reset
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
       );
-      console.log("Uploaded images:", uploadedImages);
-
-      // Collect all previous page data from route.params
-      const prevPageData: any = route.params || {};
-
-      // Prepare compliance monitoring data
-      const complianceToProjectLocationAndCoverageLimits = {
-        formData,
-        otherComponents,
-        uploadedImages,
-      };
-
-      // Combine all data from previous pages + current page
-      const draftData = {
-        generalInfo: prevPageData.generalInfo,
-        eccInfo: prevPageData.eccInfo,
-        eccAdditionalForms: prevPageData.eccAdditionalForms,
-        isagInfo: prevPageData.isagInfo,
-        isagAdditionalForms: prevPageData.isagAdditionalForms,
-        epepInfo: prevPageData.epepInfo,
-        epepAdditionalForms: prevPageData.epepAdditionalForms,
-        rcfInfo: prevPageData.rcfInfo,
-        rcfAdditionalForms: prevPageData.rcfAdditionalForms,
-        mtfInfo: prevPageData.mtfInfo,
-        mtfAdditionalForms: prevPageData.mtfAdditionalForms,
-        fmrdfInfo: prevPageData.fmrdfInfo,
-        fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
-        mmtInfo: prevPageData.mmtInfo,
-        executiveSummary: prevPageData.executiveSummary,
-        processDocumentation: prevPageData.processDocumentation,
-        complianceToProjectLocationAndCoverageLimits,
-        savedAt: new Date().toISOString(),
-      };
-
-      // Resolve fileName from params
-      const resolvedFileName = prevPageData.fileName || "Untitled";
-
-      // Save draft to AsyncStorage
-      const success = await saveDraft(resolvedFileName, draftData);
-
-      if (success) {
-        Alert.alert("Success", "Draft saved successfully");
-        // Navigate to Dashboard using CommonActions.reset
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: "Dashboard" }],
-          })
-        );
-      } else {
-        Alert.alert("Error", "Failed to save draft. Please try again.");
-      }
     } catch (error) {
       console.error("Error saving draft:", error);
       Alert.alert("Error", "Failed to save draft. Please try again.");
@@ -462,61 +435,12 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
 
   const handleGoToSummary = async () => {
     try {
-      console.log("Navigating to summary with current data");
-
-      // Prepare current page data
-      const complianceToProjectLocationAndCoverageLimits = {
-        formData,
-        otherComponents,
-        uploadedImages,
-      };
-
-      // Collect all data from route params and current page
-      const prevPageData: any = route.params || {};
-
-      // Prepare complete snapshot with all sections
-      const completeData = {
-        generalInfo: prevPageData.generalInfo,
-        eccInfo: prevPageData.eccInfo,
-        eccAdditionalForms: prevPageData.eccAdditionalForms,
-        isagInfo: prevPageData.isagInfo,
-        isagAdditionalForms: prevPageData.isagAdditionalForms,
-        epepInfo: prevPageData.epepInfo,
-        epepAdditionalForms: prevPageData.epepAdditionalForms,
-        rcfInfo: prevPageData.rcfInfo,
-        rcfAdditionalForms: prevPageData.rcfAdditionalForms,
-        mtfInfo: prevPageData.mtfInfo,
-        mtfAdditionalForms: prevPageData.mtfAdditionalForms,
-        fmrdfInfo: prevPageData.fmrdfInfo,
-        fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
-        mmtInfo: prevPageData.mmtInfo,
-        executiveSummary: prevPageData.executiveSummary,
-        processDocumentation: prevPageData.processDocumentation,
-        complianceToProjectLocationAndCoverageLimits, // Current page data
-        complianceToImpactManagement: prevPageData.complianceToImpactManagement,
-        airQuality: prevPageData.airQuality,
-        waterQuality: prevPageData.waterQuality,
-        noiseQuality: prevPageData.noiseQuality,
-        wasteManagement: prevPageData.wasteManagement,
-        chemicalSafety: prevPageData.chemicalSafety,
-        complaints: prevPageData.complaints,
-        recommendationsData: prevPageData.recommendationsData,
-        attendanceUrl: prevPageData.attendanceUrl,
-        savedAt: new Date().toISOString(),
-      };
-
-      // Resolve fileName from params or context
-      const resolvedFileName = prevPageData.fileName || fileName || "Untitled";
-
-      // Save to draft before navigating
-      await saveDraft(resolvedFileName, completeData);
-
-      // Navigate to summary screen with all data
+      console.log("Navigating to summary with store data");
+      // Data is already synced to store via useEffect
+      await saveDraft();
+      // Navigate to summary screen
       navigation.navigate("CMVRDocumentExport", {
-        ...prevPageData,
-        fileName: resolvedFileName,
-        complianceToProjectLocationAndCoverageLimits,
-        draftData: completeData,
+        fileName: fileName || storeFileName,
       });
     } catch (error) {
       console.error("Error navigating to summary:", error);

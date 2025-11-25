@@ -811,6 +811,23 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
       );
       return;
     }
+
+    // Check if any photos or signatures are still uploading or failed to upload
+    const hasLocalPhotoUrl = attendees.some(
+      (a) => a.photoUrl && a.photoUrl.startsWith("file://")
+    );
+    const hasLocalSignatureUrl = attendees.some(
+      (a) => a.signatureUrl && a.signatureUrl.startsWith("file://")
+    );
+
+    if (hasLocalPhotoUrl || hasLocalSignatureUrl) {
+      Alert.alert(
+        "Upload in Progress",
+        "Please wait for all photos and signatures to finish uploading before saving."
+      );
+      return;
+    }
+
     setSaving(true);
     submitAttendance()
       .catch((e) => {
@@ -892,8 +909,12 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
           (a as any).signaturePath?.trim() ||
           a.signatureUrl?.trim() ||
           undefined,
+        // Only use photoPath (storage path), never local file:// URLs
         photoUrl:
-          (a as any).photoPath?.trim() || a.photoUrl?.trim() || undefined,
+          (a as any).photoPath?.trim() ||
+          (a.photoUrl?.trim() && !a.photoUrl?.startsWith("file://")
+            ? a.photoUrl?.trim()
+            : undefined),
         attendanceStatus: mapAttendanceStatus(a.attendance),
       })),
     };
@@ -1399,13 +1420,22 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
 
           {/* Save Button */}
           <TouchableOpacity
-            style={[styles.saveButton, saving ? { opacity: 0.7 } : undefined]}
+            style={[
+              styles.saveButton,
+              saving || uploadingPhoto || uploadingSignature
+                ? { opacity: 0.7 }
+                : undefined,
+            ]}
             onPress={handleSave}
-            disabled={saving}
+            disabled={saving || uploadingPhoto || uploadingSignature}
           >
             <Feather name="save" size={20} color="#fff" />
             <Text style={styles.saveButtonText}>
-              {saving ? "Saving…" : "Save Attendance"}
+              {saving
+                ? "Saving…"
+                : uploadingPhoto || uploadingSignature
+                  ? "Uploading…"
+                  : "Save Attendance"}
             </Text>
           </TouchableOpacity>
         </View>

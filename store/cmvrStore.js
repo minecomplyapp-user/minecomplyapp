@@ -937,6 +937,18 @@ export const useCmvrStore = create((set, get) => ({
       return { success: false, error: "No report data" };
     }
 
+    console.log("=== SAVING DRAFT ===");
+    console.log(
+      "Process Documentation:",
+      state.currentReport.processDocumentationOfActivitiesUndertaken
+    );
+    console.log("ECC MMT Additional:", state.currentReport.eccMmtAdditional);
+    console.log("EPEP MMT Additional:", state.currentReport.epepMmtAdditional);
+    console.log(
+      "Ocular MMT Additional:",
+      state.currentReport.ocularMmtAdditional
+    );
+
     set({ isSaving: true });
 
     try {
