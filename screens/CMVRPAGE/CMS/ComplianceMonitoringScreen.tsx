@@ -56,102 +56,109 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
   }, [route?.params?.fileName]);
 
   const [formData, setFormData] = useState<FormData>(
-    storedData?.formData || {
-      projectLocation: {
-        label: "Project Location",
-        specification: "",
-        remarks: "",
-        withinSpecs: null,
-      },
-      projectArea: {
-        label: "Project Area (ha)",
-        specification: "",
-        remarks: "",
-        withinSpecs: null,
-      },
-      capitalCost: {
-        label: "Capital Cost (Php)",
-        specification: "",
-        remarks: "",
-        withinSpecs: null,
-      },
-      typeOfMinerals: {
-        label: "Type of Minerals",
-        specification: "",
-        remarks: "",
-        withinSpecs: null,
-      },
-      miningMethod: {
-        label: "Mining Method",
-        specification: "",
-        remarks: "",
-        withinSpecs: null,
-      },
-      production: {
-        label: "Production",
-        specification: "",
-        remarks: "",
-        withinSpecs: null,
-      },
-      mineLife: {
-        label: "Mine Life",
-        specification: "",
-        remarks: "",
-        withinSpecs: null,
-      },
-      mineralReserves: {
-        label: "Mineral Reserves/ Resources",
-        specification: "",
-        remarks: "",
-        withinSpecs: null,
-      },
-      accessTransportation: {
-        label: "Access/ Transportation",
-        specification: "",
-        remarks: "",
-        withinSpecs: null,
-      },
-      powerSupply: {
-        label: "Power Supply",
-        specification: "",
-        remarks: "",
-        withinSpecs: null,
-        subFields: [
-          { label: "Plant:", specification: "" },
-          { label: "Port:", specification: "" },
-        ],
-      },
-      miningEquipment: {
-        label: "Mining Equipment",
-        specification: "",
-        remarks: "",
-        withinSpecs: null,
-        subFields: [
-          { label: "Quarry/Plant:", specification: "" },
-          { label: "Port:", specification: "" },
-        ],
-      },
-      workForce: {
-        label: "Work Force",
-        specification: "",
-        remarks: "",
-        withinSpecs: null,
-        subFields: [{ label: "Employees:", specification: "" }],
-      },
-      developmentSchedule: {
-        label: "Development/ Utilization Schedule",
-        specification: "",
-        remarks: "",
-        withinSpecs: null,
-      },
-    }
+    storedData?.formData && Object.keys(storedData.formData).length > 0
+      ? storedData.formData
+      : {
+          projectLocation: {
+            label: "Project Location",
+            specification: "",
+            remarks: "",
+            withinSpecs: null,
+          },
+          projectArea: {
+            label: "Project Area (ha)",
+            specification: "",
+            remarks: "",
+            withinSpecs: null,
+          },
+          capitalCost: {
+            label: "Capital Cost (Php)",
+            specification: "",
+            remarks: "",
+            withinSpecs: null,
+          },
+          typeOfMinerals: {
+            label: "Type of Minerals",
+            specification: "",
+            remarks: "",
+            withinSpecs: null,
+          },
+          miningMethod: {
+            label: "Mining Method",
+            specification: "",
+            remarks: "",
+            withinSpecs: null,
+          },
+          production: {
+            label: "Production",
+            specification: "",
+            remarks: "",
+            withinSpecs: null,
+          },
+          mineLife: {
+            label: "Mine Life",
+            specification: "",
+            remarks: "",
+            withinSpecs: null,
+          },
+          mineralReserves: {
+            label: "Mineral Reserves/ Resources",
+            specification: "",
+            remarks: "",
+            withinSpecs: null,
+          },
+          accessTransportation: {
+            label: "Access/ Transportation",
+            specification: "",
+            remarks: "",
+            withinSpecs: null,
+          },
+          powerSupply: {
+            label: "Power Supply",
+            specification: "",
+            remarks: "",
+            withinSpecs: null,
+            subFields: [
+              { label: "Plant:", specification: "" },
+              { label: "Port:", specification: "" },
+            ],
+          },
+          miningEquipment: {
+            label: "Mining Equipment",
+            specification: "",
+            remarks: "",
+            withinSpecs: null,
+            subFields: [
+              { label: "Quarry/Plant:", specification: "" },
+              { label: "Port:", specification: "" },
+            ],
+          },
+          workForce: {
+            label: "Work Force",
+            specification: "",
+            remarks: "",
+            withinSpecs: null,
+            subFields: [{ label: "Employees:", specification: "" }],
+          },
+          developmentSchedule: {
+            label: "Development/ Utilization Schedule",
+            specification: "",
+            remarks: "",
+            withinSpecs: null,
+          },
+        }
   );
 
   const [otherComponents, setOtherComponents] = useState<OtherComponent[]>(
-    storedData?.otherComponents || []
+    storedData?.otherComponents && Array.isArray(storedData.otherComponents)
+      ? storedData.otherComponents
+      : []
   );
   const [uploadedImages, setUploadedImages] = useState<UploadedImages>(
-    storedData?.uploadedImages || {}
+    storedData?.uploadedImages &&
+      Object.keys(storedData.uploadedImages).length > 0
+      ? storedData.uploadedImages
+      : {}
   );
   const [imagePreviews, setImagePreviews] = useState<Record<string, string>>(
     {}

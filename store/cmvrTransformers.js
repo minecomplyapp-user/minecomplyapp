@@ -333,7 +333,10 @@ export const transformExecutiveSummary = (executiveSummary) => {
 /**
  * Transform Process Documentation structure
  */
-export const transformProcessDocumentation = (processDoc) => {
+export const transformProcessDocumentation = (
+  processDoc,
+  topLevelArrays = {}
+) => {
   if (!processDoc) {
     return {
       dateConducted: "",
@@ -370,17 +373,19 @@ export const transformProcessDocumentation = (processDoc) => {
       ? processDoc.activities
       : {}) || {};
 
-  const eccMembers = parseMembers(
-    processDoc.eccMmtMembers,
-    processDoc.eccMmtAdditional
-  );
-  const epepMembers = parseMembers(
-    processDoc.epepMmtMembers,
-    processDoc.epepMmtAdditional
-  );
+  // Get additional arrays from processDoc first, then fall back to top-level arrays
+  const eccAdditional =
+    processDoc.eccMmtAdditional || topLevelArrays.eccMmtAdditional || [];
+  const epepAdditional =
+    processDoc.epepMmtAdditional || topLevelArrays.epepMmtAdditional || [];
+  const ocularAdditional =
+    processDoc.ocularMmtAdditional || topLevelArrays.ocularMmtAdditional || [];
+
+  const eccMembers = parseMembers(processDoc.eccMmtMembers, eccAdditional);
+  const epepMembers = parseMembers(processDoc.epepMmtMembers, epepAdditional);
   const ocularMembers = parseMembers(
     processDoc.ocularMmtMembers,
-    processDoc.ocularMmtAdditional
+    ocularAdditional
   );
   const samplingMembers = parseMembers(processDoc.samplingMmtMembers);
 
@@ -1854,7 +1859,12 @@ export const transformToBackendDTO = (
 
     // Process Documentation (transform structure)
     processDocumentationOfActivitiesUndertaken: transformProcessDocumentation(
-      currentReport.processDocumentationOfActivitiesUndertaken
+      currentReport.processDocumentationOfActivitiesUndertaken,
+      {
+        eccMmtAdditional: currentReport.eccMmtAdditional,
+        epepMmtAdditional: currentReport.epepMmtAdditional,
+        ocularMmtAdditional: currentReport.ocularMmtAdditional,
+      }
     ),
 
     // Compliance Monitoring Report - wraps ALL assessments

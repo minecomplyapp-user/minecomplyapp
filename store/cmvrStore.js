@@ -313,6 +313,9 @@ const createProcessDocumentationSection = () => ({
   eccMmtMembers: "",
   epepMmtMembers: "",
   ocularMmtMembers: "",
+  eccMmtAdditional: [],
+  epepMmtAdditional: [],
+  ocularMmtAdditional: [],
   ocularNA: false,
   methodologyRemarks: "",
   siteValidationApplicable: "",
@@ -587,7 +590,23 @@ const normalizeExecutiveSummary = (incoming) => {
 
 const normalizeProcessDocumentation = (incoming) => {
   const base = createProcessDocumentationSection();
-  return mergeObjects(base, incoming);
+  if (!isObject(incoming)) return base;
+  return {
+    ...mergeObjects(base, incoming),
+    // Ensure arrays are preserved properly
+    eccMmtAdditional: ensureArray(
+      incoming.eccMmtAdditional,
+      base.eccMmtAdditional
+    ),
+    epepMmtAdditional: ensureArray(
+      incoming.epepMmtAdditional,
+      base.epepMmtAdditional
+    ),
+    ocularMmtAdditional: ensureArray(
+      incoming.ocularMmtAdditional,
+      base.ocularMmtAdditional
+    ),
+  };
 };
 
 const normalizeLocationCoverage = (incoming) => {
@@ -692,6 +711,10 @@ const normalizeReportData = (reportData = {}) => {
         : sourceData.attendanceId !== undefined
           ? sourceData.attendanceId
           : base.attendanceUrl,
+    // Additional MMT members arrays (stored at top level for easy access)
+    eccMmtAdditional: ensureArray(sourceData.eccMmtAdditional, []),
+    epepMmtAdditional: ensureArray(sourceData.epepMmtAdditional, []),
+    ocularMmtAdditional: ensureArray(sourceData.ocularMmtAdditional, []),
   };
 };
 
