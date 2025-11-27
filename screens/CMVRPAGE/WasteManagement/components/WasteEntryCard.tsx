@@ -7,11 +7,25 @@ import { WasteEntryCardStyles as styles } from '../styles';
 
 export const WasteEntryCard: React.FC<WasteEntryCardProps> = ({
   entry,
+  selectedQuarter,
   index,
   canDelete,
   onUpdate,
   onDelete,
 }) => {
+   const getPreviousQuarter = (quarter: string) => {
+    if (quarter === 'Q1 2025') return 'Q4 2024';
+    if (quarter === 'Q2 2025') return 'Q1 2025';
+    if (quarter === 'Q3 2025') return 'Q2 2025';
+    if (quarter === 'Q4 2025') return 'Q3 2025';
+    return 'Previous';
+  };
+
+  const prevValue = parseFloat(entry.previousRecord) || 0;
+  const currValue = parseFloat(entry.currentQuarterWaste) || 0;
+  const totalWaste = prevValue + currValue;
+
+  const previousQuarterLabel = getPreviousQuarter(selectedQuarter);
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -70,6 +84,90 @@ export const WasteEntryCard: React.FC<WasteEntryCardProps> = ({
           placeholderTextColor="#94A3B8"
         />
       </View>
+
+      
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Is it Adequate?</Text>
+          <View style={styles.radioGroup}>
+            <TouchableOpacity
+              style={styles.radioRow}
+              onPress={() => onUpdate(entry.id,'isAdequate', 'YES')}
+            >
+              <View
+                style={[
+                  styles.radio,
+                  entry.isAdequate === 'YES' && styles.radioChecked,
+                ]}
+              >
+                {entry.isAdequate === 'YES' && <View style={styles.radioInner} />}
+              </View>
+              <Text style={styles.radioLabel}>YES</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.radioRow}
+              onPress={() => onUpdate(entry.id,'isAdequate', 'NO')}
+            >
+              <View
+                style={[
+                  styles.radio,
+                  entry.isAdequate === 'NO' && styles.radioChecked,
+                ]}
+              >
+                {entry.isAdequate === 'NO' && <View style={styles.radioInner} />}
+              </View>
+              <Text style={styles.radioLabel}>NO</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>
+            Total Waste Generated ({previousQuarterLabel})
+          </Text>
+          <TextInput
+            style={styles.input}
+            value={entry.previousRecord}
+            onChangeText={(text) => {
+              onUpdate(entry.id, 'previousRecord', text);
+
+          
+              onUpdate(entry.id, 'totalWaste', totalWaste.toString());
+            }}
+            placeholder={`Enter total for ${previousQuarterLabel}`}
+            placeholderTextColor="#94A3B8"
+            keyboardType="numeric"
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>
+            Total Waste Generated ({selectedQuarter})
+          </Text>
+          <TextInput
+            style={styles.input}
+            value={entry.currentQuarterWaste}
+            onChangeText={(text) => {
+              onUpdate(entry.id, 'currentQuarterWaste', text);
+
+             
+              onUpdate(entry.id, 'totalWaste',totalWaste.toString());
+            }}
+            placeholder={`Enter total for ${selectedQuarter}`}
+            placeholderTextColor="#94A3B8"
+            keyboardType="numeric"
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.totalLabel}>Total (Previous + Current)</Text>
+          <View style={styles.totalValueContainer}>
+            <Text style={styles.totalValueText}>
+              {totalWaste.toLocaleString()
+              }
+            </Text>
+          </View>
+        </View>
     </View>
   );
 };

@@ -39,7 +39,7 @@ export const PlantPortSection: React.FC<PlantPortSectionProps> = ({
       </View>
 
       <View style={styles.content}>
-        <View style={styles.fieldGroup}>
+        {/* <View style={styles.fieldGroup}>
           <Text style={styles.label}>Type of Waste</Text>
           <TextInput
             style={styles.input}
@@ -48,7 +48,7 @@ export const PlantPortSection: React.FC<PlantPortSectionProps> = ({
             placeholder="Select or enter waste type"
             placeholderTextColor="#94A3B8"
           />
-        </View>
+        </View> */}
 
         <View style={styles.subsectionHeader}>
           <Text style={styles.subsectionTitle}>ECC/EPEP Commitments</Text>
@@ -58,6 +58,7 @@ export const PlantPortSection: React.FC<PlantPortSectionProps> = ({
           <WasteEntryCard
             key={entry.id}
             entry={entry}
+            selectedQuarter={selectedQuarter}
             index={index}
             canDelete={data.eccEpepCommitments.length > 1}
             onUpdate={onUpdateWaste}
@@ -69,7 +70,7 @@ export const PlantPortSection: React.FC<PlantPortSectionProps> = ({
           <Ionicons name="add-circle" size={20} color="#02217C" />
           <Text style={styles.addButtonText}>Add More Waste</Text>
         </TouchableOpacity>
-
+{/* 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Is it Adequate?</Text>
           <View style={styles.radioGroup}>
@@ -140,7 +141,7 @@ export const PlantPortSection: React.FC<PlantPortSectionProps> = ({
               {totalWaste.toLocaleString()}
             </Text>
           </View>
-        </View>
+        </View> */}
       </View>
     </View>
   );

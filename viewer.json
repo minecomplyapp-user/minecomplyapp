@@ -1,0 +1,260 @@
+{
+  "ecc": [],
+  "mmt": {
+    "emailAddress": "",
+    "telephoneFax": "",
+    "mailingAddress": "",
+    "contactPersonAndPosition": ""
+  },
+  "epep": [],
+  "year": 2025,
+  "isagMpp": [],
+  "quarter": "",
+  "location": "",
+  "proponent": {
+    "emailAddress": "",
+    "telephoneFax": "",
+    "mailingAddress": "",
+    "contactPersonAndPosition": ""
+  },
+  "companyName": "",
+  "projectStatus": "",
+  "epepFmrdpStatus": "Approved",
+  "permitHolderList": [],
+  "projectNameInEcc": "",
+  "projectCurrentName": "",
+  "dateOfCmrSubmission": "",
+  "rehabilitationCashFund": [],
+  "monitoringPeriodCovered": "",
+  "airQualityImpactAssessment": {
+    "port": {
+      "parameters": [],
+      "samplingDate": "",
+      "locationInput": "",
+      "weatherAndWind": "",
+      "overallAssessment": "",
+      "explanationForConfirmatorySampling": ""
+    },
+    "plant": {
+      "parameters": [],
+      "samplingDate": "",
+      "locationInput": "",
+      "weatherAndWind": "",
+      "overallAssessment": "",
+      "explanationForConfirmatorySampling": ""
+    },
+    "quarry": {
+      "parameters": [],
+      "samplingDate": "",
+      "locationInput": "",
+      "weatherAndWind": "",
+      "overallAssessment": "",
+      "explanationForConfirmatorySampling": ""
+    },
+    "quarryAndPlant": {
+      "parameters": [],
+      "samplingDate": "",
+      "locationInput": "",
+      "weatherAndWind": "",
+      "overallAssessment": "",
+      "explanationForConfirmatorySampling": ""
+    }
+  },
+  "monitoringTrustFundUnified": [],
+  "executiveSummaryOfCompliance": {
+    "others": {
+      "na": false,
+      "specify": ""
+    },
+    "accountability": {
+      "remarks": "",
+      "complied": false,
+      "notComplied": false
+    },
+    "complaintsManagement": {
+      "remarks": "",
+      "naForAll": false,
+      "caseInvestigation": false,
+      "complaintDocumentation": false,
+      "complaintReceivingSetup": false,
+      "implementationOfControl": false,
+      "communicationWithComplainantOrPublic": false
+    },
+    "complianceWithEpepCommitments": {
+      "safety": false,
+      "social": false,
+      "remarks": "",
+      "rehabilitation": false
+    },
+    "complianceWithSdmpCommitments": {
+      "remarks": "",
+      "complied": false,
+      "notComplied": false
+    }
+  },
+  "noiseQualityImpactAssessment": {
+    "samplingDate": "",
+    "weatherAndWind": "",
+    "explanationForConfirmatorySampling": ""
+  },
+  "recommendationForNextQuarter": {
+    "port": [
+      {
+        "status": "",
+        "commitment": "",
+        "recommendation": ""
+      }
+    ],
+    "plant": [
+      {
+        "status": "",
+        "commitment": "",
+        "recommendation": ""
+      }
+    ],
+    "quarry": [
+      {
+        "status": "",
+        "commitment": "",
+        "recommendation": ""
+      }
+    ]
+  },
+  "waterQualityImpactAssessment": {
+    "plantEnabled": false,
+    "quarryEnabled": false,
+    "quarryPlantEnabled": false
+  },
+  "recommendationFromPrevQuarter": {
+    "port": [
+      {
+        "status": "",
+        "commitment": "",
+        "recommendation": ""
+      }
+    ],
+    "plant": [
+      {
+        "status": "",
+        "commitment": "",
+        "recommendation": ""
+      }
+    ],
+    "quarry": [
+      {
+        "status": "",
+        "commitment": "",
+        "recommendation": ""
+      }
+    ],
+    "quarter": 1
+  },
+  "projectGeographicalCoordinates": "",
+  "complianceToImpactManagementCommitments": {
+    "constructionInfo": [],
+    "overallComplianceAssessment": "",
+    "implementationOfEnvironmentalImpactControlStrategies": []
+  },
+  "dateOfComplianceMonitoringAndValidation": "",
+  "processDocumentationOfActivitiesUndertaken": {
+    "activities": {
+      "siteOcularValidation": {
+        "mmtMembersInvolved": []
+      },
+      "complianceWithEpepAepepConditions": {
+        "mmtMembersInvolved": []
+      },
+      "siteValidationConfirmatorySampling": {
+        "none": false,
+        "remarks": "",
+        "applicable": false,
+        "dateConducted": "",
+        "mmtMembersInvolved": []
+      },
+      "complianceWithEccConditionsCommitments": {
+        "mmtMembersInvolved": []
+      }
+    },
+    "dateConducted": "",
+    "sameDateForAllActivities": false,
+    "mergedMethodologyOrOtherRemarks": ""
+  },
+  "complianceToProjectLocationAndCoverageLimits": {
+    "parameters": [],
+    "otherComponents": []
+  },
+  "finalMineRehabilitationAndDecommissioningFund": [],
+  "complianceWithGoodPracticeInChemicalSafetyManagement": {
+    "chemicalSafety": {
+      "isNA": false,
+      "remarks": "",
+      "othersSpecify": ""
+    },
+    "socialDevChecked": false,
+    "healthSafetyChecked": false
+  },
+  "complianceWithGoodPracticeInSolidAndHazardousWasteManagement": {
+    "port": [
+      {
+        "adequate": {
+          "n": false,
+          "y": false
+        },
+        "typeOfWaste": "",
+        "previousRecord": "",
+        "eccEpepCommitments": {
+          "storage": "",
+          "disposal": false,
+          "handling": ""
+        },
+        "q2_2025_Generated_HW": ""
+      }
+    ],
+    "plant": [
+      {
+        "adequate": {
+          "n": false,
+          "y": false
+        },
+        "typeOfWaste": "",
+        "previousRecord": "",
+        "eccEpepCommitments": {
+          "storage": "",
+          "disposal": false,
+          "handling": ""
+        },
+        "q2_2025_Generated_HW": ""
+      }
+    ],
+    "quarry": [
+      {
+        "adequate": {
+          "n": false,
+          "y": true
+        },
+        "typeOfWaste": "nezu",
+        "previousRecord": "33",
+        "eccEpepCommitments": {
+          "storage": "aa",
+          "disposal": true,
+          "handling": "aa"
+        },
+        "q2_2025_Generated_HW": "65"
+      },
+      {
+        "adequate": {
+          "n": true,
+          "y": false
+        },
+        "typeOfWaste": "second",
+        "previousRecord": "33",
+        "eccEpepCommitments": {
+          "storage": "ss",
+          "disposal": true,
+          "handling": "aa"
+        },
+        "q2_2025_Generated_HW": "25"
+      }
+    ]
+  }
+}

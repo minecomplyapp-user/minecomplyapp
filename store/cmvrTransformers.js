@@ -1409,23 +1409,25 @@ const buildWasteManagementSection = (raw) => {
   if (!raw) return undefined;
   const mapPlantPortSection = (sec) => {
     if (!sec) return [];
+    
     const items = Array.isArray(sec?.eccEpepCommitments)
       ? sec.eccEpepCommitments
       : [];
     return items.map((it) => ({
-      typeOfWaste: String(sec?.typeOfWaste ?? ""),
+      
+      typeOfWaste: String(it?.typeOfWaste ?? ""),
       eccEpepCommitments: {
         handling: String(it?.handling ?? ""),
         storage: String(it?.storage ?? ""),
         disposal: Boolean(it?.disposal),
       },
       adequate: {
-        y: String(sec?.isAdequate ?? "").toUpperCase() === "YES",
-        n: String(sec?.isAdequate ?? "").toUpperCase() === "NO",
+        y: String(it?.isAdequate ?? "").toUpperCase() === "YES",
+        n: String(it?.isAdequate ?? "").toUpperCase() === "NO",
       },
-      previousRecord: sec?.previousRecord ?? "",
-      q2_2025_Generated_HW: sec?.currentQuarterWaste ?? "",
-      total: undefined,
+      previousRecord: it?.previousRecord ?? "",
+      q2_2025_Generated_HW: it?.currentQuarterWaste ?? "",
+      total:  (parseFloat(it?.previousRecord) +  parseFloat(it?.currentQuarterWaste)).toString() || '',
     }));
   };
   const quarry = raw?.quarryData?.N_A

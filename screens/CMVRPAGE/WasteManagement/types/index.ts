@@ -4,6 +4,10 @@ export type WasteEntry = {
   handling: string;
   storage: string;
   disposal: string;
+  isAdequate: 'YES' | 'NO' | null;
+  previousRecord: string;
+  currentQuarterWaste: string;
+  totalWaste:string;
 };
 
 export type QuarrySectionData = {
@@ -64,6 +68,7 @@ export interface PlantPortSectionProps {
 
 export interface WasteEntryCardProps {
   entry: WasteEntry;
+  selectedQuarter: string;
   index: number;
   canDelete: boolean;
   onUpdate: (

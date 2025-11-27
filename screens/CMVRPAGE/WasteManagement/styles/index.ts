@@ -629,6 +629,60 @@ export const QuarrySectionStyles = StyleSheet.create({
 });
 
 export const WasteEntryCardStyles = StyleSheet.create({
+
+    totalLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#334155',
+    marginBottom: 10, // Increased from 6
+  },
+  totalValueContainer: {
+    paddingVertical: 14, // Increased from 12
+    paddingHorizontal: 14, // Increased from 12
+    backgroundColor: '#F1F5F9', 
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  totalValueText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#02217C', 
+  },
+    radioGroup: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  radioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12, // Increased from 10
+    marginBottom: 4, // Added margin
+  },
+  radio: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioChecked: {
+    borderColor: '#02217C',
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#02217C',
+  },
+  radioLabel: {
+    fontSize: 14,
+    color: '#1E293B',
+    fontWeight: '500',
+  },
   container: {
     backgroundColor: '#F8FAFC',
     borderRadius: 12,
