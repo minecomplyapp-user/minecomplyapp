@@ -1,7 +1,16 @@
 // AirQualityScreen.types.ts
+
+// ✅ NEW: Predefined parameter and unit options
+export const AIR_QUALITY_PARAMETERS = ["TSP", "PM 2.5", "PM 10"] as const;
+export const AIR_QUALITY_UNITS = ["μg/Ncm", "μg/m3", "Mg/m3"] as const;
+
+export type AirQualityParameterType = typeof AIR_QUALITY_PARAMETERS[number];
+export type AirQualityUnitType = typeof AIR_QUALITY_UNITS[number];
+
 export type AirQualityParameter = {
   id: string;
-  parameter: string; // Changed from 'name' to match backend
+  parameter: string; // Can be predefined or custom
+  unit?: string; // ✅ NEW: Unit field (μg/Ncm, μg/m3, Mg/m3)
   currentSMR: string; // Changed from 'inSMR'
   previousSMR: string;
   currentMMT: string; // Changed from 'mmtConfirmatorySampling'
@@ -23,6 +32,7 @@ export type LocationState = {
 export type AirQualityData = {
   // Main parameter (first row)
   parameter: string;
+  unit?: string; // ✅ NEW: Unit field
   currentSMR: string;
   previousSMR: string;
   currentMMT: string;
@@ -44,6 +54,7 @@ export type AirQualityData = {
 
 export const createEmptyAirQualityData = (): AirQualityData => ({
   parameter: "",
+  unit: "", // ✅ NEW: Add unit field
   currentSMR: "",
   previousSMR: "",
   currentMMT: "",

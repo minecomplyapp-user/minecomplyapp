@@ -262,10 +262,11 @@ const CMVRPage2Screen = () => {
     } as any;
 
     console.log(
-      "Navigating to ComplianceMonitoring with metadata:",
+      "✅ Navigating to ComplianceDiscussionScreen (new section) with metadata:",
       Object.keys(nextParams)
     );
-    navigation.navigate("ComplianceMonitoring", nextParams);
+    // ✅ NEW: Navigate to Compliance Discussion screen instead of ComplianceMonitoring
+    navigation.navigate("ComplianceDiscussionScreen", nextParams);
   };
 
   const updateExecutiveSummary = (field: string, value: any) => {

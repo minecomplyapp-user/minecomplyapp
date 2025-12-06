@@ -18,17 +18,25 @@ import { deleteCMVRReport } from "../../lib/cmvr";
 export default function ReportsScreen({ navigation }: any) {
   const { user } = useAuth();
   const [reports, setReports] = useState<
-    Array<{ id: string; title: string; date: string }>
+    Array<{ id: string; title: string; date: string; quarter?: string; year?: number }>
   >([]);
+  const [selectedQuarter, setSelectedQuarter] = useState<string>("All"); // ✅ NEW: Quarter filter
 
   useEffect(() => {
     void fetchReports();
-  }, []);
+  }, [selectedQuarter]); // ✅ Refetch when quarter changes
 
   async function fetchReports() {
     try {
       if (!user?.id) return setReports([]);
-      const submissions = await apiGet<any[]>(`/cmvr/user/${user.id}`);
+      
+      // ✅ NEW: Add quarter filter to API call
+      let url = `/cmvr/user/${user.id}`;
+      if (selectedQuarter !== "All") {
+        url += `?quarter=${selectedQuarter}`;
+      }
+      
+      const submissions = await apiGet<any[]>(url);
       const mapped = (submissions || []).map((sub) => {
         // Use only fileName, with "Untitled" as fallback
         const title = sub.fileName || "Untitled";
@@ -36,7 +44,13 @@ export default function ReportsScreen({ navigation }: any) {
           "en-US",
           { month: "short", day: "numeric", year: "numeric" }
         );
-        return { id: sub.id as string, title, date: dt };
+        return { 
+          id: sub.id as string, 
+          title, 
+          date: dt,
+          quarter: sub.quarter,
+          year: sub.year,
+        };
       });
       setReports(mapped);
     } catch (e) {
@@ -76,6 +90,29 @@ export default function ReportsScreen({ navigation }: any) {
           <Text style={styles.subtitle}>
             View, download, or manage your compliance reports.
           </Text>
+        </View>
+
+        {/* ✅ NEW: Quarter Filter Tabs */}
+        <View style={styles.quarterTabs}>
+          {["All", "Q1", "Q2", "Q3", "Q4"].map((quarter) => (
+            <TouchableOpacity
+              key={quarter}
+              style={[
+                styles.quarterTab,
+                selectedQuarter === quarter && styles.quarterTabActive,
+              ]}
+              onPress={() => setSelectedQuarter(quarter)}
+            >
+              <Text
+                style={[
+                  styles.quarterTabText,
+                  selectedQuarter === quarter && styles.quarterTabTextActive,
+                ]}
+              >
+                {quarter}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {reports.length > 0 ? (

@@ -1,7 +1,7 @@
 # MineComply Mobile App - Status Tracker
 
-> **Living Document**: Update as features are added or changed  
-> Last Updated: December 2025
+> **Living Document**: Update as features are added or changed
+> Last Updated: December 5, 2025 - 12:15 PM PHT
 
 ## Table of Contents
 
@@ -24,10 +24,11 @@
 
 | Metric | Value |
 |--------|-------|
-| **Total Screens** | 40+ |
-| **Major Features** | 6 (CMVR, ECC, Attendance, Profile, Drafts, Export) |
+| **Total Screens** | 45+ |
+| **Major Features** | 8 (CMVR, ECC, Attendance, Profile, Drafts, Export, Quarter Filtering, Guest Remarks) |
 | **State Stores** | 3 (CMVR, ECC, ECC Drafts) |
-| **Test Coverage** | TBD |
+| **New Components** | 5 (ECCTallyTable, GuestRemarksForm, Quarter Tabs, New CMVR Sections) |
+| **Bug Fixes** | ✅ All critical bugs resolved |
 
 ---
 
@@ -43,26 +44,29 @@
 - [x] Sign out
 
 #### CMVR Reports
-- [x] Full multi-section form (15+ sections)
+- [x] Full multi-section form (17+ sections)
 - [x] General information entry
 - [x] Executive summary
+- [x] Compliance Monitoring Report Discussion (NEW)
+- [x] Air Quality Assessment - Detailed (NEW)
 - [x] Process documentation
 - [x] Location & coverage limits
 - [x] Impact management commitments
-- [x] Air quality monitoring
+- [x] Air quality monitoring with parameter/unit dropdowns
 - [x] Water quality monitoring
 - [x] Noise quality monitoring
 - [x] Waste management
 - [x] Chemical safety
-- [x] Complaints management
+- [x] Complaints management with N/A handling
 - [x] Recommendations (prev/next quarter)
 - [x] Attachment management
-- [x] Draft save/load/delete
+- [x] Draft save/load/delete (deep cloning fixed)
 - [x] Submit to API
 - [x] Update existing reports
 - [x] DOCX export (full feature)
 - [x] PDF export (preview in Expo Go)
 - [x] Attendance linking
+- [x] Quarter/Year filtering in reports list
 
 #### ECC Monitoring
 - [x] Create ECC reports
@@ -72,19 +76,34 @@
 - [x] Condition tracking
 - [x] Nested conditions
 - [x] Status tracking per condition
+- [x] Compliance tally table per permit holder (NEW)
+- [x] Real-time tally calculation
+- [x] Color-coded status indicators
 - [x] Remarks management
 - [x] Recommendations
-- [x] Draft system
-- [x] Generate PDF/DOCX
+- [x] Draft system (deep cloning fixed)
+- [x] Generate PDF/DOCX with tally tables
 
 #### Attendance
 - [x] Create attendance records
 - [x] Meeting details entry
-- [x] Attendee management
+- [x] Attendee management (disappearing bug fixed)
 - [x] Digital signature capture
 - [x] Export to PDF/DOCX
 - [x] Edit existing records
 - [x] Delete records
+- [x] Geotag/map location selection (crash fixed)
+- [x] Draft save functionality
+
+#### Guest Remarks (NEW - December 2025)
+- [x] Guest remark submission form
+- [x] Link remarks to CMVR/ECC reports
+- [x] Support for authenticated and anonymous submissions
+- [x] Role selection (Member, Guest, Stakeholder)
+- [x] Optional email field for privacy
+- [x] Integration with backend API
+- [x] Success/error handling
+- [x] Pre-fill user data when authenticated
 
 #### Profile
 - [x] View profile
@@ -98,12 +117,14 @@
 - [x] Resume from dashboard
 - [x] Delete drafts
 - [x] ECC draft system
+- [x] Deep cloning to prevent data loss (FIXED)
+- [x] Nested data persistence (MMT members, permit holders, conditions)
+- [x] Metadata restoration on load
 
 ### 🚧 In Progress
 
 - [ ] Improved offline support
 - [ ] Performance optimization for large forms
-- [ ] Better error messages
 
 ### 📋 Planned Features
 

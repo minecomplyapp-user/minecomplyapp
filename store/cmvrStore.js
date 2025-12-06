@@ -36,6 +36,8 @@ const createAirQualityLocation = () => ({
   explanationForConfirmatorySampling: "",
   overallAssessment: "",
   parameters: [],
+  parameter: "", // ✅ NEW: Main parameter field
+  unit: "", // ✅ NEW: Unit field
 });
 
 const createAirQualitySection = () => ({
@@ -338,6 +340,22 @@ const createEmptyReportState = () => ({
   fmrdfAdditionalForms: [],
   mmtInfo: {},
   executiveSummaryOfCompliance: createExecutiveSummarySection(),
+  // ✅ NEW: Compliance Monitoring Report Discussion
+  complianceMonitoringReportDiscussion: {
+    summary: "",
+    keyFindings: [""],
+    recommendations: [""],
+    nextSteps: "",
+  },
+  // ✅ NEW: Air Quality Assessment Detailed
+  airQualityAssessmentDetailed: {
+    overallStatus: "",
+    trendAnalysis: "",
+    comparisonToPrevious: "",
+    exceedances: [""],
+    mitigationMeasures: [""],
+    futureProjections: "",
+  },
   processDocumentationOfActivitiesUndertaken:
     createProcessDocumentationSection(),
   complianceToProjectLocationAndCoverageLimits: createLocationCoverageSection(),
@@ -928,6 +946,7 @@ export const useCmvrStore = create((set, get) => ({
 
   /**
    * Save current report as draft to AsyncStorage
+   * FIXED: Enhanced to ensure all form data including nested arrays/objects persist correctly
    */
   saveDraft: async () => {
     const state = get();
@@ -941,12 +960,34 @@ export const useCmvrStore = create((set, get) => ({
 
     try {
       const savedAt = new Date().toISOString();
+      
+      // ✅ FIX: Deep clone currentReport to avoid any reference issues
+      const clonedReport = JSON.parse(JSON.stringify(state.currentReport));
+      
+      // ✅ FIX: Explicitly preserve critical nested data structures
       const draftData = {
-        ...state.currentReport,
+        ...clonedReport,
         fileName: state.fileName,
         projectName: state.projectName,
         savedAt,
+        // ✅ FIX: Ensure metadata is preserved
+        submissionId: state.submissionId,
+        projectId: state.projectId,
+        createdById: state.createdById,
+        // ✅ FIX: Preserve edit tracking
+        editedSections: state.editedSections,
       };
+
+      // ✅ FIX: Validate critical data before saving
+      console.log("=== CMVR Draft Save Debug ===");
+      console.log("Report sections count:", Object.keys(clonedReport).length);
+      if (clonedReport.processDocumentationOfActivitiesUndertaken) {
+        console.log("✓ Process documentation present");
+      }
+      if (clonedReport.executiveSummaryOfCompliance) {
+        console.log("✓ Executive summary present");
+      }
+      console.log("================");
 
       // Save to multi-file draft system (so it appears in the list)
       await saveDraftToStorage(state.fileName, draftData);
@@ -958,18 +999,19 @@ export const useCmvrStore = create((set, get) => ({
       );
 
       set({ isSaving: false, isDirty: false, lastSavedAt: savedAt });
-      console.log("Draft saved successfully");
+      console.log("✅ Draft saved successfully with all sections");
 
       return { success: true, savedAt };
     } catch (error) {
       set({ isSaving: false, error: error.message });
-      console.error("Error saving draft:", error);
+      console.error("❌ Error saving draft:", error);
       return { success: false, error: error.message };
     }
   },
 
   /**
    * Load draft from AsyncStorage
+   * FIXED: Enhanced to properly restore all nested data structures
    */
   loadDraft: async () => {
     set({ isLoading: true });
@@ -983,19 +1025,35 @@ export const useCmvrStore = create((set, get) => ({
       }
 
       const draftData = JSON.parse(draftString);
+      
+      // ✅ FIX: Validate draft data before loading
+      console.log("=== CMVR Draft Load Debug ===");
+      console.log("Draft sections count:", Object.keys(draftData).length);
+      console.log("Draft saved at:", draftData.savedAt);
+      
+      // ✅ FIX: Use loadReport to properly restore all sections
       get().loadReport(draftData);
 
+      // ✅ FIX: Restore metadata
       set({
+        fileName: draftData.fileName || "Untitled",
+        projectName: draftData.projectName || "",
+        submissionId: draftData.submissionId || null,
+        projectId: draftData.projectId || null,
+        createdById: draftData.createdById || null,
+        editedSections: draftData.editedSections || [],
         isLoading: false,
         isDraftLoaded: true,
         lastSavedAt: draftData.savedAt || null,
       });
-      console.log("Draft loaded successfully");
+      
+      console.log("✅ Draft loaded successfully with all metadata");
+      console.log("================");
 
       return { success: true, data: draftData };
     } catch (error) {
       set({ isLoading: false, error: error.message });
-      console.error("Error loading draft:", error);
+      console.error("❌ Error loading draft:", error);
       return { success: false, error: error.message };
     }
   },

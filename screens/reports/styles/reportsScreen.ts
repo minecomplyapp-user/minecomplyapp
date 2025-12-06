@@ -32,6 +32,39 @@ export const reportScreenStyles = StyleSheet.create({
     color: theme.colors.textLight,
     marginTop: verticalScale(4),
   },
+  // ✅ NEW: Quarter filter tabs
+  quarterTabs: {
+    flexDirection: "row",
+    marginBottom: verticalScale(20),
+    backgroundColor: "#F1F5F9",
+    borderRadius: moderateScale(12),
+    padding: scale(4),
+    gap: scale(6),
+  },
+  quarterTab: {
+    flex: 1,
+    paddingVertical: verticalScale(10),
+    paddingHorizontal: scale(12),
+    borderRadius: moderateScale(8),
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quarterTabActive: {
+    backgroundColor: theme.colors.primaryDark,
+    shadowColor: theme.colors.primaryDark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  quarterTabText: {
+    fontFamily: theme.typography.semibold,
+    fontSize: normalizeFont(isTablet() ? 16 : 14),
+    color: theme.colors.textLight,
+  },
+  quarterTabTextActive: {
+    color: "#FFFFFF",
+  },
   reportList: {
     gap: verticalScale(16),
   },

@@ -48,9 +48,11 @@ function resolveApiBaseUrl(): string {
 }
 
 function sanitizeBaseUrl(value: string | null | undefined): string | null {
-  if (!value) {
+  // Explicit type check ensures TypeScript narrows correctly
+  if (typeof value !== 'string' || !value) {
     return null;
   }
+  // Now TypeScript knows value is definitely a non-empty string
   const trimmed = value.trim();
   if (!trimmed) {
     return null;

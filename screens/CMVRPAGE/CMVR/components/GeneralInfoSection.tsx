@@ -48,9 +48,13 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
   const getCurrentLocation = async () => {
     setIsLoadingLocation(true);
     try {
+      // ✅ FIX: Add comprehensive error handling for location services
+      console.log("=== Getting Current Location ===");
+      
       // Check if location services are enabled
       const isEnabled = await Location.hasServicesEnabledAsync();
       if (!isEnabled) {
+        console.warn("Location services disabled");
         Alert.alert(
           "Location Services Disabled",
           "Please enable location services in your device settings."
@@ -61,8 +65,10 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
 
       // Request permissions
       const { status } = await Location.requestForegroundPermissionsAsync();
+      console.log("Location permission status:", status);
 
       if (status !== "granted") {
+        console.warn("Location permission denied");
         Alert.alert(
           "Permission Denied",
           "Location permission is required to use GPS."
@@ -71,14 +77,14 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
         return;
       }
 
-      // Get current location with timeout
+      // ✅ FIX: Reduce timeout and improve error handling
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Location request timed out")), 15000)
+        setTimeout(() => reject(new Error("Location request timed out")), 10000)
       );
 
       const locationPromise = Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
-        timeInterval: 10000,
+        timeInterval: 5000,
         distanceInterval: 0,
       });
 
@@ -87,7 +93,13 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
         timeoutPromise,
       ])) as Location.LocationObject;
 
+      // ✅ FIX: Validate location data before using
+      if (!currentLocation || !currentLocation.coords) {
+        throw new Error("Invalid location data received");
+      }
+
       const { latitude, longitude } = currentLocation.coords;
+      console.log(`✅ Location obtained: ${latitude}, ${longitude}`);
 
       setMapRegion({
         latitude,
@@ -97,18 +109,21 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
       });
       setSelectedLocation({ latitude, longitude });
     } catch (error: any) {
-      console.error("Location error:", error);
+      console.error("❌ Location error:", error);
 
       let errorMessage = "Failed to get current location.";
 
-      if (error.message.includes("timeout")) {
+      // ✅ FIX: More comprehensive error handling
+      if (error?.message?.includes?.("timeout")) {
         errorMessage =
           "Location request timed out. Please try again or select location manually on the map.";
-      } else if (error.code === "E_LOCATION_UNAVAILABLE") {
+      } else if (error?.code === "E_LOCATION_UNAVAILABLE") {
         errorMessage = "Location is currently unavailable. Please try again.";
-      } else if (error.code === "E_LOCATION_SETTINGS_UNSATISFIED") {
+      } else if (error?.code === "E_LOCATION_SETTINGS_UNSATISFIED") {
         errorMessage =
           "Location settings are not satisfied. Please check your device settings.";
+      } else if (error?.message) {
+        errorMessage = `Location error: ${error.message}`;
       }
 
       Alert.alert("Location Error", errorMessage, [
@@ -116,6 +131,7 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
           text: "Use Default Location",
           onPress: () => {
             // Use default Cebu location
+            console.log("Using default Cebu location");
             setMapRegion({
               latitude: 10.3157,
               longitude: 123.8854,
@@ -132,9 +148,17 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
   };
 
   const openMapPicker = async () => {
-    setShowMap(true);
-    // Automatically get current location when map opens
-    await getCurrentLocation();
+    try {
+      // ✅ FIX: Wrap map opening in try-catch to prevent crashes
+      console.log("Opening map picker");
+      setShowMap(true);
+      // Automatically get current location when map opens
+      await getCurrentLocation();
+    } catch (error) {
+      console.error("❌ Error opening map:", error);
+      // Still show map even if location fetch fails
+      setShowMap(true);
+    }
   };
 
   const handleMapPress = (event: any) => {
@@ -344,15 +368,45 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             <Text style={styles.mapTitle}>Select Project Location</Text>
             <View style={{ width: 40 }} />
           </View>
-          <MapView
-            style={styles.map}
-            region={mapRegion}
-            onPress={handleMapPress}
-            showsUserLocation
-            showsMyLocationButton
-          >
-            {selectedLocation && <Marker coordinate={selectedLocation} />}
-          </MapView>
+          {/* ✅ FIX: Wrap MapView in error boundary */}
+          {(() => {
+            try {
+              return (
+                <MapView
+                  style={styles.map}
+                  region={mapRegion}
+                  onPress={handleMapPress}
+                  showsUserLocation
+                  showsMyLocationButton
+                  onError={(error) => {
+                    console.error("❌ MapView error:", error);
+                    Alert.alert(
+                      "Map Error",
+                      "Failed to load map. Please try again or enter location manually."
+                    );
+                  }}
+                >
+                  {selectedLocation && <Marker coordinate={selectedLocation} />}
+                </MapView>
+              );
+            } catch (error) {
+              console.error("❌ MapView render error:", error);
+              return (
+                <View style={[styles.map, { justifyContent: "center", alignItems: "center", backgroundColor: "#F3F4F6" }]}>
+                  <Ionicons name="map-outline" size={64} color="#9CA3AF" />
+                  <Text style={{ marginTop: 16, color: "#6B7280", textAlign: "center", paddingHorizontal: 20 }}>
+                    Map failed to load. Please enter location manually or try again later.
+                  </Text>
+                  <TouchableOpacity
+                    style={{ marginTop: 16, padding: 12, backgroundColor: "#02217C", borderRadius: 8 }}
+                    onPress={() => setShowMap(false)}
+                  >
+                    <Text style={{ color: "white" }}>Close</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            }
+          })()}
           {isLoadingLocation && (
             <View
               style={{
