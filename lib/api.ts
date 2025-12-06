@@ -3,48 +3,42 @@ import { supabase } from "./supabase";
 
 const apiBaseUrl = resolveApiBaseUrl();
 
-if (__DEV__) {
-  const extra = Constants?.expoConfig?.extra || {};
-  let useRenderApi: boolean = false;
-  if (typeof extra.USE_RENDER_API === "string") {
-    useRenderApi = extra.USE_RENDER_API.toLowerCase() === "true";
-  } else if (typeof extra.USE_RENDER_API === "boolean") {
-    useRenderApi = extra.USE_RENDER_API;
-  }
-  if (useRenderApi) {
-    console.log("[API] Using RENDER API:", apiBaseUrl);
-  } else {
-    console.log("[API] Using LOCAL API:", apiBaseUrl);
-  }
-}
-
 function resolveApiBaseUrl(): string {
-  // Read envs from Constants.expoConfig.extra
   const extra = Constants?.expoConfig?.extra || {};
-  // USE_RENDER_API can be string or boolean (from .env or app.config.js)
-  let useRenderApi: boolean = false;
-  if (typeof extra.USE_RENDER_API === "string") {
-    useRenderApi = extra.USE_RENDER_API.toLowerCase() === "true";
-  } else if (typeof extra.USE_RENDER_API === "boolean") {
-    useRenderApi = extra.USE_RENDER_API;
-  }
 
-  if (useRenderApi) {
-    const renderUrl = sanitizeBaseUrl(
-      extra.apiBaseUrl || extra.EXPO_PUBLIC_API_BASE_URL
-    );
-    if (renderUrl) return renderUrl;
+  // Automatic switching based on build type:
+  // __DEV__ = true  → Development (Expo Go) → Use local API
+  // __DEV__ = false → Production (APK)      → Use Render API
+
+  if (__DEV__) {
+    // Development: Use local API
+    const localUrl = sanitizeBaseUrl(extra.localApiBaseUrl);
+    if (localUrl) {
+      console.log("[API] Development mode - using LOCAL API:", localUrl);
+      return localUrl;
+    }
+
+    // Fallback to dev host detection
+    const derived = deriveDevHostBaseUrl();
+    if (derived) {
+      console.log("[API] Development mode - using DERIVED API:", derived);
+      return derived;
+    }
+
+    console.warn("[API] Development mode - no local API found, using fallback");
+    return "http://localhost:3000/api";
   } else {
-    const localUrl = sanitizeBaseUrl(extra.API_BASE_URL);
-    if (localUrl) return localUrl;
-  }
+    // Production: Use Render API
+    const productionUrl = sanitizeBaseUrl(extra.productionApiBaseUrl);
+    if (productionUrl) {
+      console.log("[API] Production mode - using RENDER API:", productionUrl);
+      return productionUrl;
+    }
 
-  // Fallback to dev host detection
-  const derived = deriveDevHostBaseUrl();
-  if (derived) {
-    return derived;
+    throw new Error(
+      "[API] Production mode but no PRODUCTION_API_BASE_URL configured in .env"
+    );
   }
-  return "http://localhost:3000";
 }
 
 function sanitizeBaseUrl(value: string | null | undefined): string | null {
