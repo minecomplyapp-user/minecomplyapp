@@ -24,6 +24,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../theme/theme";
 import { CustomHeader } from "../../components/CustomHeader";
 import { ECCMonitoringSection } from "../ecc/components/monitoringSection";
+import { ECCTallyTable } from "../ecc/components/ECCTallyTable";
 import { styles } from "../ecc/styles/eccStyles"; // reuse styles from both screens
 import { scale, verticalScale, moderateScale } from "../../utils/responsive";
 // import {clearAppStorage} from "conditions.tsx"
@@ -52,16 +53,21 @@ export default function ECCMonitoringScreen({ navigation, route }: any) {
   // import * as Sharing from 'expo-sharing';
 
   const loadMonitoringData = (report: any) => {
-    if (!report) return;
+    if (!report) {
+      console.warn("⚠️  No report data to load");
+      return;
+    }
 
-    // console.log("report"+report)
+    console.log("=== Loading ECC Monitoring Data ===");
+    
     // General Info
-    setFileName(report.filename || "");
+    setFileName(report.filename || report.fileName || "");
     setCompanyName(report.generalInfo?.companyName || "");
     setStatus(report.generalInfo?.status || null);
     setDate(
       report.generalInfo?.date ? new Date(report.generalInfo.date) : null
     );
+    console.log("✓ General info loaded");
 
     // MMT Info
     setContactPerson(report.mmtInfo?.contactPerson || "");
@@ -70,13 +76,25 @@ export default function ECCMonitoringScreen({ navigation, route }: any) {
     setTelNo(report.mmtInfo?.telNo || "");
     setFaxNo(report.mmtInfo?.faxNo || "");
     setEmailAddress(report.mmtInfo?.emailAddress || "");
+    console.log("✓ MMT info loaded");
 
-    // Permit Holders
-    setPermitHolders(report.permit_holders || []);
-    // console.log("permit holdersasadasdasdasdasdas",permit_holders)
-    // Recommendations
-    // Ensure recommendations is an array of strings, defaulting to [""]
-    setRecommendations(report.recommendations || [""]);
+    // ✅ FIX: Permit Holders - ensure proper restoration
+    const loadedHolders = report.permit_holders || [];
+    setPermitHolders(loadedHolders);
+    console.log(`✓ Loaded ${loadedHolders.length} permit holder(s)`);
+    
+    if (loadedHolders.length > 0) {
+      loadedHolders.forEach((holder: any, idx: number) => {
+        const condCount = holder.monitoringState?.formatted?.conditions?.length || 0;
+        console.log(`  - Holder ${idx}: ${holder.name} (${condCount} conditions)`);
+      });
+    }
+
+    // ✅ FIX: Recommendations - ensure array of strings
+    const loadedRecs = report.recommendations || report.topass?.recommendations || [""];
+    setRecommendations(Array.isArray(loadedRecs) ? loadedRecs : [loadedRecs]);
+    console.log(`✓ Loaded ${loadedRecs.length} recommendation(s)`);
+    console.log("===================================");
   };
   const handleGenerateAndDownload = async (
     reportData: any,
@@ -127,7 +145,22 @@ if (result.success && result.download_url) {
   const getMonitoringData = () => {
     const permit_holder_with_conditions = { permit_holders };
 
-    return {
+    // ✅ FIX: Validate and log data before returning
+    console.log("=== Preparing ECC Data for Save ===");
+    console.log("Filename:", filename);
+    console.log("Permit holders count:", permit_holders.length);
+    console.log("Recommendations count:", recommendations.length);
+    
+    if (permit_holders.length > 0) {
+      permit_holders.forEach((holder, idx) => {
+        const condCount = holder.monitoringState?.formatted?.conditions?.length || 0;
+        console.log(`  Holder ${idx}: ${holder.name} (${condCount} conditions)`);
+      });
+    } else {
+      console.warn("⚠️  No permit holders to save!");
+    }
+
+    const monitoringData = {
       filename,
       generalInfo: {
         companyName,
@@ -142,7 +175,8 @@ if (result.success && result.download_url) {
         faxNo,
         emailAddress,
       },
-      permit_holders,
+      // ✅ FIX: Ensure permit_holders array is properly saved
+      permit_holders: JSON.parse(JSON.stringify(permit_holders)), // Deep clone
 
       topass: {
         filename,
@@ -183,12 +217,19 @@ if (result.success && result.download_url) {
           // Return the accumulating object for the next iteration
           return acc;
         }, {}), // <-- Start with an empty object {}
-        recommendations,
+        // ✅ FIX: Ensure recommendations array is properly saved
+        recommendations: Array.isArray(recommendations) ? recommendations.filter(r => r.trim()) : [],
         createdById: user?.email,
       },
 
-      recommendations,
+      // ✅ FIX: Include recommendations at top level for backward compatibility
+      recommendations: Array.isArray(recommendations) ? recommendations : [""],
     };
+
+    console.log("✅ ECC data prepared successfully");
+    console.log("===================================");
+
+    return monitoringData;
   };
 
   // === General Information ===
@@ -368,8 +409,24 @@ if (result.success && result.download_url) {
   const useCurrentLocation = async () => {
     try {
       setIsFetchingLocation(true);
+      console.log("=== Fetching ECC Location ===");
+      
+      // ✅ FIX: Check if location services are enabled first
+      const isEnabled = await Location.hasServicesEnabledAsync();
+      if (!isEnabled) {
+        console.warn("Location services disabled");
+        Alert.alert(
+          "Location Services Disabled",
+          "Please enable location services in your device settings."
+        );
+        return;
+      }
+
       const { status } = await Location.requestForegroundPermissionsAsync();
+      console.log("Location permission:", status);
+      
       if (status !== "granted") {
+        console.warn("Location permission denied");
         Alert.alert(
           "Permission required",
           "Location permission is needed to use your current location."
@@ -377,8 +434,28 @@ if (result.success && result.download_url) {
         return;
       }
 
-      const pos = await Location.getCurrentPositionAsync({});
+      // ✅ FIX: Add timeout for location request
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Location request timed out")), 10000)
+      );
+
+      const locationPromise = Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const pos = (await Promise.race([
+        locationPromise,
+        timeoutPromise,
+      ])) as Location.LocationObject;
+
+      // ✅ FIX: Validate location data
+      if (!pos || !pos.coords) {
+        throw new Error("Invalid location data received");
+      }
+
       let pretty = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+      console.log(`✅ Location obtained: ${pretty}`);
+      
       try {
         const places = await Location.reverseGeocodeAsync({
           latitude: pos.coords.latitude,
@@ -396,15 +473,21 @@ if (result.success && result.download_url) {
           ]
             .filter(Boolean)
             .join(", ");
-          if (bits) pretty = bits;
+          if (bits) {
+            pretty = bits;
+            console.log(`✅ Reverse geocoded: ${pretty}`);
+          }
         }
-      } catch {}
+      } catch (geocodeError) {
+        console.warn("Reverse geocoding failed, using coordinates:", geocodeError);
+      }
       setLocation(pretty);
     } catch (e: any) {
-      Alert.alert(
-        "Location error",
-        e?.message || "Failed to fetch current location"
-      );
+      console.error("❌ Location error:", e);
+      const errorMsg = e?.message?.includes?.("timeout")
+        ? "Location request timed out. Please try again."
+        : e?.message || "Failed to fetch current location";
+      Alert.alert("Location error", errorMsg);
     } finally {
       setIsFetchingLocation(false);
     }
@@ -815,6 +898,12 @@ if (result.success && result.download_url) {
                       })
                     )
                   }
+                />
+
+                {/* ✅ NEW: Compliance Tally Table */}
+                <ECCTallyTable
+                  permitHolderName={holder.name || "Unnamed Permit Holder"}
+                  monitoringState={holder.monitoringState}
                 />
 
                 {/* Remarks */}

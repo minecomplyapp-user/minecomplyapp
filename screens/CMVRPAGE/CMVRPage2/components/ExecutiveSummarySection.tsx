@@ -255,32 +255,27 @@ export const ExecutiveSummarySection: React.FC<ExecutiveSummaryProps> = ({
           </View>
         </View>
 
-        {/* 🔒 Complaints Remarks (disabled when N/A) */}
+        {/* ✅ FIX: Complaints Remarks (ENABLED when N/A to allow remarks) */}
         <View style={styles.fieldGroup}>
           <Text style={styles.labelSmall}>COMPLAINTS REMARKS</Text>
-          <View
-            pointerEvents={
-              executiveSummary.complaintsManagement.naForAll ? "none" : "auto"
+          <TextInput
+            style={[
+              styles.input,
+              styles.textArea,
+            ]}
+            value={executiveSummary.complaintsRemarks}
+            onChangeText={(text) =>
+              updateExecutiveSummary("complaintsRemarks", text)
             }
-          >
-            <TextInput
-              style={[
-                styles.input,
-                styles.textArea,
-                executiveSummary.complaintsManagement.naForAll &&
-                  styles.disabledInput,
-              ]}
-              value={executiveSummary.complaintsRemarks}
-              onChangeText={(text) =>
-                updateExecutiveSummary("complaintsRemarks", text)
-              }
-              placeholder="Enter remarks for complaints management..."
-              placeholderTextColor="#94A3B8"
-              multiline
-              numberOfLines={3}
-              editable={!executiveSummary.complaintsManagement.naForAll}
-            />
-          </View>
+            placeholder={
+              executiveSummary.complaintsManagement.naForAll
+                ? "Enter remarks for N/A selection..."
+                : "Enter remarks for complaints management..."
+            }
+            placeholderTextColor="#94A3B8"
+            multiline
+            numberOfLines={3}
+          />
         </View>
 
         <View style={styles.divider} />

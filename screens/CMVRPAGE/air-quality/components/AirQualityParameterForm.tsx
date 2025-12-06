@@ -1,10 +1,13 @@
 import React from "react";
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
 import { styles } from "./AirQualityParameterForm.styles";
+import { AIR_QUALITY_PARAMETERS, AIR_QUALITY_UNITS } from "../../types/AirQualityScreen.types";
 
 export type AirQualityParameterFormProps = {
   parameter: string;
+  unit?: string; // ✅ NEW: Unit field
   currentSMR: string;
   previousSMR: string;
   currentMMT: string;
@@ -23,6 +26,7 @@ export const AirQualityParameterForm: React.FC<
   AirQualityParameterFormProps
 > = ({
   parameter,
+  unit,
   currentSMR,
   previousSMR,
   currentMMT,
@@ -50,18 +54,42 @@ export const AirQualityParameterForm: React.FC<
         )}
       </View>
 
-      {/* Parameter Name */}
+      {/* ✅ UPDATED: Parameter Dropdown */}
       <View style={styles.field}>
         <Text style={styles.label}>
           Parameter <Text style={styles.required}>*</Text>
         </Text>
-        <TextInput
-          style={styles.input}
-          value={parameter}
-          onChangeText={(value) => onUpdate("parameter", value)}
-          placeholder="e.g., TSP, PM10, PM2.5"
-          placeholderTextColor="#94A3B8"
-        />
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={parameter}
+            onValueChange={(value) => onUpdate("parameter", value)}
+            style={styles.picker}
+          >
+            <Picker.Item label="Select Parameter" value="" />
+            {AIR_QUALITY_PARAMETERS.map((param) => (
+              <Picker.Item key={param} label={param} value={param} />
+            ))}
+          </Picker>
+        </View>
+      </View>
+
+      {/* ✅ NEW: Unit Dropdown */}
+      <View style={styles.field}>
+        <Text style={styles.label}>
+          Unit <Text style={styles.required}>*</Text>
+        </Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={unit || ""}
+            onValueChange={(value) => onUpdate("unit", value)}
+            style={styles.picker}
+          >
+            <Picker.Item label="Select Unit" value="" />
+            {AIR_QUALITY_UNITS.map((u) => (
+              <Picker.Item key={u} label={u} value={u} />
+            ))}
+          </Picker>
+        </View>
       </View>
 
       {/* Results - In SMR */}

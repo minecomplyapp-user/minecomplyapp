@@ -52,6 +52,19 @@ export const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: "top",
   },
+  // ✅ NEW: Picker styles for dropdowns
+  pickerContainer: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 6,
+    overflow: "hidden",
+  },
+  picker: {
+    height: 48,
+    color: "#1E293B",
+    fontSize: 13,
+  },
   sectionHeader: {
     marginTop: 8,
     marginBottom: 12,

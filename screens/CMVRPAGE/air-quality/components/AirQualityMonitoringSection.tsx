@@ -9,6 +9,7 @@ import { styles } from "./AirQualityMonitoringSection.styles";
 export type AirQualityMonitoringSectionProps = {
   // Main parameter (first row)
   parameter: string;
+  unit?: string; // ✅ NEW: Unit field
   currentSMR: string;
   previousSMR: string;
   currentMMT: string;
@@ -39,6 +40,7 @@ export const AirQualityMonitoringSection: React.FC<
   AirQualityMonitoringSectionProps
 > = ({
   parameter,
+  unit,
   currentSMR,
   previousSMR,
   currentMMT,
@@ -66,6 +68,7 @@ export const AirQualityMonitoringSection: React.FC<
 
         <AirQualityParameterForm
           parameter={parameter}
+          unit={unit} // ✅ NEW: Pass unit prop
           currentSMR={currentSMR}
           previousSMR={previousSMR}
           currentMMT={currentMMT}
@@ -84,6 +87,7 @@ export const AirQualityMonitoringSection: React.FC<
         <AirQualityParameterForm
           key={param.id}
           parameter={param.parameter}
+          unit={param.unit} // ✅ NEW: Pass unit prop
           currentSMR={param.currentSMR}
           previousSMR={param.previousSMR}
           currentMMT={param.currentMMT}

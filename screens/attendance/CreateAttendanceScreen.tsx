@@ -12,7 +12,9 @@ import {
   Modal,
   ActivityIndicator,
   Dimensions,
+  Platform,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import SignatureScreen from "react-native-signature-canvas";
 // react-native-signature-canvas doesn't ship strong TSX types for JSX usage in some setups.
 // Create a loose-typed alias to satisfy TypeScript when rendering the component.
@@ -300,8 +302,24 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
   const useCurrentLocation = async () => {
     try {
       setIsFetchingLocation(true);
+      console.log("=== Fetching Attendance Location ===");
+      
+      // ✅ FIX: Check if location services are enabled first
+      const isEnabled = await Location.hasServicesEnabledAsync();
+      if (!isEnabled) {
+        console.warn("Location services disabled");
+        Alert.alert(
+          "Location Services Disabled",
+          "Please enable location services in your device settings."
+        );
+        return;
+      }
+
       const { status } = await Location.requestForegroundPermissionsAsync();
+      console.log("Location permission:", status);
+      
       if (status !== "granted") {
+        console.warn("Location permission denied");
         Alert.alert(
           "Permission required",
           "Location permission is needed to use your current location."
@@ -309,8 +327,28 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
         return;
       }
 
-      const pos = await Location.getCurrentPositionAsync({});
+      // ✅ FIX: Add timeout for location request
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Location request timed out")), 10000)
+      );
+
+      const locationPromise = Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const pos = (await Promise.race([
+        locationPromise,
+        timeoutPromise,
+      ])) as Location.LocationObject;
+
+      // ✅ FIX: Validate location data
+      if (!pos || !pos.coords) {
+        throw new Error("Invalid location data received");
+      }
+
       let pretty = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+      console.log(`✅ Location obtained: ${pretty}`);
+      
       try {
         const places = await Location.reverseGeocodeAsync({
           latitude: pos.coords.latitude,
@@ -328,15 +366,21 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
           ]
             .filter(Boolean)
             .join(", ");
-          if (bits) pretty = bits;
+          if (bits) {
+            pretty = bits;
+            console.log(`✅ Reverse geocoded: ${pretty}`);
+          }
         }
-      } catch {}
+      } catch (geocodeError) {
+        console.warn("Reverse geocoding failed, using coordinates:", geocodeError);
+      }
       setLocation(pretty);
     } catch (e: any) {
-      Alert.alert(
-        "Location error",
-        e?.message || "Failed to fetch current location"
-      );
+      console.error("❌ Location error:", e);
+      const errorMsg = e?.message?.includes?.("timeout")
+        ? "Location request timed out. Please try again."
+        : e?.message || "Failed to fetch current location";
+      Alert.alert("Location error", errorMsg);
     } finally {
       setIsFetchingLocation(false);
     }
@@ -803,6 +847,33 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
     return isValid;
   };
 
+  // ✅ FIX: Add draft save functionality for attendance
+  const handleSaveDraft = async () => {
+    try {
+      const draftData = {
+        fileName,
+        title,
+        description,
+        meetingDate: meetingDate ? meetingDate.toISOString() : null,
+        location,
+        attendees: JSON.parse(JSON.stringify(attendees)), // Deep clone
+        savedAt: new Date().toISOString(),
+      };
+
+      console.log("=== Saving Attendance Draft ===");
+      console.log("Attendees count:", attendees.length);
+      
+      const draftKey = `@attendance_draft_${fileName || 'untitled'}`;
+      await AsyncStorage.setItem(draftKey, JSON.stringify(draftData));
+      
+      console.log("✅ Attendance draft saved");
+      Alert.alert("Success", "Draft saved successfully!");
+    } catch (error) {
+      console.error("❌ Failed to save draft:", error);
+      Alert.alert("Error", "Failed to save draft. Please try again.");
+    }
+  };
+
   const handleSave = () => {
     if (!validate()) {
       Alert.alert(
@@ -875,6 +946,20 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
   };
 
   const submitAttendance = async () => {
+    // ✅ FIX: Validate attendees before submission
+    console.log("=== Submitting Attendance ===");
+    console.log("Attendees count:", attendees.length);
+    
+    // ✅ FIX: Filter out empty attendees (ones with no name)
+    const validAttendees = attendees.filter(a => a.name && a.name.trim());
+    
+    if (validAttendees.length === 0) {
+      Alert.alert("Error", "Please add at least one attendee with a name.");
+      return;
+    }
+    
+    console.log("Valid attendees:", validAttendees.length);
+    
     const payload = {
       createdById: user?.id || undefined,
       fileName: fileName.trim(),
@@ -883,35 +968,50 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
       // Send date-only (YYYY-MM-DD) without time
       meetingDate: meetingDate ? formatDateOnly(meetingDate) : undefined,
       location: location?.trim() || undefined,
-      attendees: attendees.map((a) => ({
-        name: a.name.trim(),
-        agency: a.agency?.trim() || undefined,
-        office: a.agency?.trim() || undefined,
-        position: a.position?.trim() || undefined,
-        signatureUrl:
-          (a as any).signaturePath?.trim() ||
-          a.signatureUrl?.trim() ||
-          undefined,
-        photoUrl:
-          (a as any).photoPath?.trim() || a.photoUrl?.trim() || undefined,
-        attendanceStatus: mapAttendanceStatus(a.attendance),
-      })),
+      // ✅ FIX: Only include valid attendees with proper validation
+      attendees: validAttendees.map((a) => {
+        const attendeeData = {
+          name: a.name.trim(),
+          agency: a.agency?.trim() || undefined,
+          office: a.agency?.trim() || undefined,
+          position: a.position?.trim() || undefined,
+          signatureUrl:
+            (a as any).signaturePath?.trim() ||
+            a.signatureUrl?.trim() ||
+            undefined,
+          photoUrl:
+            (a as any).photoPath?.trim() || a.photoUrl?.trim() || undefined,
+          attendanceStatus: mapAttendanceStatus(a.attendance),
+        };
+        
+        console.log(`  - Attendee: ${attendeeData.name} (${attendeeData.attendanceStatus})`);
+        return attendeeData;
+      }),
     };
 
-    if (isEditMode && attendanceId) {
-      // Update existing record
-      await apiPatch(`/attendance/${attendanceId}`, payload);
-      setNewlyUploadedPaths([]);
-      Alert.alert("Success", "Attendance record updated!", [
-        { text: "OK", onPress: () => navigation.goBack() },
-      ]);
-    } else {
-      // Create new record
-      const res = await apiPost<{ id: string }>("/attendance", payload);
-      setNewlyUploadedPaths([]);
-      Alert.alert("Success", "Attendance record saved!", [
-        { text: "OK", onPress: () => navigation.goBack() },
-      ]);
+    console.log("Payload prepared with", payload.attendees.length, "attendees");
+
+    try {
+      if (isEditMode && attendanceId) {
+        // Update existing record
+        await apiPatch(`/attendance/${attendanceId}`, payload);
+        setNewlyUploadedPaths([]);
+        console.log("✅ Attendance record updated");
+        Alert.alert("Success", "Attendance record updated!", [
+          { text: "OK", onPress: () => navigation.goBack() },
+        ]);
+      } else {
+        // Create new record
+        const res = await apiPost<{ id: string }>("/attendance", payload);
+        setNewlyUploadedPaths([]);
+        console.log("✅ Attendance record created:", res.id);
+        Alert.alert("Success", "Attendance record saved!", [
+          { text: "OK", onPress: () => navigation.goBack() },
+        ]);
+      }
+    } catch (error) {
+      console.error("❌ Failed to submit attendance:", error);
+      throw error; // Re-throw to be caught by handleSave
     }
   };
 
@@ -1049,6 +1149,14 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
               date={meetingDate ?? new Date()}
               onConfirm={handleConfirmDate}
               onCancel={() => setDatePickerVisibility(false)}
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              textColor={Platform.OS === "ios" ? "#000000" : undefined}
+              pickerContainerStyleIOS={{
+                backgroundColor: "#FFFFFF",
+              }}
+              modalStyleIOS={{
+                backgroundColor: "rgba(0, 0, 0, 0.5)",
+              }}
             />
           </View>
 
