@@ -70,24 +70,20 @@ export default {
       "expo-camera",
       "expo-image-picker",
       "expo-location",
+      "expo-secure-store",
     ],
 
     extra: {
-        eas: {
-        projectId: "47602f4f-d8e2-46fe-aaa0-786aa2b48e35"
+      eas: {
+        projectId: "30d8e4cc-d22b-49c7-8458-453bb24cf613"
       },
       supabaseUrl:
         process.env.EXPO_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL,
       supabaseAnonKey:
         process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
         process.env.SUPABASE_ANON_KEY,
-      apiBaseUrl:
-        process.env.EXPO_PUBLIC_API_BASE_URL ??
-        process.env.API_BASE_URL ??
-        null,
-      USE_RENDER_API: process.env.USE_RENDER_API ?? "false",
-      API_BASE_URL: process.env.API_BASE_URL ?? null,
-      EXPO_PUBLIC_API_BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL ?? null,
+      localApiBaseUrl: process.env.LOCAL_API_BASE_URL ?? null,
+      productionApiBaseUrl: process.env.PRODUCTION_API_BASE_URL ?? null,
       // Where Supabase should redirect users after they click the
       // "Verify email" button in the confirmation email.
       // You can override this via env: EXPO_PUBLIC_CONFIRMATION_REDIRECT_URL or CONFIRMATION_REDIRECT_URL
