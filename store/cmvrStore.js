@@ -1150,7 +1150,9 @@ export const useCmvrStore = create((set, get) => ({
     const state = get();
 
     if (!state.currentReport) {
-      return { success: false, error: "No report to submit" };
+      const errorMsg = "No report to submit. Please create a report first.";
+      console.warn("[CMVR Store] Submit failed: No current report");
+      return { success: false, error: errorMsg };
     }
 
     set({ isLoading: true, error: null });
@@ -1162,17 +1164,14 @@ export const useCmvrStore = create((set, get) => ({
       const reportPayload = get().transformToDTO();
 
       if (!reportPayload) {
-        throw new Error("Failed to transform report data");
+        throw new Error("Failed to prepare report data. Please check all required fields.");
       }
 
       // Construct endpoint with fileName as query param
       const fileName = state.fileName || "Untitled";
       const endpoint = `${BASE_URL}/cmvr?fileName=${encodeURIComponent(fileName)}`;
 
-      console.log(
-        "Submitting payload:",
-        JSON.stringify(reportPayload, null, 2)
-      );
+      console.log("[CMVR Store] Submitting report:", fileName);
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -1184,8 +1183,14 @@ export const useCmvrStore = create((set, get) => ({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to submit CMVR report");
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          errorData = { message: `Server error (${response.status})` };
+        }
+        const userMessage = errorData.message || "Failed to submit CMVR report. Please try again.";
+        throw new Error(userMessage);
       }
 
       const submittedReport = await response.json();
@@ -1198,14 +1203,20 @@ export const useCmvrStore = create((set, get) => ({
       });
 
       // Delete draft after successful submission
-      await get().deleteDraft();
+      try {
+        await get().deleteDraft();
+      } catch (draftError) {
+        console.warn("[CMVR Store] Failed to delete draft after submission:", draftError);
+        // Don't fail submission if draft deletion fails
+      }
 
-      console.log("Report submitted successfully:", submittedReport.id);
+      console.log("[CMVR Store] Report submitted successfully:", submittedReport.id);
       return { success: true, report: submittedReport };
     } catch (error) {
-      set({ isLoading: false, error: error.message });
-      console.error("Error submitting report:", error);
-      return { success: false, error: error.message };
+      const userMessage = error.message || "An unexpected error occurred. Please try again.";
+      set({ isLoading: false, error: userMessage });
+      console.error("[CMVR Store] Error submitting report:", error);
+      return { success: false, error: userMessage };
     }
   },
 

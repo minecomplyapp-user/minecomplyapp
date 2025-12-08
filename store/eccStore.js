@@ -31,7 +31,12 @@ export const useEccStore = create((set) => ({
         let eccsArray = [];
 
         if (existingDataString !== null) {
-            eccsArray = JSON.parse(existingDataString);
+            try {
+                eccsArray = JSON.parse(existingDataString);
+            } catch (parseError) {
+                console.error('[ECC Store] Failed to parse existing data, starting fresh:', parseError);
+                eccsArray = [];
+            }
         }
 
         // 3. Add the new object WITH the ID to the array
@@ -41,9 +46,11 @@ export const useEccStore = create((set) => ({
         const jsonValue = JSON.stringify(eccsArray);
         await AsyncStorage.setItem(ECC_STORAGE_KEY, jsonValue);
         
-        console.log(`New ECC (ID: ${eccWithId.id}) successfully added and array saved!`);
+        console.log(`[ECC Store] New ECC (ID: ${eccWithId.id}) successfully saved!`);
+        return { success: true, id: eccWithId.id };
     } catch (e) {
-        console.error('Error saving or retrieving ECC data:', e);
+        console.error('[ECC Store] Error saving ECC data:', e);
+        return { success: false, error: 'Failed to save ECC report. Please try again.' };
     }
 },
 updateEcc : async (id, updatedEccObject,token) => {
@@ -52,11 +59,17 @@ updateEcc : async (id, updatedEccObject,token) => {
         const existingDataString = await AsyncStorage.getItem(ECC_STORAGE_KEY);
         
         if (existingDataString === null) {
-            console.warn('Cannot update: No existing ECC data found in storage.');
-            return;
+            console.warn('[ECC Store] Cannot update: No existing ECC data found in storage.');
+            return { success: false, error: 'No existing ECC data found.' };
         }
 
-        let eccsArray = JSON.parse(existingDataString);
+        let eccsArray;
+        try {
+            eccsArray = JSON.parse(existingDataString);
+        } catch (parseError) {
+            console.error('[ECC Store] Failed to parse existing data:', parseError);
+            return { success: false, error: 'Failed to read existing ECC data.' };
+        }
 
         // Ensure the updated object includes the original ID
         const eccWithId = { 
@@ -68,8 +81,8 @@ updateEcc : async (id, updatedEccObject,token) => {
         const indexToUpdate = eccsArray.findIndex(ecc => ecc.id === id);
 
         if (indexToUpdate === -1) {
-            console.warn(`Cannot update: ECC item with ID ${id} not found.`);
-            return;
+            console.warn(`[ECC Store] Cannot update: ECC item with ID ${id} not found.`);
+            return { success: false, error: 'ECC report not found.' };
         }
 
         // 3. Replace the old object with the new, updated object
@@ -79,23 +92,35 @@ updateEcc : async (id, updatedEccObject,token) => {
         const jsonValue = JSON.stringify(eccsArray);
         await AsyncStorage.setItem(ECC_STORAGE_KEY, jsonValue);
         
-        console.log(`ECC item with ID ${id} successfully updated and saved!`);
+        console.log(`[ECC Store] ECC item with ID ${id} successfully updated!`);
+        return { success: true };
         
     } catch (e) {
-        console.error('Error updating ECC data:', e);
+        console.error('[ECC Store] Error updating ECC data:', e);
+        return { success: false, error: 'Failed to update ECC report. Please try again.' };
     }
 },
     getEccList: async()=>{
-        
         try {
             const jsonValue = await AsyncStorage.getItem(ECC_STORAGE_KEY);
             
-            // Check if value exists, then parse it.
-            return jsonValue != null ? JSON.parse(jsonValue) : null;
+            if (jsonValue === null) {
+                console.log('[ECC Store] No ECC data found in storage');
+                return [];
+            }
+            
+            try {
+                const parsed = JSON.parse(jsonValue);
+                console.log(`[ECC Store] Loaded ${parsed.length} ECC reports`);
+                return parsed;
+            } catch (parseError) {
+                console.error('[ECC Store] Failed to parse ECC data:', parseError);
+                return [];
+            }
         } catch (e) {
-            console.error('Error reading data:', e);
+            console.error('[ECC Store] Error reading ECC data:', e);
+            return [];
         }
-       
     },
 
     addReport: async (reportData,token) => { 

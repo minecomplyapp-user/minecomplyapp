@@ -81,7 +81,7 @@ export async function uploadFileFromUri({
     arrayBuffer = bytes.buffer;
   } catch (readError: any) {
     console.error("❌ Failed to read file:", readError);
-    throw new Error(`Failed to read file: ${readError.message}`);
+    throw new Error("Failed to read file. Please try selecting the file again.");
   }
 
   // Upload using Supabase SDK directly (no signed URL needed)
@@ -100,7 +100,7 @@ export async function uploadFileFromUri({
       statusCode: (error as any).statusCode,
       error: error,
     });
-    throw new Error(`Upload failed: ${error.message}`);
+    throw new Error("File upload failed. Please check your connection and try again.");
   }
 
   console.log("✅ Upload succeeded!", {
@@ -149,7 +149,7 @@ export async function uploadSignature(uri: string): Promise<{ path: string }> {
     arrayBuffer = bytes.buffer;
   } catch (readError: any) {
     console.error("❌ Failed to read signature:", readError);
-    throw new Error(`Failed to read signature: ${readError.message}`);
+    throw new Error("Failed to read signature. Please try again.");
   }
 
   // Upload using Supabase SDK directly (no signed URL needed)
@@ -168,7 +168,7 @@ export async function uploadSignature(uri: string): Promise<{ path: string }> {
       statusCode: (error as any).statusCode,
       error: error,
     });
-    throw new Error(`Upload failed: ${error.message}`);
+    throw new Error("File upload failed. Please check your connection and try again.");
   }
 
   console.log("✅ Upload succeeded!", {
@@ -224,7 +224,7 @@ export async function uploadAttachment(
     arrayBuffer = bytes.buffer;
   } catch (readError: any) {
     console.error("❌ Failed to read attachment:", readError);
-    throw new Error(`Failed to read attachment: ${readError.message}`);
+    throw new Error("Failed to read attachment. Please try selecting the file again.");
   }
 
   // Upload using Supabase SDK directly (no signed URL needed)
@@ -243,7 +243,7 @@ export async function uploadAttachment(
       statusCode: (error as any).statusCode,
       error: error,
     });
-    throw new Error(`Upload failed: ${error.message}`);
+    throw new Error("File upload failed. Please check your connection and try again.");
   }
 
   console.log("✅ Upload succeeded!", {
@@ -294,7 +294,7 @@ export async function uploadQRCode(
     arrayBuffer = bytes.buffer;
   } catch (readError: any) {
     console.error("❌ Failed to read QR file:", readError);
-    throw new Error(`Failed to read QR file: ${readError.message}`);
+    throw new Error("Failed to read QR file. Please try again.");
   }
 
   // Upload using Supabase SDK directly
@@ -313,7 +313,7 @@ export async function uploadQRCode(
       statusCode: (error as any).statusCode,
       error: error,
     });
-    throw new Error(`Upload failed: ${error.message}`);
+    throw new Error("File upload failed. Please check your connection and try again.");
   }
 
   console.log("✅ QR upload succeeded!", {
@@ -375,7 +375,7 @@ export async function uploadProjectLocationImage({
 }: UploadProjectLocationImageParams): Promise<{ path: string }> {
   console.log("📤 Starting uploadProjectLocationImage...");
   if (!uri) {
-    throw new Error("Invalid image URI");
+    throw new Error("Invalid image. Please select an image and try again.");
   }
 
   const timestamp = Date.now();
@@ -405,7 +405,7 @@ export async function uploadProjectLocationImage({
     arrayBuffer = bytes.buffer;
   } catch (readError: any) {
     console.error("❌ Failed to read project location image:", readError);
-    throw new Error(`Failed to read image: ${readError.message}`);
+    throw new Error("Failed to read image. Please try selecting the image again.");
   }
 
   const contentType = mimeType ?? "image/jpeg";
@@ -425,7 +425,7 @@ export async function uploadProjectLocationImage({
       statusCode: (error as any).statusCode,
       error,
     });
-    throw new Error(`Upload failed: ${error.message}`);
+    throw new Error("File upload failed. Please check your connection and try again.");
   }
 
   console.log("✅ Project location image upload succeeded!", {
@@ -455,7 +455,7 @@ export async function uploadNoiseQualityFile({
 }: UploadNoiseQualityFileParams): Promise<{ path: string }> {
   console.log("📤 Starting uploadNoiseQualityFile...");
   if (!uri) {
-    throw new Error("Invalid file URI");
+    throw new Error("Invalid file. Please select a file and try again.");
   }
 
   const timestamp = Date.now();
@@ -485,7 +485,7 @@ export async function uploadNoiseQualityFile({
     arrayBuffer = bytes.buffer;
   } catch (readError: any) {
     console.error("❌ Failed to read noise quality file:", readError);
-    throw new Error(`Failed to read file: ${readError.message}`);
+    throw new Error("Failed to read file. Please try selecting the file again.");
   }
 
   const contentType = mimeType ?? "application/octet-stream";
@@ -505,7 +505,7 @@ export async function uploadNoiseQualityFile({
       statusCode: (error as any).statusCode,
       error,
     });
-    throw new Error(`Upload failed: ${error.message}`);
+    throw new Error("File upload failed. Please check your connection and try again.");
   }
 
   console.log("✅ Noise quality file upload succeeded!", {

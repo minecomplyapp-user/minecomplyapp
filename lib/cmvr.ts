@@ -74,10 +74,13 @@ export async function createCMVRReport(
       ? `?fileName=${encodeURIComponent(fileName)}`
       : "";
     const response = await apiPost(`/cmvr${queryParam}`, data);
+    console.log("[CMVR] Report created successfully");
     return response;
-  } catch (error) {
-    console.error("Error creating CMVR report:", error);
-    throw error;
+  } catch (error: any) {
+    console.error("[CMVR] Failed to create report:", error);
+    // Enhance error message for user
+    const userMessage = error.message || "Failed to create CMVR report. Please try again.";
+    throw new Error(userMessage);
   }
 }
 
@@ -88,10 +91,12 @@ export async function createCMVRReport(
 export async function getAllCMVRReports(): Promise<any[]> {
   try {
     const response = await apiGet<any[]>("/cmvr");
+    console.log(`[CMVR] Fetched ${response.length} reports`);
     return response as any[];
-  } catch (error) {
-    console.error("Error fetching CMVR reports:", error);
-    throw error;
+  } catch (error: any) {
+    console.error("[CMVR] Failed to fetch reports:", error);
+    const userMessage = error.message || "Failed to load CMVR reports. Please try again.";
+    throw new Error(userMessage);
   }
 }
 
@@ -104,6 +109,7 @@ export async function getCMVRReportById(id: string): Promise<any> {
   try {
     const response = await apiGet<any>(`/cmvr/${id}`);
     if (!response) {
+      console.warn(`[CMVR] Report ${id} returned empty response`);
       return response;
     }
 
@@ -130,20 +136,25 @@ export async function getCMVRReportById(id: string): Promise<any> {
       cmvrData,
     };
 
+    console.log(`[CMVR] Successfully loaded report ${id}`);
     return normalized;
-  } catch (error) {
-    console.error("Error fetching CMVR report:", error);
-    throw error;
+  } catch (error: any) {
+    console.error(`[CMVR] Failed to fetch report ${id}:`, error);
+    const userMessage = error.message || "Failed to load CMVR report. Please try again.";
+    throw new Error(userMessage);
   }
 }
 
 /** Get CMVR reports created by a specific user */
 export async function getCMVRReportsByUser(userId: string): Promise<any[]> {
   try {
-    return await apiGet<any[]>(`/cmvr/user/${userId}`);
-  } catch (error) {
-    console.error("Error fetching CMVR reports by user:", error);
-    throw error;
+    const reports = await apiGet<any[]>(`/cmvr/user/${userId}`);
+    console.log(`[CMVR] Fetched ${reports.length} reports for user ${userId}`);
+    return reports;
+  } catch (error: any) {
+    console.error(`[CMVR] Failed to fetch reports for user ${userId}:`, error);
+    const userMessage = error.message || "Failed to load your CMVR reports. Please try again.";
+    throw new Error(userMessage);
   }
 }
 
@@ -234,8 +245,16 @@ export async function updateCMVRReport(
   data: CreateCMVRDto,
   fileName?: string
 ): Promise<any> {
-  const queryParam = fileName
-    ? `?fileName=${encodeURIComponent(fileName)}`
-    : "";
-  return apiPatch<any>(`/cmvr/${id}${queryParam}`, data);
+  try {
+    const queryParam = fileName
+      ? `?fileName=${encodeURIComponent(fileName)}`
+      : "";
+    const result = await apiPatch<any>(`/cmvr/${id}${queryParam}`, data);
+    console.log(`[CMVR] Successfully updated report ${id}`);
+    return result;
+  } catch (error: any) {
+    console.error(`[CMVR] Failed to update report ${id}:`, error);
+    const userMessage = error.message || "Failed to update CMVR report. Please try again.";
+    throw new Error(userMessage);
+  }
 }
