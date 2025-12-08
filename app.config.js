@@ -82,7 +82,8 @@ export default {
         process.env.EXPO_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "",
       supabaseAnonKey:
         process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-        process.env.SUPABASE_ANON_KEY,
+        process.env.SUPABASE_ANON_KEY ||
+        "",
       localApiBaseUrl: process.env.EXPO_PUBLIC_LOCAL_API_BASE_URL ?? process.env.LOCAL_API_BASE_URL ?? null,
       productionApiBaseUrl: process.env.EXPO_PUBLIC_PRODUCTION_API_BASE_URL ?? process.env.PRODUCTION_API_BASE_URL ?? null,
       // Where Supabase should redirect users after they click the
