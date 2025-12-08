@@ -82,8 +82,8 @@ export default {
       supabaseAnonKey:
         process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
         process.env.SUPABASE_ANON_KEY,
-      localApiBaseUrl: process.env.LOCAL_API_BASE_URL ?? null,
-      productionApiBaseUrl: process.env.PRODUCTION_API_BASE_URL ?? null,
+      localApiBaseUrl: process.env.EXPO_PUBLIC_LOCAL_API_BASE_URL ?? process.env.LOCAL_API_BASE_URL ?? null,
+      productionApiBaseUrl: process.env.EXPO_PUBLIC_PRODUCTION_API_BASE_URL ?? process.env.PRODUCTION_API_BASE_URL ?? null,
       // Where Supabase should redirect users after they click the
       // "Verify email" button in the confirmation email.
       // You can override this via env: EXPO_PUBLIC_CONFIRMATION_REDIRECT_URL or CONFIRMATION_REDIRECT_URL

@@ -14,24 +14,32 @@ function resolveApiBaseUrl(): string {
     // Development: Use local API
     const localUrl = sanitizeBaseUrl(extra.localApiBaseUrl);
     if (localUrl) {
-      console.log("[API] Development mode - using LOCAL API:", localUrl);
+      if (__DEV__) {
+        console.log("[API] Development mode - using LOCAL API:", localUrl);
+      }
       return localUrl;
     }
 
     // Fallback to dev host detection
     const derived = deriveDevHostBaseUrl();
     if (derived) {
-      console.log("[API] Development mode - using DERIVED API:", derived);
+      if (__DEV__) {
+        console.log("[API] Development mode - using DERIVED API:", derived);
+      }
       return derived;
     }
 
-    console.warn("[API] Development mode - no local API found, using fallback");
+    if (__DEV__) {
+      console.warn("[API] Development mode - no local API found, using fallback");
+    }
     return "http://localhost:3000/api";
   } else {
     // Production: Use Render API
     const productionUrl = sanitizeBaseUrl(extra.productionApiBaseUrl);
     if (productionUrl) {
-      console.log("[API] Production mode - using RENDER API:", productionUrl);
+      if (__DEV__) {
+        console.log("[API] Production mode - using RENDER API:", productionUrl);
+      }
       return productionUrl;
     }
 
@@ -244,21 +252,6 @@ async function safeJson(res: Response): Promise<any | null> {
     return null;
   }
 }
-
-// Log the JWT access token for debugging
-(async () => {
-  try {
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (token) {
-      console.log("[JWT] Supabase access token:", token);
-    } else {
-      console.log("[JWT] No Supabase access token found (user not logged in)");
-    }
-  } catch (e) {
-    console.log("[JWT] Error fetching Supabase access token:", e);
-  }
-})();
 
 export async function deleteFiles(paths: string[]): Promise<void> {
   if (paths.length === 0) return;
