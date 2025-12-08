@@ -794,18 +794,42 @@ export const useCmvrStore = create((set, get) => ({
    * Initialize a new report
    */
   initializeNewReport: (fileName = "Untitled") => {
-    set({
-      currentReport: createEmptyReportState(),
-      fileName,
-      submissionId: null,
-      projectId: null,
-      projectName: "",
-      isDirty: false,
-      isDraftLoaded: false,
-      lastSavedAt: null,
-      error: null,
-      editedSections: [],
-    });
+    try {
+      const emptyReport = createEmptyReportState();
+      console.log("[CMVR Store] Initializing new report:", fileName);
+      set({
+        currentReport: emptyReport,
+        fileName,
+        submissionId: null,
+        projectId: null,
+        projectName: "",
+        isDirty: false,
+        isDraftLoaded: false,
+        lastSavedAt: null,
+        error: null,
+        editedSections: [],
+      });
+      console.log("[CMVR Store] New report initialized successfully");
+    } catch (error) {
+      console.error("[CMVR Store ERROR] Failed to initialize new report:", error);
+      // Set minimal valid state to prevent crashes
+      set({
+        currentReport: {
+          generalInfo: {},
+          permitHolderList: [],
+          executiveSummaryOfCompliance: {},
+        },
+        fileName: fileName || "Untitled",
+        submissionId: null,
+        projectId: null,
+        projectName: "",
+        isDirty: false,
+        isDraftLoaded: false,
+        lastSavedAt: null,
+        error: error.message || "Failed to initialize report",
+        editedSections: [],
+      });
+    }
   },
 
   /**
@@ -911,17 +935,35 @@ export const useCmvrStore = create((set, get) => ({
    * Load report from data object (when opening a draft or submission)
    */
   loadReport: (reportData) => {
-    set({
-      currentReport: normalizeReportData(reportData),
-      fileName: reportData.fileName || "Untitled",
-      submissionId: reportData.id || reportData.submissionId || null,
-      projectId: reportData.projectId || null,
-      projectName:
-        reportData.projectName || reportData.generalInfo?.projectName || "",
-      isDirty: false,
-      error: null,
-      editedSections: [],
-    });
+    try {
+      console.log("[CMVR Store] Loading report data...");
+      const normalized = normalizeReportData(reportData);
+      set({
+        currentReport: normalized,
+        fileName: reportData.fileName || "Untitled",
+        submissionId: reportData.id || reportData.submissionId || null,
+        projectId: reportData.projectId || null,
+        projectName:
+          reportData.projectName || reportData.generalInfo?.projectName || "",
+        isDirty: false,
+        error: null,
+        editedSections: [],
+      });
+      console.log("[CMVR Store] Report loaded successfully");
+    } catch (error) {
+      console.error("[CMVR Store ERROR] Failed to load report:", error);
+      // Set error state but don't crash
+      set({
+        error: error.message || "Failed to load report data",
+        currentReport: createEmptyReportState(),
+        fileName: "Untitled",
+        submissionId: null,
+        projectId: null,
+        projectName: "",
+        isDirty: false,
+        editedSections: [],
+      });
+    }
   },
 
   /**

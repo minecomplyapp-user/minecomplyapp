@@ -1,6 +1,9 @@
 import Constants from "expo-constants";
 import { supabase } from "./supabase";
 
+// Production API fallback (deployed backend)
+const PRODUCTION_API_FALLBACK = "https://minecomplyapi.onrender.com/api";
+
 const apiBaseUrl = resolveApiBaseUrl();
 
 function resolveApiBaseUrl(): string {
@@ -37,15 +40,19 @@ function resolveApiBaseUrl(): string {
     // Production: Use Render API
     const productionUrl = sanitizeBaseUrl(extra.productionApiBaseUrl);
     if (productionUrl) {
+      console.log("[API] Production mode - using CONFIGURED API:", productionUrl);
       if (__DEV__) {
         console.log("[API] Production mode - using RENDER API:", productionUrl);
       }
       return productionUrl;
     }
 
-    throw new Error(
-      "[API] Production mode but no PRODUCTION_API_BASE_URL configured in .env"
+    // Fallback to production API (prevents crashes)
+    console.warn(
+      "[API] Production mode - no PRODUCTION_API_BASE_URL configured, using fallback:",
+      PRODUCTION_API_FALLBACK
     );
+    return PRODUCTION_API_FALLBACK;
   }
 }
 
