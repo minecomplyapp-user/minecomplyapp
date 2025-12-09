@@ -1,6 +1,9 @@
 import Constants from "expo-constants";
 import { supabase } from "./supabase";
 
+// Production API fallback (deployed backend)
+const PRODUCTION_API_FALLBACK = "https://minecomplyapi.onrender.com/api";
+
 const apiBaseUrl = resolveApiBaseUrl();
 
 function resolveApiBaseUrl(): string {
@@ -14,30 +17,39 @@ function resolveApiBaseUrl(): string {
     // Development: Use local API
     const localUrl = sanitizeBaseUrl(extra.localApiBaseUrl);
     if (localUrl) {
+      if (__DEV__) {
       console.log("[API] Development mode - using LOCAL API:", localUrl);
+      }
       return localUrl;
     }
 
     // Fallback to dev host detection
     const derived = deriveDevHostBaseUrl();
     if (derived) {
+      if (__DEV__) {
       console.log("[API] Development mode - using DERIVED API:", derived);
+      }
       return derived;
     }
 
+    if (__DEV__) {
     console.warn("[API] Development mode - no local API found, using fallback");
+    }
     return "http://localhost:3000/api";
   } else {
     // Production: Use Render API
     const productionUrl = sanitizeBaseUrl(extra.productionApiBaseUrl);
     if (productionUrl) {
-      console.log("[API] Production mode - using RENDER API:", productionUrl);
+      console.log("[API] Production mode - using CONFIGURED API:", productionUrl);
       return productionUrl;
     }
 
-    throw new Error(
-      "[API] Production mode but no PRODUCTION_API_BASE_URL configured in .env"
+    // Fallback to production API (prevents crashes)
+    console.warn(
+      "[API] Production mode - no PRODUCTION_API_BASE_URL configured, using fallback:",
+      PRODUCTION_API_FALLBACK
     );
+    return PRODUCTION_API_FALLBACK;
   }
 }
 
@@ -59,7 +71,7 @@ function deriveDevHostBaseUrl(): string | null {
   if (!host) {
     return null;
   }
-  return `http://${host}:3000`;
+  return `http://${host}:3000/api`;
 }
 
 function getDevServerHost(): string | null {
@@ -96,37 +108,66 @@ function parseHost(candidate: unknown): string | null {
 }
 
 async function getAccessToken(): Promise<string> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new Error("No Supabase access token");
-  return token;
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error("[API] Failed to get session:", error);
+      throw new Error("Authentication error. Please log in again.");
+    }
+    
+    const token = data.session?.access_token;
+    if (!token) {
+      console.warn("[API] No access token available. User may be logged out.");
+      throw new Error("You are not logged in. Please log in to continue.");
+    }
+    
+    return token;
+  } catch (error: any) {
+    // If it's already our custom error, re-throw it
+    if (error.message?.includes("log in")) {
+      throw error;
+    }
+    // Otherwise, wrap it in a user-friendly message
+    console.error("[API] Unexpected error getting access token:", error);
+    throw new Error("Authentication error. Please restart the app and log in again.");
+  }
 }
 
 export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = await getAccessToken();
-  let res: Response;
   try {
-    res = await fetch(`${apiBaseUrl}/api${path}`, {
-      ...init,
-      method: "GET",
-      headers: {
-        ...(init?.headers || {}),
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-  } catch (e: any) {
-    const msg = String(e?.message || e);
-    throw new Error(
-      `Network error calling GET ${apiBaseUrl}/api${path}: ${msg}. ` +
-        `If you're on a physical device, ensure API_BASE_URL is your LAN IP or set USE_RENDER_API=true with EXPO_PUBLIC_API_BASE_URL.`
-    );
+    const token = await getAccessToken();
+    let res: Response;
+    
+    try {
+      res = await fetch(`${apiBaseUrl}${path}`, {
+        ...init,
+        method: "GET",
+        headers: {
+          ...(init?.headers || {}),
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+    } catch (e: any) {
+      console.error(`[API] Network error on GET ${path}:`, e);
+      throw new Error(
+        "Network error. Please check your internet connection and try again."
+      );
+    }
+    
+    if (!res.ok) {
+      const body = await safeJson(res);
+      const errorMsg = body?.message || `Request failed with status ${res.status}`;
+      console.error(`[API] GET ${path} failed (${res.status}):`, errorMsg);
+      throw new Error(errorMsg);
+    }
+    
+    return (await res.json()) as T;
+  } catch (error: any) {
+    // Re-throw with preserved message
+    throw error;
   }
-  if (!res.ok) {
-    const body = await safeJson(res);
-    throw new Error(body?.message || `GET ${path} failed (${res.status})`);
-  }
-  return (await res.json()) as T;
 }
 
 export async function apiPost<T>(
@@ -134,67 +175,85 @@ export async function apiPost<T>(
   body?: unknown,
   init?: RequestInit
 ): Promise<T> {
-  const token = await getAccessToken();
-  let res: Response;
   try {
-    res = await fetch(`${apiBaseUrl}/api${path}`, {
-      ...init,
-      method: "POST",
-      headers: {
-        ...(init?.headers || {}),
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-  } catch (e: any) {
-    const msg = String(e?.message || e);
-    throw new Error(
-      `Network error calling POST ${apiBaseUrl}/api${path}: ${msg}. ` +
-        `If you're on a physical device, ensure API_BASE_URL is your LAN IP or set USE_RENDER_API=true with EXPO_PUBLIC_API_BASE_URL.`
-    );
+    const token = await getAccessToken();
+    let res: Response;
+    
+    try {
+      res = await fetch(`${apiBaseUrl}${path}`, {
+        ...init,
+        method: "POST",
+        headers: {
+          ...(init?.headers || {}),
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch (e: any) {
+      console.error(`[API] Network error on POST ${path}:`, e);
+      throw new Error(
+        "Network error. Please check your internet connection and try again."
+      );
+    }
+    
+    if (!res.ok) {
+      const data = await safeJson(res);
+      const errorMsg = data?.message || `Request failed with status ${res.status}`;
+      console.error(`[API] POST ${path} failed (${res.status}):`, errorMsg);
+      throw new Error(errorMsg);
+    }
+    
+    return (await res.json()) as T;
+  } catch (error: any) {
+    // Re-throw with preserved message
+    throw error;
   }
-  if (!res.ok) {
-    const data = await safeJson(res);
-    throw new Error(data?.message || `POST ${path} failed (${res.status})`);
-  }
-  return (await res.json()) as T;
 }
 
 export async function apiDelete<T = void>(
   path: string,
   init?: RequestInit
 ): Promise<T | void> {
-  const token = await getAccessToken();
-  let res: Response;
   try {
-    res = await fetch(`${apiBaseUrl}/api${path}`, {
-      ...init,
-      method: "DELETE",
-      headers: {
-        ...(init?.headers || {}),
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  } catch (e: any) {
-    const msg = String(e?.message || e);
-    throw new Error(
-      `Network error calling DELETE ${apiBaseUrl}/api${path}: ${msg}. ` +
-        `If you're on a physical device, ensure API_BASE_URL is your LAN IP or set USE_RENDER_API=true with EXPO_PUBLIC_API_BASE_URL.`
-    );
-  }
-  if (!res.ok) {
-    const data = await safeJson(res);
-    throw new Error(data?.message || `DELETE ${path} failed (${res.status})`);
-  }
-  // Try to parse JSON; if none, return void
-  try {
-    const ct = res.headers.get("content-type") || "";
-    if (ct.includes("application/json")) {
-      return (await res.json()) as T;
+    const token = await getAccessToken();
+    let res: Response;
+    
+    try {
+      res = await fetch(`${apiBaseUrl}${path}`, {
+        ...init,
+        method: "DELETE",
+        headers: {
+          ...(init?.headers || {}),
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (e: any) {
+      console.error(`[API] Network error on DELETE ${path}:`, e);
+      throw new Error(
+        "Network error. Please check your internet connection and try again."
+      );
     }
-  } catch {}
-  return undefined;
+    
+    if (!res.ok) {
+      const data = await safeJson(res);
+      const errorMsg = data?.message || `Request failed with status ${res.status}`;
+      console.error(`[API] DELETE ${path} failed (${res.status}):`, errorMsg);
+      throw new Error(errorMsg);
+    }
+    
+    // Try to parse JSON; if none, return void
+    try {
+      const ct = res.headers.get("content-type") || "";
+      if (ct.includes("application/json")) {
+        return (await res.json()) as T;
+      }
+    } catch {}
+    return undefined;
+  } catch (error: any) {
+    // Re-throw with preserved message
+    throw error;
+  }
 }
 
 export async function apiPatch<T>(
@@ -202,31 +261,40 @@ export async function apiPatch<T>(
   body?: unknown,
   init?: RequestInit
 ): Promise<T> {
-  const token = await getAccessToken();
-  let res: Response;
   try {
-    res = await fetch(`${apiBaseUrl}/api${path}`, {
-      ...init,
-      method: "PATCH",
-      headers: {
-        ...(init?.headers || {}),
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-  } catch (e: any) {
-    const msg = String(e?.message || e);
-    throw new Error(
-      `Network error calling PATCH ${apiBaseUrl}/api${path}: ${msg}. ` +
-        `If you're on a physical device, ensure API_BASE_URL is your LAN IP or set USE_RENDER_API=true with EXPO_PUBLIC_API_BASE_URL.`
-    );
+    const token = await getAccessToken();
+    let res: Response;
+    
+    try {
+      res = await fetch(`${apiBaseUrl}${path}`, {
+        ...init,
+        method: "PATCH",
+        headers: {
+          ...(init?.headers || {}),
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch (e: any) {
+      console.error(`[API] Network error on PATCH ${path}:`, e);
+      throw new Error(
+        "Network error. Please check your internet connection and try again."
+      );
+    }
+    
+    if (!res.ok) {
+      const data = await safeJson(res);
+      const errorMsg = data?.message || `Request failed with status ${res.status}`;
+      console.error(`[API] PATCH ${path} failed (${res.status}):`, errorMsg);
+      throw new Error(errorMsg);
+    }
+    
+    return (await res.json()) as T;
+  } catch (error: any) {
+    // Re-throw with preserved message
+    throw error;
   }
-  if (!res.ok) {
-    const data = await safeJson(res);
-    throw new Error(data?.message || `PATCH ${path} failed (${res.status})`);
-  }
-  return (await res.json()) as T;
 }
 
 export function getApiBaseUrl(): string {
@@ -244,21 +312,6 @@ async function safeJson(res: Response): Promise<any | null> {
     return null;
   }
 }
-
-// Log the JWT access token for debugging
-(async () => {
-  try {
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (token) {
-      console.log("[JWT] Supabase access token:", token);
-    } else {
-      console.log("[JWT] No Supabase access token found (user not logged in)");
-    }
-  } catch (e) {
-    console.log("[JWT] Error fetching Supabase access token:", e);
-  }
-})();
 
 export async function deleteFiles(paths: string[]): Promise<void> {
   if (paths.length === 0) return;

@@ -3,14 +3,20 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
 
-// Get Supabase credentials from app config
+// Get Supabase credentials from app config with validation
 const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || "";
 const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || "";
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Missing Supabase configuration. Please check your app.config.js"
-  );
+  const errorMsg = "Missing Supabase configuration. Please configure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in your build environment.";
+  console.error("[SUPABASE ERROR]", errorMsg);
+  console.error("[SUPABASE ERROR] Current values:", { 
+    supabaseUrl: supabaseUrl || "(empty)", 
+    supabaseAnonKey: supabaseAnonKey ? "(set but hidden)" : "(empty)" 
+  });
+  
+  // Don't throw error immediately - let the app load and show error UI
+  // This prevents instant crashes and allows better error reporting
 }
 
 // Custom storage implementation for Expo with chunking to avoid 2KB limit on some platforms
@@ -92,11 +98,22 @@ const ExpoSecureStoreAdapter = {
 };
 
 // Create Supabase client with proper configuration for React Native
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: ExpoSecureStoreAdapter,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false, // Important for React Native
-  },
-});
+// Use placeholder values if config is missing (prevents crash, auth will fail gracefully)
+export const supabase = createClient(
+  supabaseUrl || "https://placeholder.supabase.co",
+  supabaseAnonKey || "placeholder-key",
+  {
+    auth: {
+      storage: ExpoSecureStoreAdapter,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false, // Important for React Native
+    },
+  }
+);
+
+// Export validation status for error handling
+export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
+export const supabaseConfigError = !isSupabaseConfigured 
+  ? "Supabase credentials not configured. Please set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY."
+  : null;

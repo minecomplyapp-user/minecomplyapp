@@ -120,9 +120,10 @@ export default function DashboardScreen({ navigation }: any) {
           }));
         console.log("Loaded local drafts:", localDrafts);
         setDrafts(localDrafts);
-      } catch (err) {
-        console.log("Error loading local drafts:", err);
+      } catch (err: any) {
+        console.error("[DashboardScreen] Error loading local drafts:", err);
         setDrafts([]);
+        // Don't show alert for draft loading errors - not critical
       }
 
       // Fetch CMVR reports for current user
@@ -158,9 +159,17 @@ export default function DashboardScreen({ navigation }: any) {
           // For now, treat all as submitted (you can add draft logic later)
           setReports(allReports.slice(0, 3));
         }
-      } catch (err) {
-        console.log("No CMVR reports found:", err);
+      } catch (err: any) {
+        console.error("[DashboardScreen] Error loading CMVR reports:", err);
         setReports([]);
+        // Show alert only if there's a user and the error is not auth-related
+        if (user?.id && !err?.message?.includes("log in")) {
+          Alert.alert(
+            "Failed to Load Reports",
+            err?.message || "Could not load your reports. Please try refreshing.",
+            [{ text: "OK" }]
+          );
+        }
       }
 
       // ECC LOCAL

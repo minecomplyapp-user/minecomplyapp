@@ -28,9 +28,13 @@ export default function ReportsScreen({ navigation }: any) {
 
   async function fetchReports() {
     try {
-      if (!user?.id) return setReports([]);
+      if (!user?.id) {
+        console.log("[ReportsScreen] No user ID, skipping fetch");
+        setReports([]);
+        return;
+      }
       
-      // ✅ NEW: Add quarter filter to API call
+      // Add quarter filter to API call
       let url = `/cmvr/user/${user.id}`;
       if (selectedQuarter !== "All") {
         url += `?quarter=${selectedQuarter}`;
@@ -53,9 +57,15 @@ export default function ReportsScreen({ navigation }: any) {
         };
       });
       setReports(mapped);
-    } catch (e) {
-      console.log("Failed to load reports:", e);
+      console.log(`[ReportsScreen] Loaded ${mapped.length} reports`);
+    } catch (e: any) {
+      console.error("[ReportsScreen] Failed to load reports:", e);
       setReports([]);
+      Alert.alert(
+        "Failed to Load Reports",
+        e?.message || "Could not load your reports. Please check your connection and try again.",
+        [{ text: "OK" }]
+      );
     }
   }
 
@@ -70,10 +80,17 @@ export default function ReportsScreen({ navigation }: any) {
           style: "destructive",
           onPress: async () => {
             try {
+              console.log(`[ReportsScreen] Deleting report ${id}`);
               await deleteCMVRReport(id);
               setReports((prev) => prev.filter((r) => r.id !== id));
+              console.log(`[ReportsScreen] Report ${id} deleted successfully`);
             } catch (e: any) {
-              Alert.alert("Delete Failed", e?.message || String(e));
+              console.error(`[ReportsScreen] Failed to delete report ${id}:`, e);
+              Alert.alert(
+                "Delete Failed", 
+                e?.message || "Could not delete the report. Please try again.",
+                [{ text: "OK" }]
+              );
             }
           },
         },

@@ -251,87 +251,105 @@ const CMVRReportScreen: React.FC = () => {
   // **INITIALIZATION** - Load from draft or route params on mount
   useEffect(() => {
     const initialize = async () => {
-      // Priority: route draft payload > submission params > stored draft > new report
-      if (routeDraftData) {
-        loadReport(routeDraftData);
+      try {
+        // Priority: route draft payload > submission params > stored draft > new report
+        if (routeDraftData) {
+          loadReport(routeDraftData);
 
-        const derivedFileName =
-          routeParams.fileName ||
-          routeDraftData.fileName ||
-          contextFileName ||
-          "Untitled";
+          const derivedFileName =
+            routeParams.fileName ||
+            routeDraftData.fileName ||
+            contextFileName ||
+            "Untitled";
 
-        updateMetadata({
-          fileName: derivedFileName,
-          submissionId:
-            routeParams.submissionId ?? routeDraftData.submissionId ?? null,
-          projectId: routeParams.projectId ?? routeDraftData.projectId ?? null,
-          projectName:
+          updateMetadata({
+            fileName: derivedFileName,
+            submissionId:
+              routeParams.submissionId ?? routeDraftData.submissionId ?? null,
+            projectId: routeParams.projectId ?? routeDraftData.projectId ?? null,
+            projectName:
+              routeParams.projectName ||
+              routeDraftData.projectName ||
+              routeDraftData.generalInfo?.projectName ||
+              "",
+          });
+
+          setContextFileName(derivedFileName);
+          return;
+        }
+
+        if (routeParams.submissionId) {
+          // Loading existing submission or draft from route
+          const reportData = {
+            generalInfo:
+              routeParams.draftData?.generalInfo || currentReport?.generalInfo,
+            eccInfo: routeParams.draftData?.eccInfo || currentReport?.eccInfo,
+            eccAdditionalForms:
+              routeParams.draftData?.eccAdditionalForms ||
+              currentReport?.eccAdditionalForms,
+            isagInfo: routeParams.draftData?.isagInfo || currentReport?.isagInfo,
+            isagAdditionalForms:
+              routeParams.draftData?.isagAdditionalForms ||
+              currentReport?.isagAdditionalForms,
+            epepInfo: routeParams.draftData?.epepInfo || currentReport?.epepInfo,
+            epepAdditionalForms:
+              routeParams.draftData?.epepAdditionalForms ||
+              currentReport?.epepAdditionalForms,
+            rcfInfo: routeParams.draftData?.rcfInfo || currentReport?.rcfInfo,
+            rcfAdditionalForms:
+              routeParams.draftData?.rcfAdditionalForms ||
+              currentReport?.rcfAdditionalForms,
+            mtfInfo: routeParams.draftData?.mtfInfo || currentReport?.mtfInfo,
+            mtfAdditionalForms:
+              routeParams.draftData?.mtfAdditionalForms ||
+              currentReport?.mtfAdditionalForms,
+            fmrdfInfo:
+              routeParams.draftData?.fmrdfInfo || currentReport?.fmrdfInfo,
+            fmrdfAdditionalForms:
+              routeParams.draftData?.fmrdfAdditionalForms ||
+              currentReport?.fmrdfAdditionalForms,
+            mmtInfo: routeParams.draftData?.mmtInfo || currentReport?.mmtInfo,
+          };
+
+          loadReport(reportData);
+
+          const fileName =
+            routeParams.fileName || routeParams.draftData?.fileName || "Untitled";
+          const projectName =
             routeParams.projectName ||
-            routeDraftData.projectName ||
-            routeDraftData.generalInfo?.projectName ||
-            "",
-        });
+            routeParams.draftData?.generalInfo?.projectName ||
+            "";
 
-        setContextFileName(derivedFileName);
-        return;
-      }
+          updateMetadata({
+            fileName,
+            submissionId: routeParams.submissionId ?? null,
+            projectId: routeParams.projectId ?? null,
+            projectName,
+          });
 
-      if (routeParams.submissionId) {
-        // Loading existing submission or draft from route
-        const reportData = {
-          generalInfo:
-            routeParams.draftData?.generalInfo || currentReport?.generalInfo,
-          eccInfo: routeParams.draftData?.eccInfo || currentReport?.eccInfo,
-          eccAdditionalForms:
-            routeParams.draftData?.eccAdditionalForms ||
-            currentReport?.eccAdditionalForms,
-          isagInfo: routeParams.draftData?.isagInfo || currentReport?.isagInfo,
-          isagAdditionalForms:
-            routeParams.draftData?.isagAdditionalForms ||
-            currentReport?.isagAdditionalForms,
-          epepInfo: routeParams.draftData?.epepInfo || currentReport?.epepInfo,
-          epepAdditionalForms:
-            routeParams.draftData?.epepAdditionalForms ||
-            currentReport?.epepAdditionalForms,
-          rcfInfo: routeParams.draftData?.rcfInfo || currentReport?.rcfInfo,
-          rcfAdditionalForms:
-            routeParams.draftData?.rcfAdditionalForms ||
-            currentReport?.rcfAdditionalForms,
-          mtfInfo: routeParams.draftData?.mtfInfo || currentReport?.mtfInfo,
-          mtfAdditionalForms:
-            routeParams.draftData?.mtfAdditionalForms ||
-            currentReport?.mtfAdditionalForms,
-          fmrdfInfo:
-            routeParams.draftData?.fmrdfInfo || currentReport?.fmrdfInfo,
-          fmrdfAdditionalForms:
-            routeParams.draftData?.fmrdfAdditionalForms ||
-            currentReport?.fmrdfAdditionalForms,
-          mmtInfo: routeParams.draftData?.mmtInfo || currentReport?.mmtInfo,
-        };
-
-        loadReport(reportData);
-
-        const fileName =
-          routeParams.fileName || routeParams.draftData?.fileName || "Untitled";
-        const projectName =
-          routeParams.projectName ||
-          routeParams.draftData?.generalInfo?.projectName ||
-          "";
-
-        updateMetadata({
-          fileName,
-          submissionId: routeParams.submissionId ?? null,
-          projectId: routeParams.projectId ?? null,
-          projectName,
-        });
-
-        setContextFileName(fileName);
-      } else {
-        // Always start fresh for new CMVR entries
-        const newFileName = contextFileName || "Untitled";
-        initializeNewReport(newFileName);
-        setContextFileName(newFileName);
+          setContextFileName(fileName);
+        } else {
+          // Always start fresh for new CMVR entries
+          const newFileName = contextFileName || "Untitled";
+          initializeNewReport(newFileName);
+          setContextFileName(newFileName);
+        }
+      } catch (error) {
+        console.error("[ERROR] CMVR initialization failed:", error);
+        Alert.alert(
+          "Initialization Error",
+          "Failed to initialize CMVR report. Please try again."
+        );
+        // Fallback: Try to create new report
+        try {
+          const newFileName = contextFileName || "Untitled";
+          initializeNewReport(newFileName);
+          setContextFileName(newFileName);
+        } catch (fallbackError) {
+          console.error("[ERROR] Fallback initialization failed:", fallbackError);
+          // If everything fails, navigate back
+          setTimeout(() => navigation.goBack(), 1000);
+        }
       }
     };
 
@@ -844,7 +862,19 @@ const CMVRReportScreen: React.FC = () => {
     }
 
     try {
-      console.log("Continuing to next page...");
+      console.log("[CMVR Page 1] Continuing to next page...");
+      console.log("[CMVR Page 1] Current report state:", currentReport ? "exists" : "null");
+
+      // Ensure current report exists before navigating
+      if (!currentReport) {
+        console.error("[CMVR Page 1 ERROR] No current report in store!");
+        Alert.alert(
+          "Error",
+          "Failed to initialize report. Please try again.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
 
       // Store already has all the data - just navigate
       // No need to pass data via params anymore!
@@ -856,7 +886,12 @@ const CMVRReportScreen: React.FC = () => {
         fileName: currentFileName,
       } as any);
     } catch (error) {
-      console.error("Error navigating:", error);
+      console.error("[CMVR Page 1 ERROR] Error navigating:", error);
+      Alert.alert(
+        "Navigation Error",
+        "Failed to navigate to next page. Please try again.",
+        [{ text: "OK" }]
+      );
     }
   };
 

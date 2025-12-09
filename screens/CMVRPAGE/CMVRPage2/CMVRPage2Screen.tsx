@@ -265,8 +265,17 @@ const CMVRPage2Screen = () => {
       "✅ Navigating to ComplianceDiscussionScreen (new section) with metadata:",
       Object.keys(nextParams)
     );
-    // ✅ NEW: Navigate to Compliance Discussion screen instead of ComplianceMonitoring
-    navigation.navigate("ComplianceDiscussionScreen", nextParams);
+    // Navigate to Compliance Discussion screen
+    try {
+      navigation.navigate("ComplianceDiscussionScreen", nextParams);
+    } catch (error: any) {
+      console.error("[CMVRPage2] Navigation error:", error);
+      Alert.alert(
+        "Navigation Error",
+        "Failed to navigate to the next screen. Please try again.",
+        [{ text: "OK" }]
+      );
+    }
   };
 
   const updateExecutiveSummary = (field: string, value: any) => {

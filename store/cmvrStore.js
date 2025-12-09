@@ -794,18 +794,42 @@ export const useCmvrStore = create((set, get) => ({
    * Initialize a new report
    */
   initializeNewReport: (fileName = "Untitled") => {
-    set({
-      currentReport: createEmptyReportState(),
-      fileName,
-      submissionId: null,
-      projectId: null,
-      projectName: "",
-      isDirty: false,
-      isDraftLoaded: false,
-      lastSavedAt: null,
-      error: null,
-      editedSections: [],
-    });
+    try {
+      const emptyReport = createEmptyReportState();
+      console.log("[CMVR Store] Initializing new report:", fileName);
+      set({
+        currentReport: emptyReport,
+        fileName,
+        submissionId: null,
+        projectId: null,
+        projectName: "",
+        isDirty: false,
+        isDraftLoaded: false,
+        lastSavedAt: null,
+        error: null,
+        editedSections: [],
+      });
+      console.log("[CMVR Store] New report initialized successfully");
+    } catch (error) {
+      console.error("[CMVR Store ERROR] Failed to initialize new report:", error);
+      // Set minimal valid state to prevent crashes
+      set({
+        currentReport: {
+          generalInfo: {},
+          permitHolderList: [],
+          executiveSummaryOfCompliance: {},
+        },
+        fileName: fileName || "Untitled",
+        submissionId: null,
+        projectId: null,
+        projectName: "",
+        isDirty: false,
+        isDraftLoaded: false,
+        lastSavedAt: null,
+        error: error.message || "Failed to initialize report",
+        editedSections: [],
+      });
+    }
   },
 
   /**
@@ -911,17 +935,35 @@ export const useCmvrStore = create((set, get) => ({
    * Load report from data object (when opening a draft or submission)
    */
   loadReport: (reportData) => {
-    set({
-      currentReport: normalizeReportData(reportData),
-      fileName: reportData.fileName || "Untitled",
-      submissionId: reportData.id || reportData.submissionId || null,
-      projectId: reportData.projectId || null,
-      projectName:
-        reportData.projectName || reportData.generalInfo?.projectName || "",
-      isDirty: false,
-      error: null,
-      editedSections: [],
-    });
+    try {
+      console.log("[CMVR Store] Loading report data...");
+      const normalized = normalizeReportData(reportData);
+      set({
+        currentReport: normalized,
+        fileName: reportData.fileName || "Untitled",
+        submissionId: reportData.id || reportData.submissionId || null,
+        projectId: reportData.projectId || null,
+        projectName:
+          reportData.projectName || reportData.generalInfo?.projectName || "",
+        isDirty: false,
+        error: null,
+        editedSections: [],
+      });
+      console.log("[CMVR Store] Report loaded successfully");
+    } catch (error) {
+      console.error("[CMVR Store ERROR] Failed to load report:", error);
+      // Set error state but don't crash
+      set({
+        error: error.message || "Failed to load report data",
+        currentReport: createEmptyReportState(),
+        fileName: "Untitled",
+        submissionId: null,
+        projectId: null,
+        projectName: "",
+        isDirty: false,
+        editedSections: [],
+      });
+    }
   },
 
   /**
@@ -1024,7 +1066,14 @@ export const useCmvrStore = create((set, get) => ({
         return { success: false, error: "No draft found" };
       }
 
-      const draftData = JSON.parse(draftString);
+      let draftData;
+      try {
+        draftData = JSON.parse(draftString);
+      } catch (parseError) {
+        console.error("❌ Failed to parse draft JSON:", parseError);
+        set({ isLoading: false, error: "Draft data is corrupted" });
+        return { success: false, error: "Draft data is corrupted. Please create a new draft." };
+      }
       
       // ✅ FIX: Validate draft data before loading
       console.log("=== CMVR Draft Load Debug ===");
@@ -1108,7 +1157,9 @@ export const useCmvrStore = create((set, get) => ({
     const state = get();
 
     if (!state.currentReport) {
-      return { success: false, error: "No report to submit" };
+      const errorMsg = "No report to submit. Please create a report first.";
+      console.warn("[CMVR Store] Submit failed: No current report");
+      return { success: false, error: errorMsg };
     }
 
     set({ isLoading: true, error: null });
@@ -1120,17 +1171,14 @@ export const useCmvrStore = create((set, get) => ({
       const reportPayload = get().transformToDTO();
 
       if (!reportPayload) {
-        throw new Error("Failed to transform report data");
+        throw new Error("Failed to prepare report data. Please check all required fields.");
       }
 
       // Construct endpoint with fileName as query param
       const fileName = state.fileName || "Untitled";
       const endpoint = `${BASE_URL}/cmvr?fileName=${encodeURIComponent(fileName)}`;
 
-      console.log(
-        "Submitting payload:",
-        JSON.stringify(reportPayload, null, 2)
-      );
+      console.log("[CMVR Store] Submitting report:", fileName);
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -1142,8 +1190,14 @@ export const useCmvrStore = create((set, get) => ({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to submit CMVR report");
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          errorData = { message: `Server error (${response.status})` };
+        }
+        const userMessage = errorData.message || "Failed to submit CMVR report. Please try again.";
+        throw new Error(userMessage);
       }
 
       const submittedReport = await response.json();
@@ -1156,14 +1210,20 @@ export const useCmvrStore = create((set, get) => ({
       });
 
       // Delete draft after successful submission
-      await get().deleteDraft();
+      try {
+        await get().deleteDraft();
+      } catch (draftError) {
+        console.warn("[CMVR Store] Failed to delete draft after submission:", draftError);
+        // Don't fail submission if draft deletion fails
+      }
 
-      console.log("Report submitted successfully:", submittedReport.id);
+      console.log("[CMVR Store] Report submitted successfully:", submittedReport.id);
       return { success: true, report: submittedReport };
     } catch (error) {
-      set({ isLoading: false, error: error.message });
-      console.error("Error submitting report:", error);
-      return { success: false, error: error.message };
+      const userMessage = error.message || "An unexpected error occurred. Please try again.";
+      set({ isLoading: false, error: userMessage });
+      console.error("[CMVR Store] Error submitting report:", error);
+      return { success: false, error: userMessage };
     }
   },
 

@@ -124,7 +124,7 @@ export default function AttendanceRecordScreen({ navigation }: any) {
   const handleDownload = async (id: string, format: "pdf" | "docx" = "pdf") => {
     try {
       const base = getApiBaseUrl();
-      const url = `${base}/api/attendance/${id}/${format}`;
+      const url = `${base}/attendance/${id}/${format}`;
 
       const canOpen = await Linking.canOpenURL(url);
 

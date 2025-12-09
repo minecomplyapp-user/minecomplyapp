@@ -160,7 +160,14 @@ clearDrafts: async () => { // ✅ FULL WIPE
         return null;
       }
 
-      const drafts = JSON.parse(existing);
+      let drafts;
+      try {
+        drafts = JSON.parse(existing);
+      } catch (parseError) {
+        console.error("❌ Failed to parse draft JSON:", parseError);
+        return null;
+      }
+      
       const draft = drafts.find(d => d.id === id);
       if (!draft) {
         console.warn(`Draft ${id} not found`);

@@ -4,9 +4,9 @@ try {
 
 export default {
   expo: {
-    name: "MineComply",
+    name: "MineComply V5.5",
     slug: "minecomplyapp",
-    version: "1.0.0",
+    version: "5.5.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
@@ -77,19 +77,20 @@ export default {
       eas: {
         projectId: "30d8e4cc-d22b-49c7-8458-453bb24cf613"
       },
+      // Supabase configuration (REQUIRED for app to function)
       supabaseUrl:
-        process.env.EXPO_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL,
+        process.env.EXPO_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "",
       supabaseAnonKey:
         process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-        process.env.SUPABASE_ANON_KEY,
-      localApiBaseUrl: process.env.LOCAL_API_BASE_URL ?? null,
-      productionApiBaseUrl: process.env.PRODUCTION_API_BASE_URL ?? null,
+        process.env.SUPABASE_ANON_KEY ||
+        "",
+      localApiBaseUrl: process.env.EXPO_PUBLIC_LOCAL_API_BASE_URL ?? process.env.LOCAL_API_BASE_URL ?? null,
+      productionApiBaseUrl: process.env.EXPO_PUBLIC_PRODUCTION_API_BASE_URL ?? process.env.PRODUCTION_API_BASE_URL ?? null,
       // Where Supabase should redirect users after they click the
       // "Verify email" button in the confirmation email.
-      // You can override this via env: EXPO_PUBLIC_CONFIRMATION_REDIRECT_URL or CONFIRMATION_REDIRECT_URL
       confirmationRedirectUrl:
-        process.env.EXPO_PUBLIC_CONFIRMATION_REDIRECT_URL ??
-        process.env.CONFIRMATION_REDIRECT_URL ??
+        process.env.EXPO_PUBLIC_CONFIRMATION_REDIRECT_URL ||
+        process.env.CONFIRMATION_REDIRECT_URL ||
         "https://kwiruu.github.io/minecomplyconfirmpage/",
     },
   },

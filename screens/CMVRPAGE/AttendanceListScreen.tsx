@@ -143,7 +143,7 @@ export default function AttendanceListScreen({ navigation, route }: any) {
 
       // Use direct endpoint without token in URL (like CMVR downloads)
       // The backend will handle authentication if needed
-      const url = `${base}/api/attendance/${id}/${format}`;
+      const url = `${base}/attendance/${id}/${format}`;
 
       console.log("Download URL:", url);
       console.log("Record ID:", id);
