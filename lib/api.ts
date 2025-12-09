@@ -71,7 +71,7 @@ function deriveDevHostBaseUrl(): string | null {
   if (!host) {
     return null;
   }
-  return `http://${host}:3000`;
+  return `http://${host}:3000/api`;
 }
 
 function getDevServerHost(): string | null {
