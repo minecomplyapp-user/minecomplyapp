@@ -4,9 +4,9 @@ try {
 
 export default {
   expo: {
-    name: "MineComply",
+    name: "MineComply V5.5",
     slug: "minecomplyapp",
-    version: "1.0.0",
+    version: "5.5.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
