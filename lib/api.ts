@@ -140,7 +140,7 @@ export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
     let res: Response;
     
     try {
-      res = await fetch(`${apiBaseUrl}/api${path}`, {
+      res = await fetch(`${apiBaseUrl}${path}`, {
         ...init,
         method: "GET",
         headers: {
@@ -180,7 +180,7 @@ export async function apiPost<T>(
     let res: Response;
     
     try {
-      res = await fetch(`${apiBaseUrl}/api${path}`, {
+      res = await fetch(`${apiBaseUrl}${path}`, {
         ...init,
         method: "POST",
         headers: {
@@ -220,7 +220,7 @@ export async function apiDelete<T = void>(
     let res: Response;
     
     try {
-      res = await fetch(`${apiBaseUrl}/api${path}`, {
+      res = await fetch(`${apiBaseUrl}${path}`, {
         ...init,
         method: "DELETE",
         headers: {
@@ -266,7 +266,7 @@ export async function apiPatch<T>(
     let res: Response;
     
     try {
-      res = await fetch(`${apiBaseUrl}/api${path}`, {
+      res = await fetch(`${apiBaseUrl}${path}`, {
         ...init,
         method: "PATCH",
         headers: {
