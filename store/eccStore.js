@@ -262,13 +262,26 @@ getReportById: async (id,token) => {
             throw new Error(`Server error: ${response.status} - ${errorText}`);
         }
         
-        const { download_url } = await response.json();
+        const responseData = await response.json();
+        if (!responseData || !responseData.download_url) {
+            throw new Error("Invalid response: missing download_url");
+        }
+
+        const download_url = responseData.download_url;
+        if (typeof download_url !== 'string' || !download_url.trim()) {
+            throw new Error("Invalid download_url format");
+        }
+
         console.log("DOWNLOAD URL (relative from service):", download_url);
         
-        const base=BASE_URL+'/'
-
- 
-        const fullDownloadUrl = new URL(download_url, base).href;
+        const base = BASE_URL + '/';
+        let fullDownloadUrl;
+        try {
+            fullDownloadUrl = new URL(download_url, base).href;
+        } catch (urlError) {
+            throw new Error(`Invalid download URL format: ${download_url}`);
+        }
+        
         console.log(BASE_URL)
         console.log("Full Download URL:", fullDownloadUrl);
         return { success: true, download_url: fullDownloadUrl };

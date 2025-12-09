@@ -32,6 +32,7 @@ import {
   uploadFileFromUri,
   uploadSignature,
   createSignedDownloadUrl,
+  getPublicUrl,
 } from "../../lib/storage";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import * as FileSystem from "expo-file-system/legacy";
@@ -182,11 +183,8 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
             const signaturePath = att.signatureUrl || "";
             if (signaturePath) {
               try {
-                const { url } = await createSignedDownloadUrl(
-                  signaturePath,
-                  60
-                );
-                signatureUrl = url;
+                // Use public URL directly (no backend call needed)
+                signatureUrl = getPublicUrl(signaturePath);
               } catch (error) {
                 console.log("Failed to load signature URL:", error);
               }
@@ -430,15 +428,12 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
             { compress: 0.5, format: SaveFormat.PNG }
           );
 
-          const { path } = await uploadSignature(manipulatedImage.uri);
-
-          // Get a signed URL for immediate preview
-          const { url } = await createSignedDownloadUrl(path, 60);
+          const { path, url } = await uploadSignature(manipulatedImage.uri);
 
           // Track the newly uploaded path for potential cleanup
           setNewlyUploadedPaths((prev) => [...prev, path]);
 
-          // Update the attendee with the signature path and replace preview with signed URL
+          // Update the attendee with the signature path and public URL
           setAttendees((prev) =>
             prev.map((a) =>
               a.id === currentId
@@ -531,7 +526,8 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
           contentType: "image/jpeg",
           folder: "attendance-photos",
         });
-        const { url } = await createSignedDownloadUrl(path, 60);
+        // Use public URL directly (no backend call needed)
+        const url = getPublicUrl(path);
 
         setNewlyUploadedPaths((prev) => [...prev, path]);
 
@@ -627,7 +623,8 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
           contentType: "image/jpeg",
           folder: "attendance-photos",
         });
-        const { url } = await createSignedDownloadUrl(path, 60);
+        // Use public URL directly (no backend call needed)
+        const url = getPublicUrl(path);
 
         setNewlyUploadedPaths((prev) => [...prev, path]);
 
@@ -709,8 +706,7 @@ export default function CreateAttendanceScreen({ navigation, route }: any) {
 
       // Upload to storage (signatures folder)
       try {
-        const { path } = await uploadSignature(manipulated.uri);
-        const { url } = await createSignedDownloadUrl(path, 60);
+        const { path, url } = await uploadSignature(manipulated.uri);
 
         setNewlyUploadedPaths((prev) => [...prev, path]);
 

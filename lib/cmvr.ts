@@ -165,7 +165,15 @@ export async function getCMVRReportsByUser(userId: string): Promise<any[]> {
  */
 export async function generateCMVRGeneralInfoPdf(id: string): Promise<Blob> {
   try {
-    const response = await fetch(`/cmvr/${id}/pdf/general-info`);
+    const baseUrl = getApiBaseUrl();
+    const token = await getJwt();
+    const response = await fetch(`${baseUrl}/cmvr/${id}/pdf/general-info`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/pdf",
+      },
+    });
     if (!response.ok) {
       throw new Error("Failed to generate PDF");
     }
@@ -190,7 +198,7 @@ export async function generateCMVRDocx(
 
   // Construct the download URL - no authentication required for downloads
   // This allows the browser to download without token expiration issues
-  const downloadUrl = `${baseUrl}/api/cmvr/${id}/docx`;
+  const downloadUrl = `${baseUrl}/cmvr/${id}/docx`;
 
   try {
     const supported = await Linking.canOpenURL(downloadUrl);
@@ -215,7 +223,7 @@ export async function generateCMVRDocx(
 export async function deleteCMVRReport(id: string): Promise<void> {
   const baseUrl = getApiBaseUrl();
   const token = await getJwt();
-  const resp = await fetch(`${baseUrl}/api/cmvr/${id}`, {
+  const resp = await fetch(`${baseUrl}/cmvr/${id}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`,

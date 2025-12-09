@@ -1066,7 +1066,14 @@ export const useCmvrStore = create((set, get) => ({
         return { success: false, error: "No draft found" };
       }
 
-      const draftData = JSON.parse(draftString);
+      let draftData;
+      try {
+        draftData = JSON.parse(draftString);
+      } catch (parseError) {
+        console.error("❌ Failed to parse draft JSON:", parseError);
+        set({ isLoading: false, error: "Draft data is corrupted" });
+        return { success: false, error: "Draft data is corrupted. Please create a new draft." };
+      }
       
       // ✅ FIX: Validate draft data before loading
       console.log("=== CMVR Draft Load Debug ===");

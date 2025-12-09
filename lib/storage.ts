@@ -29,6 +29,17 @@ export async function createSignedDownloadUrl(
   });
 }
 
+/**
+ * Get public URL for a file in Supabase Storage
+ * This is faster and doesn't require backend call
+ */
+export function getPublicUrl(path: string): string {
+  const { data } = supabase.storage
+    .from("minecomplyapp-bucket")
+    .getPublicUrl(path);
+  return data.publicUrl;
+}
+
 export type UploadFromUriParams = {
   uri: string;
   fileName: string;
@@ -115,8 +126,9 @@ export async function uploadFileFromUri({
 
 /**
  * Upload a signature image to the signatures/ folder
+ * Returns both path and public URL
  */
-export async function uploadSignature(uri: string): Promise<{ path: string }> {
+export async function uploadSignature(uri: string): Promise<{ path: string; url: string }> {
   console.log("📤 Starting uploadSignature (Supabase SDK direct upload)...");
   console.log("📝 URI length:", uri.length);
 
@@ -178,7 +190,11 @@ export async function uploadSignature(uri: string): Promise<{ path: string }> {
   });
   console.log("✅ File should now be visible at path:", data.path);
 
-  return { path: data.path };
+  // Get public URL directly from Supabase client (no backend call needed)
+  const publicUrl = getPublicUrl(data.path);
+  console.log("✅ Public URL generated:", publicUrl);
+
+  return { path: data.path, url: publicUrl };
 }
 
 /**
