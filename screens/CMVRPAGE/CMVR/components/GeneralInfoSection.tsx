@@ -7,11 +7,13 @@ import {
   Modal,
   Alert,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import { Picker } from "@react-native-picker/picker";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { styles } from "../styles/generalInfo.styles";
 import type {
   GeneralInfoProps,
@@ -44,6 +46,47 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
+  
+  // ✅ NEW: Date picker states
+  const [showDateOfCompliancePicker, setShowDateOfCompliancePicker] = useState(false);
+  const [showDateOfCMRSubmissionPicker, setShowDateOfCMRSubmissionPicker] = useState(false);
+  
+  // Helper function to parse date string (MM/DD/YYYY) to Date object
+  const parseDateString = (dateString: string | undefined): Date | null => {
+    if (!dateString || dateString.trim() === "") return null;
+    // Try to parse MM/DD/YYYY format
+    const parts = dateString.split("/");
+    if (parts.length === 3) {
+      const month = parseInt(parts[0], 10) - 1; // Month is 0-indexed
+      const day = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      if (!isNaN(month) && !isNaN(day) && !isNaN(year)) {
+        return new Date(year, month, day);
+      }
+    }
+    // Try to parse as ISO string or default Date constructor
+    const parsed = new Date(dateString);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  };
+  
+  // Helper function to format Date to MM/DD/YYYY string
+  const formatDateToString = (date: Date | null): string => {
+    if (!date) return "";
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+  
+  const handleDateOfComplianceConfirm = (selectedDate: Date) => {
+    setShowDateOfCompliancePicker(false);
+    onChange("dateOfCompliance", formatDateToString(selectedDate));
+  };
+  
+  const handleDateOfCMRSubmissionConfirm = (selectedDate: Date) => {
+    setShowDateOfCMRSubmissionPicker(false);
+    onChange("dateOfCMRSubmission", formatDateToString(selectedDate));
+  };
 
   const getCurrentLocation = async () => {
     setIsLoadingLocation(true);
@@ -151,52 +194,140 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
     try {
       // ✅ FIX: Wrap map opening in try-catch to prevent crashes
       console.log("Opening map picker");
+      
+      // ✅ FIX: Set default region before opening map to prevent MapView crash
+      if (!mapRegion.latitude || !mapRegion.longitude) {
+        setMapRegion({
+          latitude: 10.3157, // Default to Cebu, Philippines
+          longitude: 123.8854,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        });
+      }
+      
       setShowMap(true);
-      // Automatically get current location when map opens
-      await getCurrentLocation();
+      
+      // ✅ FIX: Don't await getCurrentLocation - let it run in background
+      // This prevents blocking if location fetch fails
+      getCurrentLocation().catch((error) => {
+        console.warn("Background location fetch failed, but map is still usable:", error);
+      });
     } catch (error) {
       console.error("❌ Error opening map:", error);
-      // Still show map even if location fetch fails
+      // ✅ FIX: Still show map with default region even if there's an error
+      setMapRegion({
+        latitude: 10.3157,
+        longitude: 123.8854,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      });
       setShowMap(true);
     }
   };
 
   const handleMapPress = (event: any) => {
-    const { latitude, longitude } = event.nativeEvent.coordinate;
-    setSelectedLocation({ latitude, longitude });
+    try {
+      // ✅ FIX: Add null/undefined checks to prevent crashes
+      if (!event?.nativeEvent?.coordinate) {
+        console.warn("Invalid map press event:", event);
+        return;
+      }
+      
+      const { latitude, longitude } = event.nativeEvent.coordinate;
+      
+      // ✅ FIX: Validate coordinates are valid numbers
+      if (
+        typeof latitude !== 'number' ||
+        typeof longitude !== 'number' ||
+        isNaN(latitude) ||
+        isNaN(longitude) ||
+        latitude < -90 ||
+        latitude > 90 ||
+        longitude < -180 ||
+        longitude > 180
+      ) {
+        console.warn("Invalid coordinates:", { latitude, longitude });
+        Alert.alert("Invalid Location", "Please select a valid location on the map.");
+        return;
+      }
+      
+      setSelectedLocation({ latitude, longitude });
+    } catch (error) {
+      console.error("❌ Error handling map press:", error);
+      Alert.alert("Error", "Failed to select location. Please try again.");
+    }
   };
 
   const confirmLocation = async () => {
-    if (selectedLocation) {
-      try {
-        const [address] = await Location.reverseGeocodeAsync({
-          latitude: selectedLocation.latitude,
-          longitude: selectedLocation.longitude,
-        });
-        if (address) {
-          const addressParts = [
-            address.street,
-            address.district,
-            address.city || address.subregion,
-          ].filter(Boolean);
-          const fullAddress = addressParts.join(", ");
-          onChange(
-            "location",
-            fullAddress ||
-              `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`
-          );
-          onChange("region", address.region || "");
-          onChange("province", address.subregion || address.region || "");
-          onChange("municipality", address.city || address.subregion || "");
-        } else {
-          const locationString = `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`;
-          onChange("location", locationString);
-        }
-      } catch (error) {
-        console.error("Reverse geocode error:", error);
+    // ✅ FIX: Enhanced validation before confirming location
+    if (!selectedLocation) {
+      Alert.alert("No Location Selected", "Please select a location on the map first.");
+      return;
+    }
+    
+    // ✅ FIX: Validate coordinates are valid numbers
+    if (
+      typeof selectedLocation.latitude !== 'number' ||
+      typeof selectedLocation.longitude !== 'number' ||
+      isNaN(selectedLocation.latitude) ||
+      isNaN(selectedLocation.longitude) ||
+      selectedLocation.latitude < -90 ||
+      selectedLocation.latitude > 90 ||
+      selectedLocation.longitude < -180 ||
+      selectedLocation.longitude > 180
+    ) {
+      Alert.alert("Invalid Location", "The selected location is invalid. Please select a different location.");
+      return;
+    }
+    
+    try {
+      // ✅ FIX: Add timeout for reverse geocoding to prevent hanging
+      const geocodeTimeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Reverse geocoding timed out")), 5000)
+      );
+      
+      const geocodePromise = Location.reverseGeocodeAsync({
+        latitude: selectedLocation.latitude,
+        longitude: selectedLocation.longitude,
+      });
+      
+      const [address] = await Promise.race([geocodePromise, geocodeTimeout]) as any[];
+      
+      if (address) {
+        const addressParts = [
+          address.street,
+          address.district,
+          address.city || address.subregion,
+        ].filter(Boolean);
+        const fullAddress = addressParts.join(", ");
+        onChange(
+          "location",
+          fullAddress ||
+            `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`
+        );
+        onChange("region", address.region || "");
+        onChange("province", address.subregion || address.region || "");
+        onChange("municipality", address.city || address.subregion || "");
+      } else {
         const locationString = `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`;
         onChange("location", locationString);
       }
+    } catch (error: any) {
+      console.error("Reverse geocode error:", error);
+      // ✅ FIX: Fallback to coordinates even if geocoding fails
+      const locationString = `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`;
+      onChange("location", locationString);
+      
+      // Show warning but don't block the user
+      if (!error?.message?.includes("timed out")) {
+        Alert.alert(
+          "Location Saved",
+          "Location saved as coordinates. Address lookup failed, but you can edit it manually.",
+          [{ text: "OK" }]
+        );
+      }
+    } finally {
+      // ✅ FIX: Always close map modal, even if there's an error
       setShowMap(false);
     }
   };
@@ -229,7 +360,7 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
                 backgroundColor: "#FEF2F2",
               },
             ]}
-            value={fileName}
+            value={fileName || ""}
             onChangeText={(text) => onChange("fileName", text)}
             placeholder="Enter file name (required)"
             placeholderTextColor="#94A3B8"
@@ -244,7 +375,7 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
           <Text style={styles.label}>Company Name</Text>
           <TextInput
             style={styles.input}
-            value={companyName}
+            value={companyName || ""}
             onChangeText={(text) => onChange("companyName", text)}
             placeholder="Enter company name"
             placeholderTextColor="#94A3B8"
@@ -254,7 +385,7 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
           <Text style={styles.label}>Project Name</Text>
           <TextInput
             style={styles.input}
-            value={projectName}
+            value={projectName || ""}
             onChangeText={(text) => onChange("projectName", text)}
             placeholder="Enter project name"
             placeholderTextColor="#94A3B8"
@@ -271,7 +402,7 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
           {location && (
             <View style={styles.locationDisplay}>
               <Ionicons name="location" size={16} color="#10B981" />
-              <Text style={styles.locationText}>{location}</Text>
+              <Text style={styles.locationText}>{location || ""}</Text>
             </View>
           )}
         </View>
@@ -280,7 +411,7 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             <Text style={styles.label}>Quarter</Text>
             <View style={styles.pickerContainer}>
               <Picker
-                selectedValue={quarter}
+                selectedValue={quarter || ""}
                 onValueChange={(value: string) => onChange("quarter", value)}
                 style={styles.picker}
               >
@@ -296,7 +427,7 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
             <Text style={styles.label}>Year</Text>
             <View style={styles.pickerContainer}>
               <Picker
-                selectedValue={year}
+                selectedValue={year || ""}
                 onValueChange={(value: string) => onChange("year", value)}
                 style={styles.picker}
               >
@@ -323,19 +454,39 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
           <Text style={styles.label}>
             Date of Compliance Monitoring and Validation
           </Text>
-          <TextInput
+          <TouchableOpacity
             style={styles.input}
-            value={dateOfCompliance}
-            onChangeText={(text) => onChange("dateOfCompliance", text)}
-            placeholder="Month/Date/Year"
-            placeholderTextColor="#94A3B8"
+            onPress={() => setShowDateOfCompliancePicker(true)}
+            activeOpacity={0.7}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <Text style={{ color: dateOfCompliance ? "#1E293B" : "#94A3B8" }}>
+                {dateOfCompliance || "Month/Date/Year"}
+              </Text>
+              <Ionicons name="calendar-outline" size={20} color="#94A3B8" />
+            </View>
+          </TouchableOpacity>
+          <DateTimePickerModal
+            isVisible={showDateOfCompliancePicker}
+            mode="date"
+            date={parseDateString(dateOfCompliance) || new Date()}
+            onConfirm={handleDateOfComplianceConfirm}
+            onCancel={() => setShowDateOfCompliancePicker(false)}
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            textColor={Platform.OS === "ios" ? "#000000" : undefined}
+            pickerContainerStyleIOS={{
+              backgroundColor: "#FFFFFF",
+            }}
+            modalStyleIOS={{
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+            }}
           />
         </View>
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Monitoring Period Covered</Text>
           <TextInput
             style={styles.input}
-            value={monitoringPeriod}
+            value={monitoringPeriod || ""}
             onChangeText={(text) => onChange("monitoringPeriod", text)}
             placeholder="Enter monitoring period"
             placeholderTextColor="#94A3B8"
@@ -343,12 +494,32 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
         </View>
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Date of CMR Submission</Text>
-          <TextInput
+          <TouchableOpacity
             style={styles.input}
-            value={dateOfCMRSubmission}
-            onChangeText={(text) => onChange("dateOfCMRSubmission", text)}
-            placeholder="Month/Date/Year"
-            placeholderTextColor="#94A3B8"
+            onPress={() => setShowDateOfCMRSubmissionPicker(true)}
+            activeOpacity={0.7}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <Text style={{ color: dateOfCMRSubmission ? "#1E293B" : "#94A3B8" }}>
+                {dateOfCMRSubmission || "Month/Date/Year"}
+              </Text>
+              <Ionicons name="calendar-outline" size={20} color="#94A3B8" />
+            </View>
+          </TouchableOpacity>
+          <DateTimePickerModal
+            isVisible={showDateOfCMRSubmissionPicker}
+            mode="date"
+            date={parseDateString(dateOfCMRSubmission) || new Date()}
+            onConfirm={handleDateOfCMRSubmissionConfirm}
+            onCancel={() => setShowDateOfCMRSubmissionPicker(false)}
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            textColor={Platform.OS === "ios" ? "#000000" : undefined}
+            pickerContainerStyleIOS={{
+              backgroundColor: "#FFFFFF",
+            }}
+            modalStyleIOS={{
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+            }}
           />
         </View>
       </View>

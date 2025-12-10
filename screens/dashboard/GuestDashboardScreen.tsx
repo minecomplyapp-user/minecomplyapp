@@ -319,6 +319,26 @@ export const GuestDashboardScreen = () => {
           <Text style={styles.qrPromptText}>Scan the code to add remarks.</Text>
         </View>
 
+        {/* ✅ FIX: Add direct button to access Guest Remarks Form */}
+        <TouchableOpacity
+          style={[styles.autoPopulateButton, { marginTop: 16 }]}
+          onPress={() => {
+            navigation.navigate("GuestRemarksForm", {
+              reportId: "",
+              reportType: "CMVR",
+            });
+          }}
+        >
+          <Ionicons
+            name="document-text-outline"
+            size={18}
+            color={theme.colors.primaryDark}
+          />
+          <Text style={styles.autoPopulateText}>
+            Add Remarks (Internal Form)
+          </Text>
+        </TouchableOpacity>
+
         {/* Show uploaded QR */}
         {isQrSet && (
           <>

@@ -78,6 +78,14 @@ export default function ECCMonitoringScreen({ navigation, route }: any) {
     setEmailAddress(report.mmtInfo?.emailAddress || "");
     console.log("✓ MMT info loaded");
 
+    // ✅ NEW: Permit holder type
+    if (report.permitHolderType) {
+      setPermitHolderType(report.permitHolderType);
+    } else {
+      // Default based on number of permit holders
+      setPermitHolderType(loadedHolders.length > 1 ? "multiple" : "single");
+    }
+    
     // ✅ FIX: Permit Holders - ensure proper restoration
     const loadedHolders = report.permit_holders || [];
     setPermitHolders(loadedHolders);
@@ -162,6 +170,8 @@ if (result.success && result.download_url) {
 
     const monitoringData = {
       filename,
+      // ✅ NEW: Permit holder type selection
+      permitHolderType: permitHolderType,
       generalInfo: {
         companyName,
         status,
@@ -240,6 +250,8 @@ if (result.success && result.download_url) {
   const [companyName, setCompanyName] = useState<string>("");
   const [permit_holders, setPermitHolders] = useState<any[]>([]);
   const [status, setStatus] = useState<"Active" | "Inactive" | null>(null);
+  // ✅ NEW: Permit holder type selection (single vs multiple)
+  const [permitHolderType, setPermitHolderType] = useState<"single" | "multiple">("single");
 
   //MMT fields
 

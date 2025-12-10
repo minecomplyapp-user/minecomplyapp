@@ -25,6 +25,7 @@ import { CMSSectionHeader } from "./components/CMSSectionHeader";
 import { CMSFormField } from "./components//CMSFormField";
 import { CMSOtherComponents } from "./components/CMSOtherComponents";
 import { useFileName } from "../../../contexts/FileNameContext";
+import { useCmvrStore } from "../../../store/cmvrStore";
 import {
   FormData,
   OtherComponent,
@@ -35,6 +36,9 @@ import { styles } from "../styles/ComplianceMonitoringScreen.styles";
 const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
   // Use the fileName context
   const { fileName, setFileName } = useFileName();
+  
+  // ✅ FIX: Use Zustand store for proper draft management
+  const { updateMultipleSections, saveDraft: saveDraftToStore, currentReport } = useCmvrStore();
 
   // Initialize fileName from route params if provided
   useEffect(() => {
@@ -386,54 +390,33 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
     console.log("User chose to stay");
   };
 
-  const handleSaveToDraft = async () => {
-    try {
-      console.log("Form data:", JSON.stringify(formData, null, 2));
-      console.log(
-        "Other components:",
-        JSON.stringify(otherComponents, null, 2)
-      );
-      console.log("Uploaded images:", uploadedImages);
-
-      // Collect all previous page data from route.params
-      const prevPageData: any = route.params || {};
-
-      // Prepare compliance monitoring data
-      const complianceToProjectLocationAndCoverageLimits = {
+  // ✅ FIX: Auto-sync form data to store
+  useEffect(() => {
+    updateMultipleSections({
+      complianceToProjectLocationAndCoverageLimits: {
         formData,
         otherComponents,
         uploadedImages,
-      };
+      },
+    });
+  }, [formData, otherComponents, uploadedImages]);
 
-      // Combine all data from previous pages + current page
-      const draftData = {
-        generalInfo: prevPageData.generalInfo,
-        eccInfo: prevPageData.eccInfo,
-        eccAdditionalForms: prevPageData.eccAdditionalForms,
-        isagInfo: prevPageData.isagInfo,
-        isagAdditionalForms: prevPageData.isagAdditionalForms,
-        epepInfo: prevPageData.epepInfo,
-        epepAdditionalForms: prevPageData.epepAdditionalForms,
-        rcfInfo: prevPageData.rcfInfo,
-        rcfAdditionalForms: prevPageData.rcfAdditionalForms,
-        mtfInfo: prevPageData.mtfInfo,
-        mtfAdditionalForms: prevPageData.mtfAdditionalForms,
-        fmrdfInfo: prevPageData.fmrdfInfo,
-        fmrdfAdditionalForms: prevPageData.fmrdfAdditionalForms,
-        mmtInfo: prevPageData.mmtInfo,
-        executiveSummary: prevPageData.executiveSummary,
-        processDocumentation: prevPageData.processDocumentation,
-        complianceToProjectLocationAndCoverageLimits,
-        savedAt: new Date().toISOString(),
-      };
+  // ✅ FIX: Load existing data from store on mount
+  useEffect(() => {
+    const stored = currentReport?.complianceToProjectLocationAndCoverageLimits;
+    if (stored) {
+      if (stored.formData) setFormData(stored.formData);
+      if (stored.otherComponents) setOtherComponents(stored.otherComponents);
+      if (stored.uploadedImages) setUploadedImages(stored.uploadedImages);
+    }
+  }, []);
 
-      // Resolve fileName from params
-      const resolvedFileName = prevPageData.fileName || "Untitled";
-
-      // Save draft to AsyncStorage
-      const success = await saveDraft(resolvedFileName, draftData);
-
-      if (success) {
+  const handleSaveToDraft = async () => {
+    try {
+      // ✅ FIX: Use store's saveDraft which includes all sections
+      const result = await saveDraftToStore();
+      
+      if (result.success) {
         Alert.alert("Success", "Draft saved successfully");
         // Navigate to Dashboard using CommonActions.reset
         navigation.dispatch(
@@ -443,11 +426,11 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
           })
         );
       } else {
-        Alert.alert("Error", "Failed to save draft. Please try again.");
+        Alert.alert("Error", result.error || "Failed to save draft. Please try again.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving draft:", error);
-      Alert.alert("Error", "Failed to save draft. Please try again.");
+      Alert.alert("Error", error?.message || "Failed to save draft. Please try again.");
     }
   };
 

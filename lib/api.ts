@@ -2,7 +2,7 @@ import Constants from "expo-constants";
 import { supabase } from "./supabase";
 
 // Production API fallback (deployed backend)
-const PRODUCTION_API_FALLBACK = "https://minecomplyapi.onrender.com/api";
+const PRODUCTION_API_FALLBACK = "https://minecomplyapi-4a46.onrender.com/api";
 
 const apiBaseUrl = resolveApiBaseUrl();
 
@@ -40,6 +40,10 @@ function resolveApiBaseUrl(): string {
     // Production: Use Render API
     const productionUrl = sanitizeBaseUrl(extra.productionApiBaseUrl);
     if (productionUrl) {
+      // Validate it ends with /api
+      if (!productionUrl.endsWith('/api')) {
+        console.warn(`[API] Production URL should end with /api: ${productionUrl}`);
+      }
       console.log("[API] Production mode - using CONFIGURED API:", productionUrl);
       return productionUrl;
     }
@@ -137,10 +141,18 @@ async function getAccessToken(): Promise<string> {
 export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     const token = await getAccessToken();
-    let res: Response;
+    // Ensure path starts with / to avoid double slashes
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const fullUrl = `${apiBaseUrl}${normalizedPath}`;
     
+    // Log the full URL in production for debugging
+    if (!__DEV__) {
+      console.log(`[API] GET ${fullUrl}`);
+    }
+    
+    let res: Response;
     try {
-      res = await fetch(`${apiBaseUrl}${path}`, {
+      res = await fetch(fullUrl, {
         ...init,
         method: "GET",
         headers: {
@@ -150,17 +162,17 @@ export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
         },
       });
     } catch (e: any) {
-      console.error(`[API] Network error on GET ${path}:`, e);
+      console.error(`[API] Network error on GET ${fullUrl}:`, e);
       throw new Error(
-        "Network error. Please check your internet connection and try again."
+        `Network error calling ${fullUrl}. Please check your internet connection and try again.`
       );
     }
     
     if (!res.ok) {
       const body = await safeJson(res);
       const errorMsg = body?.message || `Request failed with status ${res.status}`;
-      console.error(`[API] GET ${path} failed (${res.status}):`, errorMsg);
-      throw new Error(errorMsg);
+      console.error(`[API] GET ${fullUrl} failed (${res.status}):`, errorMsg);
+      throw new Error(`${errorMsg} (${fullUrl})`);
     }
     
     return (await res.json()) as T;
@@ -177,10 +189,18 @@ export async function apiPost<T>(
 ): Promise<T> {
   try {
     const token = await getAccessToken();
-    let res: Response;
+    // Ensure path starts with / to avoid double slashes
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const fullUrl = `${apiBaseUrl}${normalizedPath}`;
     
+    // Log the full URL in production for debugging
+    if (!__DEV__) {
+      console.log(`[API] POST ${fullUrl}`);
+    }
+    
+    let res: Response;
     try {
-      res = await fetch(`${apiBaseUrl}${path}`, {
+      res = await fetch(fullUrl, {
         ...init,
         method: "POST",
         headers: {
@@ -191,17 +211,17 @@ export async function apiPost<T>(
         body: body ? JSON.stringify(body) : undefined,
       });
     } catch (e: any) {
-      console.error(`[API] Network error on POST ${path}:`, e);
+      console.error(`[API] Network error on POST ${fullUrl}:`, e);
       throw new Error(
-        "Network error. Please check your internet connection and try again."
+        `Network error calling ${fullUrl}. Please check your internet connection and try again.`
       );
     }
     
     if (!res.ok) {
       const data = await safeJson(res);
       const errorMsg = data?.message || `Request failed with status ${res.status}`;
-      console.error(`[API] POST ${path} failed (${res.status}):`, errorMsg);
-      throw new Error(errorMsg);
+      console.error(`[API] POST ${fullUrl} failed (${res.status}):`, errorMsg);
+      throw new Error(`${errorMsg} (${fullUrl})`);
     }
     
     return (await res.json()) as T;
@@ -217,10 +237,18 @@ export async function apiDelete<T = void>(
 ): Promise<T | void> {
   try {
     const token = await getAccessToken();
-    let res: Response;
+    // Ensure path starts with / to avoid double slashes
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const fullUrl = `${apiBaseUrl}${normalizedPath}`;
     
+    // Log the full URL in production for debugging
+    if (!__DEV__) {
+      console.log(`[API] DELETE ${fullUrl}`);
+    }
+    
+    let res: Response;
     try {
-      res = await fetch(`${apiBaseUrl}${path}`, {
+      res = await fetch(fullUrl, {
         ...init,
         method: "DELETE",
         headers: {
@@ -229,17 +257,17 @@ export async function apiDelete<T = void>(
         },
       });
     } catch (e: any) {
-      console.error(`[API] Network error on DELETE ${path}:`, e);
+      console.error(`[API] Network error on DELETE ${fullUrl}:`, e);
       throw new Error(
-        "Network error. Please check your internet connection and try again."
+        `Network error calling ${fullUrl}. Please check your internet connection and try again.`
       );
     }
     
     if (!res.ok) {
       const data = await safeJson(res);
       const errorMsg = data?.message || `Request failed with status ${res.status}`;
-      console.error(`[API] DELETE ${path} failed (${res.status}):`, errorMsg);
-      throw new Error(errorMsg);
+      console.error(`[API] DELETE ${fullUrl} failed (${res.status}):`, errorMsg);
+      throw new Error(`${errorMsg} (${fullUrl})`);
     }
     
     // Try to parse JSON; if none, return void
@@ -263,10 +291,18 @@ export async function apiPatch<T>(
 ): Promise<T> {
   try {
     const token = await getAccessToken();
-    let res: Response;
+    // Ensure path starts with / to avoid double slashes
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const fullUrl = `${apiBaseUrl}${normalizedPath}`;
     
+    // Log the full URL in production for debugging
+    if (!__DEV__) {
+      console.log(`[API] PATCH ${fullUrl}`);
+    }
+    
+    let res: Response;
     try {
-      res = await fetch(`${apiBaseUrl}${path}`, {
+      res = await fetch(fullUrl, {
         ...init,
         method: "PATCH",
         headers: {
@@ -277,17 +313,17 @@ export async function apiPatch<T>(
         body: body ? JSON.stringify(body) : undefined,
       });
     } catch (e: any) {
-      console.error(`[API] Network error on PATCH ${path}:`, e);
+      console.error(`[API] Network error on PATCH ${fullUrl}:`, e);
       throw new Error(
-        "Network error. Please check your internet connection and try again."
+        `Network error calling ${fullUrl}. Please check your internet connection and try again.`
       );
     }
     
     if (!res.ok) {
       const data = await safeJson(res);
       const errorMsg = data?.message || `Request failed with status ${res.status}`;
-      console.error(`[API] PATCH ${path} failed (${res.status}):`, errorMsg);
-      throw new Error(errorMsg);
+      console.error(`[API] PATCH ${fullUrl} failed (${res.status}):`, errorMsg);
+      throw new Error(`${errorMsg} (${fullUrl})`);
     }
     
     return (await res.json()) as T;

@@ -9,7 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { CMSHeader } from "../../../components/CustomHeader";
+import { CMSHeader } from "../../../components/CMSHeader";
 import { useCmvrStore } from "../../../store/cmvrStore";
 import { StyleSheet } from "react-native";
 import { theme } from "../../../theme/theme";
@@ -46,6 +46,59 @@ export default function ComplianceDiscussionScreen({ navigation, route }: any) {
     updateSection("complianceMonitoringReportDiscussion", discussion);
     saveDraft();
     Alert.alert("Saved", "Compliance Discussion saved successfully");
+  };
+
+  const handleSaveToDraft = async () => {
+    updateSection("complianceMonitoringReportDiscussion", discussion);
+    await saveDraft();
+    Alert.alert("Saved", "Compliance Discussion saved to draft successfully");
+  };
+
+  const handleStay = () => {
+    // User chose to stay on the page
+    console.log("User chose to stay on Compliance Discussion screen");
+  };
+
+  const handleDiscard = () => {
+    Alert.alert(
+      "Discard Changes",
+      "Are you sure you want to discard your changes?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Discard",
+          style: "destructive",
+          onPress: () => {
+            // Reload original data from store
+            if (currentReport?.complianceMonitoringReportDiscussion) {
+              setDiscussion({
+                summary: currentReport.complianceMonitoringReportDiscussion.summary || "",
+                keyFindings: currentReport.complianceMonitoringReportDiscussion.keyFindings || [""],
+                recommendations: currentReport.complianceMonitoringReportDiscussion.recommendations || [""],
+                nextSteps: currentReport.complianceMonitoringReportDiscussion.nextSteps || "",
+              });
+            } else {
+              setDiscussion({
+                summary: "",
+                keyFindings: [""],
+                recommendations: [""],
+                nextSteps: "",
+              });
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleExit = () => {
+    // Save and navigate back
+    updateSection("complianceMonitoringReportDiscussion", discussion);
+    saveDraft();
+    navigation.goBack();
   };
 
   const handleNext = () => {
@@ -104,8 +157,12 @@ export default function ComplianceDiscussionScreen({ navigation, route }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <CMSHeader 
-        showSave={true} 
+        onBack={() => navigation.goBack()}
         onSave={handleSave}
+        onStay={handleStay}
+        onSaveToDraft={handleSaveToDraft}
+        onDiscard={handleDiscard}
+        allowEdit={false}
       />
       
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>

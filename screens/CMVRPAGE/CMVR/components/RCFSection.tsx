@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, Alert, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../styles/rcf.styles";
 import type {
@@ -8,6 +8,7 @@ import type {
   RCFSectionProps,
 } from "../types/rcf.types";
 import { Picker } from "@react-native-picker/picker";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 const RCFSection: React.FC<RCFSectionProps> = ({
   rcfInfo,
@@ -25,15 +26,92 @@ const RCFSection: React.FC<RCFSectionProps> = ({
   permitHolderList,
 }) => {
   const updateRCFInfo = (field: keyof FundInfo, value: string | boolean) => {
-    setRcfInfo((prev) => ({ ...prev, [field]: value }));
+    setRcfInfo((prev) => {
+      // ✅ FIX: Add null/undefined safety check
+      const safePrev = prev || { isNA: false, permitHolder: "", savingsAccount: "", amountDeposited: "", dateUpdated: "" };
+      return { ...safePrev, [field]: value };
+    });
   };
 
   const updateMTFInfo = (field: keyof FundInfo, value: string | boolean) => {
-    setMtfInfo((prev) => ({ ...prev, [field]: value }));
+    setMtfInfo((prev) => {
+      // ✅ FIX: Add null/undefined safety check
+      const safePrev = prev || { isNA: false, permitHolder: "", savingsAccount: "", amountDeposited: "", dateUpdated: "" };
+      return { ...safePrev, [field]: value };
+    });
   };
 
   const updateFMRDFInfo = (field: keyof FundInfo, value: string | boolean) => {
-    setFmrdfInfo((prev) => ({ ...prev, [field]: value }));
+    setFmrdfInfo((prev) => {
+      // ✅ FIX: Add null/undefined safety check
+      const safePrev = prev || { isNA: false, permitHolder: "", savingsAccount: "", amountDeposited: "", dateUpdated: "" };
+      return { ...safePrev, [field]: value };
+    });
+  };
+  
+  // ✅ NEW: Date picker states
+  const [showRcfDatePicker, setShowRcfDatePicker] = useState(false);
+  const [showMtfDatePicker, setShowMtfDatePicker] = useState(false);
+  const [showFmrdfDatePicker, setShowFmrdfDatePicker] = useState(false);
+  const [showRcfAdditionalDatePicker, setShowRcfAdditionalDatePicker] = useState<number | null>(null);
+  const [showMtfAdditionalDatePicker, setShowMtfAdditionalDatePicker] = useState<number | null>(null);
+  const [showFmrdfAdditionalDatePicker, setShowFmrdfAdditionalDatePicker] = useState<number | null>(null);
+  
+  // Helper function to parse date string (MM/DD/YYYY) to Date object
+  const parseDateString = (dateString: string | undefined): Date | null => {
+    if (!dateString || dateString.trim() === "") return null;
+    // Try to parse MM/DD/YYYY format
+    const parts = dateString.split("/");
+    if (parts.length === 3) {
+      const month = parseInt(parts[0], 10) - 1; // Month is 0-indexed
+      const day = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      if (!isNaN(month) && !isNaN(day) && !isNaN(year)) {
+        return new Date(year, month, day);
+      }
+    }
+    // Try to parse as ISO string or default Date constructor
+    const parsed = new Date(dateString);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  };
+  
+  // Helper function to format Date to MM/DD/YYYY string
+  const formatDateToString = (date: Date | null): string => {
+    if (!date) return "";
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+  
+  const handleRcfDateConfirm = (selectedDate: Date) => {
+    setShowRcfDatePicker(false);
+    updateRCFInfo("dateUpdated", formatDateToString(selectedDate));
+  };
+  
+  const handleMtfDateConfirm = (selectedDate: Date) => {
+    setShowMtfDatePicker(false);
+    updateMTFInfo("dateUpdated", formatDateToString(selectedDate));
+  };
+  
+  const handleFmrdfDateConfirm = (selectedDate: Date) => {
+    setShowFmrdfDatePicker(false);
+    updateFMRDFInfo("dateUpdated", formatDateToString(selectedDate));
+  };
+  
+  const handleRcfAdditionalDateConfirm = (selectedDate: Date, index: number) => {
+    setShowRcfAdditionalDatePicker(null);
+    updateRcfAdditionalForm(index, "dateUpdated", formatDateToString(selectedDate));
+  };
+  
+  const handleMtfAdditionalDateConfirm = (selectedDate: Date, index: number) => {
+    setShowMtfAdditionalDatePicker(null);
+    updateMtfAdditionalForm(index, "dateUpdated", formatDateToString(selectedDate));
+  };
+  
+  const handleFmrdfAdditionalDateConfirm = (selectedDate: Date, index: number) => {
+    setShowFmrdfAdditionalDatePicker(null);
+    updateFmrdfAdditionalForm(index, "dateUpdated", formatDateToString(selectedDate));
   };
 
   const addRCFForm = () => {
@@ -191,21 +269,25 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             </Text>
             <TouchableOpacity
               style={styles.naButton}
-              onPress={() => updateRCFInfo("isNA", !rcfInfo.isNA)}
+              onPress={() => {
+                // ✅ FIX: Add null/undefined check before accessing isNA
+                if (!rcfInfo) return;
+                updateRCFInfo("isNA", !rcfInfo.isNA);
+              }}
             >
               <View
                 style={[
                   styles.checkbox,
-                  rcfInfo.isNA && styles.checkboxChecked,
+                  rcfInfo?.isNA && styles.checkboxChecked,
                 ]}
               >
-                {rcfInfo.isNA && <View style={styles.checkboxInner} />}
+                {rcfInfo?.isNA && <View style={styles.checkboxInner} />}
               </View>
               <Text style={styles.naLabel}>N/A</Text>
             </TouchableOpacity>
           </View>
           <View
-            style={[styles.fundContent, rcfInfo.isNA && styles.disabledContent]}
+            style={[styles.fundContent, rcfInfo?.isNA && styles.disabledContent]}
           >
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Name of Permit Holder</Text>
@@ -273,13 +355,33 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             </View>
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Date Updated</Text>
-              <TextInput
-                style={styles.input}
-                value={rcfInfo.dateUpdated}
-                onChangeText={(text) => updateRCFInfo("dateUpdated", text)}
-                placeholder="MM/DD/YYYY"
-                placeholderTextColor="#94A3B8"
-                editable={!rcfInfo.isNA}
+              <TouchableOpacity
+                style={[styles.input, rcfInfo?.isNA && { opacity: 0.5 }]}
+                onPress={() => !rcfInfo?.isNA && setShowRcfDatePicker(true)}
+                activeOpacity={0.7}
+                disabled={rcfInfo?.isNA}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <Text style={{ color: rcfInfo?.dateUpdated ? "#1E293B" : "#94A3B8" }}>
+                    {rcfInfo?.dateUpdated || "MM/DD/YYYY"}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={20} color="#94A3B8" />
+                </View>
+              </TouchableOpacity>
+              <DateTimePickerModal
+                isVisible={showRcfDatePicker}
+                mode="date"
+                date={parseDateString(rcfInfo?.dateUpdated) || new Date()}
+                onConfirm={handleRcfDateConfirm}
+                onCancel={() => setShowRcfDatePicker(false)}
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                textColor={Platform.OS === "ios" ? "#000000" : undefined}
+                pickerContainerStyleIOS={{
+                  backgroundColor: "#FFFFFF",
+                }}
+                modalStyleIOS={{
+                  backgroundColor: "rgba(0, 0, 0, 0.5)",
+                }}
               />
             </View>
             <TouchableOpacity
@@ -329,7 +431,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     /> */}
 
                     <Picker
-                      selectedValue={form.permitHolder}
+                      selectedValue={form?.permitHolder || ""}
                       onValueChange={(value: string | number) => {
                         updateRcfAdditionalForm(
                           index,
@@ -357,9 +459,9 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     <TouchableOpacity
                       style={[
                         styles.submitButton,
-                        rcfInfo.isNA && styles.disabledButton,
+                        rcfInfo?.isNA && styles.disabledButton,
                       ]}
-                      disabled={rcfInfo.isNA}
+                      disabled={rcfInfo?.isNA}
                     >
                       <Ionicons
                         name="checkmark-circle"
@@ -373,40 +475,58 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                   <Text style={styles.label}>Savings Account Number</Text>
                   <TextInput
                     style={styles.input}
-                    value={form.savingsAccount}
+                    value={form?.savingsAccount || ""}
                     onChangeText={(text) =>
                       updateRcfAdditionalForm(index, "savingsAccount", text)
                     }
                     placeholder="Enter account number"
                     placeholderTextColor="#94A3B8"
-                    editable={!rcfInfo.isNA}
+                    editable={!rcfInfo?.isNA}
                   />
                 </View>
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Amount Deposited (₱)</Text>
                   <TextInput
                     style={styles.input}
-                    value={form.amountDeposited}
+                    value={form?.amountDeposited || ""}
                     onChangeText={(text) =>
                       updateRcfAdditionalForm(index, "amountDeposited", text)
                     }
                     placeholder="0.00"
                     placeholderTextColor="#94A3B8"
                     keyboardType="numeric"
-                    editable={!rcfInfo.isNA}
+                    editable={!rcfInfo?.isNA}
                   />
                 </View>
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Date Updated</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={form.dateUpdated}
-                    onChangeText={(text) =>
-                      updateRcfAdditionalForm(index, "dateUpdated", text)
-                    }
-                    placeholder="MM/DD/YYYY"
-                    placeholderTextColor="#94A3B8"
-                    editable={!rcfInfo.isNA}
+                  <TouchableOpacity
+                    style={[styles.input, rcfInfo?.isNA && { opacity: 0.5 }]}
+                    onPress={() => !rcfInfo?.isNA && setShowRcfAdditionalDatePicker(index)}
+                    activeOpacity={0.7}
+                    disabled={rcfInfo?.isNA}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                      <Text style={{ color: form?.dateUpdated ? "#1E293B" : "#94A3B8" }}>
+                        {form?.dateUpdated || "MM/DD/YYYY"}
+                      </Text>
+                      <Ionicons name="calendar-outline" size={20} color="#94A3B8" />
+                    </View>
+                  </TouchableOpacity>
+                  <DateTimePickerModal
+                    isVisible={showRcfAdditionalDatePicker === index}
+                    mode="date"
+                    date={parseDateString(form?.dateUpdated) || new Date()}
+                    onConfirm={(selectedDate) => handleRcfAdditionalDateConfirm(selectedDate, index)}
+                    onCancel={() => setShowRcfAdditionalDatePicker(null)}
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    textColor={Platform.OS === "ios" ? "#000000" : undefined}
+                    pickerContainerStyleIOS={{
+                      backgroundColor: "#FFFFFF",
+                    }}
+                    modalStyleIOS={{
+                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                    }}
                   />
                 </View>
               </View>
@@ -424,21 +544,25 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             <Text style={styles.subsectionTitle}>Monitoring Trust Fund</Text>
             <TouchableOpacity
               style={styles.naButton}
-              onPress={() => updateMTFInfo("isNA", !mtfInfo.isNA)}
+              onPress={() => {
+                // ✅ FIX: Add null/undefined check before accessing isNA
+                if (!mtfInfo) return;
+                updateMTFInfo("isNA", !mtfInfo.isNA);
+              }}
             >
               <View
                 style={[
                   styles.checkbox,
-                  mtfInfo.isNA && styles.checkboxChecked,
+                  mtfInfo?.isNA && styles.checkboxChecked,
                 ]}
               >
-                {mtfInfo.isNA && <View style={styles.checkboxInner} />}
+                {mtfInfo?.isNA && <View style={styles.checkboxInner} />}
               </View>
               <Text style={styles.naLabel}>N/A</Text>
             </TouchableOpacity>
           </View>
           <View
-            style={[styles.fundContent, mtfInfo.isNA && styles.disabledContent]}
+            style={[styles.fundContent, mtfInfo?.isNA && styles.disabledContent]}
           >
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Name of Permit Holder</Text>
@@ -506,13 +630,33 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             </View>
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Date Updated</Text>
-              <TextInput
-                style={styles.input}
-                value={mtfInfo.dateUpdated}
-                onChangeText={(text) => updateMTFInfo("dateUpdated", text)}
-                placeholder="MM/DD/YYYY"
-                placeholderTextColor="#94A3B8"
-                editable={!mtfInfo.isNA}
+              <TouchableOpacity
+                style={[styles.input, mtfInfo?.isNA && { opacity: 0.5 }]}
+                onPress={() => !mtfInfo?.isNA && setShowMtfDatePicker(true)}
+                activeOpacity={0.7}
+                disabled={mtfInfo?.isNA}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <Text style={{ color: mtfInfo?.dateUpdated ? "#1E293B" : "#94A3B8" }}>
+                    {mtfInfo?.dateUpdated || "MM/DD/YYYY"}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={20} color="#94A3B8" />
+                </View>
+              </TouchableOpacity>
+              <DateTimePickerModal
+                isVisible={showMtfDatePicker}
+                mode="date"
+                date={parseDateString(mtfInfo?.dateUpdated) || new Date()}
+                onConfirm={handleMtfDateConfirm}
+                onCancel={() => setShowMtfDatePicker(false)}
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                textColor={Platform.OS === "ios" ? "#000000" : undefined}
+                pickerContainerStyleIOS={{
+                  backgroundColor: "#FFFFFF",
+                }}
+                modalStyleIOS={{
+                  backgroundColor: "rgba(0, 0, 0, 0.5)",
+                }}
               />
             </View>
             <TouchableOpacity
@@ -562,7 +706,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     /> */}
 
                     <Picker
-                      selectedValue={form.permitHolder}
+                      selectedValue={form?.permitHolder || ""}
                       onValueChange={(value: string | number) => {
                         updateMtfAdditionalForm(
                           index,
@@ -590,9 +734,9 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     <TouchableOpacity
                       style={[
                         styles.submitButton,
-                        mtfInfo.isNA && styles.disabledButton,
+                        mtfInfo?.isNA && styles.disabledButton,
                       ]}
-                      disabled={mtfInfo.isNA}
+                      disabled={mtfInfo?.isNA}
                     >
                       <Ionicons
                         name="checkmark-circle"
@@ -606,40 +750,58 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                   <Text style={styles.label}>Savings Account Number</Text>
                   <TextInput
                     style={styles.input}
-                    value={form.savingsAccount}
+                    value={form?.savingsAccount || ""}
                     onChangeText={(text) =>
                       updateMtfAdditionalForm(index, "savingsAccount", text)
                     }
                     placeholder="Enter account number"
                     placeholderTextColor="#94A3B8"
-                    editable={!mtfInfo.isNA}
+                    editable={!mtfInfo?.isNA}
                   />
                 </View>
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Amount Deposited (₱)</Text>
                   <TextInput
                     style={styles.input}
-                    value={form.amountDeposited}
+                    value={form?.amountDeposited || ""}
                     onChangeText={(text) =>
                       updateMtfAdditionalForm(index, "amountDeposited", text)
                     }
                     placeholder="0.00"
                     placeholderTextColor="#94A3B8"
                     keyboardType="numeric"
-                    editable={!mtfInfo.isNA}
+                    editable={!mtfInfo?.isNA}
                   />
                 </View>
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Date Updated</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={form.dateUpdated}
-                    onChangeText={(text) =>
-                      updateMtfAdditionalForm(index, "dateUpdated", text)
-                    }
-                    placeholder="MM/DD/YYYY"
-                    placeholderTextColor="#94A3B8"
-                    editable={!mtfInfo.isNA}
+                  <TouchableOpacity
+                    style={[styles.input, mtfInfo?.isNA && { opacity: 0.5 }]}
+                    onPress={() => !mtfInfo?.isNA && setShowMtfAdditionalDatePicker(index)}
+                    activeOpacity={0.7}
+                    disabled={mtfInfo?.isNA}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                      <Text style={{ color: form?.dateUpdated ? "#1E293B" : "#94A3B8" }}>
+                        {form?.dateUpdated || "MM/DD/YYYY"}
+                      </Text>
+                      <Ionicons name="calendar-outline" size={20} color="#94A3B8" />
+                    </View>
+                  </TouchableOpacity>
+                  <DateTimePickerModal
+                    isVisible={showMtfAdditionalDatePicker === index}
+                    mode="date"
+                    date={parseDateString(form?.dateUpdated) || new Date()}
+                    onConfirm={(selectedDate) => handleMtfAdditionalDateConfirm(selectedDate, index)}
+                    onCancel={() => setShowMtfAdditionalDatePicker(null)}
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    textColor={Platform.OS === "ios" ? "#000000" : undefined}
+                    pickerContainerStyleIOS={{
+                      backgroundColor: "#FFFFFF",
+                    }}
+                    modalStyleIOS={{
+                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                    }}
                   />
                 </View>
               </View>
@@ -659,15 +821,19 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             </Text>
             <TouchableOpacity
               style={styles.naButton}
-              onPress={() => updateFMRDFInfo("isNA", !fmrdfInfo.isNA)}
+              onPress={() => {
+                // ✅ FIX: Add null/undefined check before accessing isNA
+                if (!fmrdfInfo) return;
+                updateFMRDFInfo("isNA", !fmrdfInfo.isNA);
+              }}
             >
               <View
                 style={[
                   styles.checkbox,
-                  fmrdfInfo.isNA && styles.checkboxChecked,
+                  fmrdfInfo?.isNA && styles.checkboxChecked,
                 ]}
               >
-                {fmrdfInfo.isNA && <View style={styles.checkboxInner} />}
+                {fmrdfInfo?.isNA && <View style={styles.checkboxInner} />}
               </View>
               <Text style={styles.naLabel}>N/A</Text>
             </TouchableOpacity>
@@ -675,7 +841,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
           <View
             style={[
               styles.fundContent,
-              fmrdfInfo.isNA && styles.disabledContent,
+              fmrdfInfo?.isNA && styles.disabledContent,
             ]}
           >
             <View style={styles.fieldGroup}>
@@ -746,13 +912,33 @@ const RCFSection: React.FC<RCFSectionProps> = ({
             </View>
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Date Updated</Text>
-              <TextInput
-                style={styles.input}
-                value={fmrdfInfo.dateUpdated}
-                onChangeText={(text) => updateFMRDFInfo("dateUpdated", text)}
-                placeholder="MM/DD/YYYY"
-                placeholderTextColor="#94A3B8"
-                editable={!fmrdfInfo.isNA}
+              <TouchableOpacity
+                style={[styles.input, fmrdfInfo?.isNA && { opacity: 0.5 }]}
+                onPress={() => !fmrdfInfo?.isNA && setShowFmrdfDatePicker(true)}
+                activeOpacity={0.7}
+                disabled={fmrdfInfo?.isNA}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <Text style={{ color: fmrdfInfo?.dateUpdated ? "#1E293B" : "#94A3B8" }}>
+                    {fmrdfInfo?.dateUpdated || "MM/DD/YYYY"}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={20} color="#94A3B8" />
+                </View>
+              </TouchableOpacity>
+              <DateTimePickerModal
+                isVisible={showFmrdfDatePicker}
+                mode="date"
+                date={parseDateString(fmrdfInfo?.dateUpdated) || new Date()}
+                onConfirm={handleFmrdfDateConfirm}
+                onCancel={() => setShowFmrdfDatePicker(false)}
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                textColor={Platform.OS === "ios" ? "#000000" : undefined}
+                pickerContainerStyleIOS={{
+                  backgroundColor: "#FFFFFF",
+                }}
+                modalStyleIOS={{
+                  backgroundColor: "rgba(0, 0, 0, 0.5)",
+                }}
               />
             </View>
             <TouchableOpacity
@@ -805,7 +991,7 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     /> */}
 
                     <Picker
-                      selectedValue={form.permitHolder}
+                      selectedValue={form?.permitHolder || ""}
                       onValueChange={(value: string | number) => {
                         updateFmrdfAdditionalForm(
                           index,
@@ -833,9 +1019,9 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                     <TouchableOpacity
                       style={[
                         styles.submitButton,
-                        fmrdfInfo.isNA && styles.disabledButton,
+                        fmrdfInfo?.isNA && styles.disabledButton,
                       ]}
-                      disabled={fmrdfInfo.isNA}
+                      disabled={fmrdfInfo?.isNA}
                     >
                       <Ionicons
                         name="checkmark-circle"
@@ -849,40 +1035,58 @@ const RCFSection: React.FC<RCFSectionProps> = ({
                   <Text style={styles.label}>Savings Account Number</Text>
                   <TextInput
                     style={styles.input}
-                    value={form.savingsAccount}
+                    value={form?.savingsAccount || ""}
                     onChangeText={(text) =>
                       updateFmrdfAdditionalForm(index, "savingsAccount", text)
                     }
                     placeholder="Enter account number"
                     placeholderTextColor="#94A3B8"
-                    editable={!fmrdfInfo.isNA}
+                    editable={!fmrdfInfo?.isNA}
                   />
                 </View>
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Amount Deposited (₱)</Text>
                   <TextInput
                     style={styles.input}
-                    value={form.amountDeposited}
+                    value={form?.amountDeposited || ""}
                     onChangeText={(text) =>
                       updateFmrdfAdditionalForm(index, "amountDeposited", text)
                     }
                     placeholder="0.00"
                     placeholderTextColor="#94A3B8"
                     keyboardType="numeric"
-                    editable={!fmrdfInfo.isNA}
+                    editable={!fmrdfInfo?.isNA}
                   />
                 </View>
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Date Updated</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={form.dateUpdated}
-                    onChangeText={(text) =>
-                      updateFmrdfAdditionalForm(index, "dateUpdated", text)
-                    }
-                    placeholder="MM/DD/YYYY"
-                    placeholderTextColor="#94A3B8"
-                    editable={!fmrdfInfo.isNA}
+                  <TouchableOpacity
+                    style={[styles.input, fmrdfInfo?.isNA && { opacity: 0.5 }]}
+                    onPress={() => !fmrdfInfo?.isNA && setShowFmrdfAdditionalDatePicker(index)}
+                    activeOpacity={0.7}
+                    disabled={fmrdfInfo?.isNA}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                      <Text style={{ color: form?.dateUpdated ? "#1E293B" : "#94A3B8" }}>
+                        {form?.dateUpdated || "MM/DD/YYYY"}
+                      </Text>
+                      <Ionicons name="calendar-outline" size={20} color="#94A3B8" />
+                    </View>
+                  </TouchableOpacity>
+                  <DateTimePickerModal
+                    isVisible={showFmrdfAdditionalDatePicker === index}
+                    mode="date"
+                    date={parseDateString(form?.dateUpdated) || new Date()}
+                    onConfirm={(selectedDate) => handleFmrdfAdditionalDateConfirm(selectedDate, index)}
+                    onCancel={() => setShowFmrdfAdditionalDatePicker(null)}
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    textColor={Platform.OS === "ios" ? "#000000" : undefined}
+                    pickerContainerStyleIOS={{
+                      backgroundColor: "#FFFFFF",
+                    }}
+                    modalStyleIOS={{
+                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                    }}
                   />
                 </View>
               </View>

@@ -5,11 +5,13 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "../styles/combinedECCISAG.styles";
 import { useState } from "react";
 import { Picker } from "@react-native-picker/picker";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 import type {
   ECCInfo,
@@ -32,9 +34,67 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
   setPermitHolderList,
 }) => {
   const updateECCInfo = (field: keyof ECCInfo, value: string | boolean) => {
-    setEccInfo((prev) => ({ ...prev, [field]: value }));
+    setEccInfo((prev) => {
+      // ✅ FIX: Add null/undefined safety check
+      const safePrev = prev || { isNA: false, permitHolder: "", eccNumber: "", dateOfIssuance: "" };
+      return { ...safePrev, [field]: value };
+    });
   };
   const [newHolderName, setNewHolderName] = useState("");
+  
+  // ✅ NEW: Date picker states
+  const [showEccDatePicker, setShowEccDatePicker] = useState(false);
+  const [showIsagDatePicker, setShowIsagDatePicker] = useState(false);
+  const [showEccAdditionalDatePicker, setShowEccAdditionalDatePicker] = useState<number | null>(null);
+  const [showIsagAdditionalDatePicker, setShowIsagAdditionalDatePicker] = useState<number | null>(null);
+  
+  // Helper function to parse date string (MM/DD/YYYY) to Date object
+  const parseDateString = (dateString: string | undefined): Date | null => {
+    if (!dateString || dateString.trim() === "") return null;
+    // Try to parse MM/DD/YYYY format
+    const parts = dateString.split("/");
+    if (parts.length === 3) {
+      const month = parseInt(parts[0], 10) - 1; // Month is 0-indexed
+      const day = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      if (!isNaN(month) && !isNaN(day) && !isNaN(year)) {
+        return new Date(year, month, day);
+      }
+    }
+    // Try to parse as ISO string or default Date constructor
+    const parsed = new Date(dateString);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  };
+  
+  // Helper function to format Date to MM/DD/YYYY string
+  const formatDateToString = (date: Date | null): string => {
+    if (!date) return "";
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+  
+  const handleEccDateConfirm = (selectedDate: Date) => {
+    setShowEccDatePicker(false);
+    updateECCInfo("dateOfIssuance", formatDateToString(selectedDate));
+  };
+  
+  const handleIsagDateConfirm = (selectedDate: Date) => {
+    setShowIsagDatePicker(false);
+    updateISAGInfo("dateOfIssuance", formatDateToString(selectedDate));
+  };
+  
+  const handleEccAdditionalDateConfirm = (selectedDate: Date, index: number) => {
+    setShowEccAdditionalDatePicker(null);
+    updateEccAdditionalForm(index, "dateOfIssuance", formatDateToString(selectedDate));
+  };
+  
+  const handleIsagAdditionalDateConfirm = (selectedDate: Date, index: number) => {
+    setShowIsagAdditionalDatePicker(null);
+    updateIsagAdditionalForm(index, "dateOfIssuance", formatDateToString(selectedDate));
+  };
+  
   const updatePermitHolderList = (newHolder: string) => {
     setPermitHolderList((prevList) =>
       // If the new holder is NOT in the list, spread the previous list and add the new holder.
@@ -51,7 +111,26 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
     );
   };
   const updateISAGInfo = (field: keyof ISAGInfo, value: string | boolean) => {
-    setIsagInfo((prev) => ({ ...prev, [field]: value }));
+    setIsagInfo((prev) => {
+      // ✅ FIX: Add null/undefined safety check
+      const safePrev = prev || {
+        isNA: false,
+        permitHolder: "",
+        isagNumber: "",
+        dateOfIssuance: "",
+        currentName: "",
+        nameInECC: "",
+        projectStatus: "",
+        gpsX: "",
+        gpsY: "",
+        proponentName: "",
+        proponentContact: "",
+        proponentAddress: "",
+        proponentPhone: "",
+        proponentEmail: "",
+      };
+      return { ...safePrev, [field]: value };
+    });
   };
 
   const addECCForm = () => {
@@ -66,8 +145,15 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
     field: keyof ECCAdditionalForm,
     value: string
   ) => {
-    const updated = [...eccAdditionalForms];
-    updated[index] = { ...updated[index], [field]: value };
+    // ✅ FIX: Add null/undefined safety check
+    const updated = [...(eccAdditionalForms || [])];
+    if (updated[index]) {
+      updated[index] = { ...updated[index], [field]: value };
+    } else {
+      // If form doesn't exist, create a new one with default values
+      updated[index] = { permitHolder: "", eccNumber: "", dateOfIssuance: "" };
+      updated[index][field] = value;
+    }
     setEccAdditionalForms(updated);
   };
 
@@ -87,8 +173,15 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
     field: keyof ISAGAdditionalForm,
     value: string
   ) => {
-    const updatedForms = [...isagAdditionalForms];
-    updatedForms[index] = { ...updatedForms[index], [field]: value };
+    // ✅ FIX: Add null/undefined safety check
+    const updatedForms = [...(isagAdditionalForms || [])];
+    if (updatedForms[index]) {
+      updatedForms[index] = { ...updatedForms[index], [field]: value };
+    } else {
+      // If form doesn't exist, create a new one with default values
+      updatedForms[index] = { permitHolder: "", isagNumber: "", dateOfIssuance: "" };
+      updatedForms[index][field] = value;
+    }
     setIsagAdditionalForms(updatedForms);
   };
 
@@ -127,7 +220,6 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
             placeholder="Type new permit holder name"
             placeholderTextColor="#94A3B8"
           />
-          x
           <TouchableOpacity
             style={styles.submitButton} // Re-using submitButton style
             onPress={() => {
@@ -192,9 +284,13 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
         <TouchableOpacity
           style={[
             styles.togglerButton,
-            eccInfo.isNA && styles.togglerButtonOpen,
+            eccInfo?.isNA && styles.togglerButtonOpen,
           ]}
-          onPress={() => updateECCInfo("isNA", !eccInfo.isNA)}
+          onPress={() => {
+            // ✅ FIX: Add null/undefined check before accessing isNA
+            if (!eccInfo) return;
+            updateECCInfo("isNA", !eccInfo.isNA);
+          }}
           activeOpacity={0.7}
         >
           <View style={styles.sectionBadge}>
@@ -202,22 +298,22 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
             <Text style={styles.sectionBadgeText}>ECC Section</Text>
           </View>
           <View
-            style={[styles.checkbox, eccInfo.isNA && styles.checkboxCheckedECC]}
+            style={[styles.checkbox, eccInfo?.isNA && styles.checkboxCheckedECC]}
           >
-            {eccInfo.isNA && (
+            {eccInfo?.isNA && (
               <Ionicons name="checkmark" size={16} color="white" />
             )}
           </View>
         </TouchableOpacity>
 
         {/* ECC Form */}
-        {eccInfo.isNA && (
+        {eccInfo && eccInfo.isNA && (
           <View style={styles.formContainer}>
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Name of Permit Holder</Text>
               <View style={styles.pickerWrapper}>
                 <Picker
-                  selectedValue={eccInfo.permitHolder}
+                  selectedValue={eccInfo?.permitHolder || ""}
                   onValueChange={(value: string | number) => {
                     updateECCInfo("permitHolder", String(value));
                   }}
@@ -241,7 +337,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
               <Text style={styles.label}>ECC Number</Text>
               <TextInput
                 style={styles.input}
-                value={eccInfo.eccNumber}
+                value={eccInfo?.eccNumber || ""}
                 onChangeText={(text) => updateECCInfo("eccNumber", text)}
                 placeholder="Enter ECC number"
                 placeholderTextColor="#94A3B8"
@@ -250,12 +346,32 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
 
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Date of Issuance</Text>
-              <TextInput
+              <TouchableOpacity
                 style={styles.input}
-                value={eccInfo.dateOfIssuance}
-                onChangeText={(text) => updateECCInfo("dateOfIssuance", text)}
-                placeholder="MM/DD/YYYY"
-                placeholderTextColor="#94A3B8"
+                onPress={() => setShowEccDatePicker(true)}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <Text style={{ color: eccInfo?.dateOfIssuance ? "#1E293B" : "#94A3B8" }}>
+                    {eccInfo?.dateOfIssuance || "MM/DD/YYYY"}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={20} color="#94A3B8" />
+                </View>
+              </TouchableOpacity>
+              <DateTimePickerModal
+                isVisible={showEccDatePicker}
+                mode="date"
+                date={parseDateString(eccInfo?.dateOfIssuance) || new Date()}
+                onConfirm={handleEccDateConfirm}
+                onCancel={() => setShowEccDatePicker(false)}
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                textColor={Platform.OS === "ios" ? "#000000" : undefined}
+                pickerContainerStyleIOS={{
+                  backgroundColor: "#FFFFFF",
+                }}
+                modalStyleIOS={{
+                  backgroundColor: "rgba(0, 0, 0, 0.5)",
+                }}
               />
             </View>
 
@@ -295,7 +411,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
                     /> */}
 
                     <Picker
-                      selectedValue={form.permitHolder}
+                      selectedValue={form?.permitHolder || ""}
                       onValueChange={(value: string | number) => {
                         updateEccAdditionalForm(
                           index,
@@ -334,7 +450,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
                   <Text style={styles.label}>ECC Number</Text>
                   <TextInput
                     style={styles.input}
-                    value={form.eccNumber}
+                    value={form?.eccNumber || ""}
                     onChangeText={(text) =>
                       updateEccAdditionalForm(index, "eccNumber", text)
                     }
@@ -345,14 +461,32 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
 
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Date of Issuance</Text>
-                  <TextInput
+                  <TouchableOpacity
                     style={styles.input}
-                    value={form.dateOfIssuance}
-                    onChangeText={(text) =>
-                      updateEccAdditionalForm(index, "dateOfIssuance", text)
-                    }
-                    placeholder="MM/DD/YYYY"
-                    placeholderTextColor="#94A3B8"
+                    onPress={() => setShowEccAdditionalDatePicker(index)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                      <Text style={{ color: form?.dateOfIssuance ? "#1E293B" : "#94A3B8" }}>
+                        {form?.dateOfIssuance || "MM/DD/YYYY"}
+                      </Text>
+                      <Ionicons name="calendar-outline" size={20} color="#94A3B8" />
+                    </View>
+                  </TouchableOpacity>
+                  <DateTimePickerModal
+                    isVisible={showEccAdditionalDatePicker === index}
+                    mode="date"
+                    date={parseDateString(form?.dateOfIssuance) || new Date()}
+                    onConfirm={(selectedDate) => handleEccAdditionalDateConfirm(selectedDate, index)}
+                    onCancel={() => setShowEccAdditionalDatePicker(null)}
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    textColor={Platform.OS === "ios" ? "#000000" : undefined}
+                    pickerContainerStyleIOS={{
+                      backgroundColor: "#FFFFFF",
+                    }}
+                    modalStyleIOS={{
+                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                    }}
                   />
                 </View>
               </View>
@@ -365,9 +499,13 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
           style={[
             styles.togglerButton,
             styles.isagToggler,
-            isagInfo.isNA && styles.togglerButtonOpen,
+            isagInfo?.isNA && styles.togglerButtonOpen,
           ]}
-          onPress={() => updateISAGInfo("isNA", !isagInfo.isNA)}
+          onPress={() => {
+            // ✅ FIX: Add null/undefined check before accessing isNA
+            if (!isagInfo) return;
+            updateISAGInfo("isNA", !isagInfo.isNA);
+          }}
           activeOpacity={0.7}
         >
           <View style={styles.sectionBadge}>
@@ -379,17 +517,17 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
           <View
             style={[
               styles.checkbox,
-              isagInfo.isNA && styles.checkboxCheckedISAG,
+              isagInfo?.isNA && styles.checkboxCheckedISAG,
             ]}
           >
-            {isagInfo.isNA && (
+            {isagInfo?.isNA && (
               <Ionicons name="checkmark" size={16} color="white" />
             )}
           </View>
         </TouchableOpacity>
 
         {/* ISAG Form */}
-        {isagInfo.isNA && (
+        {isagInfo && isagInfo.isNA && (
           <View style={styles.formContainerISAG}>
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Name of Permit Holder</Text>
@@ -403,7 +541,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
                 /> */}
 
                 <Picker
-                  selectedValue={isagInfo.permitHolder}
+                  selectedValue={isagInfo?.permitHolder || ""}
                   onValueChange={(value: string | number) => {
                     updateISAGInfo("permitHolder", String(value));
                   }}
@@ -430,7 +568,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
               <Text style={styles.label}>ISAG Permit Number</Text>
               <TextInput
                 style={styles.input}
-                value={isagInfo.isagNumber}
+                value={isagInfo?.isagNumber || ""}
                 onChangeText={(text) => updateISAGInfo("isagNumber", text)}
                 placeholder="Enter permit number"
                 placeholderTextColor="#9CA3AF"
@@ -439,12 +577,32 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
 
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Date of Issuance</Text>
-              <TextInput
+              <TouchableOpacity
                 style={styles.input}
-                value={isagInfo.dateOfIssuance}
-                onChangeText={(text) => updateISAGInfo("dateOfIssuance", text)}
-                placeholder="MM/DD/YYYY"
-                placeholderTextColor="#9CA3AF"
+                onPress={() => setShowIsagDatePicker(true)}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <Text style={{ color: isagInfo?.dateOfIssuance ? "#1E293B" : "#9CA3AF" }}>
+                    {isagInfo?.dateOfIssuance || "MM/DD/YYYY"}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={20} color="#9CA3AF" />
+                </View>
+              </TouchableOpacity>
+              <DateTimePickerModal
+                isVisible={showIsagDatePicker}
+                mode="date"
+                date={parseDateString(isagInfo?.dateOfIssuance) || new Date()}
+                onConfirm={handleIsagDateConfirm}
+                onCancel={() => setShowIsagDatePicker(false)}
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                textColor={Platform.OS === "ios" ? "#000000" : undefined}
+                pickerContainerStyleIOS={{
+                  backgroundColor: "#FFFFFF",
+                }}
+                modalStyleIOS={{
+                  backgroundColor: "rgba(0, 0, 0, 0.5)",
+                }}
               />
             </View>
 
@@ -493,7 +651,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
                     /> */}
 
                     <Picker
-                      selectedValue={form.permitHolder}
+                      selectedValue={form?.permitHolder || ""}
                       onValueChange={(value: string | number) => {
                         updateIsagAdditionalForm(
                           index,
@@ -532,7 +690,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
                   <Text style={styles.label}>ISAG Permit Number</Text>
                   <TextInput
                     style={styles.input}
-                    value={form.isagNumber}
+                    value={form?.isagNumber || ""}
                     onChangeText={(text) =>
                       updateIsagAdditionalForm(index, "isagNumber", text)
                     }
@@ -543,14 +701,32 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
 
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Date of Issuance</Text>
-                  <TextInput
+                  <TouchableOpacity
                     style={styles.input}
-                    value={form.dateOfIssuance}
-                    onChangeText={(text) =>
-                      updateIsagAdditionalForm(index, "dateOfIssuance", text)
-                    }
-                    placeholder="MM/DD/YYYY"
-                    placeholderTextColor="#9CA3AF"
+                    onPress={() => setShowIsagAdditionalDatePicker(index)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                      <Text style={{ color: form?.dateOfIssuance ? "#1E293B" : "#9CA3AF" }}>
+                        {form?.dateOfIssuance || "MM/DD/YYYY"}
+                      </Text>
+                      <Ionicons name="calendar-outline" size={20} color="#9CA3AF" />
+                    </View>
+                  </TouchableOpacity>
+                  <DateTimePickerModal
+                    isVisible={showIsagAdditionalDatePicker === index}
+                    mode="date"
+                    date={parseDateString(form?.dateOfIssuance) || new Date()}
+                    onConfirm={(selectedDate) => handleIsagAdditionalDateConfirm(selectedDate, index)}
+                    onCancel={() => setShowIsagAdditionalDatePicker(null)}
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    textColor={Platform.OS === "ios" ? "#000000" : undefined}
+                    pickerContainerStyleIOS={{
+                      backgroundColor: "#FFFFFF",
+                    }}
+                    modalStyleIOS={{
+                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                    }}
                   />
                 </View>
               </View>
@@ -567,7 +743,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
               <Text style={styles.label}>Project Current Name</Text>
               <TextInput
                 style={styles.input}
-                value={isagInfo.currentName}
+                value={isagInfo?.currentName || ""}
                 onChangeText={(text) => updateISAGInfo("currentName", text)}
                 placeholder="Enter current project name"
                 placeholderTextColor="#9CA3AF"
@@ -578,7 +754,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
               <Text style={styles.label}>Project Status</Text>
               <TextInput
                 style={styles.input}
-                value={isagInfo.projectStatus}
+                value={isagInfo?.projectStatus || ""}
                 onChangeText={(text) => updateISAGInfo("projectStatus", text)}
                 placeholder="Enter project status"
                 placeholderTextColor="#9CA3AF"
@@ -592,7 +768,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
                   <Text style={styles.coordinateLabel}>Latitude (X)</Text>
                   <TextInput
                     style={styles.coordinateInput}
-                    value={isagInfo.gpsX}
+                    value={isagInfo?.gpsX || ""}
                     onChangeText={(text) => updateISAGInfo("gpsX", text)}
                     placeholder="0.000000"
                     placeholderTextColor="#9CA3AF"
@@ -603,7 +779,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
                   <Text style={styles.coordinateLabel}>Longitude (Y)</Text>
                   <TextInput
                     style={styles.coordinateInput}
-                    value={isagInfo.gpsY}
+                    value={isagInfo?.gpsY || ""}
                     onChangeText={(text) => updateISAGInfo("gpsY", text)}
                     placeholder="0.000000"
                     placeholderTextColor="#9CA3AF"
@@ -624,7 +800,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
               <Text style={styles.label}>Proponent Name</Text>
               <TextInput
                 style={styles.input}
-                value={isagInfo.proponentName}
+                value={isagInfo?.proponentName || ""}
                 onChangeText={(text) => updateISAGInfo("proponentName", text)}
                 placeholder="Enter proponent name"
                 placeholderTextColor="#9CA3AF"
@@ -635,7 +811,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
               <Text style={styles.label}>Contact Person & Position</Text>
               <TextInput
                 style={styles.input}
-                value={isagInfo.proponentContact}
+                value={isagInfo?.proponentContact || ""}
                 onChangeText={(text) =>
                   updateISAGInfo("proponentContact", text)
                 }
@@ -648,7 +824,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
               <Text style={styles.label}>Mailing Address</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                value={isagInfo.proponentAddress}
+                value={isagInfo?.proponentAddress || ""}
                 onChangeText={(text) =>
                   updateISAGInfo("proponentAddress", text)
                 }
@@ -663,7 +839,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
               <Text style={styles.label}>Telephone / Fax Number</Text>
               <TextInput
                 style={styles.input}
-                value={isagInfo.proponentPhone}
+                value={isagInfo?.proponentPhone || ""}
                 onChangeText={(text) => updateISAGInfo("proponentPhone", text)}
                 placeholder="09xx-xxx-xxxx"
                 placeholderTextColor="#9CA3AF"
@@ -675,7 +851,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
               <Text style={styles.label}>Email Address</Text>
               <TextInput
                 style={styles.input}
-                value={isagInfo.proponentEmail}
+                value={isagInfo?.proponentEmail || ""}
                 onChangeText={(text) => updateISAGInfo("proponentEmail", text)}
                 placeholder="email@domain.com"
                 placeholderTextColor="#9CA3AF"

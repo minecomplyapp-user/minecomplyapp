@@ -8,9 +8,11 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiPost } from "../../lib/api";
 import { theme } from "../../theme/theme";
@@ -26,41 +28,77 @@ interface GuestRemarksFormProps {
 }
 
 /**
- * Guest Remarks Form Screen
+ * MMT Observation Form Screen
  * 
- * Replaces Google Forms for member/guest remarks submission.
- * Allows internal submission of remarks linked to specific reports.
+ * Replaces Google Forms "MMT Observation Form – MGB Region I" with internal feature.
+ * Matches all fields from the original Google Form:
+ * 1. Full Name *
+ * 2. Agency/Organization Represented * (MGB, EMB, LGU, CENRO, PENRO, NGO, COMPANY, Other)
+ * 3. Position/Designation *
+ * 4. Date of Monitoring *
+ * 5. Site / Company Monitored *
+ * 6. Observations (optional)
+ * 7. Issues or Concerns Noted (If any) (optional)
+ * 8. Recommendations *
  */
 export default function GuestRemarksForm({ navigation, route }: GuestRemarksFormProps) {
   const { user } = useAuth();
   const reportId = route?.params?.reportId || "";
   const reportType = route?.params?.reportType || "CMVR";
 
+  // ✅ FIX: Match Google Form fields exactly
   const [formData, setFormData] = useState({
-    reportId: reportId,
-    reportType: reportType,
-    guestName: user?.displayName || "",
-    guestEmail: user?.email || "",
-    guestRole: "Member" as "Member" | "Guest" | "Stakeholder",
-    remarks: "",
+    // 1. Full Name *
+    fullName: user?.displayName || "",
+    // 2. Agency/Organization Represented *
+    agency: "" as "MGB" | "EMB" | "LGU" | "CENRO" | "PENRO" | "NGO" | "COMPANY" | "Other" | "",
+    agencyOther: "", // For "Other" option
+    // 3. Position/Designation *
+    position: "",
+    // 4. Date of Monitoring *
+    dateOfMonitoring: new Date(),
+    showDatePicker: false,
+    // 5. Site / Company Monitored *
+    siteCompanyMonitored: "",
+    // 6. Observations (optional)
+    observations: "",
+    // 7. Issues or Concerns Noted (optional)
+    issuesConcerns: "",
+    // 8. Recommendations *
+    recommendations: "",
   });
 
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    // Validation
-    if (!formData.reportId.trim()) {
-      Alert.alert("Validation Error", "Please enter a Report ID");
+    // ✅ FIX: Validate all required fields matching Google Form
+    if (!formData.fullName.trim()) {
+      Alert.alert("Validation Error", "Please enter your full name");
       return;
     }
 
-    if (!formData.guestName.trim()) {
-      Alert.alert("Validation Error", "Please enter your name");
+    if (!formData.agency) {
+      Alert.alert("Validation Error", "Please select your Agency/Organization");
       return;
     }
 
-    if (!formData.remarks.trim()) {
-      Alert.alert("Validation Error", "Please enter your remarks");
+    if (formData.agency === "Other" && !formData.agencyOther.trim()) {
+      Alert.alert("Validation Error", "Please specify your agency/organization");
+      return;
+    }
+
+    if (!formData.position.trim()) {
+      Alert.alert("Validation Error", "Please enter your Position/Designation");
+      return;
+    }
+
+    if (!formData.siteCompanyMonitored.trim()) {
+      Alert.alert("Validation Error", "Please enter the Site / Company Monitored");
+      return;
+    }
+
+    if (!formData.recommendations.trim()) {
+      Alert.alert("Validation Error", "Please enter your Recommendations");
       return;
     }
 
@@ -68,23 +106,43 @@ export default function GuestRemarksForm({ navigation, route }: GuestRemarksForm
 
     try {
       const payload = {
-        ...formData,
+        // Match Google Form structure
+        fullName: formData.fullName.trim(),
+        agency: formData.agency === "Other" ? formData.agencyOther.trim() : formData.agency,
+        position: formData.position.trim(),
+        dateOfMonitoring: formData.dateOfMonitoring.toISOString().split('T')[0], // YYYY-MM-DD format
+        siteCompanyMonitored: formData.siteCompanyMonitored.trim(),
+        observations: formData.observations.trim() || null,
+        issuesConcerns: formData.issuesConcerns.trim() || null,
+        recommendations: formData.recommendations.trim(),
+        // Additional metadata
+        reportId: reportId || null,
+        reportType: reportType || null,
         createdById: user?.id || null,
+        createdByEmail: user?.email || null,
       };
 
       await apiPost("/guest-remarks", payload);
 
       Alert.alert(
         "Success",
-        "Your remarks have been submitted successfully!",
+        "Your MMT Observation Form has been submitted successfully!",
         [
           {
             text: "OK",
             onPress: () => {
               // Reset form
               setFormData({
-                ...formData,
-                remarks: "",
+                fullName: user?.displayName || "",
+                agency: "",
+                agencyOther: "",
+                position: "",
+                dateOfMonitoring: new Date(),
+                showDatePicker: false,
+                siteCompanyMonitored: "",
+                observations: "",
+                issuesConcerns: "",
+                recommendations: "",
               });
               navigation.goBack();
             },
@@ -92,10 +150,10 @@ export default function GuestRemarksForm({ navigation, route }: GuestRemarksForm
         ]
       );
     } catch (error: any) {
-      console.error("Error submitting remarks:", error);
+      console.error("Error submitting MMT observation:", error);
       Alert.alert(
         "Submission Failed",
-        error?.message || "Failed to submit remarks. Please try again."
+        error?.message || "Failed to submit observation. Please try again."
       );
     } finally {
       setSubmitting(false);
@@ -108,112 +166,173 @@ export default function GuestRemarksForm({ navigation, route }: GuestRemarksForm
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.primaryDark} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Submit Remarks</Text>
+        <Text style={styles.headerTitle}>MMT Observation Form</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <View style={styles.introSection}>
-          <Ionicons name="chatbox-ellipses" size={48} color={theme.colors.primary} />
-          <Text style={styles.introTitle}>Share Your Feedback</Text>
+          <Ionicons name="clipboard" size={48} color={theme.colors.primary} />
+          <Text style={styles.introTitle}>MMT Observation Form</Text>
           <Text style={styles.introText}>
-            Your remarks and feedback help improve compliance monitoring.
-            All submissions are recorded and reviewed by the monitoring team.
+            MGB Region I - Multi-Partite Monitoring Team Observation Form
+          </Text>
+          <Text style={styles.introSubtext}>
+            Please fill out all required fields (*) to submit your observation.
           </Text>
         </View>
 
-        {/* Report ID */}
+        {/* 1. Full Name * */}
         <View style={styles.field}>
           <Text style={styles.label}>
-            Report ID <Text style={styles.required}>*</Text>
+            1. Full Name <Text style={styles.required}>*</Text>
           </Text>
           <TextInput
             style={styles.input}
-            value={formData.reportId}
-            onChangeText={(value) => setFormData({ ...formData, reportId: value })}
-            placeholder="Enter Report ID"
-            placeholderTextColor="#94A3B8"
-            editable={!reportId} // Disable if passed from navigation
-          />
-        </View>
-
-        {/* Report Type */}
-        <View style={styles.field}>
-          <Text style={styles.label}>
-            Report Type <Text style={styles.required}>*</Text>
-          </Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={formData.reportType}
-              onValueChange={(value) => setFormData({ ...formData, reportType: value })}
-              style={styles.picker}
-              enabled={!reportType || reportType === "CMVR"} // Disable if passed from navigation
-            >
-              <Picker.Item label="CMVR Report" value="CMVR" />
-              <Picker.Item label="ECC Report" value="ECC" />
-            </Picker>
-          </View>
-        </View>
-
-        {/* Guest Name */}
-        <View style={styles.field}>
-          <Text style={styles.label}>
-            Your Name <Text style={styles.required}>*</Text>
-          </Text>
-          <TextInput
-            style={styles.input}
-            value={formData.guestName}
-            onChangeText={(value) => setFormData({ ...formData, guestName: value })}
+            value={formData.fullName}
+            onChangeText={(value) => setFormData({ ...formData, fullName: value })}
             placeholder="Enter your full name"
             placeholderTextColor="#94A3B8"
           />
         </View>
 
-        {/* Guest Email */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Email (Optional)</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.guestEmail}
-            onChangeText={(value) => setFormData({ ...formData, guestEmail: value })}
-            placeholder="your.email@example.com"
-            placeholderTextColor="#94A3B8"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-        </View>
-
-        {/* Guest Role */}
+        {/* 2. Agency/Organization Represented * */}
         <View style={styles.field}>
           <Text style={styles.label}>
-            Your Role <Text style={styles.required}>*</Text>
+            2. Agency/Organization Represented <Text style={styles.required}>*</Text>
           </Text>
           <View style={styles.pickerContainer}>
             <Picker
-              selectedValue={formData.guestRole}
-              onValueChange={(value) => setFormData({ ...formData, guestRole: value })}
+              selectedValue={formData.agency}
+              onValueChange={(value) => setFormData({ ...formData, agency: value, agencyOther: "" })}
               style={styles.picker}
             >
-              <Picker.Item label="Member" value="Member" />
-              <Picker.Item label="Guest" value="Guest" />
-              <Picker.Item label="Stakeholder" value="Stakeholder" />
+              <Picker.Item label="Select Agency/Organization" value="" />
+              <Picker.Item label="MGB" value="MGB" />
+              <Picker.Item label="EMB" value="EMB" />
+              <Picker.Item label="LGU" value="LGU" />
+              <Picker.Item label="CENRO" value="CENRO" />
+              <Picker.Item label="PENRO" value="PENRO" />
+              <Picker.Item label="NGO" value="NGO" />
+              <Picker.Item label="COMPANY" value="COMPANY" />
+              <Picker.Item label="Other" value="Other" />
             </Picker>
           </View>
+          {formData.agency === "Other" && (
+            <TextInput
+              style={[styles.input, { marginTop: 8 }]}
+              value={formData.agencyOther}
+              onChangeText={(value) => setFormData({ ...formData, agencyOther: value })}
+              placeholder="Specify your agency/organization"
+              placeholderTextColor="#94A3B8"
+            />
+          )}
         </View>
 
-        {/* Remarks */}
+        {/* 3. Position/Designation * */}
         <View style={styles.field}>
           <Text style={styles.label}>
-            Remarks/Comments <Text style={styles.required}>*</Text>
+            Position/Designation <Text style={styles.required}>*</Text>
+          </Text>
+          <TextInput
+            style={styles.input}
+            value={formData.position}
+            onChangeText={(value) => setFormData({ ...formData, position: value })}
+            placeholder="Enter your position or designation"
+            placeholderTextColor="#94A3B8"
+          />
+        </View>
+
+        {/* 4. Date of Monitoring * */}
+        <View style={styles.field}>
+          <Text style={styles.label}>
+            Date of Monitoring <Text style={styles.required}>*</Text>
+          </Text>
+          <TouchableOpacity
+            style={styles.input}
+            onPress={() => setFormData({ ...formData, showDatePicker: true })}
+          >
+            <Text style={formData.dateOfMonitoring ? styles.dateText : styles.placeholderText}>
+              {formData.dateOfMonitoring
+                ? formData.dateOfMonitoring.toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  })
+                : "dd/mm/yyyy"}
+            </Text>
+          </TouchableOpacity>
+          {formData.showDatePicker && (
+            <DateTimePicker
+              value={formData.dateOfMonitoring}
+              mode="date"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              onChange={(event, selectedDate) => {
+                setFormData({
+                  ...formData,
+                  showDatePicker: Platform.OS === "ios",
+                  dateOfMonitoring: selectedDate || formData.dateOfMonitoring,
+                });
+              }}
+            />
+          )}
+        </View>
+
+        {/* 5. Site / Company Monitored * */}
+        <View style={styles.field}>
+          <Text style={styles.label}>
+            Site / Company Monitored <Text style={styles.required}>*</Text>
+          </Text>
+          <TextInput
+            style={styles.input}
+            value={formData.siteCompanyMonitored}
+            onChangeText={(value) => setFormData({ ...formData, siteCompanyMonitored: value })}
+            placeholder="Enter site or company name"
+            placeholderTextColor="#94A3B8"
+          />
+        </View>
+
+        {/* 6. Observations (Optional) */}
+        <View style={styles.field}>
+          <Text style={styles.label}>Observations</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={formData.observations}
+            onChangeText={(value) => setFormData({ ...formData, observations: value })}
+            placeholder="Enter your observations..."
+            placeholderTextColor="#94A3B8"
+            multiline
+            numberOfLines={4}
+          />
+        </View>
+
+        {/* 7. Issues or Concerns Noted (Optional) */}
+        <View style={styles.field}>
+          <Text style={styles.label}>Issues or Concerns Noted (If any)</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={formData.issuesConcerns}
+            onChangeText={(value) => setFormData({ ...formData, issuesConcerns: value })}
+            placeholder="Enter any issues or concerns..."
+            placeholderTextColor="#94A3B8"
+            multiline
+            numberOfLines={4}
+          />
+        </View>
+
+        {/* 8. Recommendations * */}
+        <View style={styles.field}>
+          <Text style={styles.label}>
+            Recommendations <Text style={styles.required}>*</Text>
           </Text>
           <TextInput
             style={[styles.input, styles.textArea]}
-            value={formData.remarks}
-            onChangeText={(value) => setFormData({ ...formData, remarks: value })}
-            placeholder="Enter your remarks, feedback, or comments..."
+            value={formData.recommendations}
+            onChangeText={(value) => setFormData({ ...formData, recommendations: value })}
+            placeholder="Enter your recommendations..."
             placeholderTextColor="#94A3B8"
             multiline
-            numberOfLines={8}
+            numberOfLines={6}
           />
         </View>
 
@@ -228,7 +347,7 @@ export default function GuestRemarksForm({ navigation, route }: GuestRemarksForm
           ) : (
             <>
               <Ionicons name="send" size={20} color="#FFFFFF" />
-              <Text style={styles.submitButtonText}>Submit Remarks</Text>
+              <Text style={styles.submitButtonText}>Submit</Text>
             </>
           )}
         </TouchableOpacity>
@@ -291,6 +410,21 @@ const styles = StyleSheet.create({
     color: "#64748B",
     textAlign: "center",
     lineHeight: 20,
+    marginBottom: 4,
+  },
+  introSubtext: {
+    fontSize: 12,
+    color: "#94A3B8",
+    textAlign: "center",
+    fontStyle: "italic",
+  },
+  dateText: {
+    fontSize: 14,
+    color: "#1E293B",
+  },
+  placeholderText: {
+    fontSize: 14,
+    color: "#94A3B8",
   },
   field: {
     marginBottom: 20,

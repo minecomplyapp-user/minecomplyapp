@@ -20,7 +20,11 @@ const MMTSection: React.FC<MMTSectionProps> = ({ mmtInfo, setMmtInfo }) => {
   const [loading, setLoading] = useState(false);
 
   const updateMMTInfo = (field: keyof MMTInfo, value: string) => {
-    setMmtInfo((prev) => ({ ...prev, [field]: value }));
+    setMmtInfo((prev) => {
+      // ✅ FIX: Add null/undefined safety check
+      const safePrev = prev || { isNA: false, contactPerson: "", mailingAddress: "", phoneNumber: "", emailAddress: "" };
+      return { ...safePrev, [field]: value };
+    });
   };
 
   const handleAutoPopulate = async () => {
@@ -56,13 +60,17 @@ const MMTSection: React.FC<MMTSectionProps> = ({ mmtInfo, setMmtInfo }) => {
         const contactPerson = position ? `${fullName} - ${position}` : fullName;
 
         // Populate MMT info from profile
-        setMmtInfo((prev) => ({
-          ...prev,
-          contactPerson: contactPerson || prev.contactPerson,
-          mailingAddress: mailing_address || prev.mailingAddress,
-          phoneNumber: phone_number || fax || prev.phoneNumber,
-          emailAddress: email || user.email || prev.emailAddress,
-        }));
+        setMmtInfo((prev) => {
+          // ✅ FIX: Add null/undefined safety check
+          const safePrev = prev || { isNA: false, contactPerson: "", mailingAddress: "", phoneNumber: "", emailAddress: "" };
+          return {
+            ...safePrev,
+            contactPerson: contactPerson || safePrev.contactPerson,
+            mailingAddress: mailing_address || safePrev.mailingAddress,
+            phoneNumber: phone_number || fax || safePrev.phoneNumber,
+            emailAddress: email || user.email || safePrev.emailAddress,
+          };
+        });
 
         Alert.alert(
           "Success",
@@ -115,7 +123,7 @@ const MMTSection: React.FC<MMTSectionProps> = ({ mmtInfo, setMmtInfo }) => {
           <Text style={styles.label}>MMT Contact Person & Position</Text>
           <TextInput
             style={styles.input}
-            value={mmtInfo.contactPerson}
+            value={mmtInfo?.contactPerson || ""}
             onChangeText={(text) => updateMMTInfo("contactPerson", text)}
             placeholder="Enter contact person and position"
             placeholderTextColor="#94A3B8"
@@ -126,7 +134,7 @@ const MMTSection: React.FC<MMTSectionProps> = ({ mmtInfo, setMmtInfo }) => {
           <Text style={styles.label}>MMT Mailing Address</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
-            value={mmtInfo.mailingAddress}
+            value={mmtInfo?.mailingAddress || ""}
             onChangeText={(text) => updateMMTInfo("mailingAddress", text)}
             placeholder="Enter mailing address"
             placeholderTextColor="#94A3B8"
@@ -140,7 +148,7 @@ const MMTSection: React.FC<MMTSectionProps> = ({ mmtInfo, setMmtInfo }) => {
           <Text style={styles.label}>MMT Telephone No. / Fax No.</Text>
           <TextInput
             style={styles.input}
-            value={mmtInfo.phoneNumber}
+            value={mmtInfo?.phoneNumber || ""}
             onChangeText={(text) => updateMMTInfo("phoneNumber", text)}
             placeholder="09XX-XXX-XXXX"
             placeholderTextColor="#94A3B8"
@@ -152,7 +160,7 @@ const MMTSection: React.FC<MMTSectionProps> = ({ mmtInfo, setMmtInfo }) => {
           <Text style={styles.label}>MMT Email Address</Text>
           <TextInput
             style={styles.input}
-            value={mmtInfo.emailAddress}
+            value={mmtInfo?.emailAddress || ""}
             onChangeText={(text) => updateMMTInfo("emailAddress", text)}
             placeholder="email@domain.com"
             placeholderTextColor="#94A3B8"
