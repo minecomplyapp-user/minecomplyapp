@@ -38,6 +38,7 @@ import {
 } from "../types/CMVRReportScreen.types";
 import { styles } from "../styles/CMVRReportScreen.styles";
 import ConfirmationDialog from "../components/ConfirmationDialog";
+import { PermitHolderTypeSelection, PermitHolderType } from "./components/PermitHolderTypeSelection";
 
 const transformToBackendDTO = (
   generalInfo: GeneralInfo,
@@ -233,6 +234,9 @@ const CMVRReportScreen: React.FC = () => {
   // Local UI state
   const [isSaving, setIsSaving] = useState(false);
   const [showBackDialog, setShowBackDialog] = useState(false);
+  // ✅ NEW: Permit holder type selection
+  const [showPermitHolderTypeSelection, setShowPermitHolderTypeSelection] = useState(false);
+  const permitHolderType = currentReport?.permitHolderType || "single";
 
   // Legacy fileName context (keep for compatibility with other screens)
   const { fileName: contextFileName, setFileName: setContextFileName } =
@@ -333,6 +337,10 @@ const CMVRReportScreen: React.FC = () => {
           const newFileName = contextFileName || "Untitled";
           initializeNewReport(newFileName);
           setContextFileName(newFileName);
+          // ✅ NEW: Show permit holder type selection for new reports
+          if (!currentReport?.permitHolderType) {
+            setShowPermitHolderTypeSelection(true);
+          }
         }
       } catch (error) {
         console.error("[ERROR] CMVR initialization failed:", error);
@@ -507,11 +515,12 @@ const CMVRReportScreen: React.FC = () => {
   const isExistingSubmission = Boolean(
     routeParams.submissionId ?? storeSubmissionId
   );
+  // ✅ FIX: Ensure statusLabel and statusSubtext are always strings
   const statusLabel = isExistingSubmission
     ? "Editing Submitted CMVR"
     : "New CMVR Report";
   const statusSubtext = isExistingSubmission
-    ? `Submission ID: ${routeParams.submissionId || storeSubmissionId}`
+    ? `Submission ID: ${routeParams.submissionId || storeSubmissionId || "Unknown"}`
     : "All sections start blank without previous data.";
 
   // **HANDLERS** - Update store instead of local state
@@ -526,7 +535,9 @@ const CMVRReportScreen: React.FC = () => {
 
   // **SETTER FUNCTIONS** - Wrappers to update store sections
   const setEccInfo = (value: ECCInfo | ((prev: ECCInfo) => ECCInfo)) => {
-    const newValue = typeof value === "function" ? value(eccInfo) : value;
+    // ✅ FIX: Add null/undefined safety check
+    const defaultEccInfo: ECCInfo = { isNA: false, permitHolder: "", eccNumber: "", dateOfIssuance: "" };
+    const newValue = typeof value === "function" ? value(eccInfo || defaultEccInfo) : value;
     updateSection("eccInfo", newValue);
   };
 
@@ -541,7 +552,24 @@ const CMVRReportScreen: React.FC = () => {
   };
 
   const setIsagInfo = (value: ISAGInfo | ((prev: ISAGInfo) => ISAGInfo)) => {
-    const newValue = typeof value === "function" ? value(isagInfo) : value;
+    // ✅ FIX: Add null/undefined safety check
+    const defaultIsagInfo: ISAGInfo = {
+      isNA: false,
+      permitHolder: "",
+      isagNumber: "",
+      dateOfIssuance: "",
+      currentName: "",
+      nameInECC: "",
+      projectStatus: "",
+      gpsX: "",
+      gpsY: "",
+      proponentName: "",
+      proponentContact: "",
+      proponentAddress: "",
+      proponentPhone: "",
+      proponentEmail: "",
+    };
+    const newValue = typeof value === "function" ? value(isagInfo || defaultIsagInfo) : value;
     updateSection("isagInfo", newValue);
   };
 
@@ -556,7 +584,9 @@ const CMVRReportScreen: React.FC = () => {
   };
 
   const setEpepInfo = (value: EPEPInfo | ((prev: EPEPInfo) => EPEPInfo)) => {
-    const newValue = typeof value === "function" ? value(epepInfo) : value;
+    // ✅ FIX: Add null/undefined safety check
+    const defaultEpepInfo: EPEPInfo = { isNA: false, permitHolder: "", epepNumber: "", dateOfApproval: "" };
+    const newValue = typeof value === "function" ? value(epepInfo || defaultEpepInfo) : value;
     updateSection("epepInfo", newValue);
   };
 
@@ -571,7 +601,9 @@ const CMVRReportScreen: React.FC = () => {
   };
 
   const setRcfInfo = (value: RCFInfo | ((prev: RCFInfo) => RCFInfo)) => {
-    const newValue = typeof value === "function" ? value(rcfInfo) : value;
+    // ✅ FIX: Add null/undefined safety check
+    const defaultRcfInfo: RCFInfo = { isNA: false, permitHolder: "", savingsAccount: "", amountDeposited: "", dateUpdated: "" };
+    const newValue = typeof value === "function" ? value(rcfInfo || defaultRcfInfo) : value;
     updateSection("rcfInfo", newValue);
   };
 
@@ -586,7 +618,9 @@ const CMVRReportScreen: React.FC = () => {
   };
 
   const setMtfInfo = (value: RCFInfo | ((prev: RCFInfo) => RCFInfo)) => {
-    const newValue = typeof value === "function" ? value(mtfInfo) : value;
+    // ✅ FIX: Add null/undefined safety check
+    const defaultMtfInfo: RCFInfo = { isNA: false, permitHolder: "", savingsAccount: "", amountDeposited: "", dateUpdated: "" };
+    const newValue = typeof value === "function" ? value(mtfInfo || defaultMtfInfo) : value;
     updateSection("mtfInfo", newValue);
   };
 
@@ -601,7 +635,9 @@ const CMVRReportScreen: React.FC = () => {
   };
 
   const setFmrdfInfo = (value: RCFInfo | ((prev: RCFInfo) => RCFInfo)) => {
-    const newValue = typeof value === "function" ? value(fmrdfInfo) : value;
+    // ✅ FIX: Add null/undefined safety check
+    const defaultFmrdfInfo: RCFInfo = { isNA: false, permitHolder: "", savingsAccount: "", amountDeposited: "", dateUpdated: "" };
+    const newValue = typeof value === "function" ? value(fmrdfInfo || defaultFmrdfInfo) : value;
     updateSection("fmrdfInfo", newValue);
   };
 
@@ -616,7 +652,9 @@ const CMVRReportScreen: React.FC = () => {
   };
 
   const setMmtInfo = (value: MMTInfo | ((prev: MMTInfo) => MMTInfo)) => {
-    const newValue = typeof value === "function" ? value(mmtInfo) : value;
+    // ✅ FIX: Add null/undefined safety check
+    const defaultMmtInfo: MMTInfo = { isNA: false, contactPerson: "", mailingAddress: "", phoneNumber: "", emailAddress: "" };
+    const newValue = typeof value === "function" ? value(mmtInfo || defaultMmtInfo) : value;
     updateSection("mmtInfo", newValue);
   };
 
@@ -631,23 +669,44 @@ const CMVRReportScreen: React.FC = () => {
   const setGeneralInfo = (
     value: GeneralInfo | ((prev: GeneralInfo) => GeneralInfo)
   ) => {
-    const newValue = typeof value === "function" ? value(generalInfo) : value;
+    // ✅ FIX: Add null/undefined safety check
+    const defaultGeneralInfo: GeneralInfo = {
+      companyName: "",
+      projectName: "",
+      location: "",
+      region: "",
+      province: "",
+      municipality: "",
+      quarter: "",
+      year: "",
+      dateOfCompliance: "",
+      monitoringPeriod: "",
+      dateOfCMRSubmission: "",
+    };
+    const newValue = typeof value === "function" ? value(generalInfo || defaultGeneralInfo) : value;
     updateSection("generalInfo", newValue);
   };
 
   // Note: isDirty is automatically tracked by the store, no need for local hasUnsavedChanges
 
   const fillTestData = () => {
-    setPermitHolderList([
+    // ✅ FIX: Use consistent permit holder names that match between permitHolderList and all form fields
+    const testPermitHolders = [
       "First Permit Holder Corp.",
       "Second Mining Company Ltd.",
       "Third Resources Inc.",
       "Fourth Development Corp.",
-    ]);
+    ];
+    
+    setPermitHolderList(testPermitHolders);
+    
+    // ✅ FIX: Set permitHolderType (default to "single" for test data)
+    updateMultipleSections({ permitHolderType: "single" });
+    
     setGeneralInfo({
       companyName: "Test Mining Company",
       projectName:
-        storeProjectName || generalInfo.projectName || "Test Project",
+        storeProjectName || generalInfo?.projectName || "Test Project",
       location: "123 Mining Street",
       region: "Region 1",
       province: "Test Province",
@@ -658,27 +717,29 @@ const CMVRReportScreen: React.FC = () => {
       monitoringPeriod: "2025-01-01 to 2025-03-31",
       dateOfCMRSubmission: "2025-04-15",
     });
+    
+    // ✅ FIX: Use permit holder names from the list
     setEccInfo({
       isNA: false,
-      permitHolder: "First ECC Permit Holder",
+      permitHolder: testPermitHolders[0], // "First Permit Holder Corp."
       eccNumber: "ECC-2025-001",
       dateOfIssuance: "2025-01-15",
     });
     setEccAdditionalForms([
       {
-        permitHolder: "Second ECC Permit Holder",
+        permitHolder: testPermitHolders[1], // "Second Mining Company Ltd."
         eccNumber: "ECC-2025-002",
         dateOfIssuance: "2025-01-20",
       },
       {
-        permitHolder: "Third ECC Permit Holder",
+        permitHolder: testPermitHolders[2], // "Third Resources Inc."
         eccNumber: "ECC-2025-003",
         dateOfIssuance: "2025-01-25",
       },
     ]);
     setIsagInfo({
       isNA: false,
-      permitHolder: "First ISAG Holder",
+      permitHolder: testPermitHolders[0], // "First Permit Holder Corp."
       isagNumber: "ISAG-2025-001",
       dateOfIssuance: "2025-01-20",
       currentName: "Current Test Project",
@@ -694,50 +755,50 @@ const CMVRReportScreen: React.FC = () => {
     });
     setIsagAdditionalForms([
       {
-        permitHolder: "Second ISAG Holder",
+        permitHolder: testPermitHolders[1], // "Second Mining Company Ltd."
         isagNumber: "ISAG-2025-002",
         dateOfIssuance: "2025-01-25",
       },
       {
-        permitHolder: "Third ISAG Holder",
+        permitHolder: testPermitHolders[2], // "Third Resources Inc."
         isagNumber: "ISAG-2025-003",
         dateOfIssuance: "2025-01-30",
       },
     ]);
     setEpepInfo({
       isNA: false,
-      permitHolder: "First EPEP Holder",
+      permitHolder: testPermitHolders[0], // "First Permit Holder Corp."
       epepNumber: "EPEP-2025-001",
       dateOfApproval: "2025-02-01",
     });
     setEpepAdditionalForms([
       {
-        permitHolder: "Second EPEP Holder",
+        permitHolder: testPermitHolders[1], // "Second Mining Company Ltd."
         epepNumber: "EPEP-2025-002",
         dateOfApproval: "2025-02-05",
       },
       {
-        permitHolder: "Third EPEP Holder",
+        permitHolder: testPermitHolders[2], // "Third Resources Inc."
         epepNumber: "EPEP-2025-003",
         dateOfApproval: "2025-02-10",
       },
     ]);
     setRcfInfo({
       isNA: false,
-      permitHolder: "First RCF Holder",
+      permitHolder: testPermitHolders[0], // "First Permit Holder Corp."
       savingsAccount: "RCF-1234-5678-90",
       amountDeposited: "500,000.00",
       dateUpdated: "2025-03-01",
     });
     setRcfAdditionalForms([
       {
-        permitHolder: "Second RCF Holder",
+        permitHolder: testPermitHolders[1], // "Second Mining Company Ltd."
         savingsAccount: "RCF-2345-6789-01",
         amountDeposited: "750,000.00",
         dateUpdated: "2025-03-05",
       },
       {
-        permitHolder: "Third RCF Holder",
+        permitHolder: testPermitHolders[2], // "Third Resources Inc."
         savingsAccount: "RCF-3456-7890-12",
         amountDeposited: "1,000,000.00",
         dateUpdated: "2025-03-10",
@@ -745,20 +806,20 @@ const CMVRReportScreen: React.FC = () => {
     ]);
     setMtfInfo({
       isNA: false,
-      permitHolder: "First MTF Holder",
+      permitHolder: testPermitHolders[0], // "First Permit Holder Corp."
       savingsAccount: "MTF-1234-5678-90",
       amountDeposited: "2,500,000.00",
       dateUpdated: "2025-03-01",
     });
     setMtfAdditionalForms([
       {
-        permitHolder: "Second MTF Holder",
+        permitHolder: testPermitHolders[1], // "Second Mining Company Ltd."
         savingsAccount: "MTF-2345-6789-01",
         amountDeposited: "3,000,000.00",
         dateUpdated: "2025-03-05",
       },
       {
-        permitHolder: "Third MTF Holder",
+        permitHolder: testPermitHolders[2], // "Third Resources Inc."
         savingsAccount: "MTF-3456-7890-12",
         amountDeposited: "3,500,000.00",
         dateUpdated: "2025-03-10",
@@ -766,20 +827,20 @@ const CMVRReportScreen: React.FC = () => {
     ]);
     setFmrdfInfo({
       isNA: false,
-      permitHolder: "First FMRDF Holder",
+      permitHolder: testPermitHolders[0], // "First Permit Holder Corp."
       savingsAccount: "FMRDF-1234-5678-90",
       amountDeposited: "1,500,000.00",
       dateUpdated: "2025-03-01",
     });
     setFmrdfAdditionalForms([
       {
-        permitHolder: "Second FMRDF Holder",
+        permitHolder: testPermitHolders[1], // "Second Mining Company Ltd."
         savingsAccount: "FMRDF-2345-6789-01",
         amountDeposited: "2,000,000.00",
         dateUpdated: "2025-03-05",
       },
       {
-        permitHolder: "Third FMRDF Holder",
+        permitHolder: testPermitHolders[2], // "Third Resources Inc."
         savingsAccount: "FMRDF-3456-7890-12",
         amountDeposited: "2,500,000.00",
         dateUpdated: "2025-03-10",
@@ -1054,6 +1115,22 @@ const CMVRReportScreen: React.FC = () => {
         onConfirm={confirmBack}
         onCancel={() => setShowBackDialog(false)}
         type="warning"
+      />
+      {/* ✅ NEW: Permit Holder Type Selection Modal */}
+      <PermitHolderTypeSelection
+        visible={showPermitHolderTypeSelection}
+        currentType={(permitHolderType || "single") as PermitHolderType}
+        onSelect={(type) => {
+          updateMultipleSections({ permitHolderType: type });
+          setShowPermitHolderTypeSelection(false);
+        }}
+        onCancel={() => {
+          // Default to "single" if cancelled
+          if (!currentReport?.permitHolderType) {
+            updateMultipleSections({ permitHolderType: "single" });
+          }
+          setShowPermitHolderTypeSelection(false);
+        }}
       />
     </View>
   );

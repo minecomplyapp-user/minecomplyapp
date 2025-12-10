@@ -68,7 +68,9 @@ export default function AttendanceRecordScreen({ navigation }: any) {
       );
       setAttendanceRecords(Array.isArray(data) ? data : []);
     } catch (e: any) {
-      Alert.alert("Error", e?.message || "Failed to load attendance records.");
+      console.error("[Attendance] Failed to fetch records:", e);
+      const errorMessage = e?.message || "Failed to load attendance records.";
+      Alert.alert("Error", errorMessage);
     } finally {
       setLoading(false);
     }

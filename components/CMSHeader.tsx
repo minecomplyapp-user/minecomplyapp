@@ -41,7 +41,8 @@ export const CMSHeader: React.FC<CMSHeaderProps> = ({
   const [saveOptionsVisible, setSaveOptionsVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const displayFileName = fileNameProp || contextFileName;
+  // ✅ FIX: Ensure displayFileName is always a string to prevent text rendering errors
+  const displayFileName = fileNameProp || contextFileName || "Untitled";
   const [editableFileName, setEditableFileName] = useState(displayFileName);
 
   useEffect(() => {

@@ -326,6 +326,8 @@ const createProcessDocumentationSection = () => ({
 const createEmptyReportState = () => ({
   generalInfo: {},
   permitHolderList: [],
+  // ✅ NEW: Permit holder type selection (single vs multiple)
+  permitHolderType: "single", // "single" | "multiple"
   eccInfo: {},
   eccAdditionalForms: [],
   isagInfo: {},
@@ -358,6 +360,10 @@ const createEmptyReportState = () => ({
   },
   processDocumentationOfActivitiesUndertaken:
     createProcessDocumentationSection(),
+  // ✅ FIX: Member arrays for Process Documentation section
+  eccMmtAdditional: [],
+  epepMmtAdditional: [],
+  ocularMmtAdditional: [],
   complianceToProjectLocationAndCoverageLimits: createLocationCoverageSection(),
   complianceToImpactManagementCommitments: createImpactCommitmentsSection(),
   airQualityImpactAssessment: createAirQualitySection(),
@@ -668,6 +674,19 @@ const normalizeReportData = (reportData = {}) => {
     ),
     processDocumentationOfActivitiesUndertaken: normalizeProcessDocumentation(
       sourceData.processDocumentationOfActivitiesUndertaken
+    ),
+    // ✅ FIX: Ensure member arrays are properly loaded from draft/API
+    eccMmtAdditional: ensureArray(
+      sourceData.eccMmtAdditional,
+      base.eccMmtAdditional || []
+    ),
+    epepMmtAdditional: ensureArray(
+      sourceData.epepMmtAdditional,
+      base.epepMmtAdditional || []
+    ),
+    ocularMmtAdditional: ensureArray(
+      sourceData.ocularMmtAdditional,
+      base.ocularMmtAdditional || []
     ),
     complianceToProjectLocationAndCoverageLimits: normalizeLocationCoverage(
       sourceData.complianceToProjectLocationAndCoverageLimits
@@ -1029,6 +1048,10 @@ export const useCmvrStore = create((set, get) => ({
       if (clonedReport.executiveSummaryOfCompliance) {
         console.log("✓ Executive summary present");
       }
+      // ✅ FIX: Verify member arrays are included
+      console.log("ECC MMT Additional members:", clonedReport.eccMmtAdditional?.length || 0);
+      console.log("EPEP MMT Additional members:", clonedReport.epepMmtAdditional?.length || 0);
+      console.log("Ocular MMT Additional members:", clonedReport.ocularMmtAdditional?.length || 0);
       console.log("================");
 
       // Save to multi-file draft system (so it appears in the list)
