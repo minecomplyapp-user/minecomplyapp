@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { CommonActions } from "@react-navigation/native";
 import { CMSHeader } from "../../../components/CMSHeader";
 import { useCmvrStore } from "../../../store/cmvrStore";
 import { StyleSheet } from "react-native";
@@ -49,9 +50,21 @@ export default function ComplianceDiscussionScreen({ navigation, route }: any) {
   };
 
   const handleSaveToDraft = async () => {
-    updateSection("complianceMonitoringReportDiscussion", discussion);
-    await saveDraft();
-    Alert.alert("Saved", "Compliance Discussion saved to draft successfully");
+    try {
+      updateSection("complianceMonitoringReportDiscussion", discussion);
+      await saveDraft();
+      Alert.alert("Success", "Draft saved successfully");
+      // Navigate to Dashboard using reset
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "Dashboard" }],
+        })
+      );
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      Alert.alert("Error", "Failed to save draft. Please try again.");
+    }
   };
 
   const handleStay = () => {
@@ -101,11 +114,24 @@ export default function ComplianceDiscussionScreen({ navigation, route }: any) {
     navigation.goBack();
   };
 
-  const handleNext = () => {
-    updateSection("complianceMonitoringReportDiscussion", discussion);
-    saveDraft();
-    // Navigate to the next section (Air Quality Assessment)
-    navigation.navigate("AirQualityAssessmentScreen");
+  const handleSaveAndNext = async () => {
+    try {
+      // Save current discussion data to store
+      updateSection("complianceMonitoringReportDiscussion", discussion);
+      // Save draft before navigating
+      await saveDraft();
+      // Navigate to the next section (Compliance Monitoring - Section IV)
+      const params: any = route?.params || {};
+      navigation.navigate("ComplianceMonitoring", {
+        submissionId: params.submissionId,
+        projectId: params.projectId,
+        projectName: params.projectName,
+        fileName: params.fileName,
+      });
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      Alert.alert("Error", "Failed to save draft. Please try again.");
+    }
   };
 
   const addKeyFinding = () => {
@@ -279,24 +305,16 @@ export default function ComplianceDiscussionScreen({ navigation, route }: any) {
           />
         </View>
 
-        {/* Navigation Buttons */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={[styles.button, styles.backButton]} 
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={20} color={theme.colors.primary} />
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.button, styles.nextButton]} 
-            onPress={handleNext}
-          >
-            <Text style={styles.nextButtonText}>Next</Text>
-            <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
+        {/* Save & Next Button */}
+        <TouchableOpacity
+          style={styles.saveNextButton}
+          onPress={handleSaveAndNext}
+        >
+          <Text style={styles.saveNextButtonText}>Save & Next</Text>
+          <Ionicons name="arrow-forward" size={18} color="white" />
+        </TouchableOpacity>
+        {/* Bottom spacing */}
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -394,38 +412,27 @@ const styles = StyleSheet.create({
   deleteButton: {
     padding: 4,
   },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 24,
-    gap: 12,
-  },
-  button: {
-    flex: 1,
-    flexDirection: "row",
+  saveNextButton: {
+    backgroundColor: "#02217C",
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: "center",
+    marginHorizontal: 16,
+    marginTop: 24,
+    marginBottom: 16,
+    flexDirection: "row",
     justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 10,
-    gap: 8,
+    gap: 10,
+    shadowColor: "#02217C",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  backButton: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-  },
-  backButtonText: {
+  saveNextButtonText: {
+    color: "white",
     fontSize: 16,
-    fontWeight: "600",
-    color: theme.colors.primary,
-  },
-  nextButton: {
-    backgroundColor: theme.colors.primary,
-  },
-  nextButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
+    fontWeight: "700",
   },
 });
 

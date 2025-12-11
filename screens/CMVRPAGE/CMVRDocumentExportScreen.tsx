@@ -1342,7 +1342,6 @@ const transformWaterQualityForPayload = (raw: any) => {
 
         if (locationDescription) {
           result.waterQuality.locationDescription = locationDescription;
-          result.waterQuality.description = locationDescription;
         }
       }
     }
@@ -1378,7 +1377,6 @@ const transformWaterQualityForPayload = (raw: any) => {
 
       return {
         locationDescription,
-        description: locationDescription,
         parameters: params,
         samplingDate,
         weatherAndWind,
@@ -3365,6 +3363,7 @@ const buildCreateCMVRPayload = (
   options: {
     recommendationsData?: RecommendationsData;
     attendanceId?: string;
+    attachments?: Array<{ path: string; caption?: string }>;
   } = {},
   userId?: string
 ): CreateCMVRDto => {
@@ -3585,31 +3584,99 @@ const buildCreateCMVRPayload = (
       transformComplaintsForPayload(norm.complaintsVerificationAndManagement);
     hasComplianceData = true;
   }
+  // Prioritize recommendationsData from store (frontend format) over backend format
   if (
-    norm.recommendationFromPrevQuarter ||
-    options.recommendationsData?.previousRecommendations
+    options.recommendationsData?.previousRecommendations ||
+    norm.recommendationFromPrevQuarter
   ) {
     const transformedPrevRecommendations = transformRecommendationsForPayload(
       options.recommendationsData?.previousRecommendations,
       options.recommendationsData?.prevQuarter,
       options.recommendationsData?.prevYear
     );
+    
+    // Clean up norm.recommendationFromPrevQuarter to remove empty items
+    let cleanedPrevRecommendations = norm.recommendationFromPrevQuarter;
+    if (cleanedPrevRecommendations && typeof cleanedPrevRecommendations === 'object') {
+      const cleaned: any = { ...cleanedPrevRecommendations };
+      // Filter out empty items from each section (plant, quarry, port)
+      ['plant', 'quarry', 'port'].forEach((section) => {
+        if (Array.isArray(cleaned[section])) {
+          cleaned[section] = cleaned[section].filter((item: any) => {
+            if (!item || typeof item !== 'object') return false;
+            // Keep item if at least one field has content
+            return (
+              (item.recommendation && String(item.recommendation).trim()) ||
+              (item.commitment && String(item.commitment).trim()) ||
+              (item.status && String(item.status).trim())
+            );
+          });
+          // Remove section if it's now empty
+          if (cleaned[section].length === 0) {
+            delete cleaned[section];
+          }
+        }
+      });
+      // Only use cleaned if it has at least one non-empty section
+      const hasData = Object.keys(cleaned).some(
+        (key) => key !== 'quarter' && key !== 'year' && Array.isArray(cleaned[key]) && cleaned[key].length > 0
+      );
+      cleanedPrevRecommendations = hasData ? cleaned : undefined;
+    }
+    
+    // Prioritize transformed data from store (recommendationsData) over backend format
     complianceMonitoringReport.recommendationFromPrevQuarter =
-      norm.recommendationFromPrevQuarter || transformedPrevRecommendations;
-    hasComplianceData = true;
+      transformedPrevRecommendations || cleanedPrevRecommendations;
+    if (complianceMonitoringReport.recommendationFromPrevQuarter) {
+      hasComplianceData = true;
+    }
   }
+  // Prioritize recommendationsData from store (frontend format) over backend format
   if (
-    norm.recommendationForNextQuarter ||
-    options.recommendationsData?.currentRecommendations
+    options.recommendationsData?.currentRecommendations ||
+    norm.recommendationForNextQuarter
   ) {
     const transformedRecommendations = transformRecommendationsForPayload(
       options.recommendationsData?.currentRecommendations,
       generalInfo.quarter,
       generalInfo.year
     );
+    
+    // Clean up norm.recommendationForNextQuarter to remove empty items
+    let cleanedNextRecommendations = norm.recommendationForNextQuarter;
+    if (cleanedNextRecommendations && typeof cleanedNextRecommendations === 'object') {
+      const cleaned: any = { ...cleanedNextRecommendations };
+      // Filter out empty items from each section (plant, quarry, port)
+      ['plant', 'quarry', 'port'].forEach((section) => {
+        if (Array.isArray(cleaned[section])) {
+          cleaned[section] = cleaned[section].filter((item: any) => {
+            if (!item || typeof item !== 'object') return false;
+            // Keep item if at least one field has content
+            return (
+              (item.recommendation && String(item.recommendation).trim()) ||
+              (item.commitment && String(item.commitment).trim()) ||
+              (item.status && String(item.status).trim())
+            );
+          });
+          // Remove section if it's now empty
+          if (cleaned[section].length === 0) {
+            delete cleaned[section];
+          }
+        }
+      });
+      // Only use cleaned if it has at least one non-empty section
+      const hasData = Object.keys(cleaned).some(
+        (key) => key !== 'quarter' && key !== 'year' && Array.isArray(cleaned[key]) && cleaned[key].length > 0
+      );
+      cleanedNextRecommendations = hasData ? cleaned : undefined;
+    }
+    
+    // Prioritize transformed data from store (recommendationsData) over backend format
     complianceMonitoringReport.recommendationForNextQuarter =
-      norm.recommendationForNextQuarter || transformedRecommendations;
-    hasComplianceData = true;
+      transformedRecommendations || cleanedNextRecommendations;
+    if (complianceMonitoringReport.recommendationForNextQuarter) {
+      hasComplianceData = true;
+    }
   }
   // Relax gating: allow payload to include complianceMonitoringReport with any populated section
   if (hasComplianceData) {
@@ -3635,6 +3702,14 @@ const buildCreateCMVRPayload = (
       mimeType: eccFile.mimeType || null,
       storagePath: eccFile.storagePath || null,
     };
+  }
+
+  // Add attachments if provided
+  if (options.attachments && options.attachments.length > 0) {
+    const formattedAttachments = options.attachments
+      .filter((a) => !!a.path)
+      .map((a) => ({ path: a.path, caption: a.caption || undefined }));
+    payload.attachments = formattedAttachments;
   }
 
   return payload;
@@ -4301,27 +4376,29 @@ const CMVRDocumentExportScreen = () => {
         routeDraftUpdate,
         resolvedFileName
       );
+      // Format attachments for payload
+      const formattedAttachments =
+        attachments.length > 0
+          ? attachments
+              .filter((a) => !!a.path)
+              .map((a) => ({ path: a.path!, caption: a.caption || undefined }))
+          : undefined;
+
+      console.log("=== DEBUG UPDATE: Attachments state ===", attachments);
+      console.log(
+        "=== DEBUG UPDATE: Formatted attachments ===",
+        formattedAttachments
+      );
+
       const payload = buildCreateCMVRPayload(
         snapshotForSubmission,
         {
           recommendationsData: snapshotForSubmission.recommendationsData,
           attendanceId: resolvedAttendanceId ?? undefined,
+          attachments: formattedAttachments,
         },
         user?.id
       );
-
-      // Add attachments to payload
-      console.log("=== DEBUG UPDATE: Attachments state ===", attachments);
-      if (attachments.length > 0) {
-        const formattedAttachments = attachments
-          .filter((a) => !!a.path)
-          .map((a) => ({ path: a.path!, caption: a.caption || undefined }));
-        console.log(
-          "=== DEBUG UPDATE: Formatted attachments ===",
-          formattedAttachments
-        );
-        payload.attachments = formattedAttachments;
-      }
 
       console.log(
         "=== DEBUG UPDATE: Payload attachments ===",
@@ -4428,7 +4505,23 @@ const CMVRDocumentExportScreen = () => {
         setCreatedById(user.id);
       }
 
-      const result = await submitReport();
+      // Format attachments for submission
+      const formattedAttachments =
+        attachments.length > 0
+          ? attachments
+              .filter((a) => !!a.path)
+              .map((a) => ({ path: a.path!, caption: a.caption || undefined }))
+          : undefined;
+
+      console.log("=== DEBUG SUBMIT: Attachments state ===", attachments);
+      console.log(
+        "=== DEBUG SUBMIT: Formatted attachments ===",
+        formattedAttachments
+      );
+      console.log("=== DEBUG SUBMIT: Using fileName:", resolvedFileName);
+
+      // Pass resolvedFileName to submitReport to ensure correct fileName is used
+      const result = await submitReport(undefined, formattedAttachments, resolvedFileName);
 
       if (!result.success) {
         throw new Error(result.error || "Failed to submit CMVR report");
@@ -4474,6 +4567,114 @@ const CMVRDocumentExportScreen = () => {
         [{ text: "OK" }]
       );
       return;
+    }
+
+    // Check if there are local attachments that need to be saved
+    if (attachments.length > 0 && submittedReportId) {
+      console.log(
+        "=== DEBUG GENERATE: Found local attachments, checking if update needed ===",
+        attachments
+      );
+      
+      // Auto-update the report with attachments before generating
+      try {
+        setIsGenerating(true);
+        const snapshotForSubmission = mergeDraftData(
+          draftSnapshot || currentReport || {},
+          routeDraftUpdate,
+          resolvedFileName
+        );
+        
+        const formattedAttachments = attachments
+          .filter((a) => !!a.path)
+          .map((a) => ({ path: a.path!, caption: a.caption || undefined }));
+
+        const payload = buildCreateCMVRPayload(
+          snapshotForSubmission,
+          {
+            recommendationsData: snapshotForSubmission.recommendationsData,
+            attendanceId: resolvedAttendanceId ?? undefined,
+            attachments: formattedAttachments,
+          },
+          user?.id
+        );
+
+        console.log(
+          "=== DEBUG GENERATE: Auto-updating report with attachments ===",
+          formattedAttachments
+        );
+
+        // Generate a proper fileName - prefer resolvedFileName, but generate from generalInfo if it's "Untitled"
+        let fileNameForUpdate: string | undefined = undefined;
+        const resolved = sanitizeString(resolvedFileName);
+        const snapshotFileName = sanitizeString(snapshotForSubmission.fileName);
+        const generalInfo = snapshotForSubmission.generalInfo || {};
+        
+        // Try to generate fileName from generalInfo if we don't have a good one
+        const generateFileNameFromGeneralInfo = () => {
+          const company = sanitizeString(generalInfo.companyName);
+          const quarter = sanitizeString(generalInfo.quarter);
+          const year = sanitizeString(generalInfo.year);
+          const dateOfCompliance = sanitizeString(generalInfo.dateOfCompliance);
+          
+          // Try to extract date from dateOfCompliance (format: "YYYY-MM-DD" or similar)
+          let datePart = "";
+          if (dateOfCompliance) {
+            const dateMatch = dateOfCompliance.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (dateMatch) {
+              datePart = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+            } else {
+              // Try other date formats
+              const dateObj = new Date(dateOfCompliance);
+              if (!isNaN(dateObj.getTime())) {
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                datePart = `${dateObj.getFullYear()}-${month}-${day}`;
+              }
+            }
+          }
+          
+          // Generate fileName: "CMVR YYYY-MM-DD HHMM" or "CMVR CompanyName Quarter Year"
+          if (datePart) {
+            const timePart = new Date().toTimeString().slice(0, 5).replace(':', '');
+            return `CMVR ${datePart} ${timePart}`;
+          } else if (company && quarter && year) {
+            return `CMVR ${company} ${quarter} ${year}`;
+          } else if (company) {
+            return `CMVR ${company}`;
+          }
+          return undefined;
+        };
+        
+        // Prefer resolvedFileName if it's not "Untitled"
+        if (resolved && resolved !== "Untitled" && resolved.trim().length > 0) {
+          fileNameForUpdate = resolved;
+        } else if (snapshotFileName && snapshotFileName !== "Untitled" && snapshotFileName.trim().length > 0) {
+          fileNameForUpdate = snapshotFileName;
+        } else {
+          // Generate from generalInfo
+          const generated = generateFileNameFromGeneralInfo();
+          if (generated) {
+            fileNameForUpdate = generated;
+          }
+        }
+        
+        console.log("=== DEBUG GENERATE: Updating report with fileName:", fileNameForUpdate);
+        console.log("=== DEBUG GENERATE: resolvedFileName:", resolvedFileName);
+        console.log("=== DEBUG GENERATE: snapshot fileName:", snapshotForSubmission.fileName);
+        console.log("=== DEBUG GENERATE: generalInfo:", generalInfo);
+        
+        await updateCMVRReport(submittedReportId, payload, fileNameForUpdate);
+        console.log("=== DEBUG GENERATE: Report updated with attachments successfully ===");
+      } catch (updateError: any) {
+        console.error("Failed to auto-update report with attachments:", updateError);
+        // Continue with document generation even if update fails
+        Alert.alert(
+          "Warning",
+          "Could not save attachments to the report. The document will be generated without the latest attachments.",
+          [{ text: "Continue", onPress: () => {} }]
+        );
+      }
     }
 
     setIsGenerating(true);

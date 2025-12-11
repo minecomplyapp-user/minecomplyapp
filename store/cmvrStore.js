@@ -1176,7 +1176,7 @@ export const useCmvrStore = create((set, get) => ({
     );
   },
 
-  submitReport: async (token) => {
+  submitReport: async (token, attachments, fileNameOverride) => {
     const state = get();
 
     if (!state.currentReport) {
@@ -1197,8 +1197,28 @@ export const useCmvrStore = create((set, get) => ({
         throw new Error("Failed to prepare report data. Please check all required fields.");
       }
 
+      // Add attachments to payload if provided
+      if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+        const formattedAttachments = attachments
+          .filter((a) => !!a.path)
+          .map((a) => ({ path: a.path, caption: a.caption || undefined }));
+        reportPayload.attachments = formattedAttachments;
+        console.log("[CMVR Store] Added attachments to payload:", formattedAttachments);
+        console.log("[CMVR Store] Attachment count:", formattedAttachments.length);
+      } else {
+        console.log("[CMVR Store] No attachments provided or attachments array is empty");
+        console.log("[CMVR Store] Attachments value:", attachments);
+      }
+      
+      console.log("[CMVR Store] Final payload attachments:", reportPayload.attachments);
+
       // Construct endpoint with fileName as query param
-      const fileName = state.fileName || "Untitled";
+      // Use fileNameOverride if provided, otherwise use state.fileName, fallback to "Untitled"
+      const fileName = fileNameOverride || state.fileName || "Untitled";
+      // Update store's fileName if override was provided
+      if (fileNameOverride && fileNameOverride !== state.fileName) {
+        set({ fileName: fileNameOverride });
+      }
       const endpoint = `${BASE_URL}/cmvr?fileName=${encodeURIComponent(fileName)}`;
 
       console.log("[CMVR Store] Submitting report:", fileName);

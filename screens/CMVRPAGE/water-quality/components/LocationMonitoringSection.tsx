@@ -37,7 +37,7 @@ export type LocationMonitoringSectionProps = {
   onExplanationNAToggle: () => void;
 };
 
-export const LocationMonitoringSection: React.FC<
+const LocationMonitoringSectionComponent: React.FC<
   LocationMonitoringSectionProps
 > = ({
   locationName,
@@ -121,3 +121,5 @@ export const LocationMonitoringSection: React.FC<
     </View>
   );
 };
+
+export const LocationMonitoringSection = React.memo(LocationMonitoringSectionComponent);

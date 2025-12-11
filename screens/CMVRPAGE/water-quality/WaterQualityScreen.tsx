@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -114,6 +114,18 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     waterQualitySection.parameters
   );
   const [hasHydratedFromStore, setHasHydratedFromStore] = useState(false);
+  const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (hasHydratedFromStore || !currentReport) return;
@@ -142,23 +154,42 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     waterQualitySection.data,
   ]);
 
-  // **SYNC TO STORE** - Update store whenever local state changes
+  // **SYNC TO STORE** - Debounced update to prevent excessive store updates
   useEffect(() => {
-    const currentData = {
-      quarry: quarryInput,
-      plant: plantInput,
-      quarryPlant: quarryPlantInput,
-      quarryEnabled,
-      plantEnabled,
-      quarryPlantEnabled,
-      portEnabled,
-      waterQuality: waterQualityData,
-      port: portData,
-      data,
-      parameters,
-    };
+    // Skip sync during initial hydration
+    if (!hasHydratedFromStore) return;
 
-    updateSection("waterQualityImpactAssessment", currentData);
+    // Clear existing timeout
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+
+    // Debounce store updates by 300ms
+    syncTimeoutRef.current = setTimeout(() => {
+      if (!isMountedRef.current) return;
+
+      const currentData = {
+        quarry: quarryInput,
+        plant: plantInput,
+        quarryPlant: quarryPlantInput,
+        quarryEnabled,
+        plantEnabled,
+        quarryPlantEnabled,
+        portEnabled,
+        waterQuality: waterQualityData,
+        port: portData,
+        data,
+        parameters,
+      };
+
+      updateSection("waterQualityImpactAssessment", currentData);
+    }, 300);
+
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+    };
   }, [
     quarryInput,
     plantInput,
@@ -171,6 +202,8 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     portData,
     data,
     parameters,
+    hasHydratedFromStore,
+    updateSection,
   ]);
 
   // Note: Data hydration now handled by store initialization in CMVRReportScreen
@@ -229,22 +262,22 @@ export default function WaterQualityScreen({ navigation, route }: any) {
   };
 
   // ============ UNIFIED WATER QUALITY HANDLERS ============
-  const handleWaterQualityMainParameterUpdate = (
+  const handleWaterQualityMainParameterUpdate = useCallback((
     field: keyof Omit<Parameter, "id">,
     value: string | boolean
   ) => {
     setWaterQualityData((prev) => ({ ...prev, [field]: value }));
-  };
+  }, []);
 
-  const handleWaterQualityMMTInputChange = (field: string, value: string) => {
+  const handleWaterQualityMMTInputChange = useCallback((field: string, value: string) => {
     setWaterQualityData((prev) => ({ ...prev, [field]: value }));
-  };
+  }, []);
 
-  const handleWaterQualityMMTNAToggle = () => {
+  const handleWaterQualityMMTNAToggle = useCallback(() => {
     setWaterQualityData((prev) => ({ ...prev, isMMTNA: !prev.isMMTNA }));
-  };
+  }, []);
 
-  const addWaterQualityParameter = () => {
+  const addWaterQualityParameter = useCallback(() => {
     const newId = `water-quality-param-${Date.now()}`;
     setWaterQualityData((prev) => ({
       ...prev,
@@ -266,9 +299,9 @@ export default function WaterQualityScreen({ navigation, route }: any) {
         },
       ],
     }));
-  };
+  }, []);
 
-  const updateWaterQualityParameter = (
+  const updateWaterQualityParameter = useCallback((
     id: string,
     field: keyof Omit<Parameter, "id">,
     value: string | boolean
@@ -279,9 +312,9 @@ export default function WaterQualityScreen({ navigation, route }: any) {
         param.id === id ? { ...param, [field]: value } : param
       ),
     }));
-  };
+  }, []);
 
-  const deleteWaterQualityParameter = (id: string) => {
+  const deleteWaterQualityParameter = useCallback((id: string) => {
     Alert.alert(
       "Remove Parameter",
       "Are you sure you want to remove this parameter?",
@@ -299,39 +332,39 @@ export default function WaterQualityScreen({ navigation, route }: any) {
         },
       ]
     );
-  };
+  }, []);
 
-  const handleWaterQualitySamplingDetailsChange = (
+  const handleWaterQualitySamplingDetailsChange = useCallback((
     field: string,
     value: string | boolean
   ) => {
     setWaterQualityData((prev) => ({ ...prev, [field]: value }));
-  };
+  }, []);
 
-  const handleWaterQualityExplanationNAToggle = () => {
+  const handleWaterQualityExplanationNAToggle = useCallback(() => {
     setWaterQualityData((prev) => ({
       ...prev,
       isExplanationNA: !prev.isExplanationNA,
     }));
-  };
+  }, []);
 
   // ============ PORT HANDLERS ============
-  const handlePortMainParameterUpdate = (
+  const handlePortMainParameterUpdate = useCallback((
     field: keyof Omit<Parameter, "id">,
     value: string | boolean
   ) => {
     setPortData((prev) => ({ ...prev, [field]: value }));
-  };
+  }, []);
 
-  const handlePortMMTInputChange = (field: string, value: string) => {
+  const handlePortMMTInputChange = useCallback((field: string, value: string) => {
     setPortData((prev) => ({ ...prev, [field]: value }));
-  };
+  }, []);
 
-  const handlePortMMTNAToggle = () => {
+  const handlePortMMTNAToggle = useCallback(() => {
     setPortData((prev) => ({ ...prev, isMMTNA: !prev.isMMTNA }));
-  };
+  }, []);
 
-  const addPortParameter = () => {
+  const addPortParameter = useCallback(() => {
     const newId = `port-param-${Date.now()}`;
     setPortData((prev) => ({
       ...prev,
@@ -353,9 +386,9 @@ export default function WaterQualityScreen({ navigation, route }: any) {
         },
       ],
     }));
-  };
+  }, []);
 
-  const updatePortParameter = (
+  const updatePortParameter = useCallback((
     id: string,
     field: keyof Omit<Parameter, "id">,
     value: string | boolean
@@ -366,9 +399,9 @@ export default function WaterQualityScreen({ navigation, route }: any) {
         param.id === id ? { ...param, [field]: value } : param
       ),
     }));
-  };
+  }, []);
 
-  const deletePortParameter = (id: string) => {
+  const deletePortParameter = useCallback((id: string) => {
     Alert.alert(
       "Remove Parameter",
       "Are you sure you want to remove this parameter?",
@@ -386,21 +419,24 @@ export default function WaterQualityScreen({ navigation, route }: any) {
         },
       ]
     );
-  };
+  }, []);
 
-  const handlePortSamplingDetailsChange = (
+  const handlePortSamplingDetailsChange = useCallback((
     field: string,
     value: string | boolean
   ) => {
     setPortData((prev) => ({ ...prev, [field]: value }));
-  };
+  }, []);
 
-  const handlePortExplanationNAToggle = () => {
+  const handlePortExplanationNAToggle = useCallback(() => {
     setPortData((prev) => ({
       ...prev,
       isExplanationNA: !prev.isExplanationNA,
     }));
-  };
+  }, []);
+
+  // Empty handler for location input (not used but required by component)
+  const emptyLocationInputHandler = useCallback(() => {}, []);
 
   // ============ LEGACY HANDLERS (for backward compatibility) ============
   const handleInputChange = (
@@ -586,6 +622,61 @@ export default function WaterQualityScreen({ navigation, route }: any) {
       "Water Quality filled with test data:\n• All location descriptions enabled\n• Water Quality: TSS + pH parameter\n• Port: Turbidity data"
     );
   };
+
+  // Memoize mainParameter objects to prevent unnecessary re-renders
+  const waterQualityMainParameter = useMemo(() => ({
+    id: "water-quality-main",
+    parameter: waterQualityData.parameter,
+    resultType: waterQualityData.resultType,
+    tssCurrent: waterQualityData.tssCurrent,
+    tssPrevious: waterQualityData.tssPrevious,
+    eqplRedFlag: waterQualityData.eqplRedFlag,
+    action: waterQualityData.action,
+    limit: waterQualityData.limit,
+    remarks: waterQualityData.remarks,
+    mmtCurrent: waterQualityData.mmtCurrent,
+    mmtPrevious: waterQualityData.mmtPrevious,
+    isMMTNA: waterQualityData.isMMTNA,
+  }), [
+    waterQualityData.parameter,
+    waterQualityData.resultType,
+    waterQualityData.tssCurrent,
+    waterQualityData.tssPrevious,
+    waterQualityData.eqplRedFlag,
+    waterQualityData.action,
+    waterQualityData.limit,
+    waterQualityData.remarks,
+    waterQualityData.mmtCurrent,
+    waterQualityData.mmtPrevious,
+    waterQualityData.isMMTNA,
+  ]);
+
+  const portMainParameter = useMemo(() => ({
+    id: "port-main",
+    parameter: portData.parameter,
+    resultType: portData.resultType,
+    tssCurrent: portData.tssCurrent,
+    tssPrevious: portData.tssPrevious,
+    eqplRedFlag: portData.eqplRedFlag,
+    action: portData.action,
+    limit: portData.limit,
+    remarks: portData.remarks,
+    mmtCurrent: portData.mmtCurrent,
+    mmtPrevious: portData.mmtPrevious,
+    isMMTNA: portData.isMMTNA,
+  }), [
+    portData.parameter,
+    portData.resultType,
+    portData.tssCurrent,
+    portData.tssPrevious,
+    portData.eqplRedFlag,
+    portData.action,
+    portData.limit,
+    portData.remarks,
+    portData.mmtCurrent,
+    portData.mmtPrevious,
+    portData.isMMTNA,
+  ]);
 
   /* Old fillTestData - kept for reference
   const fillTestDataOld = () => {
@@ -860,20 +951,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
         <LocationMonitoringSection
           locationName="Water Quality"
           locationInput=""
-          mainParameter={{
-            id: "water-quality-main",
-            parameter: waterQualityData.parameter,
-            resultType: waterQualityData.resultType,
-            tssCurrent: waterQualityData.tssCurrent,
-            tssPrevious: waterQualityData.tssPrevious,
-            eqplRedFlag: waterQualityData.eqplRedFlag,
-            action: waterQualityData.action,
-            limit: waterQualityData.limit,
-            remarks: waterQualityData.remarks,
-            mmtCurrent: waterQualityData.mmtCurrent,
-            mmtPrevious: waterQualityData.mmtPrevious,
-            isMMTNA: waterQualityData.isMMTNA,
-          }}
+          mainParameter={waterQualityMainParameter}
           parameters={waterQualityData.parameters}
           mmtCurrent={waterQualityData.mmtCurrent}
           mmtPrevious={waterQualityData.mmtPrevious}
@@ -883,7 +961,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
           explanation={waterQualityData.explanation}
           isExplanationNA={waterQualityData.isExplanationNA}
           overallCompliance={waterQualityData.overallCompliance}
-          onLocationInputChange={() => {}}
+          onLocationInputChange={emptyLocationInputHandler}
           onMainParameterUpdate={handleWaterQualityMainParameterUpdate}
           onMMTInputChange={handleWaterQualityMMTInputChange}
           onMMTNAToggle={handleWaterQualityMMTNAToggle}
@@ -939,20 +1017,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
             <LocationMonitoringSection
               locationName="Port"
               locationInput=""
-              mainParameter={{
-                id: "port-main",
-                parameter: portData.parameter,
-                resultType: portData.resultType,
-                tssCurrent: portData.tssCurrent,
-                tssPrevious: portData.tssPrevious,
-                eqplRedFlag: portData.eqplRedFlag,
-                action: portData.action,
-                limit: portData.limit,
-                remarks: portData.remarks,
-                mmtCurrent: portData.mmtCurrent,
-                mmtPrevious: portData.mmtPrevious,
-                isMMTNA: portData.isMMTNA,
-              }}
+              mainParameter={portMainParameter}
               parameters={portData.parameters}
               mmtCurrent={portData.mmtCurrent}
               mmtPrevious={portData.mmtPrevious}
@@ -962,7 +1027,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
               explanation={portData.explanation}
               isExplanationNA={portData.isExplanationNA}
               overallCompliance={portData.overallCompliance}
-              onLocationInputChange={() => {}}
+              onLocationInputChange={emptyLocationInputHandler}
               onMainParameterUpdate={handlePortMainParameterUpdate}
               onMMTInputChange={handlePortMMTInputChange}
               onMMTNAToggle={handlePortMMTNAToggle}

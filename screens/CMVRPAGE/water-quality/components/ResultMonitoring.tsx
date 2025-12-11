@@ -9,7 +9,7 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-export const ResultMonitoring: React.FC<ResultMonitoringProps> = ({
+const ResultMonitoringComponent: React.FC<ResultMonitoringProps> = ({
   parameter,
   resultType,
   tssCurrent,
@@ -17,7 +17,6 @@ export const ResultMonitoring: React.FC<ResultMonitoringProps> = ({
   onResultTypeChange,
   onTSSChange,
 }) => {
-  console.log("parameter:  ",parameter)
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [additionalTSS, setAdditionalTSS] = useState<TSSItem[]>([]);
 
@@ -202,6 +201,8 @@ export const ResultMonitoring: React.FC<ResultMonitoringProps> = ({
         <Ionicons name="add-circle-outline" size={16} color='#02217C' />
         <Text style={styles.addTSSText}>Add More TSS</Text>
       </TouchableOpacity>
-    </>
+    </> 
   );
 };
+
+export const ResultMonitoring = React.memo(ResultMonitoringComponent);

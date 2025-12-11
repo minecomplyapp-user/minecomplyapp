@@ -55,10 +55,13 @@ export default function AirQualityAssessmentScreen({ navigation, route }: any) {
   const handleNext = () => {
     updateSection("airQualityAssessmentDetailed", assessment);
     saveDraft();
-    // Navigate to the next section or complete the report
-    navigation.navigate("CMVRDocumentExport", {
-      cmvrReportId: currentReport?.id,
-      fileName: currentReport?.generalInfo?.reportTitle || "CMVR Report",
+    // Navigate to the next section (Compliance Monitoring - Section IV)
+    const params: any = route?.params || {};
+    navigation.navigate("ComplianceMonitoring", {
+      submissionId: params.submissionId,
+      projectId: params.projectId,
+      projectName: params.projectName,
+      fileName: params.fileName,
     });
   };
 
