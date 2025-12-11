@@ -262,12 +262,12 @@ const CMVRPage2Screen = () => {
     } as any;
 
     console.log(
-      "✅ Navigating to ComplianceDiscussionScreen (new section) with metadata:",
+      "✅ Navigating to ComplianceMonitoring with metadata:",
       Object.keys(nextParams)
     );
-    // Navigate to Compliance Discussion screen
+    // Navigate directly to Compliance Monitoring screen (skipping Compliance Discussion)
     try {
-      navigation.navigate("ComplianceDiscussionScreen", nextParams);
+      navigation.navigate("ComplianceMonitoring", nextParams);
     } catch (error: any) {
       console.error("[CMVRPage2] Navigation error:", error);
       Alert.alert(

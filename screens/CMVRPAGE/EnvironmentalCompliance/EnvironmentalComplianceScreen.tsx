@@ -516,8 +516,14 @@ export default function EnvironmentalComplianceScreen({
   };
 
   const handleSaveNext = () => {
-    console.log("Navigating to next page");
-    navigation.navigate("WaterQuality");
+    console.log("Navigating to Air Quality Impact Assessment (B.3)");
+    const nextParams = {
+      submissionId: submissionId || storeSubmissionId,
+      projectId: projectId || storeProjectId,
+      projectName: projectName || storeProjectName,
+      fileName: fileName || storeFileName,
+    } as any;
+    navigation.navigate("AirQuality", nextParams);
   };
 
   return (

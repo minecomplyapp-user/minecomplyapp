@@ -192,11 +192,10 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
 
   const openMapPicker = async () => {
     try {
-      // ✅ FIX: Wrap map opening in try-catch to prevent crashes
       console.log("Opening map picker");
       
-      // ✅ FIX: Set default region before opening map to prevent MapView crash
-      if (!mapRegion.latitude || !mapRegion.longitude) {
+      // Ensure default region is set before opening map to prevent MapView crash
+      if (!mapRegion.latitude || !mapRegion.longitude || isNaN(mapRegion.latitude) || isNaN(mapRegion.longitude)) {
         setMapRegion({
           latitude: 10.3157, // Default to Cebu, Philippines
           longitude: 123.8854,
@@ -205,23 +204,47 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
         });
       }
       
+      // Request location permissions before opening map
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          // Still allow map to open, but show warning
+          console.warn("Location permission not granted, map will open with default location");
+        }
+      } catch (permError) {
+        console.warn("Permission request failed, continuing with map:", permError);
+      }
+      
+      // Open map modal
       setShowMap(true);
       
-      // ✅ FIX: Don't await getCurrentLocation - let it run in background
-      // This prevents blocking if location fetch fails
+      // Try to get current location in background (non-blocking)
       getCurrentLocation().catch((error) => {
         console.warn("Background location fetch failed, but map is still usable:", error);
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Error opening map:", error);
-      // ✅ FIX: Still show map with default region even if there's an error
-      setMapRegion({
-        latitude: 10.3157,
-        longitude: 123.8854,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
-      });
-      setShowMap(true);
+      
+      // Show user-friendly error message instead of crashing
+      Alert.alert(
+        "Map Unavailable",
+        "Unable to open the map. Please check your device settings and try again.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Still try to open map with default region as fallback
+              setMapRegion({
+                latitude: 10.3157,
+                longitude: 123.8854,
+                latitudeDelta: 0.0922,
+                longitudeDelta: 0.0421,
+              });
+              setShowMap(true);
+            },
+          },
+        ]
+      );
     }
   };
 
@@ -393,7 +416,22 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
         </View>
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Project Location</Text>
-          <TouchableOpacity style={styles.mapButton} onPress={openMapPicker}>
+          <TouchableOpacity 
+            style={styles.mapButton} 
+            onPress={() => {
+              try {
+                openMapPicker();
+              } catch (error: any) {
+                console.error("Error in map button handler:", error);
+                Alert.alert(
+                  "Error",
+                  "Failed to open map. Please try again.",
+                  [{ text: "OK" }]
+                );
+              }
+            }}
+            activeOpacity={0.7}
+          >
             <Ionicons name="map" size={20} color="white" />
             <Text style={styles.mapButtonText}>
               {location ? "Change Location" : "Select Location on Map"}
