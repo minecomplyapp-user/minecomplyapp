@@ -23,7 +23,6 @@ import ReportsScreen from "../screens/reports/ReportsScreen";
 import ComplianceMonitoringScreen from "../screens/CMVRPAGE/CMS/ComplianceMonitoringScreen";
 import EIAComplianceScreen from "../screens/CMVRPAGE/EIA/EIAComplianceScreen";
 import EnvironmentalComplianceScreen from "../screens/CMVRPAGE/EnvironmentalCompliance/EnvironmentalComplianceScreen";
-import AirQualityScreen from "../screens/CMVRPAGE/air-quality/AirQualityScreen";
 import WaterQualityScreen from "../screens/CMVRPAGE/water-quality/WaterQualityScreen";
 import NoiseQualityScreen from "../screens/CMVRPAGE/NoiseQuality/NoiseQualityScreen";
 import WasteManagementScreen from "../screens/CMVRPAGE/WasteManagement/WasteManagementScreen";
@@ -135,11 +134,6 @@ const AppNavigator = () => {
               <RootStack.Screen
                 name="EnvironmentalCompliance"
                 component={EnvironmentalComplianceScreen}
-                options={{ headerShown: false }}
-              />
-              <RootStack.Screen
-                name="AirQuality"
-                component={AirQualityScreen}
                 options={{ headerShown: false }}
               />
               <RootStack.Screen

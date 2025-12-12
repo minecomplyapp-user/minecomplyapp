@@ -4,21 +4,14 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Modal,
-  Alert,
-  ActivityIndicator,
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import MapView, { Marker } from "react-native-maps";
-import * as Location from "expo-location";
 import { Picker } from "@react-native-picker/picker";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { styles } from "../styles/generalInfo.styles";
 import type {
   GeneralInfoProps,
-  LocationCoordinates,
-  MapRegion,
 } from "../types/generalInfo.types";
 
 export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
@@ -36,17 +29,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
   dateOfCMRSubmission,
   onChange,
 }) => {
-  const [showMap, setShowMap] = useState(false);
-  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-  const [selectedLocation, setSelectedLocation] =
-    useState<LocationCoordinates | null>(null);
-  const [mapRegion, setMapRegion] = useState<MapRegion>({
-    latitude: 10.3157,
-    longitude: 123.8854,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  });
-  
   // ✅ NEW: Date picker states
   const [showDateOfCompliancePicker, setShowDateOfCompliancePicker] = useState(false);
   const [showDateOfCMRSubmissionPicker, setShowDateOfCMRSubmissionPicker] = useState(false);
@@ -86,273 +68,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
   const handleDateOfCMRSubmissionConfirm = (selectedDate: Date) => {
     setShowDateOfCMRSubmissionPicker(false);
     onChange("dateOfCMRSubmission", formatDateToString(selectedDate));
-  };
-
-  const getCurrentLocation = async () => {
-    setIsLoadingLocation(true);
-    try {
-      // ✅ FIX: Add comprehensive error handling for location services
-      console.log("=== Getting Current Location ===");
-      
-      // Check if location services are enabled
-      const isEnabled = await Location.hasServicesEnabledAsync();
-      if (!isEnabled) {
-        console.warn("Location services disabled");
-        Alert.alert(
-          "Location Services Disabled",
-          "Please enable location services in your device settings."
-        );
-        setIsLoadingLocation(false);
-        return;
-      }
-
-      // Request permissions
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      console.log("Location permission status:", status);
-
-      if (status !== "granted") {
-        console.warn("Location permission denied");
-        Alert.alert(
-          "Permission Denied",
-          "Location permission is required to use GPS."
-        );
-        setIsLoadingLocation(false);
-        return;
-      }
-
-      // ✅ FIX: Reduce timeout and improve error handling
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Location request timed out")), 10000)
-      );
-
-      const locationPromise = Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-        timeInterval: 5000,
-        distanceInterval: 0,
-      });
-
-      const currentLocation = (await Promise.race([
-        locationPromise,
-        timeoutPromise,
-      ])) as Location.LocationObject;
-
-      // ✅ FIX: Validate location data before using
-      if (!currentLocation || !currentLocation.coords) {
-        throw new Error("Invalid location data received");
-      }
-
-      const { latitude, longitude } = currentLocation.coords;
-      console.log(`✅ Location obtained: ${latitude}, ${longitude}`);
-
-      setMapRegion({
-        latitude,
-        longitude,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
-      });
-      setSelectedLocation({ latitude, longitude });
-    } catch (error: any) {
-      console.error("❌ Location error:", error);
-
-      let errorMessage = "Failed to get current location.";
-
-      // ✅ FIX: More comprehensive error handling
-      if (error?.message?.includes?.("timeout")) {
-        errorMessage =
-          "Location request timed out. Please try again or select location manually on the map.";
-      } else if (error?.code === "E_LOCATION_UNAVAILABLE") {
-        errorMessage = "Location is currently unavailable. Please try again.";
-      } else if (error?.code === "E_LOCATION_SETTINGS_UNSATISFIED") {
-        errorMessage =
-          "Location settings are not satisfied. Please check your device settings.";
-      } else if (error?.message) {
-        errorMessage = `Location error: ${error.message}`;
-      }
-
-      Alert.alert("Location Error", errorMessage, [
-        {
-          text: "Use Default Location",
-          onPress: () => {
-            // Use default Cebu location
-            console.log("Using default Cebu location");
-            setMapRegion({
-              latitude: 10.3157,
-              longitude: 123.8854,
-              latitudeDelta: 0.0922,
-              longitudeDelta: 0.0421,
-            });
-          },
-        },
-        { text: "OK" },
-      ]);
-    } finally {
-      setIsLoadingLocation(false);
-    }
-  };
-
-  const openMapPicker = async () => {
-    try {
-      console.log("Opening map picker");
-      
-      // Ensure default region is set before opening map to prevent MapView crash
-      if (!mapRegion.latitude || !mapRegion.longitude || isNaN(mapRegion.latitude) || isNaN(mapRegion.longitude)) {
-        setMapRegion({
-          latitude: 10.3157, // Default to Cebu, Philippines
-          longitude: 123.8854,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        });
-      }
-      
-      // Request location permissions before opening map
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          // Still allow map to open, but show warning
-          console.warn("Location permission not granted, map will open with default location");
-        }
-      } catch (permError) {
-        console.warn("Permission request failed, continuing with map:", permError);
-      }
-      
-      // Open map modal
-      setShowMap(true);
-      
-      // Try to get current location in background (non-blocking)
-      getCurrentLocation().catch((error) => {
-        console.warn("Background location fetch failed, but map is still usable:", error);
-      });
-    } catch (error: any) {
-      console.error("❌ Error opening map:", error);
-      
-      // Show user-friendly error message instead of crashing
-      Alert.alert(
-        "Map Unavailable",
-        "Unable to open the map. Please check your device settings and try again.",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              // Still try to open map with default region as fallback
-              setMapRegion({
-                latitude: 10.3157,
-                longitude: 123.8854,
-                latitudeDelta: 0.0922,
-                longitudeDelta: 0.0421,
-              });
-              setShowMap(true);
-            },
-          },
-        ]
-      );
-    }
-  };
-
-  const handleMapPress = (event: any) => {
-    try {
-      // ✅ FIX: Add null/undefined checks to prevent crashes
-      if (!event?.nativeEvent?.coordinate) {
-        console.warn("Invalid map press event:", event);
-        return;
-      }
-      
-      const { latitude, longitude } = event.nativeEvent.coordinate;
-      
-      // ✅ FIX: Validate coordinates are valid numbers
-      if (
-        typeof latitude !== 'number' ||
-        typeof longitude !== 'number' ||
-        isNaN(latitude) ||
-        isNaN(longitude) ||
-        latitude < -90 ||
-        latitude > 90 ||
-        longitude < -180 ||
-        longitude > 180
-      ) {
-        console.warn("Invalid coordinates:", { latitude, longitude });
-        Alert.alert("Invalid Location", "Please select a valid location on the map.");
-        return;
-      }
-      
-      setSelectedLocation({ latitude, longitude });
-    } catch (error) {
-      console.error("❌ Error handling map press:", error);
-      Alert.alert("Error", "Failed to select location. Please try again.");
-    }
-  };
-
-  const confirmLocation = async () => {
-    // ✅ FIX: Enhanced validation before confirming location
-    if (!selectedLocation) {
-      Alert.alert("No Location Selected", "Please select a location on the map first.");
-      return;
-    }
-    
-    // ✅ FIX: Validate coordinates are valid numbers
-    if (
-      typeof selectedLocation.latitude !== 'number' ||
-      typeof selectedLocation.longitude !== 'number' ||
-      isNaN(selectedLocation.latitude) ||
-      isNaN(selectedLocation.longitude) ||
-      selectedLocation.latitude < -90 ||
-      selectedLocation.latitude > 90 ||
-      selectedLocation.longitude < -180 ||
-      selectedLocation.longitude > 180
-    ) {
-      Alert.alert("Invalid Location", "The selected location is invalid. Please select a different location.");
-      return;
-    }
-    
-    try {
-      // ✅ FIX: Add timeout for reverse geocoding to prevent hanging
-      const geocodeTimeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Reverse geocoding timed out")), 5000)
-      );
-      
-      const geocodePromise = Location.reverseGeocodeAsync({
-        latitude: selectedLocation.latitude,
-        longitude: selectedLocation.longitude,
-      });
-      
-      const [address] = await Promise.race([geocodePromise, geocodeTimeout]) as any[];
-      
-      if (address) {
-        const addressParts = [
-          address.street,
-          address.district,
-          address.city || address.subregion,
-        ].filter(Boolean);
-        const fullAddress = addressParts.join(", ");
-        onChange(
-          "location",
-          fullAddress ||
-            `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`
-        );
-        onChange("region", address.region || "");
-        onChange("province", address.subregion || address.region || "");
-        onChange("municipality", address.city || address.subregion || "");
-      } else {
-        const locationString = `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`;
-        onChange("location", locationString);
-      }
-    } catch (error: any) {
-      console.error("Reverse geocode error:", error);
-      // ✅ FIX: Fallback to coordinates even if geocoding fails
-      const locationString = `${selectedLocation.latitude.toFixed(6)}, ${selectedLocation.longitude.toFixed(6)}`;
-      onChange("location", locationString);
-      
-      // Show warning but don't block the user
-      if (!error?.message?.includes("timed out")) {
-        Alert.alert(
-          "Location Saved",
-          "Location saved as coordinates. Address lookup failed, but you can edit it manually.",
-          [{ text: "OK" }]
-        );
-      }
-    } finally {
-      // ✅ FIX: Always close map modal, even if there's an error
-      setShowMap(false);
-    }
   };
 
   return (
@@ -416,33 +131,15 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
         </View>
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Project Location</Text>
-          <TouchableOpacity 
-            style={styles.mapButton} 
-            onPress={() => {
-              try {
-                openMapPicker();
-              } catch (error: any) {
-                console.error("Error in map button handler:", error);
-                Alert.alert(
-                  "Error",
-                  "Failed to open map. Please try again.",
-                  [{ text: "OK" }]
-                );
-              }
-            }}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="map" size={20} color="white" />
-            <Text style={styles.mapButtonText}>
-              {location ? "Change Location" : "Select Location on Map"}
-            </Text>
-          </TouchableOpacity>
-          {location && (
-            <View style={styles.locationDisplay}>
-              <Ionicons name="location" size={16} color="#10B981" />
-              <Text style={styles.locationText}>{location || ""}</Text>
-            </View>
-          )}
+          <TextInput
+            style={[styles.input, styles.locationInput]}
+            value={location || ""}
+            onChangeText={(text) => onChange("location", text)}
+            placeholder="Enter project location address"
+            placeholderTextColor="#94A3B8"
+            multiline
+            numberOfLines={3}
+          />
         </View>
         <View style={styles.rowContainer}>
           <View style={styles.halfField}>
@@ -561,100 +258,6 @@ export const GeneralInfoSection: React.FC<GeneralInfoProps> = ({
           />
         </View>
       </View>
-      <Modal
-        visible={showMap}
-        animationType="slide"
-        onRequestClose={() => setShowMap(false)}
-      >
-        <View style={styles.mapContainer}>
-          <View style={styles.mapHeader}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => setShowMap(false)}
-            >
-              <Ionicons name="arrow-back" size={24} color="#1E293B" />
-            </TouchableOpacity>
-            <Text style={styles.mapTitle}>Select Project Location</Text>
-            <View style={{ width: 40 }} />
-          </View>
-          {/* ✅ FIX: Wrap MapView in error boundary */}
-          {(() => {
-            try {
-              return (
-                <MapView
-                  style={styles.map}
-                  region={mapRegion}
-                  onPress={handleMapPress}
-                  showsUserLocation
-                  showsMyLocationButton
-                  onError={(error) => {
-                    console.error("❌ MapView error:", error);
-                    Alert.alert(
-                      "Map Error",
-                      "Failed to load map. Please try again or enter location manually."
-                    );
-                  }}
-                >
-                  {selectedLocation && <Marker coordinate={selectedLocation} />}
-                </MapView>
-              );
-            } catch (error) {
-              console.error("❌ MapView render error:", error);
-              return (
-                <View style={[styles.map, { justifyContent: "center", alignItems: "center", backgroundColor: "#F3F4F6" }]}>
-                  <Ionicons name="map-outline" size={64} color="#9CA3AF" />
-                  <Text style={{ marginTop: 16, color: "#6B7280", textAlign: "center", paddingHorizontal: 20 }}>
-                    Map failed to load. Please enter location manually or try again later.
-                  </Text>
-                  <TouchableOpacity
-                    style={{ marginTop: 16, padding: 12, backgroundColor: "#02217C", borderRadius: 8 }}
-                    onPress={() => setShowMap(false)}
-                  >
-                    <Text style={{ color: "white" }}>Close</Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            }
-          })()}
-          {isLoadingLocation && (
-            <View
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                marginLeft: -25,
-                marginTop: -25,
-                backgroundColor: "white",
-                padding: 15,
-                borderRadius: 10,
-                elevation: 5,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.25,
-                shadowRadius: 3.84,
-              }}
-            >
-              <ActivityIndicator size="large" color="#02217C" />
-              <Text style={{ marginTop: 10, color: "#02217C" }}>
-                Getting location...
-              </Text>
-            </View>
-          )}
-          <View style={styles.mapFooter}>
-            <TouchableOpacity
-              style={[
-                styles.confirmButton,
-                !selectedLocation && styles.confirmButtonDisabled,
-              ]}
-              onPress={confirmLocation}
-              disabled={!selectedLocation}
-            >
-              <Ionicons name="checkmark" size={20} color="white" />
-              <Text style={styles.confirmButtonText}>Confirm Location</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };

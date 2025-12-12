@@ -355,8 +355,9 @@ export const transformProcessDocumentation = (processDoc) => {
   }
 
   const parseMembers = (text = "", extras = []) => {
+    // ✅ FIX: Only split by newline, not comma, to preserve "Name, Position" as single entry
     const base = String(text)
-      .split(/[\n,]/)
+      .split(/\n/)
       .map((entry) => entry.trim())
       .filter(Boolean);
     const additional = Array.isArray(extras)

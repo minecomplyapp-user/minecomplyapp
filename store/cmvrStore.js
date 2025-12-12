@@ -194,7 +194,6 @@ const createWasteCommitment = (suffix = "") => ({
 });
 
 const createWastePlantSection = (suffix) => ({
-  typeOfWaste: "",
   eccEpepCommitments: [createWasteCommitment(suffix)],
   isAdequate: null,
   previousRecord: "",

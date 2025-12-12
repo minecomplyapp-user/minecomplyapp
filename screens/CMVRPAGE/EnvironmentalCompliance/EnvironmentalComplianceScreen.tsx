@@ -46,6 +46,8 @@ export default function EnvironmentalComplianceScreen({
 
   // ✅ FIX: Initialize from separate ECC Conditions store field (not air quality)
   const storedEccConditions = currentReport?.eccConditionsAttachment;
+  // ✅ RESTORE: Initialize from air quality store field for B.3 section
+  const storedAirQuality = currentReport?.airQualityImpactAssessment;
 
   const [uploadedEccFile, setUploadedEccFile] = useState<any>(
     storedEccConditions?.uploadedEccFile || null
@@ -55,8 +57,30 @@ export default function EnvironmentalComplianceScreen({
     storedEccConditions?.uploadedImage || null
   );
 
+  // ✅ RESTORE: Air Quality location description states
+  const [quarry, setQuarry] = useState(storedAirQuality?.quarry || "");
+  const [plant, setPlant] = useState(storedAirQuality?.plant || "");
+  const [port, setPort] = useState(storedAirQuality?.port || "");
+  const [quarryPlant, setQuarryPlant] = useState(
+    storedAirQuality?.quarryPlant || ""
+  );
+  const [quarryEnabled, setQuarryEnabled] = useState(
+    storedAirQuality?.quarryEnabled ?? Boolean(storedAirQuality?.quarry)
+  );
+  const [plantEnabled, setPlantEnabled] = useState(
+    storedAirQuality?.plantEnabled ?? Boolean(storedAirQuality?.plant)
+  );
+  const [portEnabled, setPortEnabled] = useState(
+    storedAirQuality?.portEnabled ?? Boolean(storedAirQuality?.port)
+  );
+  const [quarryPlantEnabled, setQuarryPlantEnabled] = useState(
+    storedAirQuality?.quarryPlantEnabled ??
+      Boolean(storedAirQuality?.quarryPlant)
+  );
+
   const [hasHydratedFromStore, setHasHydratedFromStore] = useState(false);
   const [canSyncStore, setCanSyncStore] = useState(false);
+  const [canSyncAirQuality, setCanSyncAirQuality] = useState(false);
 
   useEffect(() => {
     if (hasHydratedFromStore || !currentReport) return;
@@ -66,9 +90,31 @@ export default function EnvironmentalComplianceScreen({
       setUploadedImage(storedEccConditions.uploadedImage || null);
     }
 
+    // ✅ RESTORE: Load air quality data
+    if (storedAirQuality) {
+      setQuarry(storedAirQuality.quarry || "");
+      setPlant(storedAirQuality.plant || "");
+      setPort(storedAirQuality.port || "");
+      setQuarryPlant(storedAirQuality.quarryPlant || "");
+      setQuarryEnabled(
+        storedAirQuality.quarryEnabled ?? Boolean(storedAirQuality.quarry)
+      );
+      setPlantEnabled(
+        storedAirQuality.plantEnabled ?? Boolean(storedAirQuality.plant)
+      );
+      setPortEnabled(
+        storedAirQuality.portEnabled ?? Boolean(storedAirQuality.port)
+      );
+      setQuarryPlantEnabled(
+        storedAirQuality.quarryPlantEnabled ??
+          Boolean(storedAirQuality.quarryPlant)
+      );
+    }
+
     setHasHydratedFromStore(true);
     setCanSyncStore(true);
-  }, [currentReport, storedEccConditions, hasHydratedFromStore]);
+    setCanSyncAirQuality(true);
+  }, [currentReport, storedEccConditions, storedAirQuality, hasHydratedFromStore]);
 
   // ✅ FIX: Auto-sync to separate ECC Conditions store field
   useEffect(() => {
@@ -78,6 +124,31 @@ export default function EnvironmentalComplianceScreen({
       uploadedImage,
     });
   }, [canSyncStore, uploadedEccFile, uploadedImage]);
+
+  // ✅ RESTORE: Auto-sync air quality data to store
+  useEffect(() => {
+    if (!canSyncAirQuality) return;
+    updateSection("airQualityImpactAssessment", {
+      quarry,
+      plant,
+      port,
+      quarryPlant,
+      quarryEnabled,
+      plantEnabled,
+      portEnabled,
+      quarryPlantEnabled,
+    });
+  }, [
+    canSyncAirQuality,
+    quarry,
+    plant,
+    port,
+    quarryPlant,
+    quarryEnabled,
+    plantEnabled,
+    portEnabled,
+    quarryPlantEnabled,
+  ]);
 
 
   const uploadEccFile = async () => {
@@ -315,14 +386,25 @@ export default function EnvironmentalComplianceScreen({
 
 
   const handleSaveNext = () => {
-    console.log("Navigating to Air Quality Impact Assessment (B.3)");
+    console.log("Navigating to Water Quality Impact Assessment");
+    const airQualityImpactAssessment = {
+      quarry,
+      plant,
+      port,
+      quarryPlant,
+      quarryEnabled,
+      plantEnabled,
+      portEnabled,
+      quarryPlantEnabled,
+    };
     const nextParams = {
       submissionId: submissionId || storeSubmissionId,
       projectId: projectId || storeProjectId,
       projectName: projectName || storeProjectName,
       fileName: routeFileName || storeFileName,
+      airQualityImpactAssessment,
     } as any;
-    navigation.navigate("AirQuality", nextParams);
+    navigation.navigate("WaterQuality", nextParams);
   };
 
   return (
@@ -400,6 +482,164 @@ export default function EnvironmentalComplianceScreen({
           )}
         </View>
 
+        {/* ✅ RESTORE: B.3 Air Quality Impact Assessment Section */}
+        <SectionHeader
+          number="B.3."
+          title="Air Quality Impact Assessment"
+        />
+
+        {/* Quarry Location Description */}
+        <View style={styles.locationInputContainer}>
+          <View style={styles.locationHeaderRow}>
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => {
+                setQuarryEnabled(!quarryEnabled);
+                if (quarryEnabled) setQuarry(""); // Clear text when disabled
+              }}
+            >
+              <View
+                style={[
+                  styles.checkbox,
+                  quarryEnabled && styles.checkboxChecked,
+                ]}
+              >
+                {quarryEnabled && (
+                  <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                )}
+              </View>
+              <Text style={styles.locationLabel}>
+                Quarry Location Description
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <TextInput
+            style={[
+              styles.locationInput,
+              !quarryEnabled && styles.locationInputDisabled,
+            ]}
+            value={quarry}
+            onChangeText={setQuarry}
+            placeholder="Enter quarry location description..."
+            multiline
+            numberOfLines={3}
+            editable={quarryEnabled}
+          />
+        </View>
+
+        {/* Plant Location Description */}
+        <View style={styles.locationInputContainer}>
+          <View style={styles.locationHeaderRow}>
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => {
+                setPlantEnabled(!plantEnabled);
+                if (plantEnabled) setPlant(""); // Clear text when disabled
+              }}
+            >
+              <View
+                style={[
+                  styles.checkbox,
+                  plantEnabled && styles.checkboxChecked,
+                ]}
+              >
+                {plantEnabled && (
+                  <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                )}
+              </View>
+              <Text style={styles.locationLabel}>
+                Plant Location Description
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <TextInput
+            style={[
+              styles.locationInput,
+              !plantEnabled && styles.locationInputDisabled,
+            ]}
+            value={plant}
+            onChangeText={setPlant}
+            placeholder="Enter plant location description..."
+            multiline
+            numberOfLines={3}
+            editable={plantEnabled}
+          />
+        </View>
+
+        {/* Quarry / Plant Location Description */}
+        <View style={styles.locationInputContainer}>
+          <View style={styles.locationHeaderRow}>
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => {
+                setQuarryPlantEnabled(!quarryPlantEnabled);
+                if (quarryPlantEnabled) setQuarryPlant(""); // Clear text when disabled
+              }}
+            >
+              <View
+                style={[
+                  styles.checkbox,
+                  quarryPlantEnabled && styles.checkboxChecked,
+                ]}
+              >
+                {quarryPlantEnabled && (
+                  <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                )}
+              </View>
+              <Text style={styles.locationLabel}>
+                Quarry / Plant Location Description
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <TextInput
+            style={[
+              styles.locationInput,
+              !quarryPlantEnabled && styles.locationInputDisabled,
+            ]}
+            value={quarryPlant}
+            onChangeText={setQuarryPlant}
+            placeholder="Enter quarry & plant location description..."
+            multiline
+            numberOfLines={3}
+            editable={quarryPlantEnabled}
+          />
+        </View>
+
+        {/* Port Location Description */}
+        <View style={styles.locationInputContainer}>
+          <View style={styles.locationHeaderRow}>
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => {
+                setPortEnabled(!portEnabled);
+                if (portEnabled) setPort(""); // Clear text when disabled
+              }}
+            >
+              <View
+                style={[styles.checkbox, portEnabled && styles.checkboxChecked]}
+              >
+                {portEnabled && (
+                  <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                )}
+              </View>
+              <Text style={styles.locationLabel}>
+                Port Location Description
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <TextInput
+            style={[
+              styles.locationInput,
+              !portEnabled && styles.locationInputDisabled,
+            ]}
+            value={port}
+            onChangeText={setPort}
+            placeholder="Enter port location description..."
+            multiline
+            numberOfLines={3}
+            editable={portEnabled}
+          />
+        </View>
 
         {/* Save & Next Button */}
         <TouchableOpacity

@@ -25,7 +25,6 @@ export type PortSectionData = {
 };
 
 export type PlantPortSectionData = {
-  typeOfWaste: string;
   eccEpepCommitments: WasteEntry[];
   isAdequate: 'YES' | 'NO' | null;
   previousRecord: string;

@@ -736,8 +736,9 @@ const transformExecutiveSummaryForPayload = (raw: any) => {
 const transformProcessDocumentationForPayload = (raw: any) => {
   if (!raw) return undefined;
   const parseMembers = (text?: string, extras?: string[]) => {
+    // ✅ FIX: Only split by newline, not comma, to preserve "Name, Position" as single entry
     const base = (text || "")
-      .split(/[,\n]/)
+      .split(/\n/)
       .map((s) => s.trim())
       .filter(Boolean);
     const extra = (extras || []).map((s) => (s || "").trim()).filter(Boolean);
@@ -1663,6 +1664,7 @@ const transformNoiseQualityForPayload = (raw: any) => {
   const list = Array.isArray(raw.parameters) ? raw.parameters : [];
   const parameters = list.map((p: any) => ({
     name: String(p?.parameter ?? ""),
+    isParameterNA: !!p?.isParameterNA, // ✅ FIX: Preserve isParameterNA flag
     results: {
       inSMR: {
         current: String(p?.currentInSMR ?? ""),
@@ -1749,7 +1751,7 @@ const transformWasteManagementForPayload = (raw: any) => {
       ? sec.eccEpepCommitments
       : [];
     return items.map((it: any) => ({
-      typeOfWaste: String(sec?.typeOfWaste ?? ""),
+      typeOfWaste: String(it?.typeOfWaste ?? ""),
       eccEpepCommitments: {
         handling: String(it?.handling ?? ""),
         storage: String(it?.storage ?? ""),
@@ -3057,7 +3059,6 @@ const normalizeNoiseQualityFromApi = (raw: any) => {
 };
 
 const createEmptyWasteSection = (prefix: string): PlantPortSectionData => ({
-  typeOfWaste: "",
   eccEpepCommitments: [
     {
       id: createHydrationId(`${prefix}-waste`, 0),
@@ -3156,9 +3157,7 @@ const normalizeWasteManagementFromApi = (
       const formatted: WasteEntry[] = source.map(
         (entry: any, index: number) => ({
           id: createHydrationId(`${sectionKey}-entry`, index),
-          typeOfWaste: sanitizeString(
-            entry?.typeOfWaste ?? sectionTarget.typeOfWaste
-          ),
+          typeOfWaste: sanitizeString(entry?.typeOfWaste ?? ""),
           handling: sanitizeString(
             entry?.eccEpepCommitments?.handling ?? entry?.handling
           ),
@@ -3173,9 +3172,6 @@ const normalizeWasteManagementFromApi = (
                 : "No"
           ),
         })
-      );
-      sectionTarget.typeOfWaste = sanitizeString(
-        source[0]?.typeOfWaste ?? sectionTarget.typeOfWaste
       );
       const adequate = source[0]?.adequate;
       sectionTarget.isAdequate = adequate?.y
@@ -4942,7 +4938,7 @@ const CMVRDocumentExportScreen = () => {
   };
 
   const navigateToAirQuality = () => {
-    navigation.navigate("AirQuality", {
+    navigation.navigate("EnvironmentalCompliance", {
       ...baseNavParams,
       airQualityImpactAssessment: airQualityAssessment,
       draftData: draftPayload,

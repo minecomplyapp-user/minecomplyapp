@@ -73,7 +73,6 @@ export default function WasteManagementScreen({ navigation, route }: any) {
 
   const [quarryPlantData, setQuarryPlantData] = useState<PlantPortSectionData>(
     storedWasteManagement?.quarryPlantData || {
-      typeOfWaste: "",
       eccEpepCommitments: [
         {
           id: `waste-${Date.now()}-quarry`,
@@ -91,7 +90,6 @@ export default function WasteManagementScreen({ navigation, route }: any) {
 
   const [plantData, setPlantData] = useState<PlantPortSectionData>(
     storedWasteManagement?.plantData || {
-      typeOfWaste: "",
       eccEpepCommitments: [
         {
           id: `waste-${Date.now()}-1`,
@@ -117,7 +115,6 @@ export default function WasteManagementScreen({ navigation, route }: any) {
 
   const [portPlantData, setPortPlantData] = useState<PlantPortSectionData>(
     storedWasteManagement?.portPlantData || {
-      typeOfWaste: "",
       eccEpepCommitments: [
         {
           id: `waste-${Date.now()}-2`,
@@ -488,7 +485,6 @@ export default function WasteManagementScreen({ navigation, route }: any) {
     });
 
     setQuarryPlantData({
-      typeOfWaste: "Overburden, Topsoil, Mine Tailings",
       eccEpepCommitments: [
         {
           id: "1",
@@ -525,7 +521,6 @@ export default function WasteManagementScreen({ navigation, route }: any) {
     });
 
     setPlantData({
-      typeOfWaste: "Used oil, Filters, Scrap metal, Office waste",
       eccEpepCommitments: [
         {
           id: "1",
@@ -562,7 +557,6 @@ export default function WasteManagementScreen({ navigation, route }: any) {
     });
 
     setPortPlantData({
-      typeOfWaste: "Bilge water, Oily rags, Packaging materials",
       eccEpepCommitments: [
         {
           id: "1",

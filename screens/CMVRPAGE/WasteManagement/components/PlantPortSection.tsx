@@ -39,17 +39,6 @@ export const PlantPortSection: React.FC<PlantPortSectionProps> = ({
       </View>
 
       <View style={styles.content}>
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Type of Waste</Text>
-          <TextInput
-            style={styles.input}
-            value={data.typeOfWaste}
-            onChangeText={(text) => onUpdateData('typeOfWaste', text)}
-            placeholder="Select or enter waste type"
-            placeholderTextColor="#94A3B8"
-          />
-        </View>
-
         <View style={styles.subsectionHeader}>
           <Text style={styles.subsectionTitle}>ECC/EPEP Commitments</Text>
         </View>

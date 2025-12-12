@@ -14,14 +14,3 @@ export interface GeneralInfoProps {
   onChange: (field: string, value: string) => void;
 }
 
-export interface LocationCoordinates {
-  latitude: number;
-  longitude: number;
-}
-
-export interface MapRegion {
-  latitude: number;
-  longitude: number;
-  latitudeDelta: number;
-  longitudeDelta: number;
-}
