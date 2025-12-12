@@ -3882,6 +3882,43 @@ const CMVRDocumentExportScreen = () => {
     }
   }, [routeAttachments, routeNewlyUploadedPaths]);
 
+  // ✅ FIX: Load attachments from store when reopening draft/submitted report
+  useEffect(() => {
+    if (currentReport?.attachments && Array.isArray(currentReport.attachments) && currentReport.attachments.length > 0) {
+      // Only load if we don't already have attachments from route params
+      if (!routeAttachments || !Array.isArray(routeAttachments) || routeAttachments.length === 0) {
+        console.log("Loading attachments from store:", currentReport.attachments);
+        const formattedAttachments = currentReport.attachments.map((att: any) => ({
+          uri: att.path || att.uri || "",
+          path: att.path || att.uri || "",
+          caption: att.caption || "",
+          uploading: false,
+        }));
+        setAttachments(formattedAttachments);
+      }
+    }
+  }, [currentReport?.attachments, routeAttachments]);
+
+  // ✅ FIX: Sync attachments to store whenever they change
+  useEffect(() => {
+    if (attachments.length > 0 || (currentReport?.attachments && currentReport.attachments.length > 0)) {
+      // Convert local attachments format to store format
+      const storeAttachments = attachments.map((att) => ({
+        path: att.path || att.uri || "",
+        caption: att.caption || "",
+      }));
+      
+      // Only update if different from current store value
+      const currentStoreAttachments = currentReport?.attachments || [];
+      const isDifferent = JSON.stringify(storeAttachments) !== JSON.stringify(currentStoreAttachments);
+      
+      if (isDifferent) {
+        console.log("Syncing attachments to store:", storeAttachments.length, "items");
+        updateMultipleSections({ attachments: storeAttachments });
+      }
+    }
+  }, [attachments, updateMultipleSections]);
+
   // Keep attendance metadata in sync with latest selection routed back from AttendanceList
   useEffect(() => {
     if (!routeSelectedAttendanceId) {
@@ -4166,6 +4203,18 @@ const CMVRDocumentExportScreen = () => {
               Object.assign(normalizedUpdate, normalizedComplianceSections);
             }
 
+            // ✅ FIX: Include permitHolderList in normalized update
+            if (reportData.permitHolderList && Array.isArray(reportData.permitHolderList)) {
+              normalizedUpdate.permitHolderList = reportData.permitHolderList;
+              console.log("Loading permit holder list:", reportData.permitHolderList.length, "items");
+            }
+
+            // ✅ FIX: Include attendanceId in normalized update
+            if (reportData.attendanceId) {
+              normalizedUpdate.attendanceId = reportData.attendanceId;
+              console.log("Loading attendance ID:", reportData.attendanceId);
+            }
+
             // Load attachments if they exist
             if (
               reportData.attachments &&
@@ -4185,6 +4234,8 @@ const CMVRDocumentExportScreen = () => {
               );
               setAttachments(loadedAttachments);
               console.log("Attachments loaded into state:", loadedAttachments);
+              // ✅ FIX: Also include attachments in normalized update for store
+              normalizedUpdate.attachments = reportData.attachments;
             }
 
             console.log("Successfully loaded report data from API");
@@ -4216,6 +4267,18 @@ const CMVRDocumentExportScreen = () => {
         };
 
         loadReport(storePayload);
+        
+        // ✅ FIX: Explicitly set attendanceId in store if present in merged data
+        if (merged.attendanceId) {
+          updateMultipleSections({ attendanceId: merged.attendanceId });
+          console.log("Set attendanceId in store:", merged.attendanceId);
+        }
+        
+        // ✅ FIX: Explicitly set permitHolderList in store if present
+        if (merged.permitHolderList && Array.isArray(merged.permitHolderList)) {
+          updateMultipleSections({ permitHolderList: merged.permitHolderList });
+          console.log("Set permitHolderList in store:", merged.permitHolderList.length, "items");
+        }
       }
 
       setDraftSnapshot(merged);

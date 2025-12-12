@@ -63,6 +63,14 @@ export default function EnvironmentalComplianceScreen({
     saveDraft,
   } = useCmvrStore();
 
+  // Extract route params with fallback to store values
+  const {
+    submissionId = storeSubmissionId || null,
+    projectId = storeProjectId || null,
+    projectName = storeProjectName || "",
+    fileName: routeFileName = storeFileName || "Untitled",
+  } = route?.params || {};
+
   // Initialize from store
   const storedAirQuality = currentReport?.airQualityImpactAssessment;
 
@@ -521,7 +529,7 @@ export default function EnvironmentalComplianceScreen({
       submissionId: submissionId || storeSubmissionId,
       projectId: projectId || storeProjectId,
       projectName: projectName || storeProjectName,
-      fileName: fileName || storeFileName,
+      fileName: routeFileName || storeFileName,
     } as any;
     navigation.navigate("AirQuality", nextParams);
   };

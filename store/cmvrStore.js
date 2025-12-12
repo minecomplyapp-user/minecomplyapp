@@ -377,6 +377,8 @@ const createEmptyReportState = () => ({
   recommendationsData: createRecommendationsSection(),
   attendanceUrl: null,
   attendanceId: null,
+  // ✅ FIX: Include attachments array in empty report state
+  attachments: [],
 });
 
 const mergeObjects = (base, incoming) =>
@@ -729,6 +731,11 @@ const normalizeReportData = (reportData = {}) => {
         : sourceData.attendanceId !== undefined
           ? sourceData.attendanceId
           : base.attendanceUrl,
+    // ✅ FIX: Include attachments in normalized report data
+    attachments: ensureArray(
+      sourceData.attachments,
+      base.attachments || []
+    ),
   };
 };
 
@@ -1052,6 +1059,16 @@ export const useCmvrStore = create((set, get) => ({
       console.log("ECC MMT Additional members:", clonedReport.eccMmtAdditional?.length || 0);
       console.log("EPEP MMT Additional members:", clonedReport.epepMmtAdditional?.length || 0);
       console.log("Ocular MMT Additional members:", clonedReport.ocularMmtAdditional?.length || 0);
+      // ✅ FIX: Verify Date of CMR Submission and Permit Holder List
+      console.log("Date of CMR Submission:", clonedReport.generalInfo?.dateOfCMRSubmission || "NOT SET");
+      console.log("Permit Holder List count:", clonedReport.permitHolderList?.length || 0);
+      if (clonedReport.permitHolderList && clonedReport.permitHolderList.length > 0) {
+        console.log("Permit Holders:", clonedReport.permitHolderList);
+      }
+      // ✅ FIX: Verify attendanceId
+      console.log("Attendance ID:", clonedReport.attendanceId || "NOT SET");
+      // ✅ FIX: Verify attachments (if stored in report)
+      console.log("Attachments count:", clonedReport.attachments?.length || 0);
       console.log("================");
 
       // Save to multi-file draft system (so it appears in the list)
@@ -1102,6 +1119,16 @@ export const useCmvrStore = create((set, get) => ({
       console.log("=== CMVR Draft Load Debug ===");
       console.log("Draft sections count:", Object.keys(draftData).length);
       console.log("Draft saved at:", draftData.savedAt);
+      // ✅ FIX: Verify Date of CMR Submission and Permit Holder List in draft
+      console.log("Date of CMR Submission in draft:", draftData.generalInfo?.dateOfCMRSubmission || "NOT SET");
+      console.log("Permit Holder List in draft:", draftData.permitHolderList?.length || 0, "items");
+      if (draftData.permitHolderList && draftData.permitHolderList.length > 0) {
+        console.log("Permit Holders:", draftData.permitHolderList);
+      }
+      // ✅ FIX: Verify attendanceId in draft
+      console.log("Attendance ID in draft:", draftData.attendanceId || "NOT SET");
+      // ✅ FIX: Verify attachments in draft
+      console.log("Attachments in draft:", draftData.attachments?.length || 0, "items");
       
       // ✅ FIX: Use loadReport to properly restore all sections
       get().loadReport(draftData);
@@ -1119,6 +1146,11 @@ export const useCmvrStore = create((set, get) => ({
         lastSavedAt: draftData.savedAt || null,
       });
       
+      // ✅ FIX: Verify restoration after loadReport
+      const restoredReport = get().currentReport;
+      console.log("Date of CMR Submission after restore:", restoredReport?.generalInfo?.dateOfCMRSubmission || "NOT SET");
+      console.log("Permit Holder List after restore:", restoredReport?.permitHolderList?.length || 0, "items");
+      console.log("Attendance ID after restore:", restoredReport?.attendanceId || "NOT SET");
       console.log("✅ Draft loaded successfully with all metadata");
       console.log("================");
 
