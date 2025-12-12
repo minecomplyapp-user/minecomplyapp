@@ -160,6 +160,7 @@ export type CreateCMVRDto = {
   finalMineRehabilitationAndDecommissioningFund: FundDto[];
   // These will be added in Page 2
   executiveSummaryOfCompliance?: any;
+  complianceMonitoringReportDiscussion?: any;
   processDocumentationOfActivitiesUndertaken?: any;
   complianceMonitoringReport?: any;
   createdById?: string;

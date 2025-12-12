@@ -3456,6 +3456,10 @@ const buildCreateCMVRPayload = (
       norm.executiveSummaryOfCompliance
     );
   }
+  // ✅ FIX: Add Compliance Monitoring Report Discussion to payload
+  if (norm.complianceMonitoringReportDiscussion) {
+    payload.complianceMonitoringReportDiscussion = norm.complianceMonitoringReportDiscussion;
+  }
   if (norm.processDocumentationOfActivitiesUndertaken) {
     payload.processDocumentationOfActivitiesUndertaken =
       transformProcessDocumentationForPayload(
@@ -3693,9 +3697,9 @@ const buildCreateCMVRPayload = (
     payload.attendanceId = payloadAttendanceId;
   }
 
-  // Add ECC Conditions attachment if uploaded
-  if (norm.airQualityImpactAssessment?.uploadedEccFile) {
-    const eccFile = norm.airQualityImpactAssessment.uploadedEccFile;
+  // ✅ FIX: Add ECC Conditions attachment from separate field (not air quality)
+  if (norm.eccConditionsAttachment?.uploadedEccFile) {
+    const eccFile = norm.eccConditionsAttachment.uploadedEccFile;
     payload.eccConditionsAttachment = {
       fileName: eccFile.name || "ECC Conditions Document",
       fileUrl: eccFile.publicUrl || eccFile.uri || null,
@@ -4785,6 +4789,7 @@ const CMVRDocumentExportScreen = () => {
   const mmtInfo = currentReport?.mmtInfo ?? defaultMmtInfo;
   const permitHolderList = currentReport?.permitHolderList || [];
   const executiveSummary = currentReport?.executiveSummaryOfCompliance;
+  const complianceDiscussion = currentReport?.complianceMonitoringReportDiscussion;
   const processDocumentation =
     currentReport?.processDocumentationOfActivitiesUndertaken;
   const complianceProjectLocation =
@@ -4925,6 +4930,21 @@ const CMVRDocumentExportScreen = () => {
       complianceWithGoodPracticeInChemicalSafetyManagement: chemicalSafetyData,
       complaintsVerificationAndManagement: complaintsData,
       recommendationsData,
+      draftData: draftPayload,
+    } as any);
+  };
+
+  const navigateToComplianceDiscussion = () => {
+    navigation.navigate("ComplianceDiscussionScreen", {
+      ...baseNavParams,
+      draftData: draftPayload,
+    } as any);
+  };
+
+  const navigateToAirQuality = () => {
+    navigation.navigate("AirQuality", {
+      ...baseNavParams,
+      airQualityImpactAssessment: airQualityAssessment,
       draftData: draftPayload,
     } as any);
   };
@@ -5132,6 +5152,20 @@ const CMVRDocumentExportScreen = () => {
             value={executiveSummary ? "Available" : "Not provided"}
             onPress={navigateToPage2}
             isEdited={isSectionEdited("executiveSummaryOfCompliance")}
+          />
+          <SummaryItem
+            icon="📝"
+            title="Compliance Monitoring Report and Discussion"
+            value={complianceDiscussion ? "Available" : "Not provided"}
+            onPress={navigateToComplianceDiscussion}
+            isEdited={isSectionEdited("complianceMonitoringReportDiscussion")}
+          />
+          <SummaryItem
+            icon="🌬️"
+            title="Air Quality Assessment"
+            value={airQualityAssessment ? "Available" : "Not provided"}
+            onPress={navigateToAirQuality}
+            isEdited={isSectionEdited("airQualityImpactAssessment")}
           />
           <SummaryItem
             icon="🗂️"

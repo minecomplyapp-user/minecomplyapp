@@ -270,7 +270,95 @@ const createRecommendationsSection = () => ({
 });
 
 const createLocationCoverageSection = () => ({
-  formData: {},
+  formData: {
+    projectLocation: {
+      label: "Project Location",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    projectArea: {
+      label: "Project Area (ha)",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    capitalCost: {
+      label: "Capital Cost (Php)",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    typeOfMinerals: {
+      label: "Type of Minerals",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    miningMethod: {
+      label: "Mining Method",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    production: {
+      label: "Production",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    mineLife: {
+      label: "Mine Life",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    mineralReserves: {
+      label: "Mineral Reserves/ Resources",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    accessTransportation: {
+      label: "Access/ Transportation",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    powerSupply: {
+      label: "Power Supply",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+      subFields: [
+        { label: "Plant:", specification: "" },
+        { label: "Port:", specification: "" },
+      ],
+    },
+    miningEquipment: {
+      label: "Mining Equipment",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+      subFields: [
+        { label: "Quarry/Plant:", specification: "" },
+        { label: "Port:", specification: "" },
+      ],
+    },
+    workForce: {
+      label: "Work Force",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+      subFields: [{ label: "Employees:", specification: "" }],
+    },
+    developmentSchedule: {
+      label: "Development/ Utilization Schedule",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+  },
   otherComponents: [],
   uploadedImages: {},
   imagePreviews: {},
@@ -366,6 +454,11 @@ const createEmptyReportState = () => ({
   ocularMmtAdditional: [],
   complianceToProjectLocationAndCoverageLimits: createLocationCoverageSection(),
   complianceToImpactManagementCommitments: createImpactCommitmentsSection(),
+  // ✅ FIX: Separate ECC Conditions from Air Quality
+  eccConditionsAttachment: {
+    uploadedEccFile: null,
+    uploadedImage: null,
+  },
   airQualityImpactAssessment: createAirQualitySection(),
   waterQualityImpactAssessment: createWaterQualitySection(),
   noiseQualityImpactAssessment: createNoiseQualitySection(),
@@ -619,8 +712,25 @@ const normalizeProcessDocumentation = (incoming) => {
 const normalizeLocationCoverage = (incoming) => {
   const base = createLocationCoverageSection();
   if (!isObject(incoming)) return base;
+  
+  // ✅ FIX: Deep merge formData to ensure all 14 parameters are always present
+  const mergedFormData = { ...base.formData };
+  if (incoming.formData && isObject(incoming.formData)) {
+    // Overlay stored values on top of default structure
+    Object.keys(base.formData).forEach((key) => {
+      if (incoming.formData[key]) {
+        mergedFormData[key] = {
+          ...base.formData[key],
+          ...incoming.formData[key],
+          // Preserve subFields structure if it exists in default
+          subFields: incoming.formData[key].subFields || base.formData[key].subFields,
+        };
+      }
+    });
+  }
+  
   return {
-    formData: mergeObjects(base.formData, incoming.formData),
+    formData: mergedFormData,
     otherComponents: ensureArray(
       incoming.otherComponents,
       base.otherComponents
@@ -674,6 +784,11 @@ const normalizeReportData = (reportData = {}) => {
     executiveSummaryOfCompliance: normalizeExecutiveSummary(
       sourceData.executiveSummaryOfCompliance
     ),
+    // ✅ FIX: Normalize Compliance Monitoring Report Discussion
+    complianceMonitoringReportDiscussion: mergeObjects(
+      base.complianceMonitoringReportDiscussion,
+      sourceData.complianceMonitoringReportDiscussion || {}
+    ),
     processDocumentationOfActivitiesUndertaken: normalizeProcessDocumentation(
       sourceData.processDocumentationOfActivitiesUndertaken
     ),
@@ -695,6 +810,11 @@ const normalizeReportData = (reportData = {}) => {
     ),
     complianceToImpactManagementCommitments: normalizeImpactCommitmentsSection(
       sourceData.complianceToImpactManagementCommitments
+    ),
+    // ✅ FIX: Normalize ECC Conditions separately from Air Quality
+    eccConditionsAttachment: mergeObjects(
+      base.eccConditionsAttachment,
+      sourceData.eccConditionsAttachment || {}
     ),
     airQualityImpactAssessment: normalizeAirQualitySection(
       sourceData.airQualityImpactAssessment
@@ -1044,6 +1164,13 @@ export const useCmvrStore = create((set, get) => ({
         createdById: state.createdById,
         // ✅ FIX: Preserve edit tracking
         editedSections: state.editedSections,
+        // ✅ FIX: Explicitly ensure attachments and attendanceId are included
+        attachments: clonedReport.attachments || state.currentReport?.attachments || [],
+        attendanceId: clonedReport.attendanceId !== undefined 
+          ? clonedReport.attendanceId 
+          : (state.currentReport?.attendanceId !== undefined 
+            ? state.currentReport.attendanceId 
+            : null),
       };
 
       // ✅ FIX: Validate critical data before saving

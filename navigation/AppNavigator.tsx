@@ -39,7 +39,6 @@ import GuestDashboardScreen from "../screens/dashboard/GuestDashboardScreen";
 import EPEPScreen from "../screens/EPEP/epepScreen";
 import ECCDraftsScreen from "../screens/ecc/ECCDraftsScreen";
 import ComplianceDiscussionScreen from "../screens/CMVRPAGE/ComplianceMonitoringDiscussion/ComplianceDiscussionScreen";
-import AirQualityAssessmentScreen from "../screens/CMVRPAGE/AirQualityAssessment/AirQualityAssessmentScreen";
 import GuestRemarksForm from "../screens/guest/GuestRemarksForm";
 
 
@@ -181,11 +180,6 @@ const AppNavigator = () => {
               <RootStack.Screen
                 name="ComplianceDiscussionScreen"
                 component={ComplianceDiscussionScreen}
-                options={{ headerShown: false }}
-              />
-              <RootStack.Screen
-                name="AirQualityAssessmentScreen"
-                component={AirQualityAssessmentScreen}
                 options={{ headerShown: false }}
               />
               <RootStack.Screen

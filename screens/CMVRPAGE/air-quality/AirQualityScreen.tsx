@@ -458,7 +458,7 @@ export default function AirQualityScreen({ navigation, route }: any) {
       >
         <View style={styles.sectionHeader}>
           <View style={styles.sectionNumberBadge}>
-            <Text style={styles.sectionNumber}>B.3.</Text>
+            <Text style={styles.sectionNumber}>B.2.</Text>
           </View>
           <Text style={styles.sectionTitle}>Air Quality Impact Assessment</Text>
         </View>
