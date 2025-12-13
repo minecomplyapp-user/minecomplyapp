@@ -112,11 +112,13 @@ const createWaterQualitySection = () => ({
   quarry: "",
   plant: "",
   quarryPlant: "",
+  port: "", // ✅ FIX: Port description as string (like quarry, plant, quarryPlant)
   quarryEnabled: false,
   plantEnabled: false,
   quarryPlantEnabled: false,
+  portEnabled: false,
   waterQuality: createWaterQualityLocation(),
-  port: createWaterQualityLocation(),
+  portData: createWaterQualityLocation(), // ✅ FIX: Port monitoring data stored separately
   data: {
     quarryInput: "",
     plantInput: "",
@@ -581,11 +583,33 @@ const normalizeWaterQualitySection = (incoming) => {
     };
   };
 
+  // ✅ FIX: Handle port as string (description) and portData as LocationData object
+  let portDescription = base.port;
+  let portDataNormalized = base.portData;
+  
+  if (incoming.port !== undefined) {
+    if (typeof incoming.port === 'string') {
+      // Port is a string description
+      portDescription = incoming.port;
+    } else if (isObject(incoming.port)) {
+      // Legacy: port is an object, extract description if available
+      portDescription = incoming.port.locationDescription || incoming.port.locationInput || "";
+      portDataNormalized = normalizeLocation(incoming.port);
+    }
+  }
+  
+  // If portData is provided separately, use it
+  if (incoming.portData !== undefined && isObject(incoming.portData)) {
+    portDataNormalized = normalizeLocation(incoming.portData);
+  }
+
   return {
     ...base,
     ...incoming,
+    port: portDescription, // String description
+    portData: portDataNormalized, // LocationData object
+    portEnabled: incoming.portEnabled ?? base.portEnabled,
     waterQuality: normalizeLocation(incoming.waterQuality),
-    port: normalizeLocation(incoming.port),
     data: mergeObjects(base.data, incoming.data),
     parameters: ensureArray(incoming.parameters, base.parameters),
     ports: ensureArray(incoming.ports, base.ports).map(normalizePort),

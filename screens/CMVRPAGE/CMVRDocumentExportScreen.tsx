@@ -1193,12 +1193,14 @@ const transformWaterQualityForPayload = (raw: any) => {
         "quarryPlant",
         pickDescription(raw.quarryPlant, raw?.data?.quarryPlantInput),
       ],
+      ["port", pickDescription(raw.portInput, raw.port, raw?.data?.portInput)], // ✅ FIX: Prioritize portInput for port description
     ];
 
     const labels: Record<string, string> = {
       quarry: "Quarry",
       plant: "Plant",
       quarryPlant: "Quarry / Plant",
+      port: "Port", // ✅ FIX: Add port label
     };
 
     const map: Record<string, string> = {};
@@ -1223,10 +1225,12 @@ const transformWaterQualityForPayload = (raw: any) => {
   const hasNewStructurePayload =
     !!raw.waterQuality ||
     !!raw.port ||
+    !!raw.portData ||
     Object.values(locationDescriptions).some(Boolean) ||
     !!raw.quarryEnabled ||
     !!raw.plantEnabled ||
-    !!raw.quarryPlantEnabled;
+    !!raw.quarryPlantEnabled ||
+    !!raw.portEnabled;
 
   if (hasNewStructurePayload) {
     const result: any = {};
@@ -1240,6 +1244,9 @@ const transformWaterQualityForPayload = (raw: any) => {
     if (locationDescriptions.quarryPlant) {
       result.quarryPlant = locationDescriptions.quarryPlant;
     }
+    if (locationDescriptions.port) {
+      result.port = locationDescriptions.port;
+    }
 
     // Add checkbox states
     if (raw.quarryEnabled != null) {
@@ -1250,6 +1257,9 @@ const transformWaterQualityForPayload = (raw: any) => {
     }
     if (raw.quarryPlantEnabled != null) {
       result.quarryPlantEnabled = !!raw.quarryPlantEnabled;
+    }
+    if (raw.portEnabled != null) {
+      result.portEnabled = !!raw.portEnabled;
     }
 
     const buildLocationDescription = (source?: any) =>
@@ -1387,10 +1397,27 @@ const transformWaterQualityForPayload = (raw: any) => {
     };
 
     // Transform port data (separate from waterQuality)
-    if (raw.port) {
-      const portPayload = buildPortPayload(raw.port);
+    // ✅ FIX: Handle port as string description + portData as monitoring object
+    if (raw.portEnabled && (typeof raw.port === 'string' || raw.portData)) {
+      // Combine port description (string) with portData (monitoring object)
+      const portDescription = typeof raw.port === 'string' ? raw.port : "";
+      const portMonitoringData = raw.portData || (typeof raw.port === 'object' ? raw.port : {});
+      
+      // Build combined port source
+      const portSource = {
+        ...portMonitoringData,
+        locationInput: portDescription || portMonitoringData.locationInput || "",
+        locationDescription: portDescription || portMonitoringData.locationDescription || "",
+      };
+      
+      const portPayload = buildPortPayload(portSource);
       if (portPayload) {
+        // Ensure description is set from port string
+        if (portDescription.trim()) {
+          portPayload.locationDescription = sanitizeText(portDescription);
+        }
         result.port = portPayload;
+        result.portEnabled = true;
       }
     }
 
@@ -1632,6 +1659,33 @@ const transformWaterQualityForPayload = (raw: any) => {
     };
   }
 
+  // ✅ FIX: Handle portEnabled with port (string) and portData (object) in legacy structure
+  if (raw.portEnabled && (typeof raw.port === 'string' || raw.portData)) {
+    const portSource = raw.portData || d;
+    const portMainParam = makeParam(portSource);
+    const portExtraParams = Array.isArray(portSource?.parameters)
+      ? portSource.parameters.map(makeParam)
+      : [];
+
+    result.port = {
+      locationDescription: String(
+        typeof raw.port === 'string' 
+          ? raw.port 
+          : portSource?.portName ?? portSource?.locationInput ?? d?.port ?? ""
+      ),
+      parameters: [portMainParam, ...portExtraParams].filter((p) => p.name),
+      samplingDate: String(portSource?.dateTime ?? d?.dateTime ?? ""),
+      weatherAndWind: String(portSource?.weatherWind ?? d?.weatherWind ?? ""),
+      explanationForConfirmatorySampling: String(
+        portSource?.explanation ?? d?.explanation ?? ""
+      ),
+      overallAssessment: String(
+        portSource?.overallCompliance ?? d?.overallCompliance ?? ""
+      ),
+    };
+  }
+
+  // Legacy ports array handling
   if (ports?.length) {
     ports.forEach((port: any) => {
       const portMainParam = makeParam(port);

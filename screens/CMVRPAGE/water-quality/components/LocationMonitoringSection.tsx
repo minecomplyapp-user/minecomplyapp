@@ -8,7 +8,10 @@ import { styles } from "./LocationMonitoringSection.styles";
 
 export type LocationMonitoringSectionProps = {
   locationName: string;
+  /** Optional location description text shown above the monitoring fields. */
   locationInput: string;
+  /** Whether to render the location description input UI. */
+  showLocationInput?: boolean;
   mainParameter: Parameter;
   parameters: Parameter[];
   dateTime: string;
@@ -42,6 +45,7 @@ const LocationMonitoringSectionComponent: React.FC<
 > = ({
   locationName,
   locationInput,
+  showLocationInput = false,
   mainParameter,
   parameters,
   dateTime,
@@ -64,6 +68,19 @@ const LocationMonitoringSectionComponent: React.FC<
 }) => {
   return (
     <View style={styles.container}>
+      {showLocationInput && (
+        <View style={styles.locationInputContainer}>
+          <Text style={styles.locationInputLabel}>Description</Text>
+          <TextInput
+            style={styles.locationInput}
+            value={locationInput}
+            onChangeText={onLocationInputChange}
+            placeholder={`Enter ${locationName} location description`}
+            multiline
+          />
+        </View>
+      )}
+
       {/* Internal Monitoring Section */}
       <View style={styles.internalMonitoringContainer}>
         <Text style={styles.internalMonitoringTitle}>Internal Monitoring</Text>

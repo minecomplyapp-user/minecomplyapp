@@ -47,11 +47,13 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     quarry: "",
     plant: "",
     quarryPlant: "",
+    port: "", // ✅ FIX: Port description as string (like quarry, plant, quarryPlant)
     quarryEnabled: false,
     plantEnabled: false,
     quarryPlantEnabled: false,
+    portEnabled: false,
     waterQuality: createEmptyLocationData(),
-    port: createEmptyLocationData(),
+    portData: createEmptyLocationData(), // ✅ FIX: Port monitoring data stored separately
     data: {
       quarryInput: "",
       plantInput: "",
@@ -100,13 +102,21 @@ export default function WaterQualityScreen({ navigation, route }: any) {
   const [quarryPlantInput, setQuarryPlantInput] = useState<string>(
     waterQualitySection.quarryPlant
   );
+  const [portInput, setPortInput] = useState<string>(
+    typeof waterQualitySection.port === 'string' 
+      ? waterQualitySection.port 
+      : ""
+  );
 
   const [waterQualityData, setWaterQualityData] = useState<LocationData>(
     waterQualitySection.waterQuality || createEmptyLocationData()
   );
 
   const [portData, setPortData] = useState<LocationData>(
-    waterQualitySection.port || createEmptyLocationData()
+    waterQualitySection.portData || 
+    (typeof waterQualitySection.port === 'object' && waterQualitySection.port !== null
+      ? waterQualitySection.port
+      : createEmptyLocationData())
   );
 
   const [data, setData] = useState<WaterQualityData>(waterQualitySection.data);
@@ -138,10 +148,20 @@ export default function WaterQualityScreen({ navigation, route }: any) {
       setQuarryInput(storedWaterQuality.quarry || "");
       setPlantInput(storedWaterQuality.plant || "");
       setQuarryPlantInput(storedWaterQuality.quarryPlant || "");
+      setPortInput(
+        typeof storedWaterQuality.port === 'string'
+          ? storedWaterQuality.port
+          : ""
+      );
       setWaterQualityData(
         storedWaterQuality.waterQuality || createEmptyLocationData()
       );
-      setPortData(storedWaterQuality.port || createEmptyLocationData());
+      setPortData(
+        storedWaterQuality.portData || 
+        (typeof storedWaterQuality.port === 'object' && storedWaterQuality.port !== null
+          ? storedWaterQuality.port
+          : createEmptyLocationData())
+      );
       setData(storedWaterQuality.data || waterQualitySection.data);
       setParameters(storedWaterQuality.parameters || []);
     }
@@ -172,12 +192,13 @@ export default function WaterQualityScreen({ navigation, route }: any) {
         quarry: quarryInput,
         plant: plantInput,
         quarryPlant: quarryPlantInput,
+        port: portInput, // Store port description as string
         quarryEnabled,
         plantEnabled,
         quarryPlantEnabled,
         portEnabled,
         waterQuality: waterQualityData,
-        port: portData,
+        portData: portData, // Store port monitoring data separately
         data,
         parameters,
       };
@@ -194,6 +215,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     quarryInput,
     plantInput,
     quarryPlantInput,
+    portInput,
     quarryEnabled,
     plantEnabled,
     quarryPlantEnabled,
@@ -438,6 +460,11 @@ export default function WaterQualityScreen({ navigation, route }: any) {
   // Empty handler for location input (not used but required by component)
   const emptyLocationInputHandler = useCallback(() => {}, []);
 
+  // Handler for Port location input change
+  const handlePortLocationInputChange = useCallback((value: string) => {
+    setPortInput(value);
+  }, []);
+
   // ============ LEGACY HANDLERS (for backward compatibility) ============
   const handleInputChange = (
     field: keyof WaterQualityData,
@@ -554,6 +581,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
     setQuarryPlantInput(
       "Mobile crusher operations with temporary water management"
     );
+    setPortInput("Port Loading Area - North Pier"); // ✅ FIX: Add port description
 
     // Fill Water Quality Data (unified table)
     setWaterQualityData({
@@ -945,11 +973,13 @@ export default function WaterQualityScreen({ navigation, route }: any) {
               editable={quarryPlantEnabled}
             />
           </View>
+
         </View>
 
         {/* Water Quality Monitoring Section */}
         <LocationMonitoringSection
           locationName="Water Quality"
+          showLocationInput={false}
           locationInput=""
           mainParameter={waterQualityMainParameter}
           parameters={waterQualityData.parameters}
@@ -1002,6 +1032,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
                         onPress: () => {
                           setPortEnabled(false);
                           setPortData(createEmptyLocationData());
+                          setPortInput(""); // Clear port description when removing
                         },
                       },
                     ]
@@ -1016,7 +1047,8 @@ export default function WaterQualityScreen({ navigation, route }: any) {
             {/* Port Monitoring Section */}
             <LocationMonitoringSection
               locationName="Port"
-              locationInput=""
+              showLocationInput={true}
+              locationInput={portInput}
               mainParameter={portMainParameter}
               parameters={portData.parameters}
               mmtCurrent={portData.mmtCurrent}
@@ -1027,7 +1059,7 @@ export default function WaterQualityScreen({ navigation, route }: any) {
               explanation={portData.explanation}
               isExplanationNA={portData.isExplanationNA}
               overallCompliance={portData.overallCompliance}
-              onLocationInputChange={emptyLocationInputHandler}
+              onLocationInputChange={handlePortLocationInputChange}
               onMainParameterUpdate={handlePortMainParameterUpdate}
               onMMTInputChange={handlePortMMTInputChange}
               onMMTNAToggle={handlePortMMTNAToggle}

@@ -1271,6 +1271,55 @@ const buildWaterQualityImpactAssessment = (raw) => {
     };
   }
 
+  // ✅ FIX: Handle portEnabled with port (string) and portData (object)
+  if (raw.portEnabled && (typeof raw.port === 'string' || raw.portData)) {
+    // Use portData if available, otherwise fall back to shared data
+    const portSource = raw.portData || d;
+    const portDescription = typeof raw.port === 'string'
+      ? raw.port
+      : (raw.portInput ||
+          (portSource?.portName ??
+            portSource?.locationInput ??
+            d?.port ??
+            ""));
+    
+    const portMainParam = makeParam(portSource);
+    const portExtraParams = Array.isArray(portSource?.parameters)
+      ? portSource.parameters.map(makeParam)
+      : [];
+
+    result.port = {
+      locationDescription: String(portDescription),
+      parameters: [portMainParam, ...portExtraParams]
+        .filter((param) => param?.name)
+        .map((param) => ({
+          ...param,
+          result: {
+            ...param.result,
+            internalMonitoring: {
+              ...param.result.internalMonitoring,
+              readings: param.result.internalMonitoring.readings.map(
+                (reading) => ({
+                  ...reading,
+                  current_mgL: parseFirstNumber(reading.current_mgL),
+                  previous_mgL: parseFirstNumber(reading.previous_mgL),
+                })
+              ),
+            },
+          },
+        })),
+      samplingDate: String(portSource?.dateTime ?? d?.dateTime ?? ""),
+      weatherAndWind: String(portSource?.weatherWind ?? d?.weatherWind ?? ""),
+      explanationForConfirmatorySampling: String(
+        portSource?.explanation ?? d?.explanation ?? ""
+      ),
+      overallAssessment: String(
+        portSource?.overallCompliance ?? d?.overallCompliance ?? ""
+      ),
+    };
+  }
+
+  // Legacy ports array handling
   if (ports?.length) {
     ports.forEach((port) => {
       const portMainParam = makeParam(port);
