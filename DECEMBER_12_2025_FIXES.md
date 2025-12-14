@@ -427,6 +427,9 @@ This document tracks all bug fixes and feature implementations completed on Dece
 
 ## 📅 Change Log
 
+- **December 12, 2025, 02:30 AM:** CMVR Water Quality - Port Monitoring UX + Expo bundling fix
+  - Fixed Expo bundler parse error caused by mixing `||` with `??` in `store/cmvrTransformers.js`.
+  - Moved the Port "Description" input into the Port Monitoring container (so users see it where they add Port Monitoring), instead of being only at the top "Location Descriptions" area.
 - **December 12, 2025, 11:00 AM:** Initial documentation created
 - **December 12, 2025, Afternoon:** Added date picker conversions, displayName fix, Exit button fix
 - All fixes completed and tested

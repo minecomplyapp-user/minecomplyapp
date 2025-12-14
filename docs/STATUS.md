@@ -1,7 +1,7 @@
 # MineComply Mobile App - Status Tracker
 
 > **Living Document**: Update as features are added or changed
-> Last Updated: January 2025
+> Last Updated: December 12, 2025 (02:30 AM)
 
 ## Table of Contents
 
@@ -315,6 +315,10 @@
 ---
 
 ## Recent Changes
+
+### December 12, 2025 - 02:30 AM - CMVR Water Quality Port Monitoring UX
+- Port "Description" is now shown inside the Port Monitoring container when Port Monitoring is enabled (instead of being only at the top of the B.4 screen).
+- Fixed an Expo bundler syntax error in `store/cmvrTransformers.js` caused by mixing `||` with `??` without parentheses.
 
 ### January 2025 - UI & Data Persistence Fixes
 
