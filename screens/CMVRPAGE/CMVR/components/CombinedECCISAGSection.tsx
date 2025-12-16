@@ -96,19 +96,51 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
   };
   
   const updatePermitHolderList = (newHolder: string) => {
-    setPermitHolderList((prevList) =>
+    setPermitHolderList((prevList) => {
+      // ✅ FIX: Add defensive array check
+      if (!Array.isArray(prevList)) {
+        console.error("permitHolderList is not an array:", prevList);
+        return [newHolder];
+      }
+
       // If the new holder is NOT in the list, spread the previous list and add the new holder.
-      // Otherwise, return the previous list (prevList).
-      prevList.includes(newHolder) ? prevList : [...prevList, newHolder]
-    );
+      if (prevList.includes(newHolder)) {
+        console.log(`Permit holder "${newHolder}" already exists, skipping`);
+        return prevList;
+      }
+
+      const newList = [...prevList, newHolder];
+      console.log(`Added permit holder "${newHolder}". New length: ${newList.length}`, newList);
+      return newList;
+    });
   };
   const handleRemoveHolder = (index: number) => {
     if (typeof setPermitHolderList !== "function") return;
 
-    setPermitHolderList((prevList) =>
-      // Filter out the element whose index (i) matches the index passed in
-      prevList.filter((_, i) => i !== index)
-    );
+    // ✅ FIX: Defensive check for valid index
+    if (index < 0) {
+      console.warn("Invalid index for removeHolder:", index);
+      return;
+    }
+
+    setPermitHolderList((prevList) => {
+      // ✅ FIX: Ensure prevList is array
+      if (!Array.isArray(prevList)) {
+        console.error("permitHolderList is not an array:", prevList);
+        return [];
+      }
+
+      // ✅ FIX: Ensure index exists
+      if (index >= prevList.length) {
+        console.warn(`Index ${index} out of bounds for list length ${prevList.length}`);
+        return prevList;
+      }
+
+      const holderToRemove = prevList[index];
+      const newList = prevList.filter((_, i) => i !== index);
+      console.log(`Removed permit holder "${holderToRemove}" at index ${index}. New length: ${newList.length}`, newList);
+      return newList;
+    });
   };
   const updateISAGInfo = (field: keyof ISAGInfo, value: string | boolean) => {
     setIsagInfo((prev) => {
@@ -248,7 +280,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
           >
             {permitHolderList.map((holder, index) => (
               <TouchableOpacity
-                key={index}
+                key={`permit-holder-${holder}-${index}`}
                 style={styles.holderBadge}
                 onPress={() => handleRemoveHolder(index)}
               >

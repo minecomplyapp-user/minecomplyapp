@@ -153,15 +153,24 @@ export default function WaterQualityScreen({ navigation, route }: any) {
           ? storedWaterQuality.port
           : ""
       );
-      setWaterQualityData(
-        storedWaterQuality.waterQuality || createEmptyLocationData()
-      );
-      setPortData(
-        storedWaterQuality.portData || 
+
+      const waterQualityRestoredData = storedWaterQuality.waterQuality || createEmptyLocationData();
+      const portRestoredData = storedWaterQuality.portData ||
         (typeof storedWaterQuality.port === 'object' && storedWaterQuality.port !== null
           ? storedWaterQuality.port
-          : createEmptyLocationData())
-      );
+          : createEmptyLocationData());
+
+      // ✅ FIX: Add logging to track parameter restoration
+      console.log(`[Water Quality] Hydrating from store. Water Quality parameters: ${waterQualityRestoredData.parameters.length}, Port parameters: ${portRestoredData.parameters.length}`);
+      if (waterQualityRestoredData.parameters.length > 0) {
+        console.log("[Water Quality] Restored Water Quality parameter IDs:", waterQualityRestoredData.parameters.map(p => ({ id: p.id, param: p.parameter })));
+      }
+      if (portRestoredData.parameters.length > 0) {
+        console.log("[Water Quality] Restored Port parameter IDs:", portRestoredData.parameters.map(p => ({ id: p.id, param: p.parameter })));
+      }
+
+      setWaterQualityData(waterQualityRestoredData);
+      setPortData(portRestoredData);
       setData(storedWaterQuality.data || waterQualitySection.data);
       setParameters(storedWaterQuality.parameters || []);
     }
@@ -202,6 +211,15 @@ export default function WaterQualityScreen({ navigation, route }: any) {
         data,
         parameters,
       };
+
+      // ✅ FIX: Add logging to track parameter persistence
+      console.log(`[Water Quality] Syncing to store. Water Quality parameters: ${waterQualityData.parameters.length}, Port parameters: ${portData.parameters.length}`);
+      if (waterQualityData.parameters.length > 0) {
+        console.log("[Water Quality] Water Quality parameter IDs:", waterQualityData.parameters.map(p => ({ id: p.id, param: p.parameter })));
+      }
+      if (portData.parameters.length > 0) {
+        console.log("[Water Quality] Port parameter IDs:", portData.parameters.map(p => ({ id: p.id, param: p.parameter })));
+      }
 
       updateSection("waterQualityImpactAssessment", currentData);
     }, 300);
@@ -301,9 +319,8 @@ export default function WaterQualityScreen({ navigation, route }: any) {
 
   const addWaterQualityParameter = useCallback(() => {
     const newId = `water-quality-param-${Date.now()}`;
-    setWaterQualityData((prev) => ({
-      ...prev,
-      parameters: [
+    setWaterQualityData((prev) => {
+      const newParameters = [
         ...prev.parameters,
         {
           id: newId,
@@ -319,8 +336,13 @@ export default function WaterQualityScreen({ navigation, route }: any) {
           limit: "",
           remarks: "",
         },
-      ],
-    }));
+      ];
+      console.log(`[Water Quality] Added parameter with ID: ${newId}. Total parameters: ${newParameters.length}`);
+      return {
+        ...prev,
+        parameters: newParameters,
+      };
+    });
   }, []);
 
   const updateWaterQualityParameter = useCallback((
@@ -346,10 +368,15 @@ export default function WaterQualityScreen({ navigation, route }: any) {
           text: "Remove",
           style: "destructive",
           onPress: () => {
-            setWaterQualityData((prev) => ({
-              ...prev,
-              parameters: prev.parameters.filter((param) => param.id !== id),
-            }));
+            setWaterQualityData((prev) => {
+              const paramToRemove = prev.parameters.find((p) => p.id === id);
+              const newParameters = prev.parameters.filter((param) => param.id !== id);
+              console.log(`[Water Quality] Removed parameter "${paramToRemove?.parameter}" (ID: ${id}). Remaining: ${newParameters.length}`);
+              return {
+                ...prev,
+                parameters: newParameters,
+              };
+            });
           },
         },
       ]
@@ -388,9 +415,8 @@ export default function WaterQualityScreen({ navigation, route }: any) {
 
   const addPortParameter = useCallback(() => {
     const newId = `port-param-${Date.now()}`;
-    setPortData((prev) => ({
-      ...prev,
-      parameters: [
+    setPortData((prev) => {
+      const newParameters = [
         ...prev.parameters,
         {
           id: newId,
@@ -406,8 +432,13 @@ export default function WaterQualityScreen({ navigation, route }: any) {
           limit: "",
           remarks: "",
         },
-      ],
-    }));
+      ];
+      console.log(`[Port Monitoring] Added parameter with ID: ${newId}. Total parameters: ${newParameters.length}`);
+      return {
+        ...prev,
+        parameters: newParameters,
+      };
+    });
   }, []);
 
   const updatePortParameter = useCallback((
@@ -433,10 +464,15 @@ export default function WaterQualityScreen({ navigation, route }: any) {
           text: "Remove",
           style: "destructive",
           onPress: () => {
-            setPortData((prev) => ({
-              ...prev,
-              parameters: prev.parameters.filter((param) => param.id !== id),
-            }));
+            setPortData((prev) => {
+              const paramToRemove = prev.parameters.find((p) => p.id === id);
+              const newParameters = prev.parameters.filter((param) => param.id !== id);
+              console.log(`[Port Monitoring] Removed parameter "${paramToRemove?.parameter}" (ID: ${id}). Remaining: ${newParameters.length}`);
+              return {
+                ...prev,
+                parameters: newParameters,
+              };
+            });
           },
         },
       ]

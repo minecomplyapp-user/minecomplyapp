@@ -212,15 +212,15 @@ const buildImpactManagementSection = (rawSection) => {
   }
 
   const buildConstructionEntry = (label, value) => {
-    const hasValue = value !== undefined && value !== null && value !== "";
-    if (!hasValue) return null;
+    // ✅ FIX: Always return entry for Pre-Construction and Construction with "N/A" if no value
+    // These sections must always appear in CMVR reports
     return {
       areaName: label,
       commitments: [
         {
           plannedMeasure: `${label} compliance`,
-          actualObservation: sanitizeString(value) || "N/A",
-          isEffective: coerceBoolean(value),
+          actualObservation: "N/A", // ✅ Always N/A for Pre-Construction and Construction
+          isEffective: false,
           recommendations: "",
         },
       ],
@@ -230,7 +230,7 @@ const buildImpactManagementSection = (rawSection) => {
   const constructionInfo = [
     buildConstructionEntry("Pre-Construction", rawSection.preConstruction),
     buildConstructionEntry("Construction", rawSection.construction),
-  ].filter(Boolean);
+  ]; // ✅ FIX: Don't filter - always include both entries
 
   const implementationSections = [
     mapOperationSectionToCommitments(
