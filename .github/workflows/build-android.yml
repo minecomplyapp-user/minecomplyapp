@@ -36,6 +36,23 @@ jobs:
           echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.1.12297006"
           echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "cmake;3.22.1"
 
+      - name: Verify NDK Installation
+        run: |
+          echo "=== Verifying NDK Installation ==="
+          if [ -d "$ANDROID_HOME/ndk/27.1.12297006" ]; then
+            echo "✅ NDK 27.1.12297006 installed successfully"
+            ls -la $ANDROID_HOME/ndk/27.1.12297006/
+          else
+            echo "❌ NDK installation FAILED"
+            exit 1
+          fi
+          if [ -d "$ANDROID_HOME/cmake/3.22.1" ]; then
+            echo "✅ CMake 3.22.1 installed successfully"
+          else
+            echo "❌ CMake installation FAILED"
+            exit 1
+          fi
+
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
@@ -74,36 +91,91 @@ jobs:
             --max-workers=2 \
             --stacktrace
 
-      - name: Find APK files
+      - name: Find and Validate APK files
         run: |
-          echo "=== Searching entire project for APK files ==="
-          find . -name "*.apk" -type f -ls 2>/dev/null || echo "No APK files found"
+          echo "=== Searching for APK files ==="
+          find android/app/build -name "*.apk" -type f -ls 2>/dev/null || echo "No APK files found"
+
           echo ""
-          echo "=== Checking build directory structure ==="
-          if [ -d "android/app/build" ]; then
-            echo "✓ android/app/build exists"
-            ls -la android/app/build/ | head -20
-            if [ -d "android/app/build/outputs" ]; then
-              echo "✓ android/app/build/outputs exists"
-              find android/app/build/outputs -type f \( -name "*.apk" -o -name "*.aab" \) -ls 2>/dev/null || echo "No APK/AAB files in outputs"
-            else
-              echo "✗ android/app/build/outputs MISSING"
-            fi
-          else
-            echo "✗ android/app/build MISSING"
+          echo "=== Validating APK files ==="
+
+          # Look for universal APK first (preferred), then any APK
+          UNIVERSAL_APK=$(find android/app/build/outputs/apk -name "*universal*.apk" -type f 2>/dev/null | head -1)
+          ANY_APK=$(find android/app/build/outputs/apk -name "*.apk" -type f 2>/dev/null | head -1)
+
+          APK_FILE="${UNIVERSAL_APK:-$ANY_APK}"
+
+          if [ -z "$APK_FILE" ]; then
+            echo "❌ ERROR: No APK file found!"
+            exit 1
           fi
 
-      - name: Upload APK artifact
+          echo "✅ Found APK: $APK_FILE"
+
+          # Check APK size (should be at least 15MB for a React Native app with native modules)
+          APK_SIZE=$(stat -c%s "$APK_FILE" 2>/dev/null || stat -f%z "$APK_FILE" 2>/dev/null)
+          APK_SIZE_MB=$((APK_SIZE / 1024 / 1024))
+          echo "📦 APK Size: ${APK_SIZE_MB} MB ($APK_SIZE bytes)"
+
+          if [ "$APK_SIZE" -lt 15000000 ]; then
+            echo "⚠️ WARNING: APK is smaller than expected (< 15 MB)"
+            echo "This might indicate missing native libraries!"
+          else
+            echo "✅ APK size looks healthy"
+          fi
+
+          # Verify APK is a valid zip file (APKs are zip archives)
+          if unzip -t "$APK_FILE" > /dev/null 2>&1; then
+            echo "✅ APK is a valid archive"
+          else
+            echo "❌ ERROR: APK is corrupted or not a valid archive!"
+            exit 1
+          fi
+
+          # Check for required native libraries
+          echo ""
+          echo "=== Checking native libraries in APK ==="
+          unzip -l "$APK_FILE" | grep -E "\.so$" | head -20 || echo "No .so files found"
+
+          # Verify key native libraries exist
+          if unzip -l "$APK_FILE" | grep -q "libreactnative.so"; then
+            echo "✅ React Native core library present"
+          else
+            echo "⚠️ WARNING: libreactnative.so not found"
+          fi
+
+          if unzip -l "$APK_FILE" | grep -q "libhermes.so"; then
+            echo "✅ Hermes engine library present"
+          else
+            echo "⚠️ WARNING: libhermes.so not found"
+          fi
+
+      - name: Upload Universal APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: |
-            android/app/build/outputs/apk/**/*.apk
-            android/app/build/intermediates/apk/**/*.apk
+          name: app-universal-debug
+          path: android/app/build/outputs/apk/debug/*universal*.apk
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload All APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-all-apks
+          path: android/app/build/outputs/apk/**/*.apk
           retention-days: 14
 
-      - name: Print APK location
+      - name: Print APK Summary
         run: |
-          echo "✅ Build successful!"
-          echo "APK files:"
-          find android/app/build -name "*.apk" -exec ls -lh {} \;
+          echo "============================================"
+          echo "✅ BUILD SUCCESSFUL!"
+          echo "============================================"
+          echo ""
+          echo "Generated APK files:"
+          find android/app/build/outputs/apk -name "*.apk" -exec ls -lh {} \;
+          echo ""
+          echo "📱 For installation on most devices, use the UNIVERSAL APK"
+          echo "   (contains all architectures in one file)"
+          echo ""
+          echo "📦 Architecture-specific APKs are also available for smaller file sizes"
+          echo "============================================"

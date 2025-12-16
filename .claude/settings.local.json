@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(./gradlew properties:*)",
+      "Bash(git -C /d/FREELANCE/MineComply_Repo/minecomplyapp log --oneline -20)",
+      "Bash(git -C /d/FREELANCE/MineComply_Repo/minecomplyapp log --pretty=format:\"%h %s\" -5)",
+      "Bash(git -C /d/FREELANCE/MineComply_Repo/minecomplyapp diff HEAD~1 HEAD --stat)",
+      "Bash(git -C /d/FREELANCE/MineComply_Repo/minecomplyapp show 51b93e9:android/app/build.gradle)",
+      "Bash(keytool -list -v -keystore:*)"
+    ]
+  }
+}
