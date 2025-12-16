@@ -64,12 +64,12 @@ jobs:
         working-directory: android
         run: ./gradlew clean --stacktrace --info
 
-      - name: Build Release APK
+      - name: Build Debug APK
         working-directory: android
         env:
           NODE_OPTIONS: --max-old-space-size=8192
         run: |
-          ./gradlew assembleRelease \
+          ./gradlew assembleDebug \
             --no-daemon \
             --max-workers=2 \
             --stacktrace
@@ -96,7 +96,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
+          name: app-debug
           path: |
             android/app/build/outputs/apk/**/*.apk
             android/app/build/intermediates/apk/**/*.apk
