@@ -1,7 +1,7 @@
 # MineComply Mobile App - Status Tracker
 
 > **Living Document**: Update as features are added or changed
-> Last Updated: December 5, 2025 - 12:15 PM PHT
+> Last Updated: December 12, 2025 (02:30 AM)
 
 ## Table of Contents
 
@@ -46,24 +46,25 @@
 #### CMVR Reports
 - [x] Full multi-section form (17+ sections)
 - [x] General information entry
+- [x] Project location text input (map replaced with text field)
 - [x] Executive summary
-- [x] Compliance Monitoring Report Discussion (NEW)
-- [x] Air Quality Assessment - Detailed (NEW)
+- [x] Compliance Monitoring Report Discussion
+- [x] Air Quality Assessment - Simple B.3 format (location descriptions)
 - [x] Process documentation
-- [x] Location & coverage limits
+- [x] Location & coverage limits (all 14 parameters display by default)
 - [x] Impact management commitments
-- [x] Air quality monitoring with parameter/unit dropdowns
+- [x] Air quality monitoring with location descriptions
 - [x] Water quality monitoring
-- [x] Noise quality monitoring
-- [x] Waste management
-- [x] Chemical safety
+- [x] Noise quality monitoring (with N/A flag per parameter)
+- [x] Waste management (entry-level Type of Waste only)
+- [x] Chemical safety (with Independent Monitoring checkboxes)
 - [x] Complaints management with N/A handling
 - [x] Recommendations (prev/next quarter)
 - [x] Attachment management
-- [x] Draft save/load/delete (deep cloning fixed)
+- [x] Draft save/load/delete (deep cloning fixed, auto-save for ECC)
 - [x] Submit to API
 - [x] Update existing reports
-- [x] DOCX export (full feature)
+- [x] DOCX export (full feature with all formatting fixes)
 - [x] PDF export (preview in Expo Go)
 - [x] Attendance linking
 - [x] Quarter/Year filtering in reports list
@@ -76,12 +77,12 @@
 - [x] Condition tracking
 - [x] Nested conditions
 - [x] Status tracking per condition
-- [x] Compliance tally table per permit holder (NEW)
+- [x] Compliance tally table per permit holder
 - [x] Real-time tally calculation
 - [x] Color-coded status indicators
 - [x] Remarks management
 - [x] Recommendations
-- [x] Draft system (deep cloning fixed)
+- [x] Draft system (deep cloning fixed, auto-save with 2s debounce)
 - [x] Generate PDF/DOCX with tally tables
 
 #### Attendance
@@ -151,6 +152,12 @@
    - **Workaround**: Use DOCX export or build standalone app
    - **Fix**: Move to standalone build or use expo-print
 
+2. **PDF Export Formatting Consistency**
+   - **Issue**: PDF export still uses em dash format for location descriptions (not colon format)
+   - **Impact**: Inconsistency between DOCX and PDF exports
+   - **Workaround**: Use DOCX export for consistent formatting
+   - **Fix**: Update PDF export to match DOCX formatting (colon format, centered container)
+
 2. **Signature Canvas on Web**
    - **Issue**: react-native-signature-canvas has issues on web
    - **Impact**: Attendance signatures don't work on web
@@ -179,11 +186,11 @@
 
 ### Low Priority
 
-6. **No Auto-Save**
-   - **Issue**: User must manually save drafts
-   - **Impact**: Risk of data loss
+6. **Auto-Save Coverage**
+   - **Issue**: Auto-save only implemented for ECC reports, not CMVR
+   - **Impact**: CMVR users must manually save drafts
    - **Workaround**: Remind users to save frequently
-   - **Fix**: Implement debounced auto-save
+   - **Fix**: Implement debounced auto-save for CMVR reports (similar to ECC)
 
 7. **Attachment Reordering**
    - **Issue**: Can't reorder attachments
@@ -308,6 +315,56 @@
 ---
 
 ## Recent Changes
+
+### December 12, 2025 - 02:30 AM - CMVR Water Quality Port Monitoring UX
+- Port "Description" is now shown inside the Port Monitoring container when Port Monitoring is enabled (instead of being only at the top of the B.4 screen).
+- Fixed an Expo bundler syntax error in `store/cmvrTransformers.js` caused by mixing `||` with `??` without parentheses.
+
+### January 2025 - UI & Data Persistence Fixes
+
+**CMVR Report Improvements:**
+- ✅ Fixed Air Quality Assessment section restoration
+  - Restored simple B.3 Air Quality Impact Assessment with location description fields
+  - Removed duplicate complex Air Quality screen
+  - Navigation updated to use correct screen
+- ✅ Fixed Project Location input
+  - Replaced map-based selection (causing crashes) with simple text input field
+  - Users can now manually enter project location address
+  - Removed map dependencies and related error handling
+- ✅ Removed redundant "Type of Waste" field
+  - Removed section-level "Type of Waste" from Plant Details in Waste Management
+  - Entry-level "Type of Waste" in Waste Entry cards remains
+  - Updated store and export logic to use entry-level field only
+- ✅ Fixed Compliance Monitoring Report parameters display
+  - All 14 required parameters now display by default
+  - Fixed data merging to preserve existing values while showing defaults
+  - Parameters no longer disappear when loading from draft/API
+
+**ECC Report Improvements:**
+- ✅ Enhanced ECC draft persistence
+  - Improved deep cloning to prevent data loss
+  - Fixed permit_holders and recommendations persistence
+  - Added validation logging for debugging
+
+**Data Model Updates:**
+- ✅ Added Noise Quality N/A flag support
+  - Added `isParameterNA` checkbox to Noise Quality parameters
+  - Persists in draft and export
+- ✅ Added Chemical Safety Management checkboxes
+  - Added "Independent Monitoring c/o TSHES Team" checkboxes for Health & Safety and Social Development Plan
+  - Persists in draft and export
+
+**Files Modified:**
+- `screens/CMVRPAGE/EnvironmentalCompliance/EnvironmentalComplianceScreen.tsx` - Restored simple Air Quality section
+- `screens/CMVRPAGE/CMVR/components/GeneralInfoSection.tsx` - Replaced map with text input
+- `screens/CMVRPAGE/WasteManagement/components/PlantPortSection.tsx` - Removed redundant Type of Waste field
+- `screens/CMVRPAGE/CMS/ComplianceMonitoringScreen.tsx` - Fixed parameter display
+- `store/cmvrStore.js` - Updated location coverage initialization, removed section-level typeOfWaste
+- `store/eccDraftStore.js` - Enhanced draft persistence with deep cloning
+- `screens/ecc/ECCMonitoringScreen.tsx` - Added auto-save functionality (2-second debounce)
+- `screens/CMVRPAGE/CMVRDocumentExportScreen.tsx` - Updated summary ordering, added new fields to payload
+
+**Status:** ✅ All UI fixes and data persistence improvements completed. Export formatting handled by API.
 
 ### December 2025
 

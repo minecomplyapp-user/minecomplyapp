@@ -19,34 +19,7 @@ import { useCmvrStore } from "../../../store/cmvrStore";
 import { supabase } from "../../../lib/supabase";
 import { SectionHeader } from "./components/SectionHeader";
 import { FormInputField } from "./components/FormInputField";
-import {
-  ParameterData,
-  ComplianceData,
-  createEmptyLocationData,
-} from "../types/EnvironmentalComplianceScreen.types";
 import { styles } from "../styles/EnvironmentalComplianceScreen.styles";
-
-const createDefaultAirQualityTable = () => ({
-  parameters: [
-    {
-      id: `param-${Date.now()}`,
-      parameter: "",
-      currentSMR: "",
-      previousSMR: "",
-      currentMMT: "",
-      previousMMT: "",
-      thirdPartyTesting: "",
-      eqplRedFlag: "",
-      action: "",
-      limitPM25: "",
-      remarks: "",
-    },
-  ] as ParameterData[],
-  dateTime: "",
-  weatherWind: "",
-  explanation: "",
-  overallCompliance: "",
-});
 
 export default function EnvironmentalComplianceScreen({
   navigation,
@@ -63,49 +36,62 @@ export default function EnvironmentalComplianceScreen({
     saveDraft,
   } = useCmvrStore();
 
-  // Initialize from store
+  // Extract route params with fallback to store values
+  const {
+    submissionId = storeSubmissionId || null,
+    projectId = storeProjectId || null,
+    projectName = storeProjectName || "",
+    fileName: routeFileName = storeFileName || "Untitled",
+  } = route?.params || {};
+
+  // ✅ FIX: Initialize from separate ECC Conditions store field (not air quality)
+  const storedEccConditions = currentReport?.eccConditionsAttachment;
+  // ✅ RESTORE: Initialize from air quality store field for B.3 section
   const storedAirQuality = currentReport?.airQualityImpactAssessment;
 
   const [uploadedEccFile, setUploadedEccFile] = useState<any>(
-    storedAirQuality?.uploadedEccFile || null
+    storedEccConditions?.uploadedEccFile || null
   );
   const [isUploadingEcc, setIsUploadingEcc] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(
-    storedAirQuality?.uploadedImage || null
+    storedEccConditions?.uploadedImage || null
   );
 
-  // Simple location description strings
+  // ✅ RESTORE: Air Quality location description states
   const [quarry, setQuarry] = useState(storedAirQuality?.quarry || "");
   const [plant, setPlant] = useState(storedAirQuality?.plant || "");
   const [port, setPort] = useState(storedAirQuality?.port || "");
   const [quarryPlant, setQuarryPlant] = useState(
     storedAirQuality?.quarryPlant || ""
   );
-
-  // Checkbox states to enable/disable location inputs
   const [quarryEnabled, setQuarryEnabled] = useState(
-    !!storedAirQuality?.quarry
+    storedAirQuality?.quarryEnabled ?? Boolean(storedAirQuality?.quarry)
   );
-  const [plantEnabled, setPlantEnabled] = useState(!!storedAirQuality?.plant);
-  const [portEnabled, setPortEnabled] = useState(!!storedAirQuality?.port);
+  const [plantEnabled, setPlantEnabled] = useState(
+    storedAirQuality?.plantEnabled ?? Boolean(storedAirQuality?.plant)
+  );
+  const [portEnabled, setPortEnabled] = useState(
+    storedAirQuality?.portEnabled ?? Boolean(storedAirQuality?.port)
+  );
   const [quarryPlantEnabled, setQuarryPlantEnabled] = useState(
-    !!storedAirQuality?.quarryPlant
-  );
-
-  // Simple air quality table data (matches backend controller)
-  const [tableData, setTableData] = useState(
-    storedAirQuality?.table || createDefaultAirQualityTable()
+    storedAirQuality?.quarryPlantEnabled ??
+      Boolean(storedAirQuality?.quarryPlant)
   );
 
   const [hasHydratedFromStore, setHasHydratedFromStore] = useState(false);
   const [canSyncStore, setCanSyncStore] = useState(false);
+  const [canSyncAirQuality, setCanSyncAirQuality] = useState(false);
 
   useEffect(() => {
     if (hasHydratedFromStore || !currentReport) return;
 
+    if (storedEccConditions) {
+      setUploadedEccFile(storedEccConditions.uploadedEccFile || null);
+      setUploadedImage(storedEccConditions.uploadedImage || null);
+    }
+
+    // ✅ RESTORE: Load air quality data
     if (storedAirQuality) {
-      setUploadedEccFile(storedAirQuality.uploadedEccFile || null);
-      setUploadedImage(storedAirQuality.uploadedImage || null);
       setQuarry(storedAirQuality.quarry || "");
       setPlant(storedAirQuality.plant || "");
       setPort(storedAirQuality.port || "");
@@ -123,16 +109,25 @@ export default function EnvironmentalComplianceScreen({
         storedAirQuality.quarryPlantEnabled ??
           Boolean(storedAirQuality.quarryPlant)
       );
-      setTableData(storedAirQuality.table || createDefaultAirQualityTable());
     }
 
     setHasHydratedFromStore(true);
     setCanSyncStore(true);
-  }, [currentReport, storedAirQuality, hasHydratedFromStore]);
+    setCanSyncAirQuality(true);
+  }, [currentReport, storedEccConditions, storedAirQuality, hasHydratedFromStore]);
 
-  // Auto-sync to store
+  // ✅ FIX: Auto-sync to separate ECC Conditions store field
   useEffect(() => {
     if (!canSyncStore) return;
+    updateSection("eccConditionsAttachment", {
+      uploadedEccFile,
+      uploadedImage,
+    });
+  }, [canSyncStore, uploadedEccFile, uploadedImage]);
+
+  // ✅ RESTORE: Auto-sync air quality data to store
+  useEffect(() => {
+    if (!canSyncAirQuality) return;
     updateSection("airQualityImpactAssessment", {
       quarry,
       plant,
@@ -142,12 +137,9 @@ export default function EnvironmentalComplianceScreen({
       plantEnabled,
       portEnabled,
       quarryPlantEnabled,
-      table: tableData,
-      uploadedEccFile,
-      uploadedImage,
     });
   }, [
-    canSyncStore,
+    canSyncAirQuality,
     quarry,
     plant,
     port,
@@ -156,71 +148,8 @@ export default function EnvironmentalComplianceScreen({
     plantEnabled,
     portEnabled,
     quarryPlantEnabled,
-    tableData,
-    uploadedEccFile,
-    uploadedImage,
   ]);
 
-  const updateTableField = (field: string, value: string) => {
-    setTableData((prev: any) => ({ ...prev, [field]: value }));
-  };
-
-  // Additional parameter management functions
-  const addParameter = () => {
-    const newId = Date.now().toString();
-    const newParameter: ParameterData = {
-      id: newId,
-      parameter: "",
-      currentSMR: "",
-      previousSMR: "",
-      currentMMT: "",
-      previousMMT: "",
-      thirdPartyTesting: "",
-      eqplRedFlag: "",
-      action: "",
-      limitPM25: "",
-      remarks: "",
-    };
-    setTableData((prev: any) => ({
-      ...prev,
-      parameters: [...prev.parameters, newParameter],
-    }));
-  };
-
-  const updateParameter = (
-    id: string,
-    field: keyof Omit<ParameterData, "id">,
-    value: string
-  ) => {
-    setTableData((prev: any) => ({
-      ...prev,
-      parameters: prev.parameters.map((param: any) =>
-        param.id === id ? { ...param, [field]: value } : param
-      ),
-    }));
-  };
-
-  const removeParameter = (id: string) => {
-    Alert.alert(
-      "Remove Parameter",
-      "Are you sure you want to remove this parameter?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: () => {
-            setTableData((prev: any) => ({
-              ...prev,
-              parameters: prev.parameters.filter(
-                (param: any) => param.id !== id
-              ),
-            }));
-          },
-        },
-      ]
-    );
-  };
 
   const uploadEccFile = async () => {
     try {
@@ -455,69 +384,27 @@ export default function EnvironmentalComplianceScreen({
     });
   };
 
-  const fillTestData = () => {
-    // Fill simple location descriptions
-    setQuarry(
-      "Water Sprinkling and imposition of speed limits are the mitigating measures imposed to minimize emissions of fugitive dusts. Furthermore, an environmental protection and enhancement programs were instituted to further enhance the environmental conditions of the company."
-    );
-    setQuarryEnabled(true);
-
-    setPlant(
-      "Water Sprinkling is regularly conducted particularly in areas where there is build-up of dusts and speed limits are imposed to minimize dust generation. Tree planting programs, environmental protection and enhancement programs were instituted to further enhance the environmental conditions of the company."
-    );
-    setPlantEnabled(true);
-
-    setQuarryPlant(
-      "Combined quarry and plant operations with comprehensive dust control measures and environmental enhancement programs implemented."
-    );
-    setQuarryPlantEnabled(true);
-
-    // Fill table data with parameters array (matching backend format)
-    setTableData({
-      parameters: [
-        {
-          id: "1",
-          parameter: "TSP",
-          currentSMR: "3.54 µg/Ncm",
-          previousSMR: "10.51 µg/Ncm",
-          currentMMT: "-",
-          previousMMT: "-",
-          thirdPartyTesting: "",
-          eqplRedFlag: "-",
-          action: "-",
-          limitPM25: "35 µg/Ncm",
-          remarks: "ONRI - Sarrat Plant",
-        },
-        {
-          id: "2",
-          parameter: "PM10",
-          currentSMR: "28.3 µg/Ncm",
-          previousSMR: "32.1 µg/Ncm",
-          currentMMT: "27.8 µg/Ncm",
-          previousMMT: "31.9 µg/Ncm",
-          thirdPartyTesting: "",
-          eqplRedFlag: "None",
-          action: "Continue monitoring",
-          limitPM25: "60 µg/Ncm",
-          remarks: "Port area - Good air quality",
-        },
-      ],
-      dateTime: "November 18-21, 2024",
-      weatherWind: "Sunny, prevailing wind from North-Northwest (N-NW)",
-      explanation:
-        "Confirmatory sampling conducted for validation across all monitored locations",
-      overallCompliance: "All parameters within DENR standards",
-    });
-
-    Alert.alert(
-      "Test Data",
-      "Air Quality Impact Assessment filled with sample data"
-    );
-  };
 
   const handleSaveNext = () => {
-    console.log("Navigating to next page");
-    navigation.navigate("WaterQuality");
+    console.log("Navigating to Water Quality Impact Assessment");
+    const airQualityImpactAssessment = {
+      quarry,
+      plant,
+      port,
+      quarryPlant,
+      quarryEnabled,
+      plantEnabled,
+      portEnabled,
+      quarryPlantEnabled,
+    };
+    const nextParams = {
+      submissionId: submissionId || storeSubmissionId,
+      projectId: projectId || storeProjectId,
+      projectName: projectName || storeProjectName,
+      fileName: routeFileName || storeFileName,
+      airQualityImpactAssessment,
+    } as any;
+    navigation.navigate("WaterQuality", nextParams);
   };
 
   return (
@@ -595,10 +482,13 @@ export default function EnvironmentalComplianceScreen({
           )}
         </View>
 
-        {/* B.3 Section */}
-        <SectionHeader number="B.3." title="Air Quality Impact Assessment" />
+        {/* ✅ RESTORE: B.3 Air Quality Impact Assessment Section */}
+        <SectionHeader
+          number="B.3."
+          title="Air Quality Impact Assessment"
+        />
 
-        {/* Simple Location Description Inputs - Always Visible */}
+        {/* Quarry Location Description */}
         <View style={styles.locationInputContainer}>
           <View style={styles.locationHeaderRow}>
             <TouchableOpacity
@@ -637,6 +527,7 @@ export default function EnvironmentalComplianceScreen({
           />
         </View>
 
+        {/* Plant Location Description */}
         <View style={styles.locationInputContainer}>
           <View style={styles.locationHeaderRow}>
             <TouchableOpacity
@@ -675,6 +566,7 @@ export default function EnvironmentalComplianceScreen({
           />
         </View>
 
+        {/* Quarry / Plant Location Description */}
         <View style={styles.locationInputContainer}>
           <View style={styles.locationHeaderRow}>
             <TouchableOpacity
@@ -713,6 +605,7 @@ export default function EnvironmentalComplianceScreen({
           />
         </View>
 
+        {/* Port Location Description */}
         <View style={styles.locationInputContainer}>
           <View style={styles.locationHeaderRow}>
             <TouchableOpacity
@@ -747,215 +640,6 @@ export default function EnvironmentalComplianceScreen({
             editable={portEnabled}
           />
         </View>
-
-        {/* Simple Air Quality Parameters Form */}
-        <View style={styles.formContainer}>
-          <Text style={styles.formTitle}>
-            Air Quality Monitoring Parameters
-          </Text>
-
-          {/* Parameters List */}
-          {tableData.parameters.map((param: any, index: number) => (
-            <View key={param.id} style={styles.parameterCard}>
-              <View style={styles.parameterCardHeader}>
-                <Text style={styles.parameterCardTitle}>
-                  Parameter {index + 1}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => removeParameter(param.id)}
-                  style={styles.removeParameterButton}
-                >
-                  <Ionicons name="trash-outline" size={20} color="#EF4444" />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Parameter Name</Text>
-                <TextInput
-                  style={styles.input}
-                  value={param.parameter}
-                  onChangeText={(value) =>
-                    updateParameter(param.id, "parameter", value)
-                  }
-                  placeholder="e.g., TSP, PM10, PM2.5"
-                />
-              </View>
-
-              <View style={styles.fieldRow}>
-                <View style={styles.halfField}>
-                  <Text style={styles.fieldLabel}>Current SMR</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={param.currentSMR}
-                    onChangeText={(value) =>
-                      updateParameter(param.id, "currentSMR", value)
-                    }
-                    placeholder="Value"
-                  />
-                </View>
-                <View style={styles.halfField}>
-                  <Text style={styles.fieldLabel}>Previous SMR</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={param.previousSMR}
-                    onChangeText={(value) =>
-                      updateParameter(param.id, "previousSMR", value)
-                    }
-                    placeholder="Value"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.fieldRow}>
-                <View style={styles.halfField}>
-                  <Text style={styles.fieldLabel}>Current MMT</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={param.currentMMT}
-                    onChangeText={(value) =>
-                      updateParameter(param.id, "currentMMT", value)
-                    }
-                    placeholder="Value"
-                  />
-                </View>
-                <View style={styles.halfField}>
-                  <Text style={styles.fieldLabel}>Previous MMT</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={param.previousMMT}
-                    onChangeText={(value) =>
-                      updateParameter(param.id, "previousMMT", value)
-                    }
-                    placeholder="Value"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>EQPL Red Flag</Text>
-                <TextInput
-                  style={styles.input}
-                  value={param.eqplRedFlag}
-                  onChangeText={(value) =>
-                    updateParameter(param.id, "eqplRedFlag", value)
-                  }
-                  placeholder="e.g., - or Yes/No"
-                />
-              </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Action</Text>
-                <TextInput
-                  style={styles.input}
-                  value={param.action}
-                  onChangeText={(value) =>
-                    updateParameter(param.id, "action", value)
-                  }
-                  placeholder="Action to be taken"
-                  multiline
-                />
-              </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Limit</Text>
-                <TextInput
-                  style={styles.input}
-                  value={param.limitPM25}
-                  onChangeText={(value) =>
-                    updateParameter(param.id, "limitPM25", value)
-                  }
-                  placeholder="e.g., 35 µg/Ncm"
-                />
-              </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Remarks</Text>
-                <TextInput
-                  style={styles.input}
-                  value={param.remarks}
-                  onChangeText={(value) =>
-                    updateParameter(param.id, "remarks", value)
-                  }
-                  placeholder="Enter remarks..."
-                  multiline
-                  numberOfLines={2}
-                />
-              </View>
-            </View>
-          ))}
-
-          {/* Add Parameter Button */}
-          <TouchableOpacity style={styles.addButton} onPress={addParameter}>
-            <Ionicons name="add-circle-outline" size={20} color="#2563EB" />
-            <Text style={styles.addButtonText}>Add Parameter</Text>
-          </TouchableOpacity>
-
-          {/* Sampling Details */}
-          <View style={styles.samplingSection}>
-            <Text style={styles.sectionSubtitle}>Sampling Details</Text>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Date/Time of Sampling</Text>
-              <TextInput
-                style={styles.input}
-                value={tableData.dateTime}
-                onChangeText={(value) => updateTableField("dateTime", value)}
-                placeholder="e.g., November 18-21, 2024"
-              />
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Weather and Wind Direction</Text>
-              <TextInput
-                style={styles.input}
-                value={tableData.weatherWind}
-                onChangeText={(value) => updateTableField("weatherWind", value)}
-                placeholder="e.g., Sunny, prevailing wind from North-Northwest"
-              />
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>
-                Explanation for Confirmatory Sampling
-              </Text>
-              <TextInput
-                style={styles.input}
-                value={tableData.explanation}
-                onChangeText={(value) => updateTableField("explanation", value)}
-                placeholder="Explain why confirmatory sampling was conducted..."
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Overall Assessment</Text>
-              <TextInput
-                style={styles.input}
-                value={tableData.overallCompliance}
-                onChangeText={(value) =>
-                  updateTableField("overallCompliance", value)
-                }
-                placeholder="e.g., All parameters within DENR standards"
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Fill Test Data Button (Dev Only) */}
-        {__DEV__ && (
-          <TouchableOpacity
-            style={[
-              styles.saveNextButton,
-              { backgroundColor: "#ff8c00", marginTop: 12 },
-            ]}
-            onPress={fillTestData}
-          >
-            <Text style={styles.saveNextText}>Fill Test Data</Text>
-          </TouchableOpacity>
-        )}
 
         {/* Save & Next Button */}
         <TouchableOpacity

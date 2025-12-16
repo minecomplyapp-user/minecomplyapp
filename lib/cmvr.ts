@@ -128,6 +128,14 @@ export async function getCMVRReportById(id: string): Promise<any> {
           ? complianceSections
           : response.complianceMonitoringReport,
       generalInfo,
+      // ✅ FIX: Ensure permitHolderList is included from response or cmvrData
+      permitHolderList: Array.isArray(response.permitHolderList)
+        ? response.permitHolderList
+        : Array.isArray(cmvrData.permitHolderList)
+          ? cmvrData.permitHolderList
+          : [],
+      // ✅ FIX: Ensure attendanceId is included from response or cmvrData
+      attendanceId: response.attendanceId || cmvrData.attendanceId || null,
       attachments: Array.isArray(response.attachments)
         ? response.attachments
         : Array.isArray(cmvrData.attachments)
@@ -137,6 +145,10 @@ export async function getCMVRReportById(id: string): Promise<any> {
     };
 
     console.log(`[CMVR] Successfully loaded report ${id}`);
+    console.log(`[CMVR] Permit Holder List count: ${normalized.permitHolderList.length}`);
+    console.log(`[CMVR] Date of CMR Submission: ${normalized.generalInfo?.dateOfCMRSubmission || "NOT SET"}`);
+    console.log(`[CMVR] Attendance ID: ${normalized.attendanceId || "NOT SET"}`);
+    console.log(`[CMVR] Attachments count: ${normalized.attachments.length}`);
     return normalized;
   } catch (error: any) {
     console.error(`[CMVR] Failed to fetch report ${id}:`, error);

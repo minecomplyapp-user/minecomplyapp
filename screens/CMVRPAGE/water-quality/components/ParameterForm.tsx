@@ -10,7 +10,7 @@ import { ParameterFormProps } from "../types/ParameterForm.types";
 import { styles } from "../styles/ParameterForm.styles";
 import { Picker } from "@react-native-picker/picker";
 
-export const ParameterForm: React.FC<ParameterFormProps> = ({
+const ParameterFormComponent: React.FC<ParameterFormProps> = ({
   parameter,
   index,
   isMain = false,
@@ -110,3 +110,5 @@ export const ParameterForm: React.FC<ParameterFormProps> = ({
     </View>
   );
 };
+
+export const ParameterForm = React.memo(ParameterFormComponent);

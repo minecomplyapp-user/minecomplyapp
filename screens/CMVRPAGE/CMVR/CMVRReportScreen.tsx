@@ -284,6 +284,31 @@ const CMVRReportScreen: React.FC = () => {
 
         if (routeParams.submissionId) {
           // Loading existing submission or draft from route
+          // ✅ FIX: If we have a submissionId but no draftData, fetch from API
+          if (!routeDraftData && routeParams.submissionId) {
+            try {
+              const { getCMVRReportById } = await import("../../../lib/cmvr");
+              const apiReportData = await getCMVRReportById(routeParams.submissionId);
+              if (apiReportData) {
+                loadReport(apiReportData);
+                const fileName = apiReportData.fileName || routeParams.fileName || "Untitled";
+                const projectName = apiReportData.projectName || apiReportData.generalInfo?.projectName || "";
+                updateMetadata({
+                  fileName,
+                  submissionId: routeParams.submissionId,
+                  projectId: routeParams.projectId || apiReportData.projectId || null,
+                  projectName,
+                });
+                setContextFileName(fileName);
+                return;
+              }
+            } catch (apiError) {
+              console.error("[CMVR] Failed to fetch report from API:", apiError);
+              // Fall through to use route params as fallback
+            }
+          }
+          
+          // Loading from route params or draft data
           const reportData = {
             generalInfo:
               routeParams.draftData?.generalInfo || currentReport?.generalInfo,
@@ -313,6 +338,15 @@ const CMVRReportScreen: React.FC = () => {
               routeParams.draftData?.fmrdfAdditionalForms ||
               currentReport?.fmrdfAdditionalForms,
             mmtInfo: routeParams.draftData?.mmtInfo || currentReport?.mmtInfo,
+            // ✅ FIX: Include permitHolderList and attendanceId
+            permitHolderList:
+              routeParams.draftData?.permitHolderList ||
+              currentReport?.permitHolderList ||
+              [],
+            attendanceId:
+              routeParams.draftData?.attendanceId ||
+              currentReport?.attendanceId ||
+              null,
           };
 
           loadReport(reportData);

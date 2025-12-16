@@ -112,11 +112,13 @@ const createWaterQualitySection = () => ({
   quarry: "",
   plant: "",
   quarryPlant: "",
+  port: "", // ✅ FIX: Port description as string (like quarry, plant, quarryPlant)
   quarryEnabled: false,
   plantEnabled: false,
   quarryPlantEnabled: false,
+  portEnabled: false,
   waterQuality: createWaterQualityLocation(),
-  port: createWaterQualityLocation(),
+  portData: createWaterQualityLocation(), // ✅ FIX: Port monitoring data stored separately
   data: {
     quarryInput: "",
     plantInput: "",
@@ -194,7 +196,6 @@ const createWasteCommitment = (suffix = "") => ({
 });
 
 const createWastePlantSection = (suffix) => ({
-  typeOfWaste: "",
   eccEpepCommitments: [createWasteCommitment(suffix)],
   isAdequate: null,
   previousRecord: "",
@@ -270,7 +271,95 @@ const createRecommendationsSection = () => ({
 });
 
 const createLocationCoverageSection = () => ({
-  formData: {},
+  formData: {
+    projectLocation: {
+      label: "Project Location",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    projectArea: {
+      label: "Project Area (ha)",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    capitalCost: {
+      label: "Capital Cost (Php)",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    typeOfMinerals: {
+      label: "Type of Minerals",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    miningMethod: {
+      label: "Mining Method",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    production: {
+      label: "Production",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    mineLife: {
+      label: "Mine Life",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    mineralReserves: {
+      label: "Mineral Reserves/ Resources",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    accessTransportation: {
+      label: "Access/ Transportation",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+    powerSupply: {
+      label: "Power Supply",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+      subFields: [
+        { label: "Plant:", specification: "" },
+        { label: "Port:", specification: "" },
+      ],
+    },
+    miningEquipment: {
+      label: "Mining Equipment",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+      subFields: [
+        { label: "Quarry/Plant:", specification: "" },
+        { label: "Port:", specification: "" },
+      ],
+    },
+    workForce: {
+      label: "Work Force",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+      subFields: [{ label: "Employees:", specification: "" }],
+    },
+    developmentSchedule: {
+      label: "Development/ Utilization Schedule",
+      specification: "",
+      remarks: "",
+      withinSpecs: null,
+    },
+  },
   otherComponents: [],
   uploadedImages: {},
   imagePreviews: {},
@@ -366,6 +455,11 @@ const createEmptyReportState = () => ({
   ocularMmtAdditional: [],
   complianceToProjectLocationAndCoverageLimits: createLocationCoverageSection(),
   complianceToImpactManagementCommitments: createImpactCommitmentsSection(),
+  // ✅ FIX: Separate ECC Conditions from Air Quality
+  eccConditionsAttachment: {
+    uploadedEccFile: null,
+    uploadedImage: null,
+  },
   airQualityImpactAssessment: createAirQualitySection(),
   waterQualityImpactAssessment: createWaterQualitySection(),
   noiseQualityImpactAssessment: createNoiseQualitySection(),
@@ -377,6 +471,8 @@ const createEmptyReportState = () => ({
   recommendationsData: createRecommendationsSection(),
   attendanceUrl: null,
   attendanceId: null,
+  // ✅ FIX: Include attachments array in empty report state
+  attachments: [],
 });
 
 const mergeObjects = (base, incoming) =>
@@ -487,11 +583,33 @@ const normalizeWaterQualitySection = (incoming) => {
     };
   };
 
+  // ✅ FIX: Handle port as string (description) and portData as LocationData object
+  let portDescription = base.port;
+  let portDataNormalized = base.portData;
+  
+  if (incoming.port !== undefined) {
+    if (typeof incoming.port === 'string') {
+      // Port is a string description
+      portDescription = incoming.port;
+    } else if (isObject(incoming.port)) {
+      // Legacy: port is an object, extract description if available
+      portDescription = incoming.port.locationDescription || incoming.port.locationInput || "";
+      portDataNormalized = normalizeLocation(incoming.port);
+    }
+  }
+  
+  // If portData is provided separately, use it
+  if (incoming.portData !== undefined && isObject(incoming.portData)) {
+    portDataNormalized = normalizeLocation(incoming.portData);
+  }
+
   return {
     ...base,
     ...incoming,
+    port: portDescription, // String description
+    portData: portDataNormalized, // LocationData object
+    portEnabled: incoming.portEnabled ?? base.portEnabled,
     waterQuality: normalizeLocation(incoming.waterQuality),
-    port: normalizeLocation(incoming.port),
     data: mergeObjects(base.data, incoming.data),
     parameters: ensureArray(incoming.parameters, base.parameters),
     ports: ensureArray(incoming.ports, base.ports).map(normalizePort),
@@ -617,8 +735,25 @@ const normalizeProcessDocumentation = (incoming) => {
 const normalizeLocationCoverage = (incoming) => {
   const base = createLocationCoverageSection();
   if (!isObject(incoming)) return base;
+  
+  // ✅ FIX: Deep merge formData to ensure all 14 parameters are always present
+  const mergedFormData = { ...base.formData };
+  if (incoming.formData && isObject(incoming.formData)) {
+    // Overlay stored values on top of default structure
+    Object.keys(base.formData).forEach((key) => {
+      if (incoming.formData[key]) {
+        mergedFormData[key] = {
+          ...base.formData[key],
+          ...incoming.formData[key],
+          // Preserve subFields structure if it exists in default
+          subFields: incoming.formData[key].subFields || base.formData[key].subFields,
+        };
+      }
+    });
+  }
+  
   return {
-    formData: mergeObjects(base.formData, incoming.formData),
+    formData: mergedFormData,
     otherComponents: ensureArray(
       incoming.otherComponents,
       base.otherComponents
@@ -672,6 +807,11 @@ const normalizeReportData = (reportData = {}) => {
     executiveSummaryOfCompliance: normalizeExecutiveSummary(
       sourceData.executiveSummaryOfCompliance
     ),
+    // ✅ FIX: Normalize Compliance Monitoring Report Discussion
+    complianceMonitoringReportDiscussion: mergeObjects(
+      base.complianceMonitoringReportDiscussion,
+      sourceData.complianceMonitoringReportDiscussion || {}
+    ),
     processDocumentationOfActivitiesUndertaken: normalizeProcessDocumentation(
       sourceData.processDocumentationOfActivitiesUndertaken
     ),
@@ -693,6 +833,11 @@ const normalizeReportData = (reportData = {}) => {
     ),
     complianceToImpactManagementCommitments: normalizeImpactCommitmentsSection(
       sourceData.complianceToImpactManagementCommitments
+    ),
+    // ✅ FIX: Normalize ECC Conditions separately from Air Quality
+    eccConditionsAttachment: mergeObjects(
+      base.eccConditionsAttachment,
+      sourceData.eccConditionsAttachment || {}
     ),
     airQualityImpactAssessment: normalizeAirQualitySection(
       sourceData.airQualityImpactAssessment
@@ -729,6 +874,11 @@ const normalizeReportData = (reportData = {}) => {
         : sourceData.attendanceId !== undefined
           ? sourceData.attendanceId
           : base.attendanceUrl,
+    // ✅ FIX: Include attachments in normalized report data
+    attachments: ensureArray(
+      sourceData.attachments,
+      base.attachments || []
+    ),
   };
 };
 
@@ -1037,6 +1187,13 @@ export const useCmvrStore = create((set, get) => ({
         createdById: state.createdById,
         // ✅ FIX: Preserve edit tracking
         editedSections: state.editedSections,
+        // ✅ FIX: Explicitly ensure attachments and attendanceId are included
+        attachments: clonedReport.attachments || state.currentReport?.attachments || [],
+        attendanceId: clonedReport.attendanceId !== undefined 
+          ? clonedReport.attendanceId 
+          : (state.currentReport?.attendanceId !== undefined 
+            ? state.currentReport.attendanceId 
+            : null),
       };
 
       // ✅ FIX: Validate critical data before saving
@@ -1052,6 +1209,16 @@ export const useCmvrStore = create((set, get) => ({
       console.log("ECC MMT Additional members:", clonedReport.eccMmtAdditional?.length || 0);
       console.log("EPEP MMT Additional members:", clonedReport.epepMmtAdditional?.length || 0);
       console.log("Ocular MMT Additional members:", clonedReport.ocularMmtAdditional?.length || 0);
+      // ✅ FIX: Verify Date of CMR Submission and Permit Holder List
+      console.log("Date of CMR Submission:", clonedReport.generalInfo?.dateOfCMRSubmission || "NOT SET");
+      console.log("Permit Holder List count:", clonedReport.permitHolderList?.length || 0);
+      if (clonedReport.permitHolderList && clonedReport.permitHolderList.length > 0) {
+        console.log("Permit Holders:", clonedReport.permitHolderList);
+      }
+      // ✅ FIX: Verify attendanceId
+      console.log("Attendance ID:", clonedReport.attendanceId || "NOT SET");
+      // ✅ FIX: Verify attachments (if stored in report)
+      console.log("Attachments count:", clonedReport.attachments?.length || 0);
       console.log("================");
 
       // Save to multi-file draft system (so it appears in the list)
@@ -1102,6 +1269,16 @@ export const useCmvrStore = create((set, get) => ({
       console.log("=== CMVR Draft Load Debug ===");
       console.log("Draft sections count:", Object.keys(draftData).length);
       console.log("Draft saved at:", draftData.savedAt);
+      // ✅ FIX: Verify Date of CMR Submission and Permit Holder List in draft
+      console.log("Date of CMR Submission in draft:", draftData.generalInfo?.dateOfCMRSubmission || "NOT SET");
+      console.log("Permit Holder List in draft:", draftData.permitHolderList?.length || 0, "items");
+      if (draftData.permitHolderList && draftData.permitHolderList.length > 0) {
+        console.log("Permit Holders:", draftData.permitHolderList);
+      }
+      // ✅ FIX: Verify attendanceId in draft
+      console.log("Attendance ID in draft:", draftData.attendanceId || "NOT SET");
+      // ✅ FIX: Verify attachments in draft
+      console.log("Attachments in draft:", draftData.attachments?.length || 0, "items");
       
       // ✅ FIX: Use loadReport to properly restore all sections
       get().loadReport(draftData);
@@ -1119,6 +1296,11 @@ export const useCmvrStore = create((set, get) => ({
         lastSavedAt: draftData.savedAt || null,
       });
       
+      // ✅ FIX: Verify restoration after loadReport
+      const restoredReport = get().currentReport;
+      console.log("Date of CMR Submission after restore:", restoredReport?.generalInfo?.dateOfCMRSubmission || "NOT SET");
+      console.log("Permit Holder List after restore:", restoredReport?.permitHolderList?.length || 0, "items");
+      console.log("Attendance ID after restore:", restoredReport?.attendanceId || "NOT SET");
       console.log("✅ Draft loaded successfully with all metadata");
       console.log("================");
 
@@ -1176,7 +1358,7 @@ export const useCmvrStore = create((set, get) => ({
     );
   },
 
-  submitReport: async (token) => {
+  submitReport: async (token, attachments, fileNameOverride) => {
     const state = get();
 
     if (!state.currentReport) {
@@ -1197,8 +1379,28 @@ export const useCmvrStore = create((set, get) => ({
         throw new Error("Failed to prepare report data. Please check all required fields.");
       }
 
+      // Add attachments to payload if provided
+      if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+        const formattedAttachments = attachments
+          .filter((a) => !!a.path)
+          .map((a) => ({ path: a.path, caption: a.caption || undefined }));
+        reportPayload.attachments = formattedAttachments;
+        console.log("[CMVR Store] Added attachments to payload:", formattedAttachments);
+        console.log("[CMVR Store] Attachment count:", formattedAttachments.length);
+      } else {
+        console.log("[CMVR Store] No attachments provided or attachments array is empty");
+        console.log("[CMVR Store] Attachments value:", attachments);
+      }
+      
+      console.log("[CMVR Store] Final payload attachments:", reportPayload.attachments);
+
       // Construct endpoint with fileName as query param
-      const fileName = state.fileName || "Untitled";
+      // Use fileNameOverride if provided, otherwise use state.fileName, fallback to "Untitled"
+      const fileName = fileNameOverride || state.fileName || "Untitled";
+      // Update store's fileName if override was provided
+      if (fileNameOverride && fileNameOverride !== state.fileName) {
+        set({ fileName: fileNameOverride });
+      }
       const endpoint = `${BASE_URL}/cmvr?fileName=${encodeURIComponent(fileName)}`;
 
       console.log("[CMVR Store] Submitting report:", fileName);

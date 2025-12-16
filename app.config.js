@@ -73,6 +73,11 @@ export default {
       "expo-secure-store",
     ],
 
+    // ✅ FIX: Disable Expo Updates for development to prevent "Failed to download remote update" error
+    updates: {
+      enabled: false, // Disable OTA updates in development
+      fallbackToCacheTimeout: 0,
+    },
     extra: {
       eas: {
         projectId: "30d8e4cc-d22b-49c7-8458-453bb24cf613"

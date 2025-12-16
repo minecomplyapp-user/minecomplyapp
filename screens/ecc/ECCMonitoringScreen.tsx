@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -274,6 +274,58 @@ if (result.success && result.download_url) {
       loadMonitoringData(selectedReport);
     }
   }, [selectedReport]);
+
+  // ✅ FIX: Auto-save draft on field changes (debounced)
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    // Skip auto-save on initial mount
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    // Skip auto-save if no filename (new report not initialized)
+    if (!filename && !id) {
+      return;
+    }
+
+    // Debounce auto-save by 2 seconds
+    const timeoutId = setTimeout(async () => {
+      try {
+        const draftData = getMonitoringData();
+        if (id) {
+          // Update existing draft
+          await updateDraft(id, draftData);
+          console.log("✅ ECC draft auto-saved (update)");
+        } else {
+          // Create new draft
+          const result = await saveDraft(draftData);
+          if (result.success && result.draft?.id) {
+            console.log("✅ ECC draft auto-saved (new):", result.draft.id);
+          }
+        }
+      } catch (error) {
+        console.error("❌ ECC auto-save failed:", error);
+        // Silently fail - don't interrupt user
+      }
+    }, 2000); // 2 second debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    filename,
+    companyName,
+    status,
+    date,
+    contactPerson,
+    mmtPosition,
+    mailingAddress,
+    telNo,
+    faxNo,
+    emailAddress,
+    permit_holders,
+    recommendations,
+    permitHolderType,
+  ]);
 
   const onChangeDate = (_event: any, selectedDate?: Date) => {
     const currentDate = selectedDate || date || new Date();

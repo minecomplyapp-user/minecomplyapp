@@ -401,11 +401,29 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
     });
   }, [formData, otherComponents, uploadedImages]);
 
-  // ✅ FIX: Load existing data from store on mount
+  // ✅ FIX: Load existing data from store on mount - merge with defaults to ensure all parameters are always present
   useEffect(() => {
     const stored = currentReport?.complianceToProjectLocationAndCoverageLimits;
     if (stored) {
-      if (stored.formData) setFormData(stored.formData);
+      // Merge stored formData with default formData to ensure all 14 parameters are always present
+      if (stored.formData) {
+        setFormData((prevDefault) => {
+          // Start with default formData structure (all 14 parameters)
+          const merged = { ...prevDefault };
+          // Overlay stored values, preserving structure for missing parameters
+          Object.keys(prevDefault).forEach((key) => {
+            if (stored.formData[key]) {
+              merged[key] = {
+                ...prevDefault[key],
+                ...stored.formData[key],
+                // Preserve subFields structure if it exists in default
+                subFields: stored.formData[key].subFields || prevDefault[key].subFields,
+              };
+            }
+          });
+          return merged;
+        });
+      }
       if (stored.otherComponents) setOtherComponents(stored.otherComponents);
       if (stored.uploadedImages) setUploadedImages(stored.uploadedImages);
     }
@@ -637,8 +655,24 @@ const ComplianceMonitoringScreen = ({ navigation, route }: any) => {
     let isCancelled = false;
 
     if (saved) {
+      // ✅ FIX: Merge saved formData with default formData to ensure all 14 parameters are always present
       if (saved.formData) {
-        setFormData((prev) => ({ ...prev, ...saved.formData }));
+        setFormData((prevDefault) => {
+          // Start with default formData structure (all 14 parameters)
+          const merged = { ...prevDefault };
+          // Overlay saved values, preserving structure for missing parameters
+          Object.keys(prevDefault).forEach((key) => {
+            if (saved.formData[key]) {
+              merged[key] = {
+                ...prevDefault[key],
+                ...saved.formData[key],
+                // Preserve subFields structure if it exists in default
+                subFields: saved.formData[key].subFields || prevDefault[key].subFields,
+              };
+            }
+          });
+          return merged;
+        });
       }
       if (Array.isArray(saved.otherComponents)) {
         setOtherComponents(saved.otherComponents);

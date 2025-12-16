@@ -96,19 +96,51 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
   };
   
   const updatePermitHolderList = (newHolder: string) => {
-    setPermitHolderList((prevList) =>
+    setPermitHolderList((prevList) => {
+      // ✅ FIX: Add defensive array check
+      if (!Array.isArray(prevList)) {
+        console.error("permitHolderList is not an array:", prevList);
+        return [newHolder];
+      }
+
       // If the new holder is NOT in the list, spread the previous list and add the new holder.
-      // Otherwise, return the previous list (prevList).
-      prevList.includes(newHolder) ? prevList : [...prevList, newHolder]
-    );
+      if (prevList.includes(newHolder)) {
+        console.log(`Permit holder "${newHolder}" already exists, skipping`);
+        return prevList;
+      }
+
+      const newList = [...prevList, newHolder];
+      console.log(`Added permit holder "${newHolder}". New length: ${newList.length}`, newList);
+      return newList;
+    });
   };
   const handleRemoveHolder = (index: number) => {
     if (typeof setPermitHolderList !== "function") return;
 
-    setPermitHolderList((prevList) =>
-      // Filter out the element whose index (i) matches the index passed in
-      prevList.filter((_, i) => i !== index)
-    );
+    // ✅ FIX: Defensive check for valid index
+    if (index < 0) {
+      console.warn("Invalid index for removeHolder:", index);
+      return;
+    }
+
+    setPermitHolderList((prevList) => {
+      // ✅ FIX: Ensure prevList is array
+      if (!Array.isArray(prevList)) {
+        console.error("permitHolderList is not an array:", prevList);
+        return [];
+      }
+
+      // ✅ FIX: Ensure index exists
+      if (index >= prevList.length) {
+        console.warn(`Index ${index} out of bounds for list length ${prevList.length}`);
+        return prevList;
+      }
+
+      const holderToRemove = prevList[index];
+      const newList = prevList.filter((_, i) => i !== index);
+      console.log(`Removed permit holder "${holderToRemove}" at index ${index}. New length: ${newList.length}`, newList);
+      return newList;
+    });
   };
   const updateISAGInfo = (field: keyof ISAGInfo, value: string | boolean) => {
     setIsagInfo((prev) => {
@@ -248,7 +280,7 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
           >
             {permitHolderList.map((holder, index) => (
               <TouchableOpacity
-                key={index}
+                key={`permit-holder-${holder}-${index}`}
                 style={styles.holderBadge}
                 onPress={() => handleRemoveHolder(index)}
               >
@@ -731,136 +763,139 @@ const CombinedECCISAGSection: React.FC<CombinedSectionProps> = ({
                 </View>
               </View>
             ))}
-
-            <View style={styles.divider} />
-
-            <View style={styles.subsectionHeader}>
-              <Ionicons name="business-outline" size={18} color="#6B7280" />
-              <Text style={styles.subsectionTitle}>Project Information</Text>
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Project Current Name</Text>
-              <TextInput
-                style={styles.input}
-                value={isagInfo?.currentName || ""}
-                onChangeText={(text) => updateISAGInfo("currentName", text)}
-                placeholder="Enter current project name"
-                placeholderTextColor="#9CA3AF"
-              />
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Project Status</Text>
-              <TextInput
-                style={styles.input}
-                value={isagInfo?.projectStatus || ""}
-                onChangeText={(text) => updateISAGInfo("projectStatus", text)}
-                placeholder="Enter project status"
-                placeholderTextColor="#9CA3AF"
-              />
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Geographical Coordinates</Text>
-              <View style={styles.coordinatesContainer}>
-                <View style={styles.coordinateField}>
-                  <Text style={styles.coordinateLabel}>Latitude (X)</Text>
-                  <TextInput
-                    style={styles.coordinateInput}
-                    value={isagInfo?.gpsX || ""}
-                    onChangeText={(text) => updateISAGInfo("gpsX", text)}
-                    placeholder="0.000000"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-                <View style={styles.coordinateField}>
-                  <Text style={styles.coordinateLabel}>Longitude (Y)</Text>
-                  <TextInput
-                    style={styles.coordinateInput}
-                    value={isagInfo?.gpsY || ""}
-                    onChangeText={(text) => updateISAGInfo("gpsY", text)}
-                    placeholder="0.000000"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.subsectionHeader}>
-              <Ionicons name="person-outline" size={18} color="#6B7280" />
-              <Text style={styles.subsectionTitle}>Proponent Information</Text>
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Proponent Name</Text>
-              <TextInput
-                style={styles.input}
-                value={isagInfo?.proponentName || ""}
-                onChangeText={(text) => updateISAGInfo("proponentName", text)}
-                placeholder="Enter proponent name"
-                placeholderTextColor="#9CA3AF"
-              />
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Contact Person & Position</Text>
-              <TextInput
-                style={styles.input}
-                value={isagInfo?.proponentContact || ""}
-                onChangeText={(text) =>
-                  updateISAGInfo("proponentContact", text)
-                }
-                placeholder="Enter contact person and position"
-                placeholderTextColor="#9CA3AF"
-              />
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Mailing Address</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={isagInfo?.proponentAddress || ""}
-                onChangeText={(text) =>
-                  updateISAGInfo("proponentAddress", text)
-                }
-                placeholder="Enter mailing address"
-                placeholderTextColor="#9CA3AF"
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Telephone / Fax Number</Text>
-              <TextInput
-                style={styles.input}
-                value={isagInfo?.proponentPhone || ""}
-                onChangeText={(text) => updateISAGInfo("proponentPhone", text)}
-                placeholder="09xx-xxx-xxxx"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="phone-pad"
-              />
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Email Address</Text>
-              <TextInput
-                style={styles.input}
-                value={isagInfo?.proponentEmail || ""}
-                onChangeText={(text) => updateISAGInfo("proponentEmail", text)}
-                placeholder="email@domain.com"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
           </View>
         )}
+
+        {/* Project Information Section - Always visible, independent of ISAG/MPP */}
+        <View style={styles.formContainerISAG}>
+          <View style={styles.divider} />
+
+          <View style={styles.subsectionHeader}>
+            <Ionicons name="business-outline" size={18} color="#6B7280" />
+            <Text style={styles.subsectionTitle}>Project Information</Text>
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Project Current Name</Text>
+            <TextInput
+              style={styles.input}
+              value={isagInfo?.currentName || ""}
+              onChangeText={(text) => updateISAGInfo("currentName", text)}
+              placeholder="Enter current project name"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Project Status</Text>
+            <TextInput
+              style={styles.input}
+              value={isagInfo?.projectStatus || ""}
+              onChangeText={(text) => updateISAGInfo("projectStatus", text)}
+              placeholder="Enter project status"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Geographical Coordinates</Text>
+            <View style={styles.coordinatesContainer}>
+              <View style={styles.coordinateField}>
+                <Text style={styles.coordinateLabel}>Latitude (X)</Text>
+                <TextInput
+                  style={styles.coordinateInput}
+                  value={isagInfo?.gpsX || ""}
+                  onChangeText={(text) => updateISAGInfo("gpsX", text)}
+                  placeholder="0.000000"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <View style={styles.coordinateField}>
+                <Text style={styles.coordinateLabel}>Longitude (Y)</Text>
+                <TextInput
+                  style={styles.coordinateInput}
+                  value={isagInfo?.gpsY || ""}
+                  onChangeText={(text) => updateISAGInfo("gpsY", text)}
+                  placeholder="0.000000"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="decimal-pad"
+                />
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.subsectionHeader}>
+            <Ionicons name="person-outline" size={18} color="#6B7280" />
+            <Text style={styles.subsectionTitle}>Proponent Information</Text>
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Proponent Name</Text>
+            <TextInput
+              style={styles.input}
+              value={isagInfo?.proponentName || ""}
+              onChangeText={(text) => updateISAGInfo("proponentName", text)}
+              placeholder="Enter proponent name"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Contact Person & Position</Text>
+            <TextInput
+              style={styles.input}
+              value={isagInfo?.proponentContact || ""}
+              onChangeText={(text) =>
+                updateISAGInfo("proponentContact", text)
+              }
+              placeholder="Enter contact person and position"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Mailing Address</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={isagInfo?.proponentAddress || ""}
+              onChangeText={(text) =>
+                updateISAGInfo("proponentAddress", text)
+              }
+              placeholder="Enter mailing address"
+              placeholderTextColor="#9CA3AF"
+              multiline
+              numberOfLines={3}
+            />
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Telephone / Fax Number</Text>
+            <TextInput
+              style={styles.input}
+              value={isagInfo?.proponentPhone || ""}
+              onChangeText={(text) => updateISAGInfo("proponentPhone", text)}
+              placeholder="09xx-xxx-xxxx"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Email Address</Text>
+            <TextInput
+              style={styles.input}
+              value={isagInfo?.proponentEmail || ""}
+              onChangeText={(text) => updateISAGInfo("proponentEmail", text)}
+              placeholder="email@domain.com"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          </View>
+        </View>
       </View>
     </View>
   );

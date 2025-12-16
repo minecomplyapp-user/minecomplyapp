@@ -736,8 +736,9 @@ const transformExecutiveSummaryForPayload = (raw: any) => {
 const transformProcessDocumentationForPayload = (raw: any) => {
   if (!raw) return undefined;
   const parseMembers = (text?: string, extras?: string[]) => {
+    // ✅ FIX: Only split by newline, not comma, to preserve "Name, Position" as single entry
     const base = (text || "")
-      .split(/[,\n]/)
+      .split(/\n/)
       .map((s) => s.trim())
       .filter(Boolean);
     const extra = (extras || []).map((s) => (s || "").trim()).filter(Boolean);
@@ -1192,12 +1193,14 @@ const transformWaterQualityForPayload = (raw: any) => {
         "quarryPlant",
         pickDescription(raw.quarryPlant, raw?.data?.quarryPlantInput),
       ],
+      ["port", pickDescription(raw.portInput, raw.port, raw?.data?.portInput)], // ✅ FIX: Prioritize portInput for port description
     ];
 
     const labels: Record<string, string> = {
       quarry: "Quarry",
       plant: "Plant",
       quarryPlant: "Quarry / Plant",
+      port: "Port", // ✅ FIX: Add port label
     };
 
     const map: Record<string, string> = {};
@@ -1222,10 +1225,12 @@ const transformWaterQualityForPayload = (raw: any) => {
   const hasNewStructurePayload =
     !!raw.waterQuality ||
     !!raw.port ||
+    !!raw.portData ||
     Object.values(locationDescriptions).some(Boolean) ||
     !!raw.quarryEnabled ||
     !!raw.plantEnabled ||
-    !!raw.quarryPlantEnabled;
+    !!raw.quarryPlantEnabled ||
+    !!raw.portEnabled;
 
   if (hasNewStructurePayload) {
     const result: any = {};
@@ -1239,6 +1244,9 @@ const transformWaterQualityForPayload = (raw: any) => {
     if (locationDescriptions.quarryPlant) {
       result.quarryPlant = locationDescriptions.quarryPlant;
     }
+    if (locationDescriptions.port) {
+      result.port = locationDescriptions.port;
+    }
 
     // Add checkbox states
     if (raw.quarryEnabled != null) {
@@ -1249,6 +1257,9 @@ const transformWaterQualityForPayload = (raw: any) => {
     }
     if (raw.quarryPlantEnabled != null) {
       result.quarryPlantEnabled = !!raw.quarryPlantEnabled;
+    }
+    if (raw.portEnabled != null) {
+      result.portEnabled = !!raw.portEnabled;
     }
 
     const buildLocationDescription = (source?: any) =>
@@ -1342,7 +1353,6 @@ const transformWaterQualityForPayload = (raw: any) => {
 
         if (locationDescription) {
           result.waterQuality.locationDescription = locationDescription;
-          result.waterQuality.description = locationDescription;
         }
       }
     }
@@ -1378,7 +1388,6 @@ const transformWaterQualityForPayload = (raw: any) => {
 
       return {
         locationDescription,
-        description: locationDescription,
         parameters: params,
         samplingDate,
         weatherAndWind,
@@ -1388,10 +1397,27 @@ const transformWaterQualityForPayload = (raw: any) => {
     };
 
     // Transform port data (separate from waterQuality)
-    if (raw.port) {
-      const portPayload = buildPortPayload(raw.port);
+    // ✅ FIX: Handle port as string description + portData as monitoring object
+    if (raw.portEnabled && (typeof raw.port === 'string' || raw.portData)) {
+      // Combine port description (string) with portData (monitoring object)
+      const portDescription = typeof raw.port === 'string' ? raw.port : "";
+      const portMonitoringData = raw.portData || (typeof raw.port === 'object' ? raw.port : {});
+      
+      // Build combined port source
+      const portSource = {
+        ...portMonitoringData,
+        locationInput: portDescription || portMonitoringData.locationInput || "",
+        locationDescription: portDescription || portMonitoringData.locationDescription || "",
+      };
+      
+      const portPayload = buildPortPayload(portSource);
       if (portPayload) {
+        // Ensure description is set from port string
+        if (portDescription.trim()) {
+          portPayload.locationDescription = sanitizeText(portDescription);
+        }
         result.port = portPayload;
+        result.portEnabled = true;
       }
     }
 
@@ -1633,6 +1659,33 @@ const transformWaterQualityForPayload = (raw: any) => {
     };
   }
 
+  // ✅ FIX: Handle portEnabled with port (string) and portData (object) in legacy structure
+  if (raw.portEnabled && (typeof raw.port === 'string' || raw.portData)) {
+    const portSource = raw.portData || d;
+    const portMainParam = makeParam(portSource);
+    const portExtraParams = Array.isArray(portSource?.parameters)
+      ? portSource.parameters.map(makeParam)
+      : [];
+
+    result.port = {
+      locationDescription: String(
+        typeof raw.port === 'string' 
+          ? raw.port 
+          : portSource?.portName ?? portSource?.locationInput ?? d?.port ?? ""
+      ),
+      parameters: [portMainParam, ...portExtraParams].filter((p) => p.name),
+      samplingDate: String(portSource?.dateTime ?? d?.dateTime ?? ""),
+      weatherAndWind: String(portSource?.weatherWind ?? d?.weatherWind ?? ""),
+      explanationForConfirmatorySampling: String(
+        portSource?.explanation ?? d?.explanation ?? ""
+      ),
+      overallAssessment: String(
+        portSource?.overallCompliance ?? d?.overallCompliance ?? ""
+      ),
+    };
+  }
+
+  // Legacy ports array handling
   if (ports?.length) {
     ports.forEach((port: any) => {
       const portMainParam = makeParam(port);
@@ -1665,6 +1718,7 @@ const transformNoiseQualityForPayload = (raw: any) => {
   const list = Array.isArray(raw.parameters) ? raw.parameters : [];
   const parameters = list.map((p: any) => ({
     name: String(p?.parameter ?? ""),
+    isParameterNA: !!p?.isParameterNA, // ✅ FIX: Preserve isParameterNA flag
     results: {
       inSMR: {
         current: String(p?.currentInSMR ?? ""),
@@ -1751,7 +1805,7 @@ const transformWasteManagementForPayload = (raw: any) => {
       ? sec.eccEpepCommitments
       : [];
     return items.map((it: any) => ({
-      typeOfWaste: String(sec?.typeOfWaste ?? ""),
+      typeOfWaste: String(it?.typeOfWaste ?? ""),
       eccEpepCommitments: {
         handling: String(it?.handling ?? ""),
         storage: String(it?.storage ?? ""),
@@ -3059,7 +3113,6 @@ const normalizeNoiseQualityFromApi = (raw: any) => {
 };
 
 const createEmptyWasteSection = (prefix: string): PlantPortSectionData => ({
-  typeOfWaste: "",
   eccEpepCommitments: [
     {
       id: createHydrationId(`${prefix}-waste`, 0),
@@ -3158,9 +3211,7 @@ const normalizeWasteManagementFromApi = (
       const formatted: WasteEntry[] = source.map(
         (entry: any, index: number) => ({
           id: createHydrationId(`${sectionKey}-entry`, index),
-          typeOfWaste: sanitizeString(
-            entry?.typeOfWaste ?? sectionTarget.typeOfWaste
-          ),
+          typeOfWaste: sanitizeString(entry?.typeOfWaste ?? ""),
           handling: sanitizeString(
             entry?.eccEpepCommitments?.handling ?? entry?.handling
           ),
@@ -3175,9 +3226,6 @@ const normalizeWasteManagementFromApi = (
                 : "No"
           ),
         })
-      );
-      sectionTarget.typeOfWaste = sanitizeString(
-        source[0]?.typeOfWaste ?? sectionTarget.typeOfWaste
       );
       const adequate = source[0]?.adequate;
       sectionTarget.isAdequate = adequate?.y
@@ -3365,6 +3413,7 @@ const buildCreateCMVRPayload = (
   options: {
     recommendationsData?: RecommendationsData;
     attendanceId?: string;
+    attachments?: Array<{ path: string; caption?: string }>;
   } = {},
   userId?: string
 ): CreateCMVRDto => {
@@ -3456,6 +3505,10 @@ const buildCreateCMVRPayload = (
     payload.executiveSummaryOfCompliance = transformExecutiveSummaryForPayload(
       norm.executiveSummaryOfCompliance
     );
+  }
+  // ✅ FIX: Add Compliance Monitoring Report Discussion to payload
+  if (norm.complianceMonitoringReportDiscussion) {
+    payload.complianceMonitoringReportDiscussion = norm.complianceMonitoringReportDiscussion;
   }
   if (norm.processDocumentationOfActivitiesUndertaken) {
     payload.processDocumentationOfActivitiesUndertaken =
@@ -3585,31 +3638,99 @@ const buildCreateCMVRPayload = (
       transformComplaintsForPayload(norm.complaintsVerificationAndManagement);
     hasComplianceData = true;
   }
+  // Prioritize recommendationsData from store (frontend format) over backend format
   if (
-    norm.recommendationFromPrevQuarter ||
-    options.recommendationsData?.previousRecommendations
+    options.recommendationsData?.previousRecommendations ||
+    norm.recommendationFromPrevQuarter
   ) {
     const transformedPrevRecommendations = transformRecommendationsForPayload(
       options.recommendationsData?.previousRecommendations,
       options.recommendationsData?.prevQuarter,
       options.recommendationsData?.prevYear
     );
+    
+    // Clean up norm.recommendationFromPrevQuarter to remove empty items
+    let cleanedPrevRecommendations = norm.recommendationFromPrevQuarter;
+    if (cleanedPrevRecommendations && typeof cleanedPrevRecommendations === 'object') {
+      const cleaned: any = { ...cleanedPrevRecommendations };
+      // Filter out empty items from each section (plant, quarry, port)
+      ['plant', 'quarry', 'port'].forEach((section) => {
+        if (Array.isArray(cleaned[section])) {
+          cleaned[section] = cleaned[section].filter((item: any) => {
+            if (!item || typeof item !== 'object') return false;
+            // Keep item if at least one field has content
+            return (
+              (item.recommendation && String(item.recommendation).trim()) ||
+              (item.commitment && String(item.commitment).trim()) ||
+              (item.status && String(item.status).trim())
+            );
+          });
+          // Remove section if it's now empty
+          if (cleaned[section].length === 0) {
+            delete cleaned[section];
+          }
+        }
+      });
+      // Only use cleaned if it has at least one non-empty section
+      const hasData = Object.keys(cleaned).some(
+        (key) => key !== 'quarter' && key !== 'year' && Array.isArray(cleaned[key]) && cleaned[key].length > 0
+      );
+      cleanedPrevRecommendations = hasData ? cleaned : undefined;
+    }
+    
+    // Prioritize transformed data from store (recommendationsData) over backend format
     complianceMonitoringReport.recommendationFromPrevQuarter =
-      norm.recommendationFromPrevQuarter || transformedPrevRecommendations;
-    hasComplianceData = true;
+      transformedPrevRecommendations || cleanedPrevRecommendations;
+    if (complianceMonitoringReport.recommendationFromPrevQuarter) {
+      hasComplianceData = true;
+    }
   }
+  // Prioritize recommendationsData from store (frontend format) over backend format
   if (
-    norm.recommendationForNextQuarter ||
-    options.recommendationsData?.currentRecommendations
+    options.recommendationsData?.currentRecommendations ||
+    norm.recommendationForNextQuarter
   ) {
     const transformedRecommendations = transformRecommendationsForPayload(
       options.recommendationsData?.currentRecommendations,
       generalInfo.quarter,
       generalInfo.year
     );
+    
+    // Clean up norm.recommendationForNextQuarter to remove empty items
+    let cleanedNextRecommendations = norm.recommendationForNextQuarter;
+    if (cleanedNextRecommendations && typeof cleanedNextRecommendations === 'object') {
+      const cleaned: any = { ...cleanedNextRecommendations };
+      // Filter out empty items from each section (plant, quarry, port)
+      ['plant', 'quarry', 'port'].forEach((section) => {
+        if (Array.isArray(cleaned[section])) {
+          cleaned[section] = cleaned[section].filter((item: any) => {
+            if (!item || typeof item !== 'object') return false;
+            // Keep item if at least one field has content
+            return (
+              (item.recommendation && String(item.recommendation).trim()) ||
+              (item.commitment && String(item.commitment).trim()) ||
+              (item.status && String(item.status).trim())
+            );
+          });
+          // Remove section if it's now empty
+          if (cleaned[section].length === 0) {
+            delete cleaned[section];
+          }
+        }
+      });
+      // Only use cleaned if it has at least one non-empty section
+      const hasData = Object.keys(cleaned).some(
+        (key) => key !== 'quarter' && key !== 'year' && Array.isArray(cleaned[key]) && cleaned[key].length > 0
+      );
+      cleanedNextRecommendations = hasData ? cleaned : undefined;
+    }
+    
+    // Prioritize transformed data from store (recommendationsData) over backend format
     complianceMonitoringReport.recommendationForNextQuarter =
-      norm.recommendationForNextQuarter || transformedRecommendations;
-    hasComplianceData = true;
+      transformedRecommendations || cleanedNextRecommendations;
+    if (complianceMonitoringReport.recommendationForNextQuarter) {
+      hasComplianceData = true;
+    }
   }
   // Relax gating: allow payload to include complianceMonitoringReport with any populated section
   if (hasComplianceData) {
@@ -3626,15 +3747,23 @@ const buildCreateCMVRPayload = (
     payload.attendanceId = payloadAttendanceId;
   }
 
-  // Add ECC Conditions attachment if uploaded
-  if (norm.airQualityImpactAssessment?.uploadedEccFile) {
-    const eccFile = norm.airQualityImpactAssessment.uploadedEccFile;
+  // ✅ FIX: Add ECC Conditions attachment from separate field (not air quality)
+  if (norm.eccConditionsAttachment?.uploadedEccFile) {
+    const eccFile = norm.eccConditionsAttachment.uploadedEccFile;
     payload.eccConditionsAttachment = {
       fileName: eccFile.name || "ECC Conditions Document",
       fileUrl: eccFile.publicUrl || eccFile.uri || null,
       mimeType: eccFile.mimeType || null,
       storagePath: eccFile.storagePath || null,
     };
+  }
+
+  // Add attachments if provided
+  if (options.attachments && options.attachments.length > 0) {
+    const formattedAttachments = options.attachments
+      .filter((a) => !!a.path)
+      .map((a) => ({ path: a.path, caption: a.caption || undefined }));
+    payload.attachments = formattedAttachments;
   }
 
   return payload;
@@ -3806,6 +3935,43 @@ const CMVRDocumentExportScreen = () => {
       setNewlyUploadedPaths(routeNewlyUploadedPaths);
     }
   }, [routeAttachments, routeNewlyUploadedPaths]);
+
+  // ✅ FIX: Load attachments from store when reopening draft/submitted report
+  useEffect(() => {
+    if (currentReport?.attachments && Array.isArray(currentReport.attachments) && currentReport.attachments.length > 0) {
+      // Only load if we don't already have attachments from route params
+      if (!routeAttachments || !Array.isArray(routeAttachments) || routeAttachments.length === 0) {
+        console.log("Loading attachments from store:", currentReport.attachments);
+        const formattedAttachments = currentReport.attachments.map((att: any) => ({
+          uri: att.path || att.uri || "",
+          path: att.path || att.uri || "",
+          caption: att.caption || "",
+          uploading: false,
+        }));
+        setAttachments(formattedAttachments);
+      }
+    }
+  }, [currentReport?.attachments, routeAttachments]);
+
+  // ✅ FIX: Sync attachments to store whenever they change
+  useEffect(() => {
+    if (attachments.length > 0 || (currentReport?.attachments && currentReport.attachments.length > 0)) {
+      // Convert local attachments format to store format
+      const storeAttachments = attachments.map((att) => ({
+        path: att.path || att.uri || "",
+        caption: att.caption || "",
+      }));
+      
+      // Only update if different from current store value
+      const currentStoreAttachments = currentReport?.attachments || [];
+      const isDifferent = JSON.stringify(storeAttachments) !== JSON.stringify(currentStoreAttachments);
+      
+      if (isDifferent) {
+        console.log("Syncing attachments to store:", storeAttachments.length, "items");
+        updateMultipleSections({ attachments: storeAttachments });
+      }
+    }
+  }, [attachments, updateMultipleSections]);
 
   // Keep attendance metadata in sync with latest selection routed back from AttendanceList
   useEffect(() => {
@@ -4091,6 +4257,18 @@ const CMVRDocumentExportScreen = () => {
               Object.assign(normalizedUpdate, normalizedComplianceSections);
             }
 
+            // ✅ FIX: Include permitHolderList in normalized update
+            if (reportData.permitHolderList && Array.isArray(reportData.permitHolderList)) {
+              normalizedUpdate.permitHolderList = reportData.permitHolderList;
+              console.log("Loading permit holder list:", reportData.permitHolderList.length, "items");
+            }
+
+            // ✅ FIX: Include attendanceId in normalized update
+            if (reportData.attendanceId) {
+              normalizedUpdate.attendanceId = reportData.attendanceId;
+              console.log("Loading attendance ID:", reportData.attendanceId);
+            }
+
             // Load attachments if they exist
             if (
               reportData.attachments &&
@@ -4110,6 +4288,8 @@ const CMVRDocumentExportScreen = () => {
               );
               setAttachments(loadedAttachments);
               console.log("Attachments loaded into state:", loadedAttachments);
+              // ✅ FIX: Also include attachments in normalized update for store
+              normalizedUpdate.attachments = reportData.attachments;
             }
 
             console.log("Successfully loaded report data from API");
@@ -4141,6 +4321,18 @@ const CMVRDocumentExportScreen = () => {
         };
 
         loadReport(storePayload);
+        
+        // ✅ FIX: Explicitly set attendanceId in store if present in merged data
+        if (merged.attendanceId) {
+          updateMultipleSections({ attendanceId: merged.attendanceId });
+          console.log("Set attendanceId in store:", merged.attendanceId);
+        }
+        
+        // ✅ FIX: Explicitly set permitHolderList in store if present
+        if (merged.permitHolderList && Array.isArray(merged.permitHolderList)) {
+          updateMultipleSections({ permitHolderList: merged.permitHolderList });
+          console.log("Set permitHolderList in store:", merged.permitHolderList.length, "items");
+        }
       }
 
       setDraftSnapshot(merged);
@@ -4301,27 +4493,29 @@ const CMVRDocumentExportScreen = () => {
         routeDraftUpdate,
         resolvedFileName
       );
+      // Format attachments for payload
+      const formattedAttachments =
+        attachments.length > 0
+          ? attachments
+              .filter((a) => !!a.path)
+              .map((a) => ({ path: a.path!, caption: a.caption || undefined }))
+          : undefined;
+
+      console.log("=== DEBUG UPDATE: Attachments state ===", attachments);
+      console.log(
+        "=== DEBUG UPDATE: Formatted attachments ===",
+        formattedAttachments
+      );
+
       const payload = buildCreateCMVRPayload(
         snapshotForSubmission,
         {
           recommendationsData: snapshotForSubmission.recommendationsData,
           attendanceId: resolvedAttendanceId ?? undefined,
+          attachments: formattedAttachments,
         },
         user?.id
       );
-
-      // Add attachments to payload
-      console.log("=== DEBUG UPDATE: Attachments state ===", attachments);
-      if (attachments.length > 0) {
-        const formattedAttachments = attachments
-          .filter((a) => !!a.path)
-          .map((a) => ({ path: a.path!, caption: a.caption || undefined }));
-        console.log(
-          "=== DEBUG UPDATE: Formatted attachments ===",
-          formattedAttachments
-        );
-        payload.attachments = formattedAttachments;
-      }
 
       console.log(
         "=== DEBUG UPDATE: Payload attachments ===",
@@ -4428,7 +4622,23 @@ const CMVRDocumentExportScreen = () => {
         setCreatedById(user.id);
       }
 
-      const result = await submitReport();
+      // Format attachments for submission
+      const formattedAttachments =
+        attachments.length > 0
+          ? attachments
+              .filter((a) => !!a.path)
+              .map((a) => ({ path: a.path!, caption: a.caption || undefined }))
+          : undefined;
+
+      console.log("=== DEBUG SUBMIT: Attachments state ===", attachments);
+      console.log(
+        "=== DEBUG SUBMIT: Formatted attachments ===",
+        formattedAttachments
+      );
+      console.log("=== DEBUG SUBMIT: Using fileName:", resolvedFileName);
+
+      // Pass resolvedFileName to submitReport to ensure correct fileName is used
+      const result = await submitReport(undefined, formattedAttachments, resolvedFileName);
 
       if (!result.success) {
         throw new Error(result.error || "Failed to submit CMVR report");
@@ -4476,6 +4686,114 @@ const CMVRDocumentExportScreen = () => {
       return;
     }
 
+    // Check if there are local attachments that need to be saved
+    if (attachments.length > 0 && submittedReportId) {
+      console.log(
+        "=== DEBUG GENERATE: Found local attachments, checking if update needed ===",
+        attachments
+      );
+      
+      // Auto-update the report with attachments before generating
+      try {
+        setIsGenerating(true);
+        const snapshotForSubmission = mergeDraftData(
+          draftSnapshot || currentReport || {},
+          routeDraftUpdate,
+          resolvedFileName
+        );
+        
+        const formattedAttachments = attachments
+          .filter((a) => !!a.path)
+          .map((a) => ({ path: a.path!, caption: a.caption || undefined }));
+
+        const payload = buildCreateCMVRPayload(
+          snapshotForSubmission,
+          {
+            recommendationsData: snapshotForSubmission.recommendationsData,
+            attendanceId: resolvedAttendanceId ?? undefined,
+            attachments: formattedAttachments,
+          },
+          user?.id
+        );
+
+        console.log(
+          "=== DEBUG GENERATE: Auto-updating report with attachments ===",
+          formattedAttachments
+        );
+
+        // Generate a proper fileName - prefer resolvedFileName, but generate from generalInfo if it's "Untitled"
+        let fileNameForUpdate: string | undefined = undefined;
+        const resolved = sanitizeString(resolvedFileName);
+        const snapshotFileName = sanitizeString(snapshotForSubmission.fileName);
+        const generalInfo = snapshotForSubmission.generalInfo || {};
+        
+        // Try to generate fileName from generalInfo if we don't have a good one
+        const generateFileNameFromGeneralInfo = () => {
+          const company = sanitizeString(generalInfo.companyName);
+          const quarter = sanitizeString(generalInfo.quarter);
+          const year = sanitizeString(generalInfo.year);
+          const dateOfCompliance = sanitizeString(generalInfo.dateOfCompliance);
+          
+          // Try to extract date from dateOfCompliance (format: "YYYY-MM-DD" or similar)
+          let datePart = "";
+          if (dateOfCompliance) {
+            const dateMatch = dateOfCompliance.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (dateMatch) {
+              datePart = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+            } else {
+              // Try other date formats
+              const dateObj = new Date(dateOfCompliance);
+              if (!isNaN(dateObj.getTime())) {
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                datePart = `${dateObj.getFullYear()}-${month}-${day}`;
+              }
+            }
+          }
+          
+          // Generate fileName: "CMVR YYYY-MM-DD HHMM" or "CMVR CompanyName Quarter Year"
+          if (datePart) {
+            const timePart = new Date().toTimeString().slice(0, 5).replace(':', '');
+            return `CMVR ${datePart} ${timePart}`;
+          } else if (company && quarter && year) {
+            return `CMVR ${company} ${quarter} ${year}`;
+          } else if (company) {
+            return `CMVR ${company}`;
+          }
+          return undefined;
+        };
+        
+        // Prefer resolvedFileName if it's not "Untitled"
+        if (resolved && resolved !== "Untitled" && resolved.trim().length > 0) {
+          fileNameForUpdate = resolved;
+        } else if (snapshotFileName && snapshotFileName !== "Untitled" && snapshotFileName.trim().length > 0) {
+          fileNameForUpdate = snapshotFileName;
+        } else {
+          // Generate from generalInfo
+          const generated = generateFileNameFromGeneralInfo();
+          if (generated) {
+            fileNameForUpdate = generated;
+          }
+        }
+        
+        console.log("=== DEBUG GENERATE: Updating report with fileName:", fileNameForUpdate);
+        console.log("=== DEBUG GENERATE: resolvedFileName:", resolvedFileName);
+        console.log("=== DEBUG GENERATE: snapshot fileName:", snapshotForSubmission.fileName);
+        console.log("=== DEBUG GENERATE: generalInfo:", generalInfo);
+        
+        await updateCMVRReport(submittedReportId, payload, fileNameForUpdate);
+        console.log("=== DEBUG GENERATE: Report updated with attachments successfully ===");
+      } catch (updateError: any) {
+        console.error("Failed to auto-update report with attachments:", updateError);
+        // Continue with document generation even if update fails
+        Alert.alert(
+          "Warning",
+          "Could not save attachments to the report. The document will be generated without the latest attachments.",
+          [{ text: "Continue", onPress: () => {} }]
+        );
+      }
+    }
+
     setIsGenerating(true);
     try {
       await generateCMVRDocx(reportId, resolvedFileName);
@@ -4521,6 +4839,7 @@ const CMVRDocumentExportScreen = () => {
   const mmtInfo = currentReport?.mmtInfo ?? defaultMmtInfo;
   const permitHolderList = currentReport?.permitHolderList || [];
   const executiveSummary = currentReport?.executiveSummaryOfCompliance;
+  const complianceDiscussion = currentReport?.complianceMonitoringReportDiscussion;
   const processDocumentation =
     currentReport?.processDocumentationOfActivitiesUndertaken;
   const complianceProjectLocation =
@@ -4661,6 +4980,21 @@ const CMVRDocumentExportScreen = () => {
       complianceWithGoodPracticeInChemicalSafetyManagement: chemicalSafetyData,
       complaintsVerificationAndManagement: complaintsData,
       recommendationsData,
+      draftData: draftPayload,
+    } as any);
+  };
+
+  const navigateToComplianceDiscussion = () => {
+    navigation.navigate("ComplianceDiscussionScreen", {
+      ...baseNavParams,
+      draftData: draftPayload,
+    } as any);
+  };
+
+  const navigateToAirQuality = () => {
+    navigation.navigate("EnvironmentalCompliance", {
+      ...baseNavParams,
+      airQualityImpactAssessment: airQualityAssessment,
       draftData: draftPayload,
     } as any);
   };
@@ -4868,6 +5202,20 @@ const CMVRDocumentExportScreen = () => {
             value={executiveSummary ? "Available" : "Not provided"}
             onPress={navigateToPage2}
             isEdited={isSectionEdited("executiveSummaryOfCompliance")}
+          />
+          <SummaryItem
+            icon="📝"
+            title="Compliance Monitoring Report and Discussion"
+            value={complianceDiscussion ? "Available" : "Not provided"}
+            onPress={navigateToComplianceDiscussion}
+            isEdited={isSectionEdited("complianceMonitoringReportDiscussion")}
+          />
+          <SummaryItem
+            icon="🌬️"
+            title="Air Quality Assessment"
+            value={airQualityAssessment ? "Available" : "Not provided"}
+            onPress={navigateToAirQuality}
+            isEdited={isSectionEdited("airQualityImpactAssessment")}
           />
           <SummaryItem
             icon="🗂️"

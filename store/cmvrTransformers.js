@@ -212,15 +212,15 @@ const buildImpactManagementSection = (rawSection) => {
   }
 
   const buildConstructionEntry = (label, value) => {
-    const hasValue = value !== undefined && value !== null && value !== "";
-    if (!hasValue) return null;
+    // ✅ FIX: Always return entry for Pre-Construction and Construction with "N/A" if no value
+    // These sections must always appear in CMVR reports
     return {
       areaName: label,
       commitments: [
         {
           plannedMeasure: `${label} compliance`,
-          actualObservation: sanitizeString(value) || "N/A",
-          isEffective: coerceBoolean(value),
+          actualObservation: "N/A", // ✅ Always N/A for Pre-Construction and Construction
+          isEffective: false,
           recommendations: "",
         },
       ],
@@ -230,7 +230,7 @@ const buildImpactManagementSection = (rawSection) => {
   const constructionInfo = [
     buildConstructionEntry("Pre-Construction", rawSection.preConstruction),
     buildConstructionEntry("Construction", rawSection.construction),
-  ].filter(Boolean);
+  ]; // ✅ FIX: Don't filter - always include both entries
 
   const implementationSections = [
     mapOperationSectionToCommitments(
@@ -355,8 +355,9 @@ export const transformProcessDocumentation = (processDoc) => {
   }
 
   const parseMembers = (text = "", extras = []) => {
+    // ✅ FIX: Only split by newline, not comma, to preserve "Name, Position" as single entry
     const base = String(text)
-      .split(/[\n,]/)
+      .split(/\n/)
       .map((entry) => entry.trim())
       .filter(Boolean);
     const additional = Array.isArray(extras)
@@ -1270,6 +1271,55 @@ const buildWaterQualityImpactAssessment = (raw) => {
     };
   }
 
+  // ✅ FIX: Handle portEnabled with port (string) and portData (object)
+  if (raw.portEnabled && (typeof raw.port === 'string' || raw.portData)) {
+    // Use portData if available, otherwise fall back to shared data
+    const portSource = raw.portData || d;
+    const portDescription = typeof raw.port === 'string'
+      ? raw.port
+      : (raw.portInput ||
+          (portSource?.portName ??
+            portSource?.locationInput ??
+            d?.port ??
+            ""));
+    
+    const portMainParam = makeParam(portSource);
+    const portExtraParams = Array.isArray(portSource?.parameters)
+      ? portSource.parameters.map(makeParam)
+      : [];
+
+    result.port = {
+      locationDescription: String(portDescription),
+      parameters: [portMainParam, ...portExtraParams]
+        .filter((param) => param?.name)
+        .map((param) => ({
+          ...param,
+          result: {
+            ...param.result,
+            internalMonitoring: {
+              ...param.result.internalMonitoring,
+              readings: param.result.internalMonitoring.readings.map(
+                (reading) => ({
+                  ...reading,
+                  current_mgL: parseFirstNumber(reading.current_mgL),
+                  previous_mgL: parseFirstNumber(reading.previous_mgL),
+                })
+              ),
+            },
+          },
+        })),
+      samplingDate: String(portSource?.dateTime ?? d?.dateTime ?? ""),
+      weatherAndWind: String(portSource?.weatherWind ?? d?.weatherWind ?? ""),
+      explanationForConfirmatorySampling: String(
+        portSource?.explanation ?? d?.explanation ?? ""
+      ),
+      overallAssessment: String(
+        portSource?.overallCompliance ?? d?.overallCompliance ?? ""
+      ),
+    };
+  }
+
+  // Legacy ports array handling
   if (ports?.length) {
     ports.forEach((port) => {
       const portMainParam = makeParam(port);
