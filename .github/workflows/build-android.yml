@@ -50,15 +50,15 @@ jobs:
           EOF
 
       - name: Make Gradlew executable
-        working-directory: android
-        run: chmod +x gradlew
+        working-directory: ./android
+        run: chmod +x ./gradlew
 
       - name: Clean build
-        working-directory: android
+        working-directory: ./android
         run: ./gradlew clean
 
       - name: Build Release APK
-        working-directory: android
+        working-directory: ./android
         env:
           NODE_OPTIONS: --max-old-space-size=8192
         run: |
