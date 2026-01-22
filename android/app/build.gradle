@@ -92,7 +92,7 @@ android {
         applicationId 'com.anonymous.minecomplyapp'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 55000
+        versionCode 1
         versionName "5.5.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
@@ -128,13 +128,12 @@ android {
     }
 
     // ✅ SPLITS - Build separate APKs per architecture to reduce memory
-    // universalApk = true ensures the APK works on ALL device architectures
     splits {
         abi {
             reset()
             enable true
-            universalApk true  // Generate universal APK that works on all devices
-            include "arm64-v8a", "armeabi-v7a"  // Support both modern (64-bit) and older (32-bit) devices
+            universalApk false
+            include "arm64-v8a"
         }
     }
     packagingOptions {
