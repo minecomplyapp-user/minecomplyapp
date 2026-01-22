@@ -76,34 +76,20 @@ jobs:
 
       - name: Find APK files
         run: |
-          echo "=== Searching entire project for APK files ==="
-          find . -name "*.apk" -type f -ls 2>/dev/null || echo "No APK files found"
-          echo ""
-          echo "=== Checking build directory structure ==="
-          if [ -d "android/app/build" ]; then
-            echo "✓ android/app/build exists"
-            ls -la android/app/build/ | head -20
-            if [ -d "android/app/build/outputs" ]; then
-              echo "✓ android/app/build/outputs exists"
-              find android/app/build/outputs -type f \( -name "*.apk" -o -name "*.aab" \) -ls 2>/dev/null || echo "No APK/AAB files in outputs"
-            else
-              echo "✗ android/app/build/outputs MISSING"
-            fi
-          else
-            echo "✗ android/app/build MISSING"
-          fi
+          echo "Searching for APK files..."
+          find android -name "*.apk" -type f || echo "No APK files found"
+          echo "Checking build outputs..."
+          ls -R android/app/build/outputs/ || echo "No build outputs directory"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: |
-            android/app/build/outputs/apk/**/*.apk
-            android/app/build/intermediates/apk/**/*.apk
+          path: android/app/build/outputs/apk/**/*.apk
           retention-days: 14
 
       - name: Print APK location
         run: |
           echo "✅ Build successful!"
           echo "APK files:"
-          find android/app/build -name "*.apk" -exec ls -lh {} \;
+          find android/app/build/outputs/apk -name "*.apk" -exec ls -lh {} \;
